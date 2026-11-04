@@ -55,7 +55,7 @@ export const en = {
     types: { sports: 'Sports', event: 'Event', waiting: 'Waiting', general: 'General' },
     errors: {
       invalid: 'This invite is invalid or the room has ended.',
-      throttled: 'Too many attempts. Try again in a few minutes.',
+      throttled: "Too many attempts. Try again in a few minutes, or scan the room's QR code to join.",
       full: 'This room is full.',
     },
   },
