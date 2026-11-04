@@ -1,6 +1,6 @@
 -- Re-runnable RLS / RPC permission test (supervisor note P1).
 -- Runs entirely inside one transaction and ends with ROLLBACK, so it leaves no data behind.
--- Requires all migrations through join_gate (20261104000008).
+-- Requires all migrations through join_gate_ipv6_prefix (20261104000009).
 -- Run as the database owner (postgres), e.g. Supabase MCP `execute_sql` with this file's contents,
 -- or `psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_test.sql`.
 -- Any failed expectation raises `FAIL: <label>` and aborts. Success ends with the row 'RLS TESTS PASSED'.
@@ -136,11 +136,14 @@ values
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000009', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000010', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000011', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000012', 'authenticated', 'authenticated', null, true, '{}', now(), now());
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000012', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000013', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000014', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000015', 'authenticated', 'authenticated', null, true, '{}', now(), now());
 
 do $$ begin
-  if (select count(*) from public.profiles where id::text like 'a0000000-0000-4000-8000-0000000000__') <> 12 then
-    raise exception 'FAIL: sign-up trigger did not create 12 profiles';
+  if (select count(*) from public.profiles where id::text like 'a0000000-0000-4000-8000-0000000000__') <> 15 then
+    raise exception 'FAIL: sign-up trigger did not create 15 profiles';
   end if;
 end $$;
 
@@ -566,6 +569,59 @@ select tests.headers('');
 do $$ begin
   if (select count(*) from public.join_attempts where user_id = 'a0000000-0000-4000-8000-000000000012' and not succeeded) <> 1 then
     raise exception 'FAIL: stress mode should persist exactly 1 failure row for U12';
+  end if;
+end $$;
+
+-- F6: per-IP key is the IPv6 /64 prefix; IPv4-mapped IPv6 equals its IPv4 address ---
+do $$ begin
+  if private.normalize_ip('2001:db8:1:2:aaaa::1') <> '2001:db8:1:2::/64'
+     or private.normalize_ip('2001:DB8:1:2:ffff:1:2:3') <> '2001:db8:1:2::/64'
+     or private.normalize_ip('::ffff:203.0.113.7') <> '203.0.113.7'
+     or private.normalize_ip('203.0.113.7') <> '203.0.113.7'
+     or private.normalize_ip('not-an-ip') <> 'not-an-ip'
+     or private.normalize_ip('') is not null then
+    raise exception 'FAIL: normalize_ip mapping';
+  end if;
+end $$;
+-- U13, U14, U15 each fail 10 code attempts from different addresses in one /64.
+do $$
+declare u text; a text; n int := 0;
+begin
+  foreach u in array array['a0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000014',
+                           'a0000000-0000-4000-8000-000000000015'] loop
+    n := n + 1;
+    a := (array['2001:db8:1:2::a', '2001:db8:1:2:aaaa:bbbb:cccc:1', '2001:db8:1:2:ffff::c'])[n];
+    perform tests.login(u::uuid, true);
+    perform tests.headers(json_build_object('cf-connecting-ip', a)::text);
+    set local role authenticated;
+    for i in 1..10 loop
+      perform tests.expect_null($q$ select public.join_room('66666x', null) $q$, 'IPv6 /64 failure ' || i || ' for ' || u);
+    end loop;
+    reset role;
+  end loop;
+end $$;
+select tests.login('a0000000-0000-4000-8000-000000000011', true);
+select tests.headers('{"cf-connecting-ip":"2001:db8:1:2::d"}');
+set local role authenticated;
+select tests.expect_sqlstate($q$ select public.join_room('66666x', null) $q$, 'PT429',
+  'another address in the same IPv6 /64 shares the per-IP budget');
+select tests.headers('{"cf-connecting-ip":"2001:db8:1:3::d"}');
+select tests.expect_null($q$ select public.join_room('66666x', null) $q$, 'a different IPv6 /64 has its own budget');
+select tests.headers('{"cf-connecting-ip":"::ffff:203.0.113.7"}');
+select tests.expect_sqlstate($q$ select public.join_room('66666x', null) $q$, 'PT429',
+  'IPv4-mapped IPv6 address counts as its IPv4 address');
+select tests.headers('{"cf-connecting-ip":"not-an-ip"}');
+select tests.expect_null($q$ select public.join_room('66666x', null) $q$, 'an unparseable IP header does not break the gate');
+reset role;
+select tests.headers('');
+do $$ begin
+  if (select count(*) from public.join_attempts
+      where user_id in ('a0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000014',
+                        'a0000000-0000-4000-8000-000000000015') and not succeeded) <> 30
+     or (select count(distinct ip_hash) from public.join_attempts
+         where user_id in ('a0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000014',
+                           'a0000000-0000-4000-8000-000000000015')) <> 1 then
+    raise exception 'FAIL: the three /64 addresses should persist 30 rows under one ip_hash';
   end if;
 end $$;
 
