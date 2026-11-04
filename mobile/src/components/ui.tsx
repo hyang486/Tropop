@@ -19,6 +19,7 @@ export const colors = {
   separator: PlatformColor('separator'),
   tint: PlatformColor('systemBlue'),
   danger: PlatformColor('systemRed'),
+  warning: PlatformColor('systemOrange'),
 };
 
 export function Screen({ children }: { children: ReactNode }) {

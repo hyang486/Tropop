@@ -23,10 +23,19 @@ function RootNavigator() {
         <Stack.Screen name="index" options={{ title: en.home.title, headerLargeTitle: true }} />
         <Stack.Screen name="profile" options={{ title: en.profile.title }} />
         <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, presentation: 'modal' }} />
+        <Stack.Screen name="create-room" options={{ title: en.createRoom.title }} />
+        <Stack.Screen name="join/index" options={{ title: en.join.title }} />
+        <Stack.Screen name="scan" options={{ title: en.scan.title }} />
+        <Stack.Screen name="preview" options={{ title: en.preview.title }} />
+        <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
+        <Stack.Screen name="room/[id]/invite" options={{ title: en.invite.title, presentation: 'modal' }} />
       </Stack.Protected>
 
+      {/* QR deep link moment://join/<token>; handles both signed-in and signed-out users. */}
+      <Stack.Screen name="join/[token]" options={{ headerShown: false }} />
+
       <Stack.Protected guard={!signedIn} redirectTo="/">
-        <Stack.Screen name="welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome" options={{ title: en.appName, headerShown: false }} />
         <Stack.Screen name="guest" options={{ title: en.guest.title }} />
         <Stack.Screen name="sign-in" options={{ title: en.signIn.title }} />
         <Stack.Screen name="sign-up" options={{ title: en.signUp.title }} />

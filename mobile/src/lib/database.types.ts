@@ -751,6 +751,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      rotate_invite: {
+        Args: { p_room_id: string }
+        Returns: {
+          code: string
+          invite_token: string
+        }[]
+      }
       set_activity_state: {
         Args: { p_room_id: string; p_state: string }
         Returns: undefined

@@ -1,6 +1,6 @@
 -- Re-runnable RLS / RPC permission test (supervisor note P1).
 -- Runs entirely inside one transaction and ends with ROLLBACK, so it leaves no data behind.
--- Requires all migrations through storage_buckets.
+-- Requires all migrations through rotate_invite (20261104000007).
 -- Run as the database owner (postgres), e.g. Supabase MCP `execute_sql` with this file's contents,
 -- or `psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_test.sql`.
 -- Any failed expectation raises `FAIL: <label>` and aborts. Success ends with the row 'RLS TESTS PASSED'.
@@ -48,6 +48,53 @@ begin
 end;
 $$;
 
+create function tests.expect_error_like(p_sql text, p_pattern text, p_label text) returns void language plpgsql as $$
+declare v_msg text;
+begin
+  begin
+    execute p_sql;
+  exception when others then
+    v_msg := sqlerrm;
+  end;
+  if v_msg is null then
+    raise exception 'FAIL: % (statement succeeded but should have failed)', p_label;
+  elsif v_msg not like p_pattern then
+    raise exception 'FAIL: % (wrong error: %)', p_label, v_msg;
+  end if;
+end;
+$$;
+
+-- Runs a statement and expects it to fail with the given SQLSTATE.
+create function tests.expect_sqlstate(p_sql text, p_state text, p_label text) returns void language plpgsql as $$
+declare v_state text;
+begin
+  begin
+    execute p_sql;
+  exception when others then
+    v_state := sqlstate;
+  end;
+  if v_state is null then
+    raise exception 'FAIL: % (statement succeeded but should have failed)', p_label;
+  elsif v_state <> p_state then
+    raise exception 'FAIL: % (sqlstate % instead of %)', p_label, v_state, p_state;
+  end if;
+end;
+$$;
+
+-- Runs a single-value query and expects SQL null (no error).
+create function tests.expect_null(p_sql text, p_label text) returns void language plpgsql as $$
+declare v text;
+begin
+  execute p_sql into v;
+  if v is not null then
+    raise exception 'FAIL: % (expected null, got %)', p_label, v;
+  end if;
+exception when others then
+  if sqlerrm like 'FAIL:%' then raise; end if;
+  raise exception 'FAIL: % (% %)', p_label, sqlstate, sqlerrm;
+end;
+$$;
+
 create function tests.expect_affected(p_sql text, p_n bigint, p_label text) returns void language plpgsql as $$
 declare v bigint;
 begin
@@ -67,11 +114,14 @@ values
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'rls-host@test.invalid', false, '{"display_name":"Host"}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000003', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated', null, true, '{}', now(), now());
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000005', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000006', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000007', 'authenticated', 'authenticated', null, true, '{}', now(), now());
 
 do $$ begin
-  if (select count(*) from public.profiles where id::text like 'a0000000-0000-4000-8000-00000000000%') <> 4 then
-    raise exception 'FAIL: sign-up trigger did not create 4 profiles';
+  if (select count(*) from public.profiles where id::text like 'a0000000-0000-4000-8000-00000000000%') <> 7 then
+    raise exception 'FAIL: sign-up trigger did not create 7 profiles';
   end if;
 end $$;
 
@@ -138,6 +188,7 @@ select tests.expect_error($q$ select public.set_activity_state(current_setting('
 select tests.expect_error($q$ select public.set_route(current_setting('t.r')::uuid, '[]'::jsonb) $q$,
   'guest cannot edit the route');
 select tests.expect_error($q$ select public.end_room(current_setting('t.r')::uuid) $q$, 'guest cannot end the room');
+select tests.expect_error($q$ select public.rotate_invite(current_setting('t.r')::uuid) $q$, 'guest cannot reissue the invite');
 select tests.expect_error($q$ select public.set_status_definitions(current_setting('t.r')::uuid, array['x']) $q$,
   'guest cannot edit statuses');
 select tests.expect_error($q$ select 1 from public.cleanup_jobs $q$, 'cleanup_jobs is not readable by clients');
@@ -215,6 +266,26 @@ select tests.expect_ok($q$ select public.ack_emergency((select id from public.em
 select tests.expect_ok($q$ select public.set_activity_state(current_setting('t.r')::uuid, 'ended') $q$, 'host ends the activity');
 select tests.expect_count($q$ select 1 from public.live_presence where room_id = current_setting('t.r')::uuid $q$, 0,
   'ending the activity clears all positions');
+select set_config('t.y_token', (select invite_token from public.rooms where id = current_setting('t.y')::uuid), true);
+select tests.expect_ok($q$ select public.rotate_invite(current_setting('t.y')::uuid) $q$, 'host reissues the invite of room Y');
+select set_config('t.y_new_code', (select code from public.rooms where id = current_setting('t.y')::uuid), true);
+select set_config('t.y_new_token', (select invite_token from public.rooms where id = current_setting('t.y')::uuid), true);
+select tests.expect_count($q$ select 1 from public.rooms where id = current_setting('t.y')::uuid
+  and code <> current_setting('t.y_code') and invite_token <> current_setting('t.y_token') $q$, 1,
+  'room Y code and token both changed after reissue');
+select tests.expect_count($q$ select 1 from public.preview_room(current_setting('t.y_code')) $q$, 0, 'old code no longer previews after reissue');
+select tests.expect_count($q$ select 1 from public.preview_room(null, current_setting('t.y_token')) $q$, 0, 'old token no longer previews after reissue');
+select tests.expect_null($q$ select public.join_room(null, current_setting('t.y_token')) $q$, 'old token cannot join after reissue');
+select tests.expect_null($q$ select public.join_room(current_setting('t.y_code'), null) $q$, 'old code cannot join after reissue');
+reset role;
+select tests.login('a0000000-0000-4000-8000-000000000006', true);
+set local role authenticated;
+select tests.expect_count($q$ select 1 from public.preview_room(current_setting('t.y_new_code')) $q$, 1, 'new code previews 1 row');
+select tests.expect_count($q$ select 1 from public.preview_room(null, current_setting('t.y_new_token')) $q$, 1, 'new token previews 1 row');
+select tests.expect_ok($q$ select public.join_room(current_setting('t.y_new_code'), null) $q$, 'non-member joins room Y with the new code');
+reset role;
+select tests.login('a0000000-0000-4000-8000-000000000001', false);
+set local role authenticated;
 select tests.expect_ok($q$ select public.end_room(current_setting('t.y')::uuid) $q$, 'host ends room Y early');
 reset role;
 
@@ -241,8 +312,10 @@ select tests.expect_error($q$ select public.mark_arrived(current_setting('t.r'):
 select tests.expect_count($q$ select 1 where public.report_location(current_setting('t.r')::uuid, 1, 1) $q$, 0, 'outsider location refused');
 select tests.expect_error($q$ select public.ack_emergency((select id from public.emergency_events limit 1)) $q$, 'outsider cannot acknowledge');
 select tests.expect_count($q$ select * from public.preview_room('99999x', null) $q$, 0, 'invalid code previews nothing');
-select tests.expect_error($q$ select public.join_room(null, 'not-a-token') $q$, 'invalid token cannot join');
-select tests.expect_error($q$ select public.join_room(current_setting('t.y_code'), null) $q$, 'cannot join a room the host ended');
+select tests.expect_null($q$ select public.join_room(null, 'not-a-token') $q$, 'invalid token cannot join');
+select tests.expect_null($q$ select public.join_room(current_setting('t.y_code'), null) $q$, 'cannot join a room the host ended');
+select tests.expect_count($q$ select 1 from public.room_members where room_id = current_setting('t.y')::uuid and user_id = auth.uid() $q$, 0,
+  'failed join adds no membership');
 reset role;
 
 -- Storage RLS (room-media, face-refs) ----------------------------------------
@@ -331,7 +404,7 @@ select tests.expect_error($q$ select public.mark_arrived(current_setting('t.x'):
 select tests.expect_count($q$ select 1 from public.rooms where id = current_setting('t.y')::uuid $q$, 0, 'room ended by host is hidden');
 select tests.expect_count($q$ select 1 from public.profiles where id = 'a0000000-0000-4000-8000-000000000001' $q$, 1,
   'profile visible while sharing open room R');
-select tests.expect_error($q$ select public.join_room(current_setting('t.x_code'), null) $q$, 'cannot join an expired room');
+select tests.expect_null($q$ select public.join_room(current_setting('t.x_code'), null) $q$, 'cannot join an expired room');
 reset role;
 
 select tests.login('a0000000-0000-4000-8000-000000000001', false);
@@ -351,6 +424,69 @@ select tests.expect_count($q$ select 1 from public.profiles $q$, 0, 'anon sees n
 select tests.expect_error($q$ select public.join_room(current_setting('t.r_code'), null) $q$, 'anon cannot call join_room');
 select tests.expect_error($q$ select * from public.preview_room(current_setting('t.r_code'), null) $q$, 'anon cannot preview rooms');
 select tests.expect_error($q$ select private.is_room_member(current_setting('t.r')::uuid) $q$, 'anon cannot call private helpers');
+reset role;
+
+-- Join throttle (supervisor F1): failed attempts persist and block after 10 -------
+-- P (…05) uses join_room only; Q (…06) uses preview_room only.
+select tests.login('a0000000-0000-4000-8000-000000000005', true);
+set local role authenticated;
+do $$ begin
+  for i in 1..10 loop
+    perform tests.expect_null($q$ select public.join_room('99999x', null) $q$, 'invalid join_room #' || i || ' returns null');
+  end loop;
+end $$;
+select tests.expect_error_like($q$ select public.join_room('99999x', null) $q$, 'Too many attempts%',
+  '11th invalid join_room is throttled');
+select tests.expect_error_like($q$ select public.join_room(current_setting('t.r_code'), null) $q$, 'Too many attempts%',
+  'throttle also blocks a valid code');
+select tests.expect_sqlstate($q$ select public.join_room('99999x', null) $q$, 'PT429',
+  'join throttle uses SQLSTATE PT429 (HTTP 429)');
+reset role;
+
+select tests.login('a0000000-0000-4000-8000-000000000006', true);
+set local role authenticated;
+do $$ begin
+  for i in 1..10 loop
+    perform tests.expect_count($q$ select * from public.preview_room('99999x', null) $q$, 0, 'invalid preview #' || i);
+  end loop;
+end $$;
+select tests.expect_error_like($q$ select * from public.preview_room('99999x', null) $q$, 'Too many attempts%',
+  '11th invalid preview_room is throttled');
+select tests.expect_sqlstate($q$ select * from public.preview_room('99999x', null) $q$, 'PT429',
+  'preview throttle uses SQLSTATE PT429 (HTTP 429)');
+reset role;
+
+-- Full room (supervisor N4): distinct SQLSTATE PT409 (HTTP 409) -------------------
+update public.rooms set max_members = (select count(*) from public.room_members m where m.room_id = rooms.id)
+where id = current_setting('t.r')::uuid;
+select tests.login('a0000000-0000-4000-8000-000000000007', true);
+set local role authenticated;
+select tests.expect_sqlstate($q$ select public.join_room(current_setting('t.r_code'), null) $q$, 'PT409',
+  'joining a full room fails with PT409');
+reset role;
+update public.rooms set max_members = 30 where id = current_setting('t.r')::uuid;
+
+do $$ begin
+  if (select count(*) from public.join_attempts
+      where user_id = 'a0000000-0000-4000-8000-000000000005' and not succeeded) <> 10 then
+    raise exception 'FAIL: join_room did not persist exactly 10 failed attempts';
+  end if;
+  if (select count(*) from public.join_attempts
+      where user_id = 'a0000000-0000-4000-8000-000000000006' and not succeeded) <> 10 then
+    raise exception 'FAIL: preview_room did not persist exactly 10 failed attempts';
+  end if;
+end $$;
+
+-- profiles.updated_at is maintained on update ---------------------------------
+alter table public.profiles disable trigger profiles_set_updated_at;
+update public.profiles set updated_at = now() - interval '1 day' where id = 'a0000000-0000-4000-8000-000000000002';
+alter table public.profiles enable trigger profiles_set_updated_at;
+select tests.login('a0000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select tests.expect_affected($q$ update public.profiles set display_name = 'Guest renamed' where id = auth.uid() $q$, 1,
+  'member renames own profile');
+select tests.expect_count($q$ select 1 from public.profiles where id = auth.uid() and updated_at = now() $q$, 1,
+  'profile update bumps updated_at');
 reset role;
 
 -- Room deletion queues storage cleanup for both buckets ------------------------
