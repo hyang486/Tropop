@@ -1,6 +1,6 @@
 -- Re-runnable RLS / RPC permission test (supervisor note P1).
 -- Runs entirely inside one transaction and ends with ROLLBACK, so it leaves no data behind.
--- Requires all migrations through rotate_invite (20261104000007).
+-- Requires all migrations through join_gate (20261104000008).
 -- Run as the database owner (postgres), e.g. Supabase MCP `execute_sql` with this file's contents,
 -- or `psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_test.sql`.
 -- Any failed expectation raises `FAIL: <label>` and aborts. Success ends with the row 'RLS TESTS PASSED'.
@@ -106,6 +106,20 @@ begin
 end;
 $$;
 
+-- Runs a statement inside a read-only transaction state, as PostgREST does for GET /rpc/*.
+-- The setting is undone when the enclosing subtransaction aborts.
+create function tests.read_only(p_sql text) returns void language plpgsql as $$
+begin
+  set local transaction_read_only = on;
+  execute p_sql;
+end;
+$$;
+
+-- Simulates the API gateway's request headers (PostgREST exposes them as request.headers).
+create function tests.headers(p_json text) returns void language sql as $$
+  select set_config('request.headers', p_json, true);
+$$;
+
 grant execute on all functions in schema tests to authenticated, anon;
 
 -- Fixed test identities (rolled back at the end).
@@ -117,11 +131,16 @@ values
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000005', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000006', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000007', 'authenticated', 'authenticated', null, true, '{}', now(), now());
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000007', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000008', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000009', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000010', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000011', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-8000-000000000012', 'authenticated', 'authenticated', null, true, '{}', now(), now());
 
 do $$ begin
-  if (select count(*) from public.profiles where id::text like 'a0000000-0000-4000-8000-00000000000%') <> 7 then
-    raise exception 'FAIL: sign-up trigger did not create 7 profiles';
+  if (select count(*) from public.profiles where id::text like 'a0000000-0000-4000-8000-0000000000__') <> 12 then
+    raise exception 'FAIL: sign-up trigger did not create 12 profiles';
   end if;
 end $$;
 
@@ -474,6 +493,79 @@ do $$ begin
   if (select count(*) from public.join_attempts
       where user_id = 'a0000000-0000-4000-8000-000000000006' and not succeeded) <> 10 then
     raise exception 'FAIL: preview_room did not persist exactly 10 failed attempts';
+  end if;
+end $$;
+
+-- F1b join gate: per-IP, stress mode, QR path, member re-open, GET -------------
+-- U8, U9, U10 each fail 10 code attempts from IP A: 30 failures for that IP.
+do $$
+declare u text;
+begin
+  foreach u in array array['a0000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000009',
+                           'a0000000-0000-4000-8000-000000000010'] loop
+    perform tests.login(u::uuid, true);
+    perform tests.headers('{"cf-connecting-ip":"203.0.113.7"}');
+    set local role authenticated;
+    for i in 1..10 loop
+      perform tests.expect_null($q$ select public.join_room('88888x', null) $q$, 'IP A failure ' || i || ' for ' || u);
+    end loop;
+    reset role;
+  end loop;
+end $$;
+select tests.login('a0000000-0000-4000-8000-000000000011', true);
+select tests.headers('{"cf-connecting-ip":"203.0.113.7"}');
+set local role authenticated;
+select tests.expect_sqlstate($q$ select public.join_room('88888x', null) $q$, 'PT429',
+  'per-IP limit (30) blocks a fresh user on the same IP');
+select tests.expect_sqlstate($q$ select * from public.preview_room('88888x', null) $q$, 'PT429',
+  'per-IP limit also covers preview_room');
+select tests.expect_count($q$ select 1 from public.preview_room(null, current_setting('t.r_token')) $q$, 1,
+  'QR token path still works on the blocked IP');
+select tests.headers('{"x-forwarded-for":"198.51.100.1, 203.0.113.7"}');
+select tests.expect_sqlstate($q$ select public.join_room('88888x', null) $q$, 'PT429',
+  'a forged first x-forwarded-for hop does not change the counted IP');
+select tests.headers('{"cf-connecting-ip":"203.0.113.8"}');
+select tests.expect_null($q$ select public.join_room('88888x', null) $q$, 'same user from another IP is not blocked');
+select tests.expect_sqlstate($q$ select tests.read_only($x$ select public.join_room('88888x', null) $x$) $q$, 'PT405',
+  'read-only (GET) join_room is rejected before any lookup');
+select tests.expect_sqlstate($q$ select tests.read_only($x$ select * from public.preview_room(current_setting('t.r_code'), null) $x$) $q$, 'PT405',
+  'read-only (GET) preview_room is rejected even for a valid code');
+reset role;
+do $$ begin
+  if (select count(*) from public.join_attempts where ip_hash is not null and not succeeded) <> 31 then
+    raise exception 'FAIL: expected 31 IP-tagged failure rows (30 on IP A, 1 on IP B)';
+  end if;
+  if exists (select 1 from public.join_attempts where ip_hash is not null and ip_hash !~ '^[0-9a-f]{64}$') then
+    raise exception 'FAIL: ip_hash must be a 64-char hex HMAC, never a raw IP';
+  end if;
+  if (select count(distinct ip_hash) from public.join_attempts where ip_hash is not null) <> 2 then
+    raise exception 'FAIL: expected exactly 2 distinct IP hashes';
+  end if;
+end $$;
+
+-- Stress mode: more than 200 code-path failures in the window (rows injected as postgres).
+insert into public.join_attempts (user_id, succeeded, kind)
+select 'a0000000-0000-4000-8000-000000000008', false, 'code' from generate_series(1, 201);
+select tests.login('a0000000-0000-4000-8000-000000000012', true);
+select tests.headers('{"cf-connecting-ip":"203.0.113.9"}');
+set local role authenticated;
+select tests.expect_null($q$ select public.join_room('77777x', null) $q$, 'stress mode: a fresh user still gets 1 code attempt');
+select tests.expect_sqlstate($q$ select public.join_room('77777x', null) $q$, 'PT429',
+  'stress mode: the 2nd code failure is blocked (per-user budget 1)');
+select tests.expect_ok($q$ select public.join_room(null, current_setting('t.r_token')) $q$,
+  'stress mode: the QR token path still joins');
+select tests.expect_count($q$ select 1 from public.preview_room(current_setting('t.r_code'), null) where already_member $q$, 1,
+  'stress mode: a blocked member can still preview its own room by code');
+select tests.expect_ok($q$ select public.join_room(current_setting('t.r_code'), null) $q$,
+  'stress mode: a blocked member re-opens its own room by code');
+select tests.expect_count($q$ select 1 from public.rooms where id = current_setting('t.r')::uuid $q$, 1,
+  'stress mode: member still reads its room');
+reset role;
+delete from public.join_attempts where user_id = 'a0000000-0000-4000-8000-000000000008' and ip_hash is null;
+select tests.headers('');
+do $$ begin
+  if (select count(*) from public.join_attempts where user_id = 'a0000000-0000-4000-8000-000000000012' and not succeeded) <> 1 then
+    raise exception 'FAIL: stress mode should persist exactly 1 failure row for U12';
   end if;
 end $$;
 
