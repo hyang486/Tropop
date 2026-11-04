@@ -1,0 +1,8 @@
+{
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "expo@claude-plugins-official": true,
+    "supabase@claude-plugins-official": true,
+    "effortless@effortless": true
+  }
+}
