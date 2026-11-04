@@ -18,8 +18,10 @@ Checkpoint 2, schema v1 plus auth: in progress (resumed 2026-11-04 after the mai
 
 1. Done: advisors re-run after migration 4 (see verification log).
 2. Done: migration 4 `storage_buckets` (20261104113431) applied; 10 storage cases added to `supabase/tests/rls_test.sql`.
-3. Commit `supabase/`, the plan and this status doc.
-4. App auth: `@supabase/supabase-js`, secure session store, host sign up/in/out, guest anonymous start. Then `npx tsc --noEmit` and `npx expo lint`, simulator sign-in evidence, and report checkpoint 2 to supervisor.
+3. Done: committed as fc0f1c2.
+4. App auth (code written, simulator evidence pending): `@supabase/supabase-js` 2.118.0 (pinned) with an encrypted session store (`mobile/src/lib/supabase.ts`: AES key in SecureStore, ciphertext in AsyncStorage, per the Supabase Expo guide), `AuthProvider` (`mobile/src/lib/auth.tsx`), protected routes in `mobile/src/app/_layout.tsx`, screens `welcome`, `guest`, `sign-in`, `sign-up`, `upgrade` (guest to host, same user id), `index` (Rooms placeholder), `profile` (name edit, account type, log out). UI copy in `mobile/src/i18n/en.ts`. DB types generated to `mobile/src/lib/database.types.ts`. Client env in ignored `mobile/.env.local`; template `mobile/.env.example`.
+   Remaining: simulator evidence for guest start, host sign-up/in/out, guest upgrade; then report checkpoint 2 to supervisor.
+   Deferred to later checkpoints: profile photo (needs an avatar storage path), account deletion (step 10, needs a server-side function), invite-preserving return after host auth (checkpoint 3).
 
 ## Environment facts (verified)
 
@@ -45,6 +47,10 @@ Checkpoint 2, schema v1 plus auth: in progress (resumed 2026-11-04 after the mai
 | RLS test incl. storage (after migration 4) | `execute_sql` with full `supabase/tests/rls_test.sql` (ROLLBACK) | `RLS TESTS PASSED` |
 | Leftover state (2026-11-04 after migration 4) | `execute_sql` counts | `tests` schema 0, auth.users 0, rooms 0, storage.objects 0; buckets `room-media` (private, no limit) and `face-refs` (private, 10 MB, jpeg/png/heic/heif/webp) |
 | Advisors after migration 4 | `get_advisors` security + performance | No ERROR. WARN `authenticated_security_definer_function_executable` x19 (intended public RPCs, each checks membership/role inside); WARN `auth_allow_anonymous_sign_ins` on member-scoped tables and storage (intended: guests are anonymous users, policies require membership); INFO `rls_enabled_no_policy` on `cleanup_jobs`, `expiry_reminders`, `join_attempts` (service-only, deny by default); INFO 4 unused indexes (empty database) |
+| Guest to host upgrade (live probe, 2026-11-04) | `POST /auth/v1/signup` `{}` then `PUT /auth/v1/user` with email+password, refresh, password sign-in | update returned `is_anonymous: false` with `email_confirmed_at` set; refreshed JWT `is_anonymous: false`; password sign-in ok. Probe user deleted by exact UUID+email afterwards (count 0) |
+| Typecheck + lint after auth code | `npx tsc --noEmit`; `npx expo lint` | exit 0; no lint problems |
+| Dev build with auth modules | `CI=1 npx expo run:ios --device 20541309-C36F-4864-94CA-D8A341F70EEB --no-bundler` | "Build Succeeded"; installed and opened; Metro "iOS Bundled 631ms (1356 modules)"; signed-out launch redirected to `/welcome` (screenshot `docs/evidence/checkpoint2-welcome-sim.png`) |
+| Simulator interaction (guest start, host sign-up/in/out, upgrade) | not run | blocked: no UI input tool available in this session (Expo MCP local tunnel not connected; `agent-device` via npx denied by the permission classifier). Waiting on the human's choice |
 | Metro connection | `CI=1 npx expo start --dev-client --port 8081`, then `xcrun simctl openurl <udid> 'exp+moment://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081'` | "iOS Bundled 1556ms node_modules/expo-router/entry.js (1285 modules)"; screenshot `docs/evidence/checkpoint1-devclient-sim.png` |
 
 ## Feature status
