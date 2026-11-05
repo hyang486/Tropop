@@ -41,6 +41,7 @@ function RootNavigator() {
         <Stack.Screen name="index" options={{ title: en.home.title, headerLargeTitle: true }} />
         <Stack.Screen name="profile" options={{ title: en.profile.title }} />
         <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, presentation: 'modal' }} />
+        <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title }} />
         <Stack.Screen name="create-room" options={{ title: en.createRoom.title }} />
         <Stack.Screen name="join/index" options={{ title: en.join.title }} />
         <Stack.Screen name="scan" options={{ title: en.scan.title }} />

@@ -143,6 +143,15 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Next (after the human unblocks): apply 0021 -> deploy delete-account -> device QA (photo set/replace/remove seen
   by a co-member, delete guest + host accounts with server and Storage checks).
 
+## Plus plan preview (48H 30-40 h item 3), supervisor ACCEPTED, committed (2026-11-05)
+- app/plan-preview.tsx ("Plus preview"): "Preview — no payment" badge, Free vs Plus table (Free = current limits: 30
+  members, up to 7 days, standard emoji; Plus = Larger/Longer/Extra set "(TBD)", price "Not set yet"), TBD note,
+  "Get Plus" opens an explanation alert only. No StoreKit/IAP, no entitlement, no server change. Entry points: Profile
+  "Plus plan preview" button; create-room link under the expiry hint. Strings in en.planPreview.
+- tsc/lint clean, npm test 43/43. Render PASS on the 17 Pro via moment:///plan-preview after an app relaunch (a new route
+  file needed a full reload; Fast Refresh alone showed Unmatched Route): docs/evidence/2026-11-05-plan-preview-17pro.png.
+  NOT verified: the Get Plus alert tap, the profile and create-room links (human taps).
+
 ## Active task: media device flow
 - Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both
   sims' Photos (5927272 bytes, sha256 f50c71d63bba1093392deaab6e344f7d80181e2c880a8a0bbc97b4202b43d72e;

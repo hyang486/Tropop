@@ -163,6 +163,7 @@ export default function Profile() {
       {isGuest && (
         <Button variant="secondary" title={en.profile.becomeHost} onPress={() => router.push('/upgrade')} />
       )}
+      <Button variant="secondary" title={en.planPreview.profileLink} onPress={() => router.push('/plan-preview')} />
 
       {error && <Hint tone="error">{error}</Hint>}
 

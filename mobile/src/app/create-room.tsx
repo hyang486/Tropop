@@ -90,6 +90,9 @@ export default function CreateRoom() {
           ))}
         </View>
         <Hint>{en.createRoom.expiryHint(expiresPreview.toLocaleString())}</Hint>
+        <Pressable accessibilityRole="link" onPress={() => router.push('/plan-preview')} hitSlop={8}>
+          <Text style={styles.planLink}>{en.planPreview.createRoomLink}</Text>
+        </Pressable>
       </View>
 
       <View style={styles.group}>
@@ -117,6 +120,7 @@ export default function CreateRoom() {
 
 const styles = StyleSheet.create({
   group: { gap: 8 },
+  planLink: { fontSize: 15, color: colors.tint },
   label: { fontSize: 13, color: colors.secondaryLabel, textTransform: 'uppercase' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
