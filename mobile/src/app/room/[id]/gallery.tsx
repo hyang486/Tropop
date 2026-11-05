@@ -20,12 +20,15 @@ import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import {
   authHeaders,
+  formatBytes,
+  MAX_MEDIA_BYTES,
   type Media,
   type MediaFilter,
   objectUrl,
   pickFile,
   pickPhotosAndVideos,
   type PickedItem,
+  splitBySize,
   type UploadJob,
   useRoomMedia,
   useUploads,
@@ -54,8 +57,12 @@ export default function GalleryScreen() {
   const choose = useCallback(
     async (pick: () => Promise<PickedItem[]>) => {
       try {
-        const items = await pick();
-        if (items.length > 0) uploads.add(items);
+        const { ok, tooLarge } = splitBySize(await pick());
+        if (tooLarge.length > 0) {
+          const list = tooLarge.map(({ item, size }) => `${item.fileName} (${formatBytes(size)})`).join(', ');
+          Alert.alert(en.media.tooLargeTitle, en.media.tooLargeSkipped(formatBytes(MAX_MEDIA_BYTES), list));
+        }
+        if (ok.length > 0) uploads.add(ok);
       } catch (e) {
         Alert.alert(en.media.uploadFailed, errorMessage(e));
       }

@@ -4,6 +4,7 @@ import { createContext, use, useCallback, useEffect, useMemo, useState, type Rea
 import { en } from '@/i18n/en';
 
 import { checkAccount } from './account-check';
+import { clearAllRoomCaches } from './media';
 import type { Tables } from './database.types';
 import { supabase } from './supabase';
 
@@ -123,6 +124,7 @@ export async function verifyAccount(): Promise<'ok' | 'gone' | 'unknown' | 'sign
   });
   if (result !== 'gone') return result;
   accountGoneListener?.();
+  clearAllRoomCaches();
   await supabase.auth.signOut({ scope: 'local' });
   return 'gone';
 }
@@ -192,4 +194,5 @@ export async function updateDisplayName(userId: string, displayName: string) {
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  clearAllRoomCaches();
 }

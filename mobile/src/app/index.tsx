@@ -6,6 +6,7 @@ import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
+import { pruneRoomCaches } from '@/lib/media';
 import { takePendingInvite } from '@/lib/pending-invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
@@ -19,8 +20,11 @@ export default function Rooms() {
 
   const load = useCallback(async () => {
     try {
-      setRooms(await listMyRooms());
+      const list = await listMyRooms();
+      setRooms(list);
       setError(null);
+      // Drop cached originals of rooms that ended, expired or were left since the last visit.
+      pruneRoomCaches(list.map((r) => r.id));
     } catch (e) {
       setError(`${en.home.loadFailed} ${errorMessage(e)}`);
     }

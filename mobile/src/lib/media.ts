@@ -7,6 +7,8 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Share } from 'react-native';
 
+import { en } from '@/i18n/en';
+
 import type { Tables } from './database.types';
 import { errorMessage } from './errors';
 import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './supabase';
@@ -133,6 +135,26 @@ export async function pickFile(): Promise<PickedItem[]> {
   return [{ uri: f.uri, kind: 'file', mimeType: f.type || 'application/octet-stream', fileName: f.name || 'file' }];
 }
 
+/**
+ * Splits picked items into ones that fit the per-file limit and ones that do not, before any
+ * upload starts. Unreadable sizes pass through; runJob checks again.
+ */
+export function splitBySize(items: PickedItem[]): { ok: PickedItem[]; tooLarge: { item: PickedItem; size: number }[] } {
+  const ok: PickedItem[] = [];
+  const tooLarge: { item: PickedItem; size: number }[] = [];
+  for (const item of items) {
+    let size = 0;
+    try {
+      size = new File(item.uri).size ?? 0;
+    } catch {
+      size = 0;
+    }
+    if (size > MAX_MEDIA_BYTES) tooLarge.push({ item, size });
+    else ok.push(item);
+  }
+  return { ok, tooLarge };
+}
+
 // Upload --------------------------------------------------------------------
 
 export type UploadJob = {
@@ -215,8 +237,8 @@ export async function runJob(job: UploadJob, userId: string, onProgress: (fracti
   const file = new File(item.uri);
   if (!file.exists) throw new Error('The selected file is no longer available. Choose it again.');
   const size = file.size ?? 0;
-  if (size <= 0) throw new Error('The selected file is empty.');
-  if (size > MAX_MEDIA_BYTES) throw new Error(`Files up to ${formatBytes(MAX_MEDIA_BYTES)} can be shared. This one is ${formatBytes(size)}.`);
+  if (size <= 0) throw new Error(en.media.emptyFile);
+  if (size > MAX_MEDIA_BYTES) throw new Error(en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
 
   let rowCreated = job.rowCreated;
   let previewPath = job.previewPath;
@@ -402,7 +424,11 @@ export function useRoomMedia(roomId: string, filter: MediaFilter, userId: string
 // Download ------------------------------------------------------------------
 
 function roomCacheDir(roomId: string) {
-  return new Directory(Paths.cache, 'room-media', roomId);
+  return new Directory(cacheRoot(), roomId);
+}
+
+function cacheRoot() {
+  return new Directory(Paths.cache, 'room-media');
 }
 
 /** Deletes this app's cached originals for a room (after it ends or the user leaves). */
@@ -410,6 +436,33 @@ export function clearRoomCache(roomId: string) {
   try {
     const dir = roomCacheDir(roomId);
     if (dir.exists) dir.delete();
+  } catch {
+    // Cache cleanup is best effort.
+  }
+}
+
+/**
+ * Deletes cached originals for every room not in `keepRoomIds` (rooms that expired, ended or were
+ * left while this screen was not open). Call only with a successfully fetched room list.
+ */
+export function pruneRoomCaches(keepRoomIds: Iterable<string>) {
+  try {
+    const root = cacheRoot();
+    if (!root.exists) return;
+    const keep = new Set(keepRoomIds);
+    for (const entry of root.list()) {
+      if (entry instanceof Directory && !keep.has(entry.name)) entry.delete();
+    }
+  } catch {
+    // Cache cleanup is best effort.
+  }
+}
+
+/** Deletes all cached room originals (sign-out, or the account no longer exists). */
+export function clearAllRoomCaches() {
+  try {
+    const root = cacheRoot();
+    if (root.exists) root.delete();
   } catch {
     // Cache cleanup is best effort.
   }

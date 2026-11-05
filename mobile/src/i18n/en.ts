@@ -158,6 +158,11 @@ export const en = {
     loadError: 'Photos and files could not be loaded.',
     uploading: (pct: number) => `Uploading ${pct}%`,
     uploadFailed: 'Upload failed',
+    emptyFile: 'The selected file is empty.',
+    tooLarge: (limit: string, size: string) => `Files up to ${limit} can be shared. This one is ${size}.`,
+    tooLargeTitle: 'Too large to share',
+    tooLargeSkipped: (limit: string, list: string) =>
+      `Files up to ${limit} each can be shared. Not added: ${list}. Shorter or trimmed videos usually fit.`,
     retry: 'Retry',
     dismiss: 'Remove',
     sharedBy: (name: string) => `Shared by ${name}`,
