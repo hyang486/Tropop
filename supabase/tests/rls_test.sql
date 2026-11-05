@@ -341,9 +341,11 @@ select tests.expect_count($q$ select 1 from public.face_enrollments $q$, 0, 'out
 select tests.expect_count($q$ select 1 from public.profiles $q$, 1, 'outsider sees only own profile');
 select tests.expect_error($q$ insert into public.messages (room_id, sender_id, body) values (current_setting('t.r')::uuid, auth.uid(), 'x') $q$,
   'outsider cannot post');
-select tests.expect_error($q$ insert into public.media (room_id, uploader_id, kind, original_path, file_name, mime_type)
-  values (current_setting('t.r')::uuid, auth.uid(), 'photo', current_setting('t.r') || '/m/original.jpg', 'a.jpg', 'image/jpeg') $q$,
-  'outsider cannot add media');
+-- A well-formed path, so the failure comes from RLS and not from the media_integrity path check.
+select tests.expect_sqlstate($q$ insert into public.media (id, room_id, uploader_id, kind, original_path, file_name, mime_type)
+  values ('c0000000-0000-4000-8000-0000000000aa', current_setting('t.r')::uuid, auth.uid(), 'photo',
+          current_setting('t.r') || '/c0000000-0000-4000-8000-0000000000aa/original.jpg', 'a.jpg', 'image/jpeg') $q$,
+  '42501', 'outsider cannot add media');
 select tests.expect_error($q$ select public.mark_arrived(current_setting('t.r')::uuid) $q$, 'outsider cannot mark arrival');
 select tests.expect_count($q$ select 1 where public.report_location(current_setting('t.r')::uuid, 1, 1) $q$, 0, 'outsider location refused');
 select tests.expect_error($q$ select public.ack_emergency((select id from public.emergency_events limit 1)) $q$, 'outsider cannot acknowledge');
@@ -359,11 +361,11 @@ reset role;
 select tests.login('a0000000-0000-4000-8000-000000000002', true);
 set local role authenticated;
 do $$
-declare m uuid;
+declare m uuid := gen_random_uuid();
 begin
-  insert into public.media (room_id, uploader_id, kind, original_path, file_name, mime_type)
-  values (current_setting('t.r')::uuid, auth.uid(), 'photo', current_setting('t.r') || '/pending/original.jpg', 'a.jpg', 'image/jpeg')
-  returning id into m;
+  -- Paths must live under {room_id}/{media_id}/ (migration media_integrity).
+  insert into public.media (id, room_id, uploader_id, kind, original_path, file_name, mime_type)
+  values (m, current_setting('t.r')::uuid, auth.uid(), 'photo', current_setting('t.r') || '/' || m || '/original.jpg', 'a.jpg', 'image/jpeg');
   perform set_config('t.m', m::text, true);
 end $$;
 select tests.expect_ok($q$ insert into storage.objects (bucket_id, name, owner_id) values ('room-media',

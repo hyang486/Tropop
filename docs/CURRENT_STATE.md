@@ -17,14 +17,20 @@ in docs/implementation-status.md and docs/reviews/current.md; read it on demand.
 - J1/J2 done: 0014 janitor_health applied + tested, room-janitor v2 deployed, manual
   run health = ok. Cron schedule (supervisor-approved) was DENIED by the auto-mode
   classifier: needs the human (permission rule or run it themselves). Not scheduled.
-- Next concrete step: chat UI check. agent-device stays denied; give the human the
-  two-client manual checklist (docs/evidence/chat-ui-checklist.md, awaiting the human), then media upload/download
-  as a complete screen flow (6–18h window).
+- Media (migration 15 applied, gallery/viewer/upload code): DB tests + full RLS PASS,
+  tsc/lint 0. Device upload/download NOT verified. Uncommitted.
+- Chat UI (2026-11-05): two-way messages PASS (human-confirmed). U1 header/banner overlap fix
+  PASS on 17 Pro with the keyboard closed (docs/evidence/chat-banner-fixed-17pro.png); keyboard-open
+  and the iPhone 17 screen are unverified. U3 stale-session check (src/lib/account-check.ts, npm test
+  10/10) PASS in code; the deleted-account path is live-unverified, waiting on the human to approve
+  the exact-ID delete of throwaway cabb68d7-… (tmp/qa-fixtures.md). Metro must not run with CI=1
+  (no file watching, stale bundle).
+- Next concrete step: media device flow (upload/download on simulator).
 - Supervisor reviews stable checkpoints; independent approved implementation continues.
 
 ## Blockers and gaps
-- agent-device was rejected by Claude auto-mode as external code. Do not bypass.
-  Obtain normal authorization or provide a short human-assisted UI test checklist.
+- agent-device: human approved the open+snapshot action again (2026-11-05) through
+  /permissions. Not blanket permission: if a new rejection occurs, stop; do not bypass.
 - Human screenshot confirms AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_REGION
   are already saved in Supabase Secrets (November 4). Do NOT ask to enter them
   again. Key validity/permissions and an actual CompareFaces result remain unverified.

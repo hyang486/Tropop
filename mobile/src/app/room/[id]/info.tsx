@@ -6,6 +6,7 @@ import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
+import { clearRoomCache } from '@/lib/media';
 import { endRoom, getRoom, leaveRoom, listMembers, type Room, type RoomMember } from '@/lib/rooms';
 
 type State =
@@ -87,6 +88,7 @@ export default function RoomInfoScreen() {
             setBusy(true);
             try {
               await (isHost ? endRoom(room.id) : leaveRoom(room.id));
+              clearRoomCache(room.id);
               router.dismissTo('/');
             } catch (e) {
               setBusy(false);

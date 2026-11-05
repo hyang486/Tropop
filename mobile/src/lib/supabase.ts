@@ -78,3 +78,7 @@ if (Platform.OS !== 'web') {
     }
   });
 }
+
+/** Base URL and publishable key, for native transfers (expo-file-system) that bypass supabase-js. */
+export const SUPABASE_URL: string = supabaseUrl;
+export const SUPABASE_PUBLISHABLE_KEY: string = supabasePublishableKey;

@@ -126,6 +126,9 @@ Face matching scaffolding (2026-11-04, no AWS calls made, nothing deployed):
 | Janitor unit tests | `node --test supabase/functions/room-janitor/janitor.test.ts` | 6/6 pass (incl. J1 stuck-job test) |
 | Janitor health test (0014 + J2a) | `execute_sql` with `supabase/tests/janitor_health_test.sql` (ROLLBACK) | `JANITOR HEALTH TESTS PASSED` (ok, failed 500, failed transport error, missing_response, pending, unknown_expired, captured-then-expired = ok, stuck count, authenticated denied) |
 | room-janitor v2 manual run | `select private.invoke_janitor()` → request 3; `private.janitor_health()` | v2 ACTIVE; health row `3 ok 200`, stuck_jobs 0; body includes `jobsStuck: 0` (v2 code), nothing to clean |
+| Media integrity (migration 15, 2026-11-05) | `execute_sql` with `supabase/tests/media_integrity_test.sql` (ROLLBACK) | 22 expectations pass (`ready` only when the original object exists with size > 0; size copied from Storage; paths `{room_id}/{media_id}/`) |
+| RLS test after migration 15 | `execute_sql` with full `supabase/tests/rls_test.sql` (ROLLBACK; media paths updated to `{room_id}/{media_id}/`) | `RLS TESTS PASSED`. Follow-up: `tests` schema 0, `a0000000-…` users 0, media 0, room-media objects 0 |
+| Media client static checks | `npx tsc --noEmit`, `npx expo lint` in `mobile/` | both exit 0 (gallery, viewer, `lib/media.ts`; initial gallery fetch runs from the realtime subscribe callback). On-device upload/download NOT verified |
 
 ## Feature status
 
@@ -133,8 +136,8 @@ Face matching scaffolding (2026-11-04, no AWS calls made, nothing deployed):
 |---|---|
 | Host accounts / guest entry | verified on simulator against live backend: guest start, host sign-up/log-in/log-out, guest→host upgrade (same user id), profile rename, session restore after relaunch. Open findings: (1) fixed in checkpoint 3: `profiles.updated_at` trigger; (2) stack back button on guest/sign-in/sign-up shows the route name "welcome" — set a proper back title; (3) dev-client floating gear button overlaps the Rooms "Profile" header button after a cold relaunch (dev build only; not in release). iOS "Use Strong Password?" sheet on new-password fields is expected system behavior |
 | Rooms, QR/code join | verified on simulator against live backend (code, deep link, pending invite, leave, end room, invalid/ended/throttle messages); two accounts used sequentially on one simulator (no second simulator running at once). NOT verified: camera QR scan (no camera in simulator; token path covered by deep link), full-room message in the UI (PT409 covered by RLS test only), share sheet contents, physical device. Open UX notes: Invite sheet has no Done button (swipe down only); end room only sets `deleted_at`, actual storage/data deletion belongs to the expiry cleanup checkpoint |
-| Chat | text chat implemented; server rules (RLS suite) and multi-client realtime delivery/isolation verified against live Supabase with three API clients; backend verified, UI not verified (simulator evidence pending; UI automation on hold by human decision) |
-| Media upload/download, filters | not started |
+| Chat | backend verified (RLS suite, three API clients). UI: two-way messages on two simulators PASS (human-confirmed); header/banner overlap fix PASS on 17 Pro with the keyboard closed; keyboard-open layout, checklist steps 5-10 NOT verified (docs/evidence/chat-ui-checklist.md). Stale-session restore: classifier unit tests 10/10 (`npm test`), valid sessions kept on device, deleted-account path live-unverified |
+| Media upload/download, filters | code + migration 15 written; DB tests pass; device flow NOT verified |
 | Expiry deletion, 24h reminder | expiry worker PASS on live test data (rooms deleted, room-media/face-refs objects removed and verified through the Storage API, orphan sweep); expired access denial covered by the RLS suite; cron schedule not created yet (waits for J1/J2 review). 24h reminder not started |
 | Arrival, statuses, Emergency | not started |
 | Notifications | in-app alerts + local notifications planned; real APNs remote push out of this milestone (human decision 2026-11-04, demonstration only) |

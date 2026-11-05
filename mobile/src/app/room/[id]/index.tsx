@@ -1,6 +1,6 @@
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
 import { errorMessage } from '@/lib/errors';
+import { clearRoomCache } from '@/lib/media';
 import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 
@@ -64,6 +65,13 @@ export default function RoomScreen() {
     },
     [names, load],
   );
+
+  // Ended, expired or left: drop this app's cached originals for the room.
+  const isGone =
+    state.status === 'gone' || (state.status === 'ready' && new Date(state.room.expires_at).getTime() <= now);
+  useEffect(() => {
+    if (isGone) clearRoomCache(id);
+  }, [isGone, id]);
 
   if (state.status === 'loading') {
     return (
@@ -127,6 +135,16 @@ function ChatRoom({
 }) {
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
+  // Where this screen's root actually starts on screen. With a translucent (iOS 26) native header the
+  // root starts at y = 0, behind the status bar and header; with an opaque one it starts below it.
+  // Pad by the overlap only, and give the keyboard avoider the real offset, so both cases lay out right.
+  const rootRef = useRef<ComponentRef<typeof View>>(null);
+  const [rootY, setRootY] = useState<number | null>(null);
+  const measureRoot = useCallback(() => {
+    rootRef.current?.measureInWindow((_x, y) => setRootY(y));
+  }, []);
+  const top = rootY ?? headerHeight;
+  const headerOverlap = Math.max(0, headerHeight - top);
   const chat = useChat(room.id, userId, onNewSender);
   const [draft, setDraft] = useState('');
   const remaining = formatRemaining(remainingMs);
@@ -160,6 +178,13 @@ function ChatRoom({
           headerRight: () => (
             <View style={styles.headerActions}>
               <Link
+                href={{ pathname: '/room/[id]/gallery', params: { id: room.id } }}
+                style={styles.headerLink}
+                accessibilityRole="button"
+              >
+                {en.media.headerLink}
+              </Link>
+              <Link
                 href={{ pathname: '/room/[id]/invite', params: { id: room.id } }}
                 style={styles.headerLink}
                 accessibilityRole="button"
@@ -177,8 +202,12 @@ function ChatRoom({
           ),
         }}
       />
-      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={headerHeight}>
-        <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={top}>
+        <View
+          ref={rootRef}
+          onLayout={measureRoot}
+          style={[styles.flex, { backgroundColor: colors.background, paddingTop: headerOverlap }]}
+        >
           <View style={styles.strip}>
             <Text style={styles.remaining} accessibilityRole="header">
               {en.room.endsIn(remaining)}

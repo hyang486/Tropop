@@ -4,8 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useAuth } from '@/lib/auth';
 
 export default function Welcome() {
+  const { notice, clearNotice } = useAuth();
+  function go(path: '/guest' | '/sign-in' | '/sign-up') {
+    clearNotice();
+    router.push(path);
+  }
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.hero}>
@@ -13,11 +19,12 @@ export default function Welcome() {
         <Text style={styles.tagline}>{en.welcome.tagline}</Text>
       </View>
       <View style={styles.actions}>
-        <Button title={en.welcome.joinAsGuest} onPress={() => router.push('/guest')} />
+        {notice ? <Hint tone="error">{notice}</Hint> : null}
+        <Button title={en.welcome.joinAsGuest} onPress={() => go('/guest')} />
         <Hint>{en.welcome.guestHint}</Hint>
         <View style={styles.spacer} />
-        <Button variant="secondary" title={en.welcome.hostSignIn} onPress={() => router.push('/sign-in')} />
-        <Button variant="secondary" title={en.welcome.hostSignUp} onPress={() => router.push('/sign-up')} />
+        <Button variant="secondary" title={en.welcome.hostSignIn} onPress={() => go('/sign-in')} />
+        <Button variant="secondary" title={en.welcome.hostSignUp} onPress={() => go('/sign-up')} />
       </View>
     </SafeAreaView>
   );

@@ -362,6 +362,7 @@ export type Database = {
       media: {
         Row: {
           created_at: string
+          content_sha256: string | null
           duration_ms: number | null
           file_name: string
           height: number | null
@@ -378,6 +379,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          content_sha256?: string | null
           duration_ms?: number | null
           file_name: string
           height?: number | null
@@ -394,6 +396,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          content_sha256?: string | null
           duration_ms?: number | null
           file_name?: string
           height?: number | null

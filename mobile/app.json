@@ -44,6 +44,23 @@
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
+      ],
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Moment reads the original photos and videos you choose so they can be shared at full quality in your room.",
+          "cameraPermission": "Moment uses the camera to scan room invite QR codes and to take photos for your room.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Moment reads the original photos and videos you choose so they can be shared at full quality in your room.",
+          "savePhotosPermission": "Moment saves the originals you download from a room to your photo library.",
+          "isAccessMediaLocationEnabled": false
+        }
       ]
     ],
     "experiments": {

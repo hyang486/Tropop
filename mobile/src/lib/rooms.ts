@@ -3,6 +3,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { en } from '@/i18n/en';
 
 import type { Database, Tables } from './database.types';
+import { verifyAccount } from './auth';
 import { supabase } from './supabase';
 
 export type Room = Tables<'rooms'>;
@@ -50,7 +51,7 @@ function inviteArgs(invite: Invite) {
 /** A join/preview failure with copy that is safe to show as-is. */
 export class RoomError extends Error {
   constructor(
-    public kind: 'invalid' | 'throttled' | 'full' | 'other',
+    public kind: 'invalid' | 'throttled' | 'full' | 'account' | 'other',
     message: string,
   ) {
     super(message);
@@ -61,6 +62,11 @@ export class RoomError extends Error {
 function toRoomError(error: PostgrestError) {
   if (error.code === 'PT429') return new RoomError('throttled', en.rooms.errors.throttled);
   if (error.code === 'PT409') return new RoomError('full', en.rooms.errors.full);
+  // 23503 (room_members_user_id_fkey): the JWT is for an account that no longer exists.
+  if (error.code === '23503') {
+    verifyAccount();
+    return new RoomError('account', en.rooms.errors.account);
+  }
   return new RoomError('other', error.message || en.errors.generic);
 }
 

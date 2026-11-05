@@ -1,6 +1,9 @@
-import type { Session } from '@supabase/supabase-js';
+import { isAuthApiError, type Session } from '@supabase/supabase-js';
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
+import { en } from '@/i18n/en';
+
+import { checkAccount } from './account-check';
 import type { Tables } from './database.types';
 import { supabase } from './supabase';
 
@@ -14,6 +17,9 @@ type AuthContextValue = {
   /** Guests are Supabase anonymous users; hosts have an email account. */
   isGuest: boolean;
   refreshProfile: () => Promise<void>;
+  /** Shown on the welcome screen after a stored session turned out to belong to a deleted account. */
+  notice: string | null;
+  clearNotice: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -22,22 +28,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
+    accountGoneListener = () => {
+      if (mounted) setNotice(en.auth.accountGone);
+    };
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       setSession(data.session);
       setLoading(false);
+      // getSession() only reads local storage. Check with the server that the account still exists;
+      // offline or server errors keep the stored session (it is checked again on the next launch).
+      if (data.session) verifyAccount();
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
     });
     return () => {
       mounted = false;
+      accountGoneListener = null;
       listener.subscription.unsubscribe();
     };
   }, []);
+
+  const clearNotice = useCallback(() => setNotice(null), []);
 
   const userId = session?.user.id ?? null;
 
@@ -68,8 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isGuest: session?.user.is_anonymous ?? false,
       refreshProfile,
+      notice,
+      clearNotice,
     }),
-    [session, currentProfile, loading, refreshProfile],
+    [session, currentProfile, loading, refreshProfile, notice, clearNotice],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
@@ -84,6 +102,29 @@ export function useAuth() {
 async function fetchProfile(userId: string) {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
   return error ? null : data;
+}
+
+// Account validity -----------------------------------------------------------
+
+let accountGoneListener: (() => void) | null = null;
+
+/**
+ * Asks the auth server whether the signed-in account still exists (see `checkAccount` for what
+ * counts as proof). If it was deleted, signs out on this device only (the server has nothing left
+ * to revoke) and the welcome screen shows a notice. Anything inconclusive keeps the session.
+ */
+export async function verifyAccount(): Promise<'ok' | 'gone' | 'unknown' | 'signed-out'> {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return 'signed-out';
+  const result = await checkAccount({
+    getUser: () => supabase.auth.getUser(),
+    refreshSession: () => supabase.auth.refreshSession(),
+    isApiError: (error) => isAuthApiError(error),
+  });
+  if (result !== 'gone') return result;
+  accountGoneListener?.();
+  await supabase.auth.signOut({ scope: 'local' });
+  return 'gone';
 }
 
 // Actions --------------------------------------------------------------------
