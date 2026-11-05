@@ -4,7 +4,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Share } from 'react-native';
 
 import { en } from '@/i18n/en';
@@ -14,6 +14,17 @@ import { errorMessage } from './errors';
 import { progressFraction } from './progress';
 import { useRoomEvents } from './room-channel';
 import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './supabase';
+import {
+  applyProgress,
+  isAbortError,
+  nextQueued,
+  patchJob,
+  type QueueJob,
+  removeJob,
+  requeue,
+  type RoomUploadSummary,
+  roomSummary,
+} from './upload-plan';
 
 /**
  * Room media: original photos, videos and files.
@@ -47,6 +58,8 @@ export type PickedItem = {
   width?: number;
   height?: number;
   durationMs?: number;
+  /** Bytes on disk, when known (filled in by splitBySize). */
+  size?: number;
 };
 
 export function objectUrl(path: string) {
@@ -152,23 +165,19 @@ export function splitBySize(items: PickedItem[]): { ok: PickedItem[]; tooLarge: 
       size = 0;
     }
     if (size > MAX_MEDIA_BYTES) tooLarge.push({ item, size });
-    else ok.push(item);
+    else ok.push(size > 0 ? { ...item, size } : item);
   }
   return { ok, tooLarge };
 }
 
 // Upload --------------------------------------------------------------------
 
-export type UploadJob = {
-  /** Media row id; also the storage folder. */
-  id: string;
-  roomId: string;
+export type UploadJob = QueueJob & {
+  /** Media row id (QueueJob.id); also the storage folder. */
+  uploaderId: string;
   item: PickedItem;
   originalPath: string;
   previewPath: string | null;
-  state: 'uploading' | 'failed';
-  progress: number;
-  error?: string;
   /** True once the media row exists on the server (retries update it instead of inserting). */
   rowCreated: boolean;
 };
@@ -190,8 +199,25 @@ async function makePreview(item: PickedItem): Promise<string | null> {
   }
 }
 
-async function putObject(path: string, fileUri: string, mimeType: string, onProgress?: (fraction: number) => void) {
+function abortError() {
+  return Object.assign(new Error('Upload cancelled'), { name: 'AbortError' });
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw abortError();
+}
+
+async function putObject(
+  path: string,
+  fileUri: string,
+  mimeType: string,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+) {
+  throwIfAborted(signal);
   const token = await freshToken();
+  // iOS uses a background URLSession by default, so a long video keeps uploading while the app
+  // is briefly suspended (the JS promise is lost only if the app is terminated).
   const task = new File(fileUri).createUploadTask(uploadUrl(path), {
     httpMethod: 'POST',
     headers: { ...authHeaders(token), 'content-type': mimeType, 'x-upsert': 'true', 'cache-control': '3600' },
@@ -201,8 +227,10 @@ async function putObject(path: string, fileUri: string, mimeType: string, onProg
           if (f != null) onProgress(f);
         }
       : undefined,
+    signal,
   });
   const result = await task.uploadAsync();
+  throwIfAborted(signal);
   if (!result || result.status < 200 || result.status >= 300) {
     let message = `Upload failed (HTTP ${result?.status ?? 'error'})`;
     try {
@@ -215,17 +243,18 @@ async function putObject(path: string, fileUri: string, mimeType: string, onProg
   }
 }
 
-/** Creates the job for a picked item. Rejects files over the per-file limit before any upload. */
-export function createJob(roomId: string, item: PickedItem): UploadJob {
+/** Creates the job for a picked item (queued; nothing is sent yet). */
+export function createJob(roomId: string, uploaderId: string, item: PickedItem): UploadJob {
   const id = randomUUID();
   const ext = extensionFor(item.fileName, item.mimeType);
   return {
     id,
     roomId,
+    uploaderId,
     item,
     originalPath: `${roomId}/${id}/original.${ext}`,
     previewPath: item.kind === 'file' ? null : `${roomId}/${id}/preview.jpg`,
-    state: 'uploading',
+    state: 'queued',
     progress: 0,
     rowCreated: false,
   };
@@ -234,8 +263,10 @@ export function createJob(roomId: string, item: PickedItem): UploadJob {
 /**
  * Runs (or re-runs) one upload: media row -> preview -> original -> ready.
  * The server only accepts 'ready' when the stored original is nonempty and records its size.
+ * On failure or cancel the row is marked 'failed' (never listed; deleted with the room).
+ * The thrown error carries the updated job so a retry reuses the same row and paths.
  */
-export async function runJob(job: UploadJob, userId: string, onProgress: (fraction: number) => void): Promise<UploadJob> {
+export async function runJob(job: UploadJob, onProgress: (fraction: number) => void, signal?: AbortSignal): Promise<UploadJob> {
   const { item } = job;
   const file = new File(item.uri);
   if (!file.exists) throw new Error('The selected file is no longer available. Choose it again.');
@@ -247,10 +278,11 @@ export async function runJob(job: UploadJob, userId: string, onProgress: (fracti
   let previewPath = job.previewPath;
   if (!rowCreated) {
     const sha256 = await file.digest('SHA-256');
+    throwIfAborted(signal);
     const { error } = await supabase.from('media').insert({
       id: job.id,
       room_id: job.roomId,
-      uploader_id: userId,
+      uploader_id: job.uploaderId,
       kind: item.kind,
       original_path: job.originalPath,
       preview_path: previewPath,
@@ -267,10 +299,11 @@ export async function runJob(job: UploadJob, userId: string, onProgress: (fracti
   }
 
   try {
+    throwIfAborted(signal);
     if (previewPath) {
       const previewUri = await makePreview(item);
       if (previewUri) {
-        await putObject(previewPath, previewUri, 'image/jpeg');
+        await putObject(previewPath, previewUri, 'image/jpeg', undefined, signal);
       } else {
         // No preview could be made: clear it so 'ready' does not require one.
         const { error } = await supabase.from('media').update({ preview_path: null }).eq('id', job.id);
@@ -279,86 +312,140 @@ export async function runJob(job: UploadJob, userId: string, onProgress: (fracti
       }
     }
     onProgress(0.02);
-    await putObject(job.originalPath, item.uri, item.mimeType, (f) => onProgress(0.02 + f * 0.97));
+    await putObject(job.originalPath, item.uri, item.mimeType, (f) => onProgress(0.02 + f * 0.97), signal);
+    throwIfAborted(signal);
     const { error } = await supabase.from('media').update({ status: 'ready' }).eq('id', job.id);
     if (error) throw new Error(error.message);
     onProgress(1);
     return { ...job, rowCreated, previewPath };
   } catch (e) {
     await supabase.from('media').update({ status: 'failed' }).eq('id', job.id);
-    throw Object.assign(new Error(errorMessage(e)), { job: { ...job, rowCreated, previewPath } });
+    throw Object.assign(isAbortError(e) ? abortError() : new Error(errorMessage(e)), {
+      job: { ...job, rowCreated, previewPath },
+    });
   }
 }
 
-/**
- * Upload queue for one room. Items upload one at a time; failures stay in the list with
- * their error and can be retried (same media id and paths) or dismissed.
+/*
+ * App-wide upload queue. It lives outside any screen so an upload keeps running, and its
+ * progress or failure stays visible, after the user leaves the gallery (a long video is the
+ * usual case). One job uploads at a time. Failed jobs stay until retried or removed;
+ * cancelled jobs are removed. Sign-out cancels and clears everything.
  */
-export function useUploads(roomId: string, userId: string | undefined, onUploaded: () => void) {
-  const [jobs, setJobs] = useState<UploadJob[]>([]);
-  const queue = useRef<UploadJob[]>([]);
-  const running = useRef(false);
-  const mounted = useRef(true);
+type UploadStore = { jobs: UploadJob[]; done: Record<string, number> };
+let store: UploadStore = { jobs: [], done: {} };
+const storeListeners = new Set<() => void>();
+const controllers = new Map<string, AbortController>();
+let pumping = false;
 
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
+function setStore(next: UploadStore) {
+  if (next === store) return;
+  store = next;
+  for (const l of storeListeners) l();
+}
 
-  const patch = useCallback((id: string, p: Partial<UploadJob>) => {
-    if (!mounted.current) return;
-    setJobs((js) => js.map((j) => (j.id === id ? { ...j, ...p } : j)));
-  }, []);
+function setJobs(update: (jobs: UploadJob[]) => UploadJob[]) {
+  const jobs = update(store.jobs);
+  if (jobs !== store.jobs) setStore({ ...store, jobs });
+}
 
-  const pump = useCallback(async () => {
-    if (running.current || !userId) return;
-    running.current = true;
-    try {
-      while (queue.current.length > 0) {
-        const job = queue.current.shift()!;
-        patch(job.id, { state: 'uploading', progress: 0, error: undefined });
-        try {
-          await runJob(job, userId, (f) => patch(job.id, { progress: f }));
-          if (mounted.current) setJobs((js) => js.filter((j) => j.id !== job.id));
-          onUploaded();
-        } catch (e) {
-          const failed = (e as { job?: UploadJob }).job ?? job;
-          patch(job.id, { ...failed, state: 'failed', error: errorMessage(e) });
+async function pump() {
+  if (pumping) return;
+  pumping = true;
+  try {
+    for (let job = nextQueued(store.jobs); job; job = nextQueued(store.jobs)) {
+      const current = job;
+      const controller = new AbortController();
+      controllers.set(current.id, controller);
+      setJobs((js) => patchJob(js, current.id, { state: 'uploading', progress: 0, error: undefined }));
+      try {
+        await runJob(current, (f) => setJobs((js) => applyProgress(js, current.id, f)), controller.signal);
+        const done = { ...store.done, [current.roomId]: (store.done[current.roomId] ?? 0) + 1 };
+        setStore({ jobs: removeJob(store.jobs, current.id), done });
+      } catch (e) {
+        if (controller.signal.aborted || isAbortError(e)) {
+          setJobs((js) => removeJob(js, current.id));
+        } else {
+          const failed = (e as { job?: UploadJob }).job ?? current;
+          setJobs((js) =>
+            js.some((j) => j.id === current.id)
+              ? patchJob(js, current.id, { ...failed, state: 'failed', error: errorMessage(e) })
+              : js,
+          );
         }
+      } finally {
+        controllers.delete(current.id);
       }
-    } finally {
-      running.current = false;
     }
-  }, [userId, patch, onUploaded]);
+  } finally {
+    pumping = false;
+  }
+}
 
-  const add = useCallback(
-    (items: PickedItem[]) => {
-      const created = items.map((item) => createJob(roomId, item));
-      setJobs((js) => [...created, ...js]);
-      queue.current.push(...created);
-      pump();
-    },
-    [roomId, pump],
-  );
+export function enqueueUploads(roomId: string, uploaderId: string, items: PickedItem[]) {
+  if (items.length === 0) return;
+  const created = items.map((item) => createJob(roomId, uploaderId, item));
+  setJobs((js) => [...js, ...created]);
+  pump();
+}
 
-  const retry = useCallback(
-    (id: string) => {
-      const job = jobs.find((j) => j.id === id);
-      if (!job || job.state !== 'failed') return;
-      patch(id, { state: 'uploading', progress: 0, error: undefined });
-      queue.current.push({ ...job, state: 'uploading' });
-      pump();
-    },
-    [jobs, patch, pump],
-  );
+export function retryUpload(id: string) {
+  setJobs((js) => requeue(js, id));
+  pump();
+}
 
-  const dismiss = useCallback((id: string) => {
-    setJobs((js) => js.filter((j) => j.id !== id || j.state !== 'failed'));
-  }, []);
+/** Cancels a queued or running upload. The partial row is marked failed and never listed. */
+export function cancelUpload(id: string) {
+  const controller = controllers.get(id);
+  if (controller) controller.abort();
+  else setJobs((js) => removeJob(js, id));
+}
 
-  return { jobs, add, retry, dismiss };
+export function dismissUpload(id: string) {
+  setJobs((js) => (js.find((j) => j.id === id)?.state === 'failed' ? removeJob(js, id) : js));
+}
+
+/** Sign-out / account gone: stop every upload and forget the queue. */
+export function cancelAllUploads() {
+  for (const c of controllers.values()) c.abort();
+  setStore({ jobs: [], done: {} });
+}
+
+function subscribeUploads(listener: () => void) {
+  storeListeners.add(listener);
+  return () => {
+    storeListeners.delete(listener);
+  };
+}
+
+function useUploadStore() {
+  return useSyncExternalStore(subscribeUploads, () => store);
+}
+
+/** Upload jobs for one room, newest first; calls onUploaded after each finished upload. */
+export function useUploads(roomId: string, onUploaded?: () => void) {
+  const { jobs: all, done } = useUploadStore();
+  const jobs = useMemo(() => all.filter((j) => j.roomId === roomId).reverse(), [all, roomId]);
+  const doneCount = done[roomId] ?? 0;
+  const seen = useRef(doneCount);
+  const callback = useRef(onUploaded);
+  useEffect(() => {
+    callback.current = onUploaded;
+  }, [onUploaded]);
+  useEffect(() => {
+    if (doneCount === seen.current) return;
+    seen.current = doneCount;
+    callback.current?.();
+  }, [doneCount]);
+  return { jobs, retry: retryUpload, cancel: cancelUpload, dismiss: dismissUpload };
+}
+
+/** Pending/failed counts for one room, for a compact indicator outside the gallery. */
+export function useRoomUploadSummary(roomId: string): RoomUploadSummary {
+  const { jobs } = useUploadStore();
+  const s = roomSummary(jobs, roomId);
+  // Stable primitives so callers can depend on them.
+  return useMemo(() => ({ pending: s.pending, failed: s.failed, progress: s.progress }), [s.pending, s.failed, s.progress]);
 }
 
 // Listing -------------------------------------------------------------------

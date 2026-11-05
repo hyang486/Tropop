@@ -4,7 +4,7 @@ import { createContext, use, useCallback, useEffect, useMemo, useState, type Rea
 import { en } from '@/i18n/en';
 
 import { checkAccount } from './account-check';
-import { clearAllRoomCaches } from './media';
+import { cancelAllUploads, clearAllRoomCaches } from './media';
 import { cancelAllExpiryReminders } from './expiry-reminders';
 import { stopMyLocation, stopMyLocationOnLaunch } from './location';
 import type { Tables } from './database.types';
@@ -128,6 +128,7 @@ export async function verifyAccount(): Promise<'ok' | 'gone' | 'unknown' | 'sign
   });
   if (result !== 'gone') return result;
   accountGoneListener?.();
+  cancelAllUploads();
   clearAllRoomCaches();
   await supabase.auth.signOut({ scope: 'local' });
   return 'gone';
@@ -198,6 +199,7 @@ export async function updateDisplayName(userId: string, displayName: string) {
 export async function signOut() {
   // L1: clear opt-in and positions while the session can still call the RPC. Best effort.
   await stopMyLocation();
+  cancelAllUploads();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   clearAllRoomCaches();

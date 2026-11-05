@@ -27,6 +27,7 @@ import {
   objectUrl,
   pickFile,
   pickPhotosAndVideos,
+  enqueueUploads,
   type PickedItem,
   splitBySize,
   type UploadJob,
@@ -52,7 +53,7 @@ export default function GalleryScreen() {
   const { rootRef, onLayout: measureRoot, overlap: headerOverlap } = useHeaderOverlap();
   const media = useRoomMedia(id, filter, userId);
   const { reload } = media;
-  const uploads = useUploads(id, userId, reload);
+  const uploads = useUploads(id, reload);
   const { width } = useWindowDimensions();
   const tile = Math.floor((width - GAP * (COLUMNS - 1)) / COLUMNS);
 
@@ -64,12 +65,12 @@ export default function GalleryScreen() {
           const list = tooLarge.map(({ item, size }) => `${item.fileName} (${formatBytes(size)})`).join(', ');
           Alert.alert(en.media.tooLargeTitle, en.media.tooLargeSkipped(formatBytes(MAX_MEDIA_BYTES), list));
         }
-        if (ok.length > 0) uploads.add(ok);
+        if (ok.length > 0 && userId) enqueueUploads(id, userId, ok);
       } catch (e) {
         Alert.alert(en.media.uploadFailed, errorMessage(e));
       }
     },
-    [uploads],
+    [id, userId],
   );
 
   function openAddMenu() {
@@ -80,6 +81,13 @@ export default function GalleryScreen() {
         if (index === 1) choose(pickFile);
       },
     );
+  }
+
+  function confirmCancel(job: UploadJob) {
+    Alert.alert(en.media.cancelUploadTitle, en.media.cancelUploadBody(job.item.fileName), [
+      { text: en.media.keepUploading, style: 'cancel' },
+      { text: en.media.cancelUpload, style: 'destructive', onPress: () => uploads.cancel(job.id) },
+    ]);
   }
 
   const emptyText = filter === 'mine' ? en.media.emptyMine : filter === 'others' ? en.media.emptyOthers : en.media.empty;
@@ -116,7 +124,13 @@ export default function GalleryScreen() {
       {uploads.jobs.length > 0 ? (
         <View style={styles.jobs}>
           {uploads.jobs.map((job) => (
-            <UploadRow key={job.id} job={job} onRetry={() => uploads.retry(job.id)} onDismiss={() => uploads.dismiss(job.id)} />
+            <UploadRow
+              key={job.id}
+              job={job}
+              onRetry={() => uploads.retry(job.id)}
+              onDismiss={() => uploads.dismiss(job.id)}
+              onCancel={() => confirmCancel(job)}
+            />
           ))}
         </View>
       ) : null}
@@ -182,21 +196,46 @@ function Tile({ media, size, token }: { media: Media; size: number; token: strin
   );
 }
 
-function UploadRow({ job, onRetry, onDismiss }: { job: UploadJob; onRetry: () => void; onDismiss: () => void }) {
+function UploadRow({
+  job,
+  onRetry,
+  onDismiss,
+  onCancel,
+}: {
+  job: UploadJob;
+  onRetry: () => void;
+  onDismiss: () => void;
+  onCancel: () => void;
+}) {
   const failed = job.state === 'failed';
   const pct = Math.round(job.progress * 100);
+  const size = formatBytes(job.item.size);
+  const status = failed
+    ? `${en.media.uploadFailed}: ${job.error ?? ''}`
+    : job.state === 'queued'
+      ? en.media.waiting
+      : en.media.uploading(pct);
   return (
     <View style={styles.job} accessibilityLiveRegion="polite">
+      <SymbolView
+        name={failed ? 'exclamationmark.triangle.fill' : job.item.kind === 'video' ? 'video' : job.item.kind === 'file' ? 'doc' : 'photo'}
+        size={20}
+        tintColor={failed ? colors.danger : colors.secondaryLabel}
+      />
       <View style={styles.jobText}>
         <Text numberOfLines={1} style={styles.jobName}>
-          {job.item.fileName}
+          {size ? `${job.item.fileName} · ${size}` : job.item.fileName}
         </Text>
-        <Text numberOfLines={2} style={[styles.jobStatus, failed && { color: colors.danger }]} selectable={failed}>
-          {failed ? `${en.media.uploadFailed}: ${job.error ?? ''}` : en.media.uploading(pct)}
+        <Text numberOfLines={3} style={[styles.jobStatus, failed && { color: colors.danger }]} selectable={failed}>
+          {status}
         </Text>
         {!failed ? (
-          <View style={styles.track}>
-            <View style={[styles.bar, { width: `${Math.max(2, pct)}%` }]} />
+          <View
+            style={styles.track}
+            accessibilityRole="progressbar"
+            accessibilityValue={{ min: 0, max: 100, now: job.state === 'queued' ? 0 : pct }}
+          >
+            <View style={[styles.bar, { width: `${job.state === 'queued' ? 0 : Math.max(2, pct)}%` }]} />
           </View>
         ) : null}
       </View>
@@ -209,7 +248,16 @@ function UploadRow({ job, onRetry, onDismiss }: { job: UploadJob; onRetry: () =>
             <Text style={[styles.action, { color: colors.secondaryLabel }]}>{en.media.dismiss}</Text>
           </Pressable>
         </View>
-      ) : null}
+      ) : (
+        <Pressable
+          onPress={onCancel}
+          accessibilityRole="button"
+          accessibilityLabel={`${en.media.cancelUpload}: ${job.item.fileName}`}
+          hitSlop={8}
+        >
+          <SymbolView name="xmark.circle.fill" size={22} tintColor={colors.secondaryLabel} />
+        </Pressable>
+      )}
     </View>
   );
 }

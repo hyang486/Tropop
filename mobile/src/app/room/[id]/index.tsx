@@ -20,7 +20,7 @@ import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
 import { errorMessage } from '@/lib/errors';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
-import { clearRoomCache } from '@/lib/media';
+import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
@@ -150,6 +150,7 @@ function ChatRoom({
   const insets = useSafeAreaInsets();
   const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
   const chat = useChat(room.id, userId, onNewSender);
+  const uploadSummary = useRoomUploadSummary(room.id);
   const [draft, setDraft] = useState('');
   const remaining = formatRemaining(remainingMs);
   const canSend = draft.trim().length > 0;
@@ -183,10 +184,15 @@ function ChatRoom({
             <View style={styles.headerActions}>
               <Link
                 href={{ pathname: '/room/[id]/gallery', params: { id: room.id } }}
-                style={styles.headerLink}
+                style={[styles.headerLink, uploadSummary.failed > 0 && { color: colors.danger }]}
                 accessibilityRole="button"
+                accessibilityLabel={en.media.headerLinkA11y(uploadSummary.pending, uploadSummary.failed)}
               >
-                {en.media.headerLink}
+                {uploadSummary.failed > 0
+                  ? en.media.headerLinkFailed
+                  : uploadSummary.pending > 0
+                    ? en.media.headerLinkUploading(uploadSummary.pending)
+                    : en.media.headerLink}
               </Link>
               {room.location_allowed || room.host_id === userId ? (
                 <Link
