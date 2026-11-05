@@ -11,6 +11,12 @@ export interface FaceStore {
   claimJobs(limit: number): Promise<Job[]>;
   /** Null when the enrollment no longer exists (member left, room ended, re-enrolled). */
   getEnrollment(id: string): Promise<{ id: string; ref_path: string } | null>;
+  /**
+   * Live access check for the enrollment's room and member, read at call time:
+   * 'ok' only if the room is not deleted, has not expired, and the member row still exists.
+   * An expired room keeps its rows until the janitor runs, so existence alone is not enough.
+   */
+  enrollmentAccess(enrollmentId: string): Promise<'ok' | 'room_closed' | 'not_member'>;
   /** Path of the image to compare (preview if present, else original). Null if the photo is gone or not ready. */
   getPhotoPath(mediaId: string): Promise<string | null>;
   download(bucket: 'face-refs' | 'room-media', path: string): Promise<Uint8Array | null>;
@@ -64,6 +70,15 @@ export async function processBatch(
       await store.finishJob(job.id, 'failed', 'photo_unavailable');
       s.failed++;
       continue;
+    }
+
+    // Late-result guard, part 1b: re-check access immediately before the paid, external call.
+    const access = await store.enrollmentAccess(job.enrollment_id);
+    if (access !== 'ok') {
+      s.stale++;
+      log('not_eligible', { job: job.id, access });
+      if (access === 'room_closed') await store.finishJob(job.id, 'failed', 'room_closed');
+      continue; // not_member: the enrollment cascade removes the job
     }
 
     try {

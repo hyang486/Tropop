@@ -59,4 +59,11 @@ AWS may store and use images sent to Rekognition to improve the service unless a
 
 ## What the developer does after steps 1–5
 
-Deploy the CompareFaces Edge Function, which reads the three secrets and logs no keys or image bytes. Run one match pair and one non-match pair, then record the similarity scores and call count in `docs/implementation-status.md`. Delete the stored test images and verify that the delete worked.
+Deploy the CompareFaces Edge Function, which reads the three secrets and logs no keys or image bytes. It also refuses to run (HTTP 503) unless the secret `FACE_MATCH_ENABLED` is exactly `true`; the developer will ask you to set it, or set it with your approval, only for the test below, and it is switched off again afterwards. Run one match pair and one non-match pair, then record the similarity scores and call count in `docs/implementation-status.md`. Delete the stored test images and verify that the delete worked.
+
+## Face-match switch procedure (supervisor P4)
+
+1. Default: `FACE_MATCH_ENABLED` is unset, so the function returns 503 `face_match_disabled` and sends nothing to AWS.
+2. Only for the rights-cleared test (step 5): set `FACE_MATCH_ENABLED=true`, run the match and non-match pairs, record scores and call count.
+3. Straight afterwards: unset it (or set anything other than `true`) and verify that a call returns 503.
+4. Keep it off until you decide on the AI-services opt-out (step 6). Real participant photos must not be sent while it is undecided.

@@ -1,6 +1,8 @@
 // face-match Edge Function (NOT DEPLOYED: it would call AWS once secrets exist).
 // A signed-in member calls it to process queued face_jobs for THEIR OWN enrollments.
 // Secrets (set by the human, never logged): AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION.
+// Switch: FACE_MATCH_ENABLED must be exactly 'true', otherwise 503 before any other work.
+// Matching runs only when an enrolled member's app calls this function (no background worker yet).
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -15,6 +17,8 @@ const json = (status: number, body: unknown) =>
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
+  // Server switch: on only during the rights-cleared test, off otherwise (see docs/aws-rekognition-human-steps.md).
+  if (Deno.env.get('FACE_MATCH_ENABLED') !== 'true') return json(503, { error: 'face_match_disabled' });
   const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
   const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
   const region = Deno.env.get('AWS_REGION');
@@ -60,6 +64,14 @@ Deno.serve(async (req) => {
     async getEnrollment(id) {
       const { data } = await admin.from('face_enrollments').select('id, ref_path').eq('id', id).maybeSingle();
       return data;
+    },
+    async enrollmentAccess(enrollmentId) {
+      const { data: e } = await admin.from('face_enrollments').select('room_id, user_id').eq('id', enrollmentId).maybeSingle();
+      if (!e) return 'not_member';
+      const { data: room } = await admin.from('rooms').select('deleted_at, expires_at').eq('id', e.room_id).maybeSingle();
+      if (!room || room.deleted_at !== null || new Date(room.expires_at).getTime() <= Date.now()) return 'room_closed';
+      const { data: m } = await admin.from('room_members').select('user_id').eq('room_id', e.room_id).eq('user_id', e.user_id).maybeSingle();
+      return m ? 'ok' : 'not_member';
     },
     async getPhotoPath(mediaId) {
       const { data } = await admin.from('media').select('preview_path, original_path, status, kind').eq('id', mediaId).maybeSingle();

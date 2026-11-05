@@ -10,7 +10,7 @@ import { signV4 } from './sigv4.ts';
 
 const bytes = (n: number) => new Uint8Array(n).fill(7);
 
-function makeStore(opts: { enrollments?: string[]; jobs: Job[]; photos?: Record<string, string> }) {
+function makeStore(opts: { enrollments?: string[]; jobs: Job[]; photos?: Record<string, string>; access?: 'ok' | 'room_closed' | 'not_member'; goneMedia?: string[] }) {
   const live = new Set(opts.enrollments ?? ['e1']);
   const saved: { e: string; m: string; sim: number | null; matched: boolean }[] = [];
   const finished: { id: string; status: string; error: string | null }[] = [];
@@ -20,7 +20,8 @@ function makeStore(opts: { enrollments?: string[]; jobs: Job[]; photos?: Record<
     finished,
     claimJobs: async () => opts.jobs,
     getEnrollment: async (id) => (live.has(id) ? { id, ref_path: `r/u/${id}.jpg` } : null),
-    getPhotoPath: async (m) => opts.photos?.[m] ?? `r/${m}.jpg`,
+    enrollmentAccess: async () => opts.access ?? 'ok',
+    getPhotoPath: async (m) => (opts.goneMedia?.includes(m) ? null : opts.photos?.[m] ?? `r/${m}.jpg`),
     download: async () => bytes(10),
     saveMatch: async (e, m, r) => {
       if (!live.has(e)) return 'stale';
@@ -69,6 +70,32 @@ test('late-result guard: enrollment deleted while the provider call is in flight
   assert.equal(store.saved.length, 0);
   assert.equal(store.finished.length, 0);
   assert.equal(s.stale, 1);
+});
+
+test('F8: expired/ended room -> no provider call, job failed room_closed, nothing written', async () => {
+  const store = makeStore({ access: 'room_closed', jobs: [job('a')] });
+  const p = fake(async () => ({ similarity: 99, targetHadFace: true }));
+  const s = await processBatch(store, p, { limit: 10 });
+  assert.equal(p.calls, 0);
+  assert.equal(store.saved.length, 0);
+  assert.deepEqual(store.finished, [{ id: 'a', status: 'failed', error: 'room_closed' }]);
+  assert.equal(s.stale, 1);
+});
+
+test('F8: member no longer in the room -> no provider call', async () => {
+  const store = makeStore({ access: 'not_member', jobs: [job('a')] });
+  const p = fake(async () => ({ similarity: 99, targetHadFace: true }));
+  await processBatch(store, p, { limit: 10 });
+  assert.equal(p.calls, 0);
+  assert.equal(store.saved.length, 0);
+});
+
+test('F8: deleted/not-ready media -> no provider call, job failed photo_unavailable', async () => {
+  const store = makeStore({ goneMedia: ['m-a'], jobs: [job('a')] });
+  const p = fake(async () => ({ similarity: 99, targetHadFace: true }));
+  await processBatch(store, p, { limit: 10 });
+  assert.equal(p.calls, 0);
+  assert.deepEqual(store.finished, [{ id: 'a', status: 'failed', error: 'photo_unavailable' }]);
 });
 
 test('transient errors requeue until MAX_ATTEMPTS, then fail', async () => {
