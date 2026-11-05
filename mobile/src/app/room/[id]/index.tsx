@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RoomActivityBar } from '@/components/room-activity';
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -220,6 +221,7 @@ function ChatRoom({
               <Text style={styles.bannerBody}>{en.room.reminderBody(room.name, remaining)}</Text>
             </View>
           ) : null}
+          <RoomActivityBar roomId={room.id} activitySeq={room.activity_seq} userId={userId} names={names} />
 
           {chat.loading ? (
             <ActivityIndicator style={styles.loading} />

@@ -25,7 +25,16 @@ in docs/implementation-status.md and docs/reviews/current.md; read it on demand.
   10/10) PASS in code; the deleted-account path is live-unverified, waiting on the human to approve
   the exact-ID delete of throwaway cabb68d7-… (tmp/qa-fixtures.md). Metro must not run with CI=1
   (no file watching, stale bundle).
-- Next concrete step: media device flow (upload/download on simulator).
+- U3 deleted-account path: live PASS (fixture deleted, `user_not_found` -> gone, cleanup 0 rows).
+  M1/M2 committed (9a3e13b).
+- Arrival/status/Emergency (2026-11-05, supervisor-approved): migration 0016 adds emergency_acks to
+  supabase_realtime (applied live). src/lib/activity.ts + src/components/room-activity.tsx wired into
+  the room screen (Arrived, status sheet, Emergency confirm, banner with "Seen by N of M", ack, I'm OK).
+  tsc/lint/npm test PASS. Non-member RLS already covered by supabase/tests/rls_test.sql.
+  Two-session Realtime check NOT done: needs a host account plus guest/outsider sessions, which means
+  new test accounts (human said no new accounts; asked). Device UI unverified (taps blocked).
+  Known: room activity_seq is read on screen focus only, so a host restart needs a refocus.
+- Next concrete step: two-session Realtime check once accounts are approved; media device flow.
 - Supervisor reviews stable checkpoints; independent approved implementation continues.
 
 ## Blockers and gaps
