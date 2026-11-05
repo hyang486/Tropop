@@ -26,7 +26,11 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   and checklist steps 5–10.
 - Face matching: scaffolding plus F8–F10 committed; no live AWS CompareFaces result (needs rights-cleared photos).
   AWS secrets are already in Supabase Secrets; do NOT ask for them again.
-- Reminders, map/route/speed, final account/plan flows: not accepted as working features.
+- Expiry reminders (R3): server 0019 live (981398b, cron active); client committed fa7ff6d (supervisor accepted
+  the design; npm test 22/22, tsc and lint clean; built on both sims). NOT verified on device: the local reminder
+  firing, the tap opening the room, the tap on an ended room showing the gone screen (§72). Test: a room expiring in
+  about 24 h + 3 min, so the reminder fires about 3 min later on both sims.
+- Map/route/speed, final account/plan flows: not accepted as working features.
 
 ## Active task: media device flow
 - Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both
