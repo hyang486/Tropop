@@ -21,7 +21,7 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Arrival/status/Emergency (0016, activity.ts, room-activity.tsx): server path live PASS through S1.
 
 ## Not yet verified
-- Media upload/download on a device: IN PROGRESS (see Active task). DB tests and full RLS PASS.
+- Media on a device: photo upload → download → save is a byte-exact PASS (run 2); the remaining items are in Active task. DB tests and full RLS PASS.
 - Activity UI (Arrived, status sheet, Emergency banner/ack) on the simulator; chat keyboard-open layout
   and checklist steps 5–10.
 - Face matching: scaffolding plus F8–F10 committed; no live AWS CompareFaces result (needs rights-cleared photos).
@@ -58,7 +58,9 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   (read-only): guest DCIM IMG_0009.JPG (the 5.9 MB fixture), guest ImagePicker cache copy, host room-media cache
   3afb3048….jpeg and host Photos IMG_0009.JPEG (22:23:53 local) all 5927272 B, same SHA-256 and MD5. PASS for
   upload → download → save byte integrity on simulators.
-- Still unconfirmed (no human observation): gallery tabs clear of the header; item appearing without a refresh.
+  Supervisor independently re-read the files and accepted media run 2 as a byte-exact PASS.
+- NOT verified: gallery tabs clear of the header; live appearance without a refresh; preview rendering; video;
+  the oversize (>50 MB) path on a device. Keep media 04d2152b and all existing data.
 
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
