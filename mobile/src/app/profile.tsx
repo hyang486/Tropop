@@ -122,6 +122,7 @@ export default function Profile() {
               headers: authHeaders(session.access_token),
               cacheKey: profile.avatar_path,
             }}
+            cachePolicy="memory"
           />
         ) : (
           <View style={[styles.photo, styles.photoEmpty]}>

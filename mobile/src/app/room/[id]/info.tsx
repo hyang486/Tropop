@@ -2,6 +2,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/avatar';
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -115,6 +116,7 @@ export default function RoomInfoScreen() {
         <Text style={styles.sectionTitle}>{en.room.membersCount(members.length)}</Text>
         {members.map((m) => (
           <View key={m.user_id} style={styles.member}>
+            <Avatar path={m.avatar_path} name={m.display_name} />
             <Text style={styles.memberName} numberOfLines={1}>
               {m.display_name}
             </Text>
@@ -150,8 +152,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.field,
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 8,
+    paddingVertical: 10,
+    gap: 10,
   },
   memberName: { flex: 1, fontSize: 17, color: colors.label },
   memberTag: { fontSize: 14, color: colors.secondaryLabel },

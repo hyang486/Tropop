@@ -3,6 +3,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/avatar';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -37,7 +38,7 @@ type State =
   | { status: 'loading' }
   | { status: 'gone' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; room: Room; names: Map<string, string> };
+  | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
 
 const STALE_TINT = '#8E8E93';
 const ROUTE_COLOR = '#007AFF';
@@ -55,7 +56,12 @@ export default function RoomMapScreen() {
         return;
       }
       const members = await listMembers(id);
-      setState({ status: 'ready', room, names: new Map(members.map((m) => [m.user_id, m.display_name])) });
+      setState({
+        status: 'ready',
+        room,
+        names: new Map(members.map((m) => [m.user_id, m.display_name])),
+        avatars: new Map(members.map((m) => [m.user_id, m.avatar_path])),
+      });
     } catch (e) {
       setState((s) => (s.status === 'ready' ? s : { status: 'error', message: errorMessage(e) }));
     }
@@ -89,10 +95,18 @@ export default function RoomMapScreen() {
       </View>
     );
   }
-  return <RoomMap room={state.room} names={state.names} />;
+  return <RoomMap room={state.room} names={state.names} avatars={state.avatars} />;
 }
 
-function RoomMap({ room, names }: { room: Room; names: Map<string, string> }) {
+function RoomMap({
+  room,
+  names,
+  avatars,
+}: {
+  room: Room;
+  names: Map<string, string>;
+  avatars: Map<string, string | null>;
+}) {
   const { session } = useAuth();
   const userId = session?.user.id;
   const isHost = room.host_id === userId;
@@ -227,7 +241,7 @@ function RoomMap({ room, names }: { room: Room; names: Map<string, string> }) {
     });
   }
 
-  // M1: initials until profile photos exist; the speed shows in the title, never for a stale row (C4).
+  // M1: expo-maps markers take only a monogram or an SF Symbol, so photos show in the member list below; the speed shows in the title, never for a stale row (C4).
   const markers = presence.rows.map((row) => {
     const stale = isStale(row.updated_at, now);
     const name = displayName(row, userId, names);
@@ -329,7 +343,14 @@ function RoomMap({ room, names }: { room: Room; names: Map<string, string> }) {
           <Text style={styles.status}>{en.map.members}</Text>
           {presence.rows.length === 0 ? <Hint>{en.map.nobody}</Hint> : null}
           {presence.rows.map((row) => (
-            <PresenceRow key={row.user_id} row={row} name={displayName(row, userId, names)} now={now} />
+            <PresenceRow
+              key={row.user_id}
+              row={row}
+              name={displayName(row, userId, names)}
+              initialOf={names.get(row.user_id) ?? ''}
+              avatarPath={avatars.get(row.user_id) ?? null}
+              now={now}
+            />
           ))}
         </View>
       ) : null}
@@ -377,16 +398,31 @@ function displayName(row: Presence, userId: string | undefined, names: Map<strin
 }
 
 /** C4: a stale row never shows its speed; it shows "Location stale" with its age instead. */
-function PresenceRow({ row, name, now }: { row: Presence; name: string; now: number }) {
+function PresenceRow({
+  row,
+  name,
+  initialOf,
+  avatarPath,
+  now,
+}: {
+  row: Presence;
+  name: string;
+  initialOf: string;
+  avatarPath: string | null;
+  now: number;
+}) {
   const age = formatAge(row.updated_at, now);
   const stale = isStale(row.updated_at, now);
   const speed = stale ? null : formatSpeedKmh(row.speed_mps);
   return (
     <View style={styles.presence}>
-      <Text style={styles.presenceName}>{name}</Text>
-      <Text style={[styles.presenceMeta, stale && styles.staleText]}>
-        {stale ? en.map.stale(age) : [speed, en.map.updated(age)].filter(Boolean).join(' · ')}
-      </Text>
+      <Avatar path={avatarPath} name={initialOf || name} size={28} />
+      <View style={styles.presenceText}>
+        <Text style={styles.presenceName}>{name}</Text>
+        <Text style={[styles.presenceMeta, stale && styles.staleText]}>
+          {stale ? en.map.stale(age) : [speed, en.map.updated(age)].filter(Boolean).join(' · ')}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -429,8 +465,11 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    gap: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
+  presenceText: { flex: 1, gap: 2 },
   presenceName: { fontSize: 17, color: colors.label },
   presenceMeta: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
   staleText: { color: colors.warning },

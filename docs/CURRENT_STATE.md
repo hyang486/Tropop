@@ -129,7 +129,18 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   signing keys, deploy verify_jwt false instead (supervisor OK). After deploy: a no-token request must return 401. D1 ACCEPTED. No supabase/config.toml in the repo.
   QA plan (disposable accounts only, exact IDs recorded): photo set/change/remove seen by co-member not outsider; guest
   deletion (room stays, messages nameless, media gone after janitor); host deletion (room ends for the other member).
-- Next: supervisor ack of the dry-run result -> commit/apply 0021 -> deploy delete-account -> device QA (photo set/replace/remove seen
+- Supervisor ACKED the dry run; committed c6e2f73 (tsc/lint clean, npm test 43/43). Live apply 2026-11-05: the
+  apply_migration call was DENIED by the Claude Code auto-mode classifier ("Production Deploy"). 0021 is NOT live and
+  delete-account is NOT deployed. Waiting on the human (an allow rule for apply_migration/deploy_edge_function, or
+  their own apply). Do not route it through execute_sql or a peer session.
+- Avatar in member lists (supervisor ACCEPTED with AV1 fixed: cachePolicy="memory" on Avatar and on the profile
+  screen's own photo, so no photo stays on disk): components/avatar.tsx (photo through the
+  authenticated Storage URL, initial fallback, also on a load error); listMembers returns avatar_path (column exists
+  live since 0001); used in room info members and map member rows. Map markers stay monogram (expo-maps markers take
+  only a monogram or SF Symbol; M1 gap kept). tsc/lint clean, npm test 43/43. Not on device.
+  Before 0021 is live: photo upload shows the Storage error text and Delete account shows deleteFailed with the session kept
+  (both caught; neither is done).
+- Next (after the human unblocks): apply 0021 -> deploy delete-account -> device QA (photo set/replace/remove seen
   by a co-member, delete guest + host accounts with server and Storage checks).
 
 ## Active task: media device flow
