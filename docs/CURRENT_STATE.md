@@ -34,7 +34,19 @@ in docs/implementation-status.md and docs/reviews/current.md; read it on demand.
   Two-session Realtime check NOT done: needs a host account plus guest/outsider sessions, which means
   new test accounts (human said no new accounts; asked). Device UI unverified (taps blocked).
   Known: room activity_seq is read on screen focus only, so a host restart needs a refocus.
-- Next concrete step: two-session Realtime check once accounts are approved; media device flow.
+- S1 (2026-11-05): room events moved from Postgres Changes to private Broadcast `room:<id>`
+  (migration 0017 applied live: realtime.messages SELECT policy room_topic_receive, 10
+  broadcast_room_change triggers, supabase_realtime publication now empty; no client INSERT policy).
+  Payload is only {table, op, id}; clients refetch through RLS (src/lib/room-channel.ts useRoomEvents;
+  chat/media/activity use it; no postgres_changes left in src). DB test supabase/tests/room_broadcast_test.sql
+  PASS (rolled back). LIVE two-session check PASS (3 human-approved QA accounts, script run once):
+  host + guest SUBSCRIBED and each received arrivals/member_status INSERT/UPDATE/DELETE,
+  emergency_events INSERT, emergency_acks INSERT, messages INSERT; outsider CHANNEL_ERROR Unauthorized,
+  0 broadcast events, 0 Postgres Changes events, 0 arrival rows; host saw the arrival and guest saw the ack via RLS.
+  tsc/lint/npm test PASS. Device UI still unverified.
+  PENDING CLEANUP: QA IDs in tmp/qa-s1-ids.tsv (room 88aecc77-…, users 39785f4d-…, 08ed7282-…, 3515d17a-…).
+  The exact-ID delete needs human confirmation (the prompt expired unanswered).
+- Next concrete step: QA S1 cleanup on confirmation; media device flow.
 - Supervisor reviews stable checkpoints; independent approved implementation continues.
 
 ## Blockers and gaps

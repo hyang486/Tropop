@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import type { Tables } from './database.types';
+import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
 
 export type Message = Tables<'messages'>;
@@ -61,7 +62,7 @@ type ChatState = {
 };
 
 /**
- * Loads the latest page, listens for new rows over Realtime (RLS applies to every event),
+ * Loads the latest page, listens for new-message notices on the room's private Broadcast topic,
  * and refetches the latest page after a (re)subscribe or when the app returns to the foreground,
  * so gaps while disconnected are filled.
  */
@@ -95,40 +96,32 @@ export function useChat(roomId: string, userId: string | undefined, onNewSender?
     }
   }, [roomId, apply]);
 
+  // Change notices carry only the message id; the row itself is read through RLS.
+  useRoomEvents(
+    roomId,
+    async (event) => {
+      if (event.table !== 'messages' || event.op !== 'INSERT' || !event.id) return;
+      const { data: row } = await supabase.from('messages').select('*').eq('id', event.id).maybeSingle();
+      if (!row) return;
+      apply((s) => ({ ...s, messages: merge(s.messages, [row]) }));
+      if (row.kind === 'system' || (row.sender_id && row.sender_id !== userId)) {
+        onNewSenderRef.current?.(row.sender_id ?? '');
+      }
+    },
+    (status) => {
+      const live = status === 'SUBSCRIBED';
+      apply((s) => ({ ...s, live }));
+      if (live) refreshLatest();
+    },
+  );
+
   useEffect(() => {
-    let cancelled = false;
-    const channel = supabase
-      .channel(`room-messages:${roomId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomId}` },
-        (payload) => {
-          const row = payload.new as Message;
-          apply((s) => ({ ...s, messages: merge(s.messages, [row]) }));
-          if (row.kind === 'system' || (row.sender_id && row.sender_id !== userId)) {
-            onNewSenderRef.current?.(row.sender_id ?? '');
-          }
-        },
-      )
-      .subscribe((status) => {
-        if (cancelled) return;
-        const live = status === 'SUBSCRIBED';
-        apply((s) => ({ ...s, live }));
-        if (live) refreshLatest();
-      });
-
     refreshLatest();
-
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active') refreshLatest();
     });
-
-    return () => {
-      cancelled = true;
-      sub.remove();
-      supabase.removeChannel(channel);
-    };
-  }, [roomId, userId, apply, refreshLatest]);
+    return () => sub.remove();
+  }, [refreshLatest]);
 
   const loadOlder = useCallback(async () => {
     const oldest = messagesRef.current.filter((m) => !m.pending).at(-1);

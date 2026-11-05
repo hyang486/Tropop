@@ -11,6 +11,7 @@ import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
 import { errorMessage } from './errors';
+import { useRoomEvents } from './room-channel';
 import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './supabase';
 
 /**
@@ -402,21 +403,17 @@ export function useRoomMedia(roomId: string, filter: MediaFilter, userId: string
     }
   }, [roomId, filter, userId]);
 
-  // Initial fetch runs once the realtime channel settles, so no change between
+  // Initial fetch runs once the room channel settles, so no change between
   // the fetch and the subscription is missed; it still runs if realtime fails.
-  useEffect(() => {
-    const channel = supabase
-      .channel(`media:${roomId}:${randomUUID()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'media', filter: `room_id=eq.${roomId}` }, () => {
-        reload();
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reload();
-      });
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [roomId, reload]);
+  useRoomEvents(
+    roomId,
+    (event) => {
+      if (event.table === 'media') reload();
+    },
+    () => {
+      reload();
+    },
+  );
 
   return { items, loading, error, reload };
 }

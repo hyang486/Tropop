@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
 import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
+import { useRoomEvents } from '@/lib/room-channel';
 import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 
@@ -57,6 +58,11 @@ export default function RoomScreen() {
       load();
     }, [load]),
   );
+
+  // Room settings (expiry, activity_seq) and membership changes: reload the room and member names.
+  useRoomEvents(id, (event) => {
+    if (event.table === 'rooms' || event.table === 'room_members') load();
+  });
 
   // A new member's first message, or a join/leave notice: refresh names (and notice an ended room).
   const names = state.status === 'ready' ? state.names : undefined;

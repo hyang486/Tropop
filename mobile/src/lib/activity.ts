@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import type { Tables } from './database.types';
+import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
+
+const ACTIVITY_TABLES = new Set(['member_status', 'status_definitions', 'emergency_events', 'emergency_acks', 'arrivals']);
 
 export type StatusDefinition = Tables<'status_definitions'>;
 
@@ -91,8 +94,8 @@ async function fetchActivity(roomId: string, userId: string, activitySeq: number
 }
 
 /**
- * Arrival, statuses and open Emergencies for a room. Refetches on any related Realtime change
- * (RLS applies), after a (re)subscribe and when the app returns to the foreground.
+ * Arrival, statuses and open Emergencies for a room. Refetches on any related room change notice,
+ * after a (re)subscribe, when activity_seq changes and when the app returns to the foreground.
  */
 export function useRoomActivity(roomId: string, userId: string | undefined, activitySeq: number) {
   const [state, setState] = useState<RoomActivity>(EMPTY);
@@ -109,31 +112,24 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
     }
   }, [roomId, userId, activitySeq]);
 
+  // Change notices from the room's private Broadcast topic; content is always refetched through RLS.
+  useRoomEvents(
+    roomId,
+    (event) => {
+      if (ACTIVITY_TABLES.has(event.table)) reload();
+    },
+    (status) => {
+      if (status === 'SUBSCRIBED') reload();
+    },
+  );
+
   useEffect(() => {
-    const roomFilter = `room_id=eq.${roomId}`;
-    const onChange = () => {
-      reload();
-    };
-    const channel = supabase
-      .channel(`room-activity:${roomId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_status', filter: roomFilter }, onChange)
-      // DELETE events cannot be filtered by column; RLS still limits what arrives.
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'member_status' }, onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'status_definitions', filter: roomFilter }, onChange)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emergency_events', filter: roomFilter }, onChange)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emergency_acks' }, onChange)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'arrivals', filter: roomFilter }, onChange)
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') reload();
-      });
+    reload();
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active') reload();
     });
-    return () => {
-      sub.remove();
-      supabase.removeChannel(channel);
-    };
-  }, [roomId, reload]);
+    return () => sub.remove();
+  }, [reload]);
 
   const arrive = useCallback(async () => {
     const { error } = await supabase.rpc('mark_arrived', { p_room_id: roomId });
