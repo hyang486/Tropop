@@ -28,6 +28,7 @@ function RootNavigator() {
         <Stack.Screen name="scan" options={{ title: en.scan.title }} />
         <Stack.Screen name="preview" options={{ title: en.preview.title }} />
         <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
+        <Stack.Screen name="room/[id]/info" options={{ title: en.room.info }} />
         <Stack.Screen name="room/[id]/invite" options={{ title: en.invite.title, presentation: 'modal' }} />
       </Stack.Protected>
 

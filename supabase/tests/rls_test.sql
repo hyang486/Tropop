@@ -1,6 +1,6 @@
 -- Re-runnable RLS / RPC permission test (supervisor note P1).
 -- Runs entirely inside one transaction and ends with ROLLBACK, so it leaves no data behind.
--- Requires all migrations through join_gate_ipv6_prefix (20261104000009).
+-- Requires all migrations through messages_server_created_at (20261104000011).
 -- Run as the database owner (postgres), e.g. Supabase MCP `execute_sql` with this file's contents,
 -- or `psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_test.sql`.
 -- Any failed expectation raises `FAIL: <label>` and aborts. Success ends with the row 'RLS TESTS PASSED'.
@@ -195,12 +195,26 @@ select tests.expect_count($q$ select 1 from public.room_members where room_id = 
   'joining twice created one membership');
 select tests.expect_ok($q$ insert into public.messages (room_id, sender_id, body) values (current_setting('t.r')::uuid, auth.uid(), 'hello') $q$,
   'member can send a text message');
+select tests.expect_ok($q$ insert into public.messages (room_id, sender_id, body, created_at) values (current_setting('t.r')::uuid, auth.uid(), 'future', '2099-01-01') $q$,
+  'member insert with a client created_at is accepted');
+select tests.expect_count($q$ select 1 from public.messages where room_id = current_setting('t.r')::uuid and body = 'future' and created_at = now() $q$, 1,
+  'client created_at is replaced with server now() (F7)');
+select tests.expect_count($q$ select 1 from public.messages where created_at > now() $q$, 0,
+  'no message has a future created_at (F7)');
 select tests.expect_error($q$ insert into public.messages (room_id, sender_id, body) values (current_setting('t.r')::uuid, 'a0000000-0000-4000-8000-000000000001', 'spoof') $q$,
   'member cannot send as someone else');
 select tests.expect_error($q$ insert into public.messages (room_id, sender_id, kind, body) values (current_setting('t.r')::uuid, auth.uid(), 'system', 'fake system') $q$,
   'member cannot send system messages');
 select tests.expect_error($q$ insert into public.messages (room_id, sender_id, kind, body) values (current_setting('t.r')::uuid, auth.uid(), 'emergency', 'fake') $q$,
   'member cannot forge emergency messages directly');
+select tests.expect_error($q$ insert into public.messages (room_id, sender_id, body) values (current_setting('t.r')::uuid, auth.uid(), '   ') $q$,
+  'blank text message is rejected');
+select tests.expect_error($q$ insert into public.messages (room_id, sender_id, body) values (current_setting('t.r')::uuid, auth.uid(), null) $q$,
+  'text message without a body is rejected');
+select tests.expect_error($q$ insert into public.messages (room_id, sender_id, body) values (current_setting('t.r')::uuid, auth.uid(), repeat('x', 4001)) $q$,
+  'text message over 4000 characters is rejected');
+select tests.expect_affected($q$ update public.messages set body = 'edited' where room_id = current_setting('t.r')::uuid $q$, 0,
+  'member cannot edit messages');
 select tests.expect_affected($q$ update public.rooms set name = 'hijack' where id = current_setting('t.r')::uuid $q$, 0,
   'member cannot update the room row');
 select tests.expect_affected($q$ delete from public.messages where room_id = current_setting('t.r')::uuid $q$, 0,
@@ -535,13 +549,17 @@ select tests.expect_sqlstate($q$ select tests.read_only($x$ select * from public
   'read-only (GET) preview_room is rejected even for a valid code');
 reset role;
 do $$ begin
-  if (select count(*) from public.join_attempts where ip_hash is not null and not succeeded) <> 31 then
+  -- Scoped to the fixed test users: the live table may hold real attempts from other sessions.
+  if (select count(*) from public.join_attempts
+      where user_id::text like 'a0000000-0000-4000-8000-%' and ip_hash is not null and not succeeded) <> 31 then
     raise exception 'FAIL: expected 31 IP-tagged failure rows (30 on IP A, 1 on IP B)';
   end if;
-  if exists (select 1 from public.join_attempts where ip_hash is not null and ip_hash !~ '^[0-9a-f]{64}$') then
+  if exists (select 1 from public.join_attempts
+             where user_id::text like 'a0000000-0000-4000-8000-%' and ip_hash is not null and ip_hash !~ '^[0-9a-f]{64}$') then
     raise exception 'FAIL: ip_hash must be a 64-char hex HMAC, never a raw IP';
   end if;
-  if (select count(distinct ip_hash) from public.join_attempts where ip_hash is not null) <> 2 then
+  if (select count(distinct ip_hash) from public.join_attempts
+      where user_id::text like 'a0000000-0000-4000-8000-%' and ip_hash is not null) <> 2 then
     raise exception 'FAIL: expected exactly 2 distinct IP hashes';
   end if;
 end $$;

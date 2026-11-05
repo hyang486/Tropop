@@ -1,28 +1,32 @@
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { useHeaderHeight } from 'expo-router/react-navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
 import { errorMessage } from '@/lib/errors';
-import {
-  endRoom,
-  formatRemaining,
-  getRoom,
-  leaveRoom,
-  listMembers,
-  REMINDER_WINDOW_MS,
-  type Room,
-  type RoomMember,
-} from '@/lib/rooms';
+import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 
 type State =
   | { status: 'loading' }
   | { status: 'gone' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; room: Room; members: RoomMember[] };
+  | { status: 'ready'; room: Room; names: Map<string, string> };
 
 export default function RoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,7 +35,6 @@ export default function RoomScreen() {
   const userId = session?.user.id;
   const now = useNow(15_000);
   const [state, setState] = useState<State>({ status: 'loading' });
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -40,9 +43,10 @@ export default function RoomScreen() {
         setState({ status: 'gone' });
         return;
       }
-      setState({ status: 'ready', room, members: await listMembers(id) });
+      const members = await listMembers(id);
+      setState({ status: 'ready', room, names: new Map(members.map((m) => [m.user_id, m.display_name])) });
     } catch (e) {
-      setState({ status: 'error', message: errorMessage(e) });
+      setState((s) => (s.status === 'ready' ? s : { status: 'error', message: errorMessage(e) }));
     }
   }, [id]);
 
@@ -50,6 +54,15 @@ export default function RoomScreen() {
     useCallback(() => {
       load();
     }, [load]),
+  );
+
+  // A new member's first message, or a join/leave notice: refresh names (and notice an ended room).
+  const names = state.status === 'ready' ? state.names : undefined;
+  const onNewSender = useCallback(
+    (senderId: string) => {
+      if (!senderId || !names?.has(senderId)) load();
+    },
+    [names, load],
   );
 
   if (state.status === 'loading') {
@@ -85,29 +98,58 @@ export default function RoomScreen() {
     );
   }
 
-  const { room, members } = state;
-  const isHost = room.host_id === userId;
-  const remaining = formatRemaining(remainingMs);
+  return (
+    <ChatRoom
+      room={state.room}
+      names={state.names}
+      userId={userId}
+      remainingMs={remainingMs}
+      onNewSender={onNewSender}
+      onSendFailed={load}
+    />
+  );
+}
 
-  function confirmLeave() {
-    Alert.alert(isHost ? en.room.endConfirmTitle : en.room.leaveConfirmTitle,
-      isHost ? en.room.endConfirmBody : en.room.leaveConfirmBody, [
-        { text: en.room.cancel, style: 'cancel' },
-        {
-          text: isHost ? en.room.end : en.room.leave,
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true);
-            try {
-              await (isHost ? endRoom(room.id) : leaveRoom(room.id));
-              router.dismissTo('/');
-            } catch (e) {
-              setBusy(false);
-              Alert.alert(errorMessage(e));
-            }
-          },
-        },
-      ]);
+function ChatRoom({
+  room,
+  names,
+  userId,
+  remainingMs,
+  onNewSender,
+  onSendFailed,
+}: {
+  room: Room;
+  names: Map<string, string>;
+  userId: string | undefined;
+  remainingMs: number;
+  onNewSender: (senderId: string) => void;
+  onSendFailed: () => void;
+}) {
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+  const chat = useChat(room.id, userId, onNewSender);
+  const [draft, setDraft] = useState('');
+  const remaining = formatRemaining(remainingMs);
+  const canSend = draft.trim().length > 0;
+
+  function submit() {
+    if (!canSend) return;
+    chat.send(draft);
+    setDraft('');
+  }
+
+  const failedCount = chat.messages.filter((m) => m.pending === 'failed').length;
+  // A failed send may mean the room ended or the user was removed; re-check the room when a send fails.
+  useEffect(() => {
+    if (failedCount > 0) onSendFailed();
+  }, [failedCount, onSendFailed]);
+
+  function onFailedPress(item: ChatItem) {
+    Alert.alert(en.chat.failed, undefined, [
+      { text: en.room.cancel, style: 'cancel' },
+      { text: en.chat.discard, style: 'destructive', onPress: () => chat.discard(item.id) },
+      { text: en.chat.retry, onPress: () => chat.retry(item.id) },
+    ]);
   }
 
   return (
@@ -116,90 +158,233 @@ export default function RoomScreen() {
         options={{
           title: room.name,
           headerRight: () => (
-            <Link
-              href={{ pathname: '/room/[id]/invite', params: { id: room.id } }}
-              style={styles.headerLink}
-              accessibilityRole="button"
-            >
-              {en.room.invite}
-            </Link>
+            <View style={styles.headerActions}>
+              <Link
+                href={{ pathname: '/room/[id]/invite', params: { id: room.id } }}
+                style={styles.headerLink}
+                accessibilityRole="button"
+              >
+                {en.room.invite}
+              </Link>
+              <Link
+                href={{ pathname: '/room/[id]/info', params: { id: room.id } }}
+                style={styles.headerLink}
+                accessibilityRole="button"
+              >
+                {en.room.info}
+              </Link>
+            </View>
           ),
         }}
       />
-      <Screen>
-        <View style={styles.header}>
-          <Text style={styles.remaining} accessibilityRole="header">
-            {en.room.endsIn(remaining)}
-          </Text>
-          <Hint>{en.room.endsAt(new Date(room.expires_at).toLocaleString())}</Hint>
-        </View>
-
-        {remainingMs < REMINDER_WINDOW_MS ? (
-          <View style={styles.banner} accessibilityRole="alert">
-            <Text style={styles.bannerTitle}>{en.room.reminderTitle}</Text>
-            <Text style={styles.bannerBody}>{en.room.reminderBody(room.name, remaining)}</Text>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={headerHeight}>
+        <View style={[styles.flex, { backgroundColor: colors.background }]}>
+          <View style={styles.strip}>
+            <Text style={styles.remaining} accessibilityRole="header">
+              {en.room.endsIn(remaining)}
+            </Text>
+            {!chat.live && !chat.loading ? <Text style={styles.offline}>{en.chat.reconnecting}</Text> : null}
           </View>
-        ) : null}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{en.room.members}</Text>
-          {members.map((m) => (
-            <View key={m.user_id} style={styles.member}>
-              <Text style={styles.memberName} numberOfLines={1}>
-                {m.display_name}
-              </Text>
-              <Text style={styles.memberTag}>
-                {[m.role === 'host' ? en.room.host : null, m.user_id === userId ? en.room.you : null]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
+          {remainingMs < REMINDER_WINDOW_MS ? (
+            <View style={styles.banner} accessibilityRole="alert">
+              <Text style={styles.bannerTitle}>{en.room.reminderTitle}</Text>
+              <Text style={styles.bannerBody}>{en.room.reminderBody(room.name, remaining)}</Text>
             </View>
-          ))}
+          ) : null}
+
+          {chat.loading ? (
+            <ActivityIndicator style={styles.loading} />
+          ) : chat.error && chat.messages.length === 0 ? (
+            <View style={styles.center}>
+              <Hint tone="error">{en.chat.loadError}</Hint>
+              <Button title={en.home.retry} variant="secondary" onPress={chat.reload} />
+            </View>
+          ) : (
+            <FlatList
+              style={styles.flex}
+              inverted
+              data={chat.messages}
+              keyExtractor={(m) => m.id}
+              contentContainerStyle={styles.list}
+              keyboardDismissMode="interactive"
+              keyboardShouldPersistTaps="handled"
+              onEndReached={chat.hasMore ? chat.loadOlder : undefined}
+              onEndReachedThreshold={0.5}
+              ListEmptyComponent={
+                <View style={styles.emptyWrap}>
+                  <Hint>{en.chat.empty}</Hint>
+                </View>
+              }
+              renderItem={({ item, index }) => (
+                <MessageRow
+                  item={item}
+                  older={chat.messages[index + 1]}
+                  mine={item.sender_id === userId}
+                  name={item.sender_id ? (names.get(item.sender_id) ?? en.chat.formerMember) : ''}
+                  onFailedPress={onFailedPress}
+                />
+              )}
+            />
+          )}
+
+          <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+            <TextInput
+              style={styles.input}
+              value={draft}
+              onChangeText={setDraft}
+              placeholder={en.chat.placeholder}
+              placeholderTextColor={colors.secondaryLabel}
+              accessibilityLabel={en.chat.placeholder}
+              multiline
+              maxLength={MAX_MESSAGE_LENGTH}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={en.chat.send}
+              accessibilityState={{ disabled: !canSend }}
+              disabled={!canSend}
+              onPress={submit}
+              style={({ pressed }) => [styles.sendButton, (!canSend || pressed) && { opacity: 0.4 }]}
+            >
+              <Text style={styles.sendText}>{en.chat.send}</Text>
+            </Pressable>
+          </View>
         </View>
-
-        <Hint>{en.room.chatComing}</Hint>
-
-        <Button
-          title={isHost ? en.room.end : en.room.leave}
-          variant="destructive"
-          busy={busy}
-          onPress={confirmLeave}
-        />
-      </Screen>
+      </KeyboardAvoidingView>
     </>
   );
 }
 
+const NOTICE_KINDS = new Set(['system', 'arrival', 'status', 'emergency']);
+
+function MessageRow({
+  item,
+  older,
+  mine,
+  name,
+  onFailedPress,
+}: {
+  item: ChatItem;
+  older: ChatItem | undefined;
+  mine: boolean;
+  name: string;
+  onFailedPress: (item: ChatItem) => void;
+}) {
+  const time = useMemo(
+    () => new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    [item.created_at],
+  );
+
+  if (NOTICE_KINDS.has(item.kind)) {
+    const emergency = item.kind === 'emergency';
+    return (
+      <View style={styles.noticeRow} accessibilityRole={emergency ? 'alert' : 'text'}>
+        <Text style={[styles.notice, emergency && styles.emergency]}>
+          {item.body} · {time}
+        </Text>
+      </View>
+    );
+  }
+
+  // Media messages render in checkpoint 5; until then show a plain placeholder text.
+  const body = item.kind === 'media' ? '📎' : item.body;
+  const showName = !mine && (older?.sender_id !== item.sender_id || NOTICE_KINDS.has(older?.kind ?? ''));
+
+  const bubble = (
+    <View style={[styles.bubble, mine ? styles.mine : styles.theirs, item.pending === 'failed' && styles.failedBubble]}>
+      <Text selectable style={[styles.body, mine && styles.mineText]}>
+        {body}
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={[styles.row, mine ? styles.rowMine : styles.rowTheirs]}>
+      {showName ? <Text style={styles.sender}>{name}</Text> : null}
+      {item.pending === 'failed' ? (
+        <Pressable accessibilityRole="button" accessibilityHint={en.chat.failed} onPress={() => onFailedPress(item)}>
+          {bubble}
+        </Pressable>
+      ) : (
+        bubble
+      )}
+      <Text style={[styles.meta, item.pending === 'failed' && styles.failedMeta]}>
+        {item.pending === 'sending' ? en.chat.sending : item.pending === 'failed' ? en.chat.failed : time}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   loading: { marginTop: 48 },
-  headerLink: { fontSize: 17, color: colors.tint, paddingHorizontal: 8 },
-  header: { gap: 4 },
-  remaining: { fontSize: 28, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] },
+  center: { padding: 20, gap: 12 },
+  headerActions: { flexDirection: 'row', gap: 4 },
+  headerLink: { fontSize: 17, color: colors.tint, paddingHorizontal: 6 },
+  strip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  remaining: { fontSize: 15, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
+  offline: { fontSize: 13, color: colors.warning },
   banner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
     backgroundColor: colors.field,
     borderLeftWidth: 4,
     borderLeftColor: colors.warning,
     borderRadius: 12,
     borderCurve: 'continuous',
-    padding: 14,
+    padding: 12,
     gap: 4,
   },
-  bannerTitle: { fontSize: 16, fontWeight: '600', color: colors.label },
-  bannerBody: { fontSize: 15, color: colors.label },
-  section: { gap: 8 },
-  sectionTitle: { fontSize: 13, color: colors.secondaryLabel, textTransform: 'uppercase' },
-  member: {
+  bannerTitle: { fontSize: 15, fontWeight: '600', color: colors.label },
+  bannerBody: { fontSize: 14, color: colors.label },
+  list: { paddingHorizontal: 12, paddingVertical: 8, gap: 2, flexGrow: 1 },
+  // The list is inverted, so the empty state is flipped back.
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scaleY: -1 }] },
+  row: { marginVertical: 2, maxWidth: '80%' },
+  rowMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
+  rowTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start' },
+  sender: { fontSize: 12, color: colors.secondaryLabel, marginTop: 6, marginBottom: 2, marginLeft: 12 },
+  bubble: { borderRadius: 18, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 8 },
+  mine: { backgroundColor: colors.tint },
+  theirs: { backgroundColor: colors.field },
+  failedBubble: { opacity: 0.6 },
+  body: { fontSize: 17, color: colors.label },
+  mineText: { color: 'white' },
+  meta: { fontSize: 11, color: colors.secondaryLabel, marginTop: 2, marginHorizontal: 8 },
+  failedMeta: { color: colors.danger },
+  noticeRow: { alignSelf: 'center', marginVertical: 6, paddingHorizontal: 16 },
+  notice: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' },
+  emergency: { color: colors.danger, fontWeight: '700' },
+  composer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.field,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    alignItems: 'flex-end',
     gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.separator,
+    backgroundColor: colors.background,
   },
-  memberName: { flex: 1, fontSize: 17, color: colors.label },
-  memberTag: { fontSize: 14, color: colors.secondaryLabel },
+  input: {
+    flex: 1,
+    maxHeight: 120,
+    minHeight: 36,
+    backgroundColor: colors.field,
+    color: colors.label,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
+    fontSize: 17,
+  },
+  sendButton: { height: 36, justifyContent: 'center', paddingHorizontal: 8 },
+  sendText: { fontSize: 17, fontWeight: '600', color: colors.tint },
   gone: { paddingVertical: 48, alignItems: 'center', gap: 8 },
   goneTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
 });
