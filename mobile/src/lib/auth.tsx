@@ -4,6 +4,7 @@ import { createContext, use, useCallback, useEffect, useMemo, useState, type Rea
 import { en } from '@/i18n/en';
 
 import { checkAccount } from './account-check';
+import { clearImageDiskCache } from './image-cache';
 import { cancelAllUploads, clearAllRoomCaches } from './media';
 import { cancelAllExpiryReminders } from './expiry-reminders';
 import { resetLocalLocation, stopMyLocation, stopMyLocationOnLaunch } from './location';
@@ -35,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    // M1: map photo pins left in expo-image's disk cache by a crash or kill while the map was open.
+    clearImageDiskCache();
     accountGoneListener = () => {
       if (mounted) setNotice(en.auth.accountGone);
     };

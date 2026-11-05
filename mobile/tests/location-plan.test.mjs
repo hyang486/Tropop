@@ -7,14 +7,17 @@ import {
   formatAge,
   formatSpeedKmh,
   HEARTBEAT_MS,
+  initials,
   isStale,
   MAX_ROUTE_POINTS,
   parseRoute,
+  planPins,
   reconcileShare,
   REPORT_MIN_INTERVAL_MS,
   shouldReport,
   STALE_AFTER_MS,
   toRoutePayload,
+  wantedIconPaths,
 } from '../src/lib/location-plan.ts';
 
 const A = { latitude: 37.5665, longitude: 126.978 };
@@ -112,4 +115,50 @@ test('reconcileShare on a current read', () => {
   // The server stopped it (activity ended, location disallowed, left the room).
   assert.equal(read(false, true), 'drop-consent');
   assert.equal(read(false, false), 'off');
+});
+
+// M1: map pins.
+const NOW = Date.parse('2026-11-05T12:00:00Z');
+const FRESH = new Date(NOW - 10_000).toISOString();
+const OLD = new Date(NOW - STALE_AFTER_MS - 1_000).toISOString();
+const pin = (over) => ({
+  userId: 'u1',
+  coordinates: A,
+  updatedAt: FRESH,
+  speedMps: 2,
+  label: 'Test joiner',
+  initialsOf: 'Test joiner',
+  avatarPath: 'u1/a.jpg',
+  ...over,
+});
+
+test('planPins: fresh member with a loaded photo is a photo pin with name and speed', () => {
+  const [p] = planPins([pin()], NOW, new Map([['u1/a.jpg', 'ICON']]));
+  assert.deepEqual(p, { kind: 'photo', id: 'u1', coordinates: A, title: 'Test joiner · 7.2 km/h', icon: 'ICON' });
+});
+
+test('planPins: no photo, not loaded yet, or failed falls back to initials', () => {
+  assert.equal(planPins([pin({ avatarPath: null })], NOW, new Map())[0].monogram, 'TJ');
+  const [p] = planPins([pin()], NOW, new Map());
+  assert.equal(p.kind, 'monogram');
+  assert.equal(p.title, 'Test joiner · 7.2 km/h');
+});
+
+test('planPins: a stale member is a clock pin without speed, even with a loaded photo (C4)', () => {
+  const [p] = planPins([pin({ updatedAt: OLD })], NOW, new Map([['u1/a.jpg', 'ICON']]));
+  assert.deepEqual(p, { kind: 'stale', id: 'u1', coordinates: A, title: 'Test joiner' });
+});
+
+test('wantedIconPaths holds only fresh pins with a photo', () => {
+  const wanted = wantedIconPaths(
+    [pin(), pin({ userId: 'u2', avatarPath: 'u2/b.jpg', updatedAt: OLD }), pin({ userId: 'u3', avatarPath: null })],
+    NOW,
+  );
+  assert.deepEqual([...wanted], ['u1/a.jpg']);
+});
+
+test('initials takes up to two letters', () => {
+  assert.equal(initials('Test joiner'), 'TJ');
+  assert.equal(initials('  '), '?');
+  assert.equal(initials('a b c'), 'AB');
 });

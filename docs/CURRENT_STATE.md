@@ -160,6 +160,24 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - docs/DEMO.md: run steps, walkthrough with verified/unverified state per step, remaining-gap list.
 - tsc/lint clean, npm test 43/43. Not seen on device.
 
+## M1 profile-photo map pins, supervisor ACCEPTED (MK2 fixed, MK3 in DEMO gaps), committed (2026-11-05)
+- Assigned by the supervisor (route Codex→supervisor→developer). map.tsx: fresh member with a loaded photo → AppleMaps
+  annotation with `icon` (ImageRef) and the same title (name · speed); no photo / loading / failed → initials marker;
+  stale → grey clock marker, no speed (C4). Pure planPins/wantedIconPaths/initials in location-plan.ts (+5 tests).
+- lib/marker-icons.ts useMarkerIcons: one hook, Image.loadAsync with the session headers (authenticated avatars URL),
+  maxWidth/maxHeight 96; only fresh pins of current members (listMembers) are loaded and returned; a failed path is
+  not retried while the screen is open (initials stay).
+- Cache: expo-image 58 ios/ImageLoader.swift:27-29 always loads ImageRefs with cachePolicy .disk (SDImageCache.shared);
+  no option avoids it. lib/image-cache.ts clearImageDiskCache() (Image.clearDiskCache → SDImageCache.shared.clearDisk,
+  ImageModule.swift:248) runs on map unmount, clearRoomCache (leave/end, room gone), clearAllRoomCaches (sign-out,
+  deleteAccount, verifyAccount 'gone') and app launch (crash/kill). Every <Image> in the app is cachePolicy="memory",
+  so nothing else is lost.
+- Not rounded: expo-maps AppleMapsViewiOS18.swift draws the icon as a 50x50 resizable Image with no clip.
+- tsc/lint clean, npm test 48/48. Device: the map screen renders in the idle room 94673 on the 17 Pro
+  (docs/evidence/2026-11-05-m1-map-17pro-idle.png); no presence rows, so no pins seen. NOT verified: photo pins
+  (0021 not live), initials/stale pins after this change, tap callout, the cache clear on a device.
+- MK2: loads settling after unmount skip state and clear the disk cache again (unmounted ref).
+
 ## Active task: media device flow
 - Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both
   sims' Photos (5927272 bytes, sha256 f50c71d63bba1093392deaab6e344f7d80181e2c880a8a0bbc97b4202b43d72e;

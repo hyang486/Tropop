@@ -124,3 +124,64 @@ export function reconcileShare({ server, consented, pending, genAtStart, genNow 
   if (server) return consented ? 'on' : 'turn-off-server';
   return consented ? 'drop-consent' : 'off';
 }
+
+// M1: member pins on the map.
+
+export type PinInput = {
+  userId: string;
+  coordinates: LatLng;
+  updatedAt: string;
+  speedMps: number | null;
+  /** Shown in the title ("You" for the current user). */
+  label: string;
+  /** Used for the initials monogram. */
+  initialsOf: string;
+  /** profiles.avatar_path of a current room member, or null. */
+  avatarPath: string | null;
+};
+
+/** M1: a photo pin, or a monogram / stale pin. `T` is the loaded icon (an expo-image ImageRef in the app). */
+export type PinPlan<T> =
+  | { kind: 'photo'; id: string; coordinates: LatLng; title: string; icon: T }
+  | { kind: 'monogram'; id: string; coordinates: LatLng; title: string; monogram: string }
+  | { kind: 'stale'; id: string; coordinates: LatLng; title: string };
+
+/**
+ * C4: a stale member never shows a speed and is drawn as a grey clock pin, photo or not.
+ * A fresh member shows their photo once it has loaded; with no photo, while it loads, or when
+ * it failed (pre-0021, no access, room ended) they show their initials instead.
+ */
+export function planPins<T>(pins: PinInput[], nowMs: number, icons: ReadonlyMap<string, T>): PinPlan<T>[] {
+  return pins.map((pin) => {
+    const stale = isStale(pin.updatedAt, nowMs);
+    const speed = stale ? null : formatSpeedKmh(pin.speedMps);
+    const base = { id: pin.userId, coordinates: pin.coordinates, title: [pin.label, speed].filter(Boolean).join(' · ') };
+    if (stale) return { kind: 'stale', ...base };
+    const icon = pin.avatarPath ? icons.get(pin.avatarPath) : undefined;
+    if (icon !== undefined) return { kind: 'photo', ...base, icon };
+    return { kind: 'monogram', ...base, monogram: initials(pin.initialsOf || pin.label) };
+  });
+}
+
+/**
+ * The avatar paths whose icons should be held: fresh (not stale) pins of current members only.
+ * Anything else is released, so a photo is never kept once its member left the map or the room.
+ */
+export function wantedIconPaths(pins: PinInput[], nowMs: number): Set<string> {
+  const paths = new Set<string>();
+  for (const pin of pins) {
+    if (pin.avatarPath && !isStale(pin.updatedAt, nowMs)) paths.add(pin.avatarPath);
+  }
+  return paths;
+}
+
+/** Up to two letters for the marker balloon, e.g. "Test joiner" → "TJ". */
+export function initials(name: string) {
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => Array.from(word)[0] ?? '')
+    .join('');
+  return letters.toUpperCase() || '?';
+}

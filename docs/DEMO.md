@@ -57,7 +57,12 @@ Implemented, not verified on device
 - Member-list avatars (needs 0021 live).
 
 Known limits (accepted for the draft)
-- M1: map markers show initials, not photos (expo-maps markers support only a monogram or SF Symbol).
+- M1: map pins show the member's profile photo (expo-maps annotation icon), initials when there is no photo or it
+  fails to load, and a grey clock with no speed when stale. Photo pins are square (expo-maps draws the icon as a plain
+  50 pt image and cannot round it). Photo pins NOT verified on a device: profile photos need 0021 (not live). Live pins
+  (initials, stale clock) need an active activity and taps; not re-seen after this change.
+- MK3: a room expiry noticed only through the Home list prune (pruneRoomCaches) does not clear expo-image's disk
+  cache directly; the map screen's unmount and the next app launch clear it.
 - M4: route drawing is tap-to-add points; no freehand drawing.
 - A2: a profile photo uploaded but never saved to the profile stays in Storage until account deletion.
 - V2: if iOS finishes a background upload after the app was terminated, the object stays under a non-ready row

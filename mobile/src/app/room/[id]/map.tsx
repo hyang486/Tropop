@@ -29,7 +29,11 @@ import {
   type LatLng,
   MAX_ROUTE_POINTS,
   parseRoute,
+  type PinInput,
+  planPins,
+  wantedIconPaths,
 } from '@/lib/location-plan';
+import { useMarkerIcons } from '@/lib/marker-icons';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
@@ -241,19 +245,36 @@ function RoomMap({
     });
   }
 
-  // M1: expo-maps markers take only a monogram or an SF Symbol, so photos show in the member list below; the speed shows in the title, never for a stale row (C4).
-  const markers = presence.rows.map((row) => {
-    const stale = isStale(row.updated_at, now);
-    const name = displayName(row, userId, names);
-    const speed = stale ? null : formatSpeedKmh(row.speed_mps);
-    return {
-      id: row.user_id,
-      coordinates: { latitude: row.lat, longitude: row.lng },
-      title: [name, speed].filter(Boolean).join(' · '),
-      ...(stale ? { systemImage: 'clock' } : { monogram: initials(names.get(row.user_id) ?? name) }),
-      tintColor: stale ? STALE_TINT : undefined,
-    };
-  });
+  // M1: a fresh member with a profile photo is an annotation with the photo as its icon (square: expo-maps
+  // draws the icon as a plain 50 pt image and cannot round it). No photo, still loading or a failed load:
+  // an initials marker. Stale: a grey clock marker with no speed (C4), photo or not. Only current members
+  // (`avatars` comes from listMembers) get a photo; the title (name · speed) is the selection callout for both.
+  const pinInputs: PinInput[] = presence.rows.map((row) => ({
+    userId: row.user_id,
+    coordinates: { latitude: row.lat, longitude: row.lng },
+    updatedAt: row.updated_at,
+    speedMps: row.speed_mps,
+    label: displayName(row, userId, names),
+    initialsOf: names.get(row.user_id) ?? '',
+    avatarPath: avatars.get(row.user_id) ?? null,
+  }));
+  const icons = useMarkerIcons(wantedIconPaths(pinInputs, now), session?.access_token);
+  const pins = planPins(pinInputs, now, icons);
+  const markers = pins.flatMap((pin) =>
+    pin.kind === 'photo'
+      ? []
+      : [
+          {
+            id: pin.id,
+            coordinates: pin.coordinates,
+            title: pin.title,
+            ...(pin.kind === 'stale' ? { systemImage: 'clock', tintColor: STALE_TINT } : { monogram: pin.monogram }),
+          },
+        ],
+  );
+  const annotations = pins.flatMap((pin) =>
+    pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, title: pin.title, icon: pin.icon }] : [],
+  );
 
   const reporterText = en.map.reporter[sharingState];
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission' || sharingState === 'refused';
@@ -271,6 +292,7 @@ function RoomMap({
           ref={mapRef}
           style={styles.map}
           markers={markers}
+          annotations={annotations}
           polylines={
             shownRoute.length > 1
               ? [{ id: 'route', coordinates: shownRoute, color: draft ? DRAFT_COLOR : ROUTE_COLOR, width: 4 }]
@@ -380,17 +402,6 @@ function RoomMap({
       </View>
     </ScrollView>
   );
-}
-
-/** Up to two letters for the marker balloon, e.g. "Test joiner" → "TJ". */
-function initials(name: string) {
-  const letters = name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => Array.from(word)[0] ?? '')
-    .join('');
-  return letters.toUpperCase() || '?';
 }
 
 function displayName(row: Presence, userId: string | undefined, names: Map<string, string>) {

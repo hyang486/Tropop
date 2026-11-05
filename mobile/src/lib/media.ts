@@ -11,6 +11,7 @@ import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
 import { errorMessage } from './errors';
+import { clearImageDiskCache } from './image-cache';
 import { progressFraction } from './progress';
 import { useRoomEvents } from './room-channel';
 import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './supabase';
@@ -519,6 +520,8 @@ function cacheRoot() {
 
 /** Deletes this app's cached originals for a room (after it ends or the user leaves). */
 export function clearRoomCache(roomId: string) {
+  // M1: map photo pins may be in expo-image's disk cache.
+  clearImageDiskCache();
   try {
     const dir = roomCacheDir(roomId);
     if (dir.exists) dir.delete();
@@ -546,6 +549,7 @@ export function pruneRoomCaches(keepRoomIds: Iterable<string>) {
 
 /** Deletes all cached room originals (sign-out, or the account no longer exists). */
 export function clearAllRoomCaches() {
+  clearImageDiskCache();
   try {
     const root = cacheRoot();
     if (root.exists) root.delete();
