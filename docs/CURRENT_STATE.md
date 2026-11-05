@@ -99,6 +99,39 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   server row 'failed'), forced failure + Retry (same media id becomes ready), playback on the other device, Download original
   size + SHA-256 = content_sha256.
 
+## Profile photo + account deletion (0021), uncommitted, NOT applied (2026-11-05)
+- Scope: 48H plan hours 30-40 ("profile photo, account deletion"; deletion must be implemented and verified).
+- supabase/migrations/20261104000021_profile_photo_and_account_deletion.sql: private `avatars` bucket ({uid}/{uuid}.jpg,
+  JPEG only, 2 MB), owner-only writes, read by owner or co-members of an open room; profiles.avatar_path trigger
+  (own folder + pattern, 22023; replaced path queued for the janitor by exact path); public.prepare_account_deletion
+  (service_role only): ends hosted rooms, queues the user's media folders in other rooms and the avatar folder, stops
+  location. Step 2 = auth.admin.deleteUser cascade (Edge Function supabase/functions/delete-account/index.ts drafted: caller JWT only, step 1 then deleteUser, safe to repeat
+  because enqueue_cleanup upserts; NOT deployed). Janitor needs no
+  change (bucket-generic, exact-path jobs supported).
+- supabase/tests/account_deletion_test.sql: placeholder line replaced by a real check (co-member cannot clear another
+  user's photo or write into their folder). Dry run (0021 + test in one begin...rollback): PASS 2026-11-05 23:17:41Z
+  ("ACCOUNT DELETION TESTS PASSED"; test grants include anon). Files at that run: migration sha256 e3df77d0…1fde,
+  test sha256 ad800326…c005 (both last edited before the run). Post-rollback read-only check PASS (23:2xZ): no avatars
+  bucket/objects/policies, no prepare_account_deletion, no is_own_avatar_path, no profile_avatar trigger, no tests
+  schema, no 0021 migration row (profiles.avatar_path predates 0021, from 0001).
+- Supervisor ACCEPTED the 0021 design (A1-A4). A3 asserts added to the test (share_location off, no live_presence after
+  prepare; media row gone after cascade already asserted). A2 gap: an uploaded avatar never written to avatar_path stays until
+  account deletion.
+- Client (uncommitted): lib/avatar.ts (square crop, 512 px JPEG re-encode drops EXIF, new {uid}/{uuid}.jpg each change, then
+  profiles.avatar_path; remove = set null); profile.tsx photo row (Add/Change/Remove, initial fallback) and "Delete account"
+  with an explicit confirmation (host copy says hosted rooms end for everyone); lib/auth.ts deleteAccount(): cancel uploads ->
+  invoke delete-account -> clear caches + reminders -> local sign-out; on error the session is kept and "not deleted, try
+  again" is shown. tsc/lint clean, npm test 43/43. NOT verified on device; avatar not yet shown on markers/member lists.
+- Supervisor ACCEPTED client + Edge Function. D1 fixed: location.ts resetLocalLocation() (drops all opt-ins -> reporters
+  unmount, clears states and pending) called in deleteAccount and the verifyAccount 'gone' path. tsc/lint clean, 43/43.
+  E1 (at deploy): confirm SUPABASE_ANON_KEY exists in the function env (or switch to the publishable key); deploy with
+  verify_jwt true (guests have valid JWTs; the function still calls getUser); if the project uses asymmetric JWT
+  signing keys, deploy verify_jwt false instead (supervisor OK). After deploy: a no-token request must return 401. D1 ACCEPTED. No supabase/config.toml in the repo.
+  QA plan (disposable accounts only, exact IDs recorded): photo set/change/remove seen by co-member not outsider; guest
+  deletion (room stays, messages nameless, media gone after janitor); host deletion (room ends for the other member).
+- Next: supervisor ack of the dry-run result -> commit/apply 0021 -> deploy delete-account -> device QA (photo set/replace/remove seen
+  by a co-member, delete guest + host accounts with server and Storage checks).
+
 ## Active task: media device flow
 - Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both
   sims' Photos (5927272 bytes, sha256 f50c71d63bba1093392deaab6e344f7d80181e2c880a8a0bbc97b4202b43d72e;

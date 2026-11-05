@@ -6,7 +6,7 @@ import { en } from '@/i18n/en';
 import { checkAccount } from './account-check';
 import { cancelAllUploads, clearAllRoomCaches } from './media';
 import { cancelAllExpiryReminders } from './expiry-reminders';
-import { stopMyLocation, stopMyLocationOnLaunch } from './location';
+import { resetLocalLocation, stopMyLocation, stopMyLocationOnLaunch } from './location';
 import type { Tables } from './database.types';
 import { supabase } from './supabase';
 
@@ -129,6 +129,7 @@ export async function verifyAccount(): Promise<'ok' | 'gone' | 'unknown' | 'sign
   if (result !== 'gone') return result;
   accountGoneListener?.();
   cancelAllUploads();
+  resetLocalLocation();
   clearAllRoomCaches();
   await supabase.auth.signOut({ scope: 'local' });
   return 'gone';
@@ -194,6 +195,22 @@ export async function updateDisplayName(userId: string, displayName: string) {
   if (!name) throw new Error('Name cannot be empty.');
   const { error } = await supabase.from('profiles').update({ display_name: name }).eq('id', userId);
   if (error) throw error;
+}
+
+/**
+ * Deletes the signed-in account on the server (delete-account Edge Function: ends hosted rooms,
+ * queues the user's files for deletion, removes the account). Uploads stop first so nothing new
+ * lands between the two server steps. On failure the session is kept and the caller may retry.
+ * Other devices signed in to this account sign out through the account-gone check.
+ */
+export async function deleteAccount() {
+  cancelAllUploads();
+  const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
+  if (error) throw error;
+  resetLocalLocation();
+  clearAllRoomCaches();
+  cancelAllExpiryReminders();
+  await supabase.auth.signOut({ scope: 'local' });
 }
 
 export async function signOut() {

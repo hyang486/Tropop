@@ -92,6 +92,17 @@ function clearConsent() {
   if (sharing.rooms.size > 0) emitSharing({ ...sharing, rooms: new Set() });
 }
 
+/**
+ * D1: local-only reset for when the account is gone (deleted here or elsewhere). Drops every opt-in,
+ * which unmounts all reporters, and forgets per-room sharing states, so nothing carries into the
+ * next sign-in in this run. The server rows are already cleared by the deletion.
+ */
+export function resetLocalLocation() {
+  globalGen += 1;
+  pending.clear();
+  emitSharing({ rooms: new Set(), states: new Map() });
+}
+
 /** 'off' from a stopped reporter never hides why it stopped ('refused', 'no-permission'). */
 export function setSharingState(roomId: string, state: SharingState) {
   const current = sharing.states.get(roomId);

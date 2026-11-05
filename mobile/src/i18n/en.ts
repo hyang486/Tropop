@@ -277,6 +277,19 @@ export const en = {
       'Guests cannot log back in. Logging out leaves this guest profile behind for good.',
     language: 'Language',
     languageValue: 'English',
+    photoLabel: 'Profile photo',
+    addPhoto: 'Add photo',
+    changePhoto: 'Change photo',
+    removePhoto: 'Remove photo',
+    deleteAccount: 'Delete account',
+    deleteConfirmTitle: 'Delete your account?',
+    deleteConfirmBody:
+      'Your profile, your photos and videos, and your room memberships are deleted. Messages you sent stay without your name. This cannot be undone.',
+    deleteConfirmHostBody:
+      'Rooms you host end now for everyone, and all their content is deleted. Your profile, your photos and videos, and your room memberships are deleted. Messages you sent in other rooms stay without your name. This cannot be undone.',
+    deleteConfirmAction: 'Delete',
+    deleteCancel: 'Cancel',
+    deleteFailed: 'Your account was not deleted. Check your connection and try again.',
   },
   auth: {
     accountGone: 'Your previous account is no longer available, so you were signed out. Sign in again or continue as a guest.',
