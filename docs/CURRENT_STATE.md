@@ -52,7 +52,13 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   host cache file and host Photos IMG_0008.JPEG all have SHA-256 de54fee9…2904a. Media 04d2152b… status ready.
 - Gallery All/Mine/Others under the translucent iOS 26 header: fixed with the shared useHeaderOverlap hook (also used
   by the chat screen; chat still lays out right, docs/evidence/2026-11-05-media-fix-17-host.png). Gallery not re-seen yet.
-- Next: the human re-runs upload → gallery (live update?) → Download original and reports the on-screen text.
+- 2026-11-05 re-run after 80eb439 (human-reported: upload on the 17 Pro, seen in the 17 gallery, Download original on
+  the 17, all with NO errors). Server: media 3afb3048-cf85-4c71-a543-f40a9117c250 "qa-media-photo.jpeg" ready, 5927272 B,
+  content_sha256 f50c71d6…43d72e, created 06:23:43Z; object original.jpeg 5927272 B, ETag/MD5 7f84bd7e…f00d. Devices
+  (read-only): guest DCIM IMG_0009.JPG (the 5.9 MB fixture), guest ImagePicker cache copy, host room-media cache
+  3afb3048….jpeg and host Photos IMG_0009.JPEG (22:23:53 local) all 5927272 B, same SHA-256 and MD5. PASS for
+  upload → download → save byte integrity on simulators.
+- Still unconfirmed (no human observation): gallery tabs clear of the header; item appearing without a refresh.
 
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
