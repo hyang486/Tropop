@@ -12,6 +12,8 @@ export type RoomEvent = {
   op: 'INSERT' | 'UPDATE' | 'DELETE';
   /** The row id, for tables that have an `id` column. */
   id?: string;
+  /** expiry_reminders notices (migration 0019): the expiry version the reminders are for. */
+  expiry_version?: number;
 };
 
 export type ChannelStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR';

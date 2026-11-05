@@ -5,6 +5,7 @@ import { en } from '@/i18n/en';
 
 import { checkAccount } from './account-check';
 import { clearAllRoomCaches } from './media';
+import { cancelAllExpiryReminders } from './expiry-reminders';
 import type { Tables } from './database.types';
 import { supabase } from './supabase';
 
@@ -195,4 +196,5 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   clearAllRoomCaches();
+  cancelAllExpiryReminders();
 }

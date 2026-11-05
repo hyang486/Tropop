@@ -1,9 +1,11 @@
-import { Stack } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { reminderRoomFromResponse, setPendingReminderRoom } from '@/lib/expiry-reminders';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -14,6 +16,19 @@ function RootNavigator() {
   useEffect(() => {
     if (!loading) SplashScreen.hideAsync();
   }, [loading]);
+
+  // A tapped expiry reminder (also one that cold-started the app) opens its room. The room screen
+  // checks access and shows the ended notice if the room is gone. Signed out: held until sign-in.
+  const router = useRouter();
+  const response = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if (loading) return;
+    const roomId = reminderRoomFromResponse(response);
+    if (!roomId) return;
+    Notifications.clearLastNotificationResponse();
+    if (signedIn) router.push({ pathname: '/room/[id]', params: { id: roomId, from: 'reminder' } });
+    else setPendingReminderRoom(roomId);
+  }, [response, loading, signedIn, router]);
 
   if (loading) return null;
 

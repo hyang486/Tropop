@@ -61,6 +61,12 @@
           "savePhotosPermission": "Moment saves the originals you download from a room to your photo library.",
           "isAccessMediaLocationEnabled": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "enableRemoteNotifications": false
+        }
       ]
     ],
     "experiments": {

@@ -127,7 +127,13 @@ export const en = {
     cancel: 'Cancel',
     gone: 'This room has ended.',
     goneHint: 'It expired, was ended by the host, or you left it.',
+    reminderGoneHint:
+      'The room from your reminder has ended. Its messages, photos, and files were deleted from the server. Anything you already saved to your device is still there.',
     backToRooms: 'Back to rooms',
+  },
+  reminder: {
+    title: 'Room ends in 24 hours',
+    body: (name: string) => `${name} disappears tomorrow. Download any photos and files you'd like to keep.`,
   },
   chat: {
     placeholder: 'Message',

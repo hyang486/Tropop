@@ -19,6 +19,7 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
 import { errorMessage } from '@/lib/errors';
+import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
 import { clearRoomCache } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
@@ -32,7 +33,7 @@ type State =
   | { status: 'ready'; room: Room; names: Map<string, string> };
 
 export default function RoomScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -48,6 +49,8 @@ export default function RoomScreen() {
       }
       const members = await listMembers(id);
       setState({ status: 'ready', room, names: new Map(members.map((m) => [m.user_id, m.display_name])) });
+      // Reschedules the local reminder when the host changed the expiry (rooms notice -> reload).
+      syncExpiryReminders([room], false);
     } catch (e) {
       setState((s) => (s.status === 'ready' ? s : { status: 'error', message: errorMessage(e) }));
     }
@@ -60,8 +63,12 @@ export default function RoomScreen() {
   );
 
   // Room settings (expiry, activity_seq) and membership changes: reload the room and member names.
+  // expiry_reminders: the server recorded the 24-hour reminder for this room (migration 0019).
   useRoomEvents(id, (event) => {
     if (event.table === 'rooms' || event.table === 'room_members') load();
+    if (event.table === 'expiry_reminders' && state.status === 'ready') {
+      presentServerReminder(state.room, event.expiry_version);
+    }
   });
 
   // A new member's first message, or a join/leave notice: refresh names (and notice an ended room).
@@ -97,7 +104,7 @@ export default function RoomScreen() {
         <Stack.Screen options={{ title: '' }} />
         <View style={styles.gone}>
           <Text style={styles.goneTitle}>{en.room.gone}</Text>
-          <Hint>{en.room.goneHint}</Hint>
+          <Hint>{from === 'reminder' ? en.room.reminderGoneHint : en.room.goneHint}</Hint>
         </View>
         <Button title={en.room.backToRooms} onPress={() => router.dismissTo('/')} />
       </Screen>

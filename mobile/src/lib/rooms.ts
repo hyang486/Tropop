@@ -15,7 +15,7 @@ export const ROOM_TYPES: RoomType[] = ['sports', 'event', 'waiting', 'general'];
 
 /** Server limits from create_room / update_room_expiry. */
 export const MAX_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
-export const REMINDER_WINDOW_MS = 24 * 60 * 60 * 1000;
+export { REMINDER_WINDOW_MS } from './expiry-plan';
 
 export type Invite = { code: string } | { token: string };
 

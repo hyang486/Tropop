@@ -6,6 +6,7 @@ import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
+import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
 import { takePendingInvite } from '@/lib/pending-invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
@@ -25,6 +26,8 @@ export default function Rooms() {
       setError(null);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
+      // Local 24-hour reminders for every open room; cancels those of rooms no longer listed.
+      syncExpiryReminders(list, true);
     } catch (e) {
       setError(`${en.home.loadFailed} ${errorMessage(e)}`);
     }
@@ -36,6 +39,12 @@ export default function Rooms() {
       const token = takePendingInvite();
       if (token) {
         router.push({ pathname: '/preview', params: { token } });
+        return;
+      }
+      // An expiry reminder tapped before sign-in: open its room (access is checked there).
+      const reminderRoom = takePendingReminderRoom();
+      if (reminderRoom) {
+        router.push({ pathname: '/room/[id]', params: { id: reminderRoom, from: 'reminder' } });
         return;
       }
       load();

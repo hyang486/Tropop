@@ -7,6 +7,7 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
+import { cancelExpiryReminder } from '@/lib/expiry-reminders';
 import { endRoom, getRoom, leaveRoom, listMembers, type Room, type RoomMember } from '@/lib/rooms';
 
 type State =
@@ -88,6 +89,7 @@ export default function RoomInfoScreen() {
             setBusy(true);
             try {
               await (isHost ? endRoom(room.id) : leaveRoom(room.id));
+              cancelExpiryReminder(room.id);
               clearRoomCache(room.id);
               router.dismissTo('/');
             } catch (e) {
