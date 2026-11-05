@@ -765,6 +765,10 @@ export type Database = {
         Args: { p_room_id: string; p_state: string }
         Returns: undefined
       }
+      set_location_allowed: {
+        Args: { p_allowed: boolean; p_room_id: string }
+        Returns: undefined
+      }
       set_my_status: {
         Args: { p_room_id: string; p_status_id: string }
         Returns: string
@@ -781,6 +785,7 @@ export type Database = {
         Args: { p_labels: string[]; p_room_id: string }
         Returns: undefined
       }
+      stop_my_location: { Args: never; Returns: undefined }
       unregister_push_token: { Args: { p_token: string }; Returns: undefined }
       update_room_expiry: {
         Args: { p_expires_at: string; p_room_id: string }

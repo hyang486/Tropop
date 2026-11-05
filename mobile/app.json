@@ -67,7 +67,19 @@
         {
           "enableRemoteNotifications": false
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Moment shows your position to your room only while you share it during an activity and the app is open.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ],
+      "expo-maps"
     ],
     "experiments": {
       "typedRoutes": true,

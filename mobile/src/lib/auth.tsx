@@ -6,6 +6,7 @@ import { en } from '@/i18n/en';
 import { checkAccount } from './account-check';
 import { clearAllRoomCaches } from './media';
 import { cancelAllExpiryReminders } from './expiry-reminders';
+import { stopMyLocation } from './location';
 import type { Tables } from './database.types';
 import { supabase } from './supabase';
 
@@ -193,6 +194,8 @@ export async function updateDisplayName(userId: string, displayName: string) {
 }
 
 export async function signOut() {
+  // L1: clear opt-in and positions while the session can still call the RPC. Best effort.
+  await stopMyLocation();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   clearAllRoomCaches();
