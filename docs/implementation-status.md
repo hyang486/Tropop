@@ -78,6 +78,14 @@ Checkpoint 4, realtime text chat (2026-11-04). Backend verified, UI not verified
 - The `supabase` CLI binary at /opt/homebrew/bin/supabase exits with 137 in this session. Use the Supabase MCP tools instead.
 - No physical iOS device is connected (`xcrun devicectl list devices` shows simulators only).
 
+
+Face matching scaffolding (2026-11-04, no AWS calls made, nothing deployed):
+- `supabase/functions/face-match/`: `provider.ts` (FaceProvider interface, error kinds), `sigv4.ts` (Web Crypto SigV4), `rekognition.ts` (CompareFaces over signed fetch; reads config passed in), `core.ts` (`processBatch`: late-result guard before the call and a conditional write after it, retries up to 3, auth error aborts the batch, logs job id + error kind only), `index.ts` (Deno handler: needs `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, returns 503 if any is missing; a signed-in member processes only their own enrollments; NOT deployed and not type-checked under Deno, since Deno is not installed).
+- Tests: `node --test supabase/functions/face-match/face-match.test.ts` -> 11/11 pass, no network. They include the AWS documentation SigV4 vector, the late-result guard in both positions (enrollment gone before the call, deleted during the call), retry/fail rules, and a check that the secret never appears in the request.
+- Client: `mobile/src/lib/face.ts` (`enrollFace`, `removeFaceEnrollment`): uploads to `face-refs/{room}/{user}/ref-{uuid}.jpg`, then `enroll_face`. No screen uses it yet. `tsc` and `expo lint` exit 0.
+- NOT verified: any real Rekognition response (the response parsing follows the AWS docs only), the Edge Function under Deno, the reference-photo and target-photo size/format limits on real photos (Rekognition takes JPEG/PNG up to 5 MB inline; originals may be HEIC or larger, so the target is the preview image), the similarity threshold of 90 (a guess to tune on real photos).
+- Open design issue, found while writing the upload: `enroll_face` deletes the old enrollment on re-enroll, and `on_face_enrollment_deleted` queues cleanup of the whole prefix `face-refs/{room}/{user}/`. That prefix also holds the newly uploaded reference, so the future janitor would delete the new file. Needs a fix before the janitor exists (for example: the janitor skips a prefix while an enrollment for that room/user exists, or the trigger queues the old `ref_path` only).
+
 ## Verification log
 
 | Check | Command | Result |
