@@ -11,6 +11,7 @@ import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
 import { errorMessage } from './errors';
+import { progressFraction } from './progress';
 import { useRoomEvents } from './room-channel';
 import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './supabase';
 
@@ -146,7 +147,7 @@ export function splitBySize(items: PickedItem[]): { ok: PickedItem[]; tooLarge: 
   for (const item of items) {
     let size = 0;
     try {
-      size = new File(item.uri).size ?? 0;
+      size = Number(new File(item.uri).size ?? 0);
     } catch {
       size = 0;
     }
@@ -196,7 +197,8 @@ async function putObject(path: string, fileUri: string, mimeType: string, onProg
     headers: { ...authHeaders(token), 'content-type': mimeType, 'x-upsert': 'true', 'cache-control': '3600' },
     onProgress: onProgress
       ? ({ bytesSent, totalBytes }) => {
-          if (totalBytes > 0) onProgress(bytesSent / totalBytes);
+          const f = progressFraction(bytesSent, totalBytes);
+          if (f != null) onProgress(f);
         }
       : undefined,
   });
@@ -237,7 +239,7 @@ export async function runJob(job: UploadJob, userId: string, onProgress: (fracti
   const { item } = job;
   const file = new File(item.uri);
   if (!file.exists) throw new Error('The selected file is no longer available. Choose it again.');
-  const size = file.size ?? 0;
+  const size = Number(file.size ?? 0);
   if (size <= 0) throw new Error(en.media.emptyFile);
   if (size > MAX_MEDIA_BYTES) throw new Error(en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
 
@@ -483,13 +485,14 @@ export async function downloadOriginal(media: Media, onProgress?: (fraction: num
     headers: authHeaders(token),
     onProgress: onProgress
       ? ({ bytesWritten, totalBytes }) => {
-          if (totalBytes > 0) onProgress(bytesWritten / totalBytes);
+          const f = progressFraction(bytesWritten, totalBytes);
+          if (f != null) onProgress(f);
         }
       : undefined,
   });
   const file = await task.downloadAsync();
   if (!file) throw new Error('The download did not finish.');
-  const bytes = file.size ?? 0;
+  const bytes = Number(file.size ?? 0);
   const sha256 = await file.digest('SHA-256');
   if (bytes <= 0 || (media.size_bytes != null && bytes !== media.size_bytes) || (media.content_sha256 && sha256 !== media.content_sha256)) {
     file.delete();

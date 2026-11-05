@@ -33,6 +33,7 @@ import {
   useRoomMedia,
   useUploads,
 } from '@/lib/media';
+import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 const FILTERS: { key: MediaFilter; label: string }[] = [
   { key: 'all', label: en.media.all },
@@ -48,6 +49,7 @@ export default function GalleryScreen() {
   const userId = session?.user.id;
   const token = session?.access_token;
   const [filter, setFilter] = useState<MediaFilter>('all');
+  const { rootRef, onLayout: measureRoot, overlap: headerOverlap } = useHeaderOverlap();
   const media = useRoomMedia(id, filter, userId);
   const { reload } = media;
   const uploads = useUploads(id, userId, reload);
@@ -83,7 +85,7 @@ export default function GalleryScreen() {
   const emptyText = filter === 'mine' ? en.media.emptyMine : filter === 'others' ? en.media.emptyOthers : en.media.empty;
 
   return (
-    <View style={styles.flex}>
+    <View ref={rootRef} onLayout={measureRoot} style={[styles.flex, { paddingTop: headerOverlap }]}>
       <Stack.Screen
         options={{
           title: en.media.title,

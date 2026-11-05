@@ -1,6 +1,5 @@
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useHeaderHeight } from 'expo-router/react-navigation';
-import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +22,7 @@ import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
+import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useNow } from '@/lib/use-now';
 
 type State =
@@ -140,18 +140,8 @@ function ChatRoom({
   onNewSender: (senderId: string) => void;
   onSendFailed: () => void;
 }) {
-  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
-  // Where this screen's root actually starts on screen. With a translucent (iOS 26) native header the
-  // root starts at y = 0, behind the status bar and header; with an opaque one it starts below it.
-  // Pad by the overlap only, and give the keyboard avoider the real offset, so both cases lay out right.
-  const rootRef = useRef<ComponentRef<typeof View>>(null);
-  const [rootY, setRootY] = useState<number | null>(null);
-  const measureRoot = useCallback(() => {
-    rootRef.current?.measureInWindow((_x, y) => setRootY(y));
-  }, []);
-  const top = rootY ?? headerHeight;
-  const headerOverlap = Math.max(0, headerHeight - top);
+  const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
   const chat = useChat(room.id, userId, onNewSender);
   const [draft, setDraft] = useState('');
   const remaining = formatRemaining(remainingMs);
