@@ -1,76 +1,50 @@
 # Current state — short resume point
 
-Human approved the 48-hour runnable-draft delivery agreement on November 4:
-planning/48H_DRAFT_PROPOSAL_EN.md. Full requirements remain in scope.
-Developer owns updates to this short current state. Historical evidence remains
-in docs/implementation-status.md and docs/reviews/current.md; read it on demand.
+Confirmed human decisions: planning/USER_DECISIONS_2026-11-04_OPERATIONS_EN.md (check it before asking
+the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md (approved November 4;
+full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
+reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
-## Working / implemented
-- Host auth, installed-app guest entry, room creation, invites, leave/end: basic simulator evidence exists.
-- Text chat: implemented; backend/realtime/access/paging verified. Chat UI is NOT verified.
-- Face scaffolding and F8–F10 fixes committed (afaa085). No verified live AWS match yet.
+## Verified
+- Host auth, guest entry, room create/invite/join/leave/end: simulator evidence (implementation-status.md).
+- Chat: backend, realtime, access and paging verified. On simulators: two-way messages PASS (human-confirmed);
+  U1 header/banner fix PASS on the 17 Pro with the keyboard closed. U3 stale-session check: npm test PASS, and
+  the deleted-account path is live PASS.
+- Expiry worker room-janitor v2: live runs PASS. pg_cron job `room-janitor` is active (*/15); its last run
+  (2026-11-05 06:00Z) succeeded.
+- Room events (S1, migration 0017, live): private Broadcast `room:<id>`, members only, payload {table, op, id},
+  clients refetch through RLS; no postgres_changes in mobile/src. DB test PASS. Live two-session check PASS
+  (host and guest received all events; the outsider was Unauthorized, with 0 events and 0 rows). Supervisor accepted
+  S1/N17. N19 (a member who just left gets id-only notices until channel auth refreshes) is an accepted risk.
+- N18 (migration 0018, live): broadcast only while the room is live; a janitor cascade sends nothing; the
+  end_room/expiry transition is still sent. Test dry run PASS. Supervisor accepted it.
+- Arrival/status/Emergency (0016, activity.ts, room-activity.tsx): server path live PASS through S1.
 
-- Expiry worker (room-janitor v1): PASS on live test data, 2 supervised runs
-  (rooms deleted, Storage objects removed and verified, orphan sweep). No cron yet.
+## Not yet verified
+- Media upload/download on a device: IN PROGRESS (see Active task). DB tests and full RLS PASS.
+- Activity UI (Arrived, status sheet, Emergency banner/ack) on the simulator; chat keyboard-open layout
+  and checklist steps 5–10. Known: room activity_seq is read on screen focus only.
+- Face matching: scaffolding plus F8–F10 committed; no live AWS CompareFaces result (needs rights-cleared photos).
+  AWS secrets are already in Supabase Secrets; do NOT ask for them again.
+- Reminders, map/route/speed, final account/plan flows: not accepted as working features.
 
-## Active task
-- J1/J2 done: 0014 janitor_health applied + tested, room-janitor v2 deployed, manual
-  run health = ok. Cron schedule (supervisor-approved) was DENIED by the auto-mode
-  classifier: needs the human (permission rule or run it themselves). Not scheduled.
-- Media (migration 15 applied, gallery/viewer/upload code): DB tests + full RLS PASS,
-  tsc/lint 0. Device upload/download NOT verified. Uncommitted.
-- Chat UI (2026-11-05): two-way messages PASS (human-confirmed). U1 header/banner overlap fix
-  PASS on 17 Pro with the keyboard closed (docs/evidence/chat-banner-fixed-17pro.png); keyboard-open
-  and the iPhone 17 screen are unverified. U3 stale-session check (src/lib/account-check.ts, npm test
-  10/10) PASS in code; the deleted-account path is live-unverified, waiting on the human to approve
-  the exact-ID delete of throwaway cabb68d7-… (tmp/qa-fixtures.md). Metro must not run with CI=1
-  (no file watching, stale bundle).
-- U3 deleted-account path: live PASS (fixture deleted, `user_not_found` -> gone, cleanup 0 rows).
-  M1/M2 committed (9a3e13b).
-- Arrival/status/Emergency (2026-11-05, supervisor-approved): migration 0016 adds emergency_acks to
-  supabase_realtime (applied live). src/lib/activity.ts + src/components/room-activity.tsx wired into
-  the room screen (Arrived, status sheet, Emergency confirm, banner with "Seen by N of M", ack, I'm OK).
-  tsc/lint/npm test PASS. Non-member RLS already covered by supabase/tests/rls_test.sql.
-  Two-session Realtime check NOT done: needs a host account plus guest/outsider sessions, which means
-  new test accounts (human said no new accounts; asked). Device UI unverified (taps blocked).
-  Known: room activity_seq is read on screen focus only, so a host restart needs a refocus.
-- S1 (2026-11-05): room events moved from Postgres Changes to private Broadcast `room:<id>`
-  (migration 0017 applied live: realtime.messages SELECT policy room_topic_receive, 10
-  broadcast_room_change triggers, supabase_realtime publication now empty; no client INSERT policy).
-  Payload is only {table, op, id}; clients refetch through RLS (src/lib/room-channel.ts useRoomEvents;
-  chat/media/activity use it; no postgres_changes left in src). DB test supabase/tests/room_broadcast_test.sql
-  PASS (rolled back). LIVE two-session check PASS (3 human-approved QA accounts, script run once):
-  host + guest SUBSCRIBED and each received arrivals/member_status INSERT/UPDATE/DELETE,
-  emergency_events INSERT, emergency_acks INSERT, messages INSERT; outsider CHANNEL_ERROR Unauthorized,
-  0 broadcast events, 0 Postgres Changes events, 0 arrival rows; host saw the arrival and guest saw the ack via RLS.
-  tsc/lint/npm test PASS. Device UI still unverified.
-  PENDING CLEANUP: QA IDs in tmp/qa-s1-ids.tsv (room 88aecc77-…, users 39785f4d-…, 08ed7282-…, 3515d17a-…).
-  The exact-ID delete needs human confirmation (the prompt expired unanswered).
-  Supervisor accepted S1/N17 (docs/reviews/current.md). N19 is an accepted risk.
-  Only 3 users are S1 fixtures; test@example.com (04:25Z) and "Test joiner" (04:33Z) predate S1 and are not in tmp/qa-s1-ids.tsv.
-- N18 (0018 broadcast_live_rooms_only, applied live): broadcasts only while the room is live; rooms
-  DELETE is never sent; a rooms UPDATE is sent only if the room was live before it (end_room/expiry notices
-  still go out). room_broadcast_test.sql extended (expired-room changes, janitor-style cascade, end_room);
-  0018 + full test dry run PASS in a forced-rollback transaction.
-- Next concrete step: QA S1 cleanup on confirmation; media device flow.
-- Supervisor reviews stable checkpoints; independent approved implementation continues.
+## Active task: media device flow
+- Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both
+  sims' Photos (5927272 bytes, sha256 f50c71d63bba1093392deaab6e344f7d80181e2c880a8a0bbc97b4202b43d72e;
+  source in the session scratchpad). Room "test chat" 031bc8aa-17c0-402c-bc52-bb2ba36fa54f, baseline
+  media 0 / objects 0. iPhone 17 Pro = guest "Test joiner", iPhone 17 = host "Test".
+- Steps asked of the human: guest uploads → host gallery updates live → host downloads the original.
+  Then: check the media row, object size/hash, and the downloaded file hash in the sim container.
 
-## Blockers and gaps
-- agent-device: human approved the open+snapshot action again (2026-11-05) through
-  /permissions. Not blanket permission: if a new rejection occurs, stop; do not bypass.
-- Human screenshot confirms AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_REGION
-  are already saved in Supabase Secrets (November 4). Do NOT ask to enter them
-  again. Key validity/permissions and an actual CompareFaces result remain unverified.
-  Live test still needs rights-cleared photos. No keys in chat.
-  Keep Free plan; no Organizations creation or paid upgrade. Actual participant
-  photos await retention/opt-out review. Other features continue meanwhile.
-- Media, sports/status/emergency, reminders, map/route/speed and final account/plan
-  flows are not yet accepted as working app features.
+## QA data
+- S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
+- Keep the pre-existing test@example.com and "Test joiner" accounts and their room (human decision).
 
 ## Operating rules
-- Screenshots: docs/evidence/. Record QA IDs when created.
-- Report changed flow, verification, blocker, next step; avoid full recaps.
-- Focused checks for focused changes; full RLS after relevant access/deletion changes.
-- No new skills/frameworks/orchestration. Codex controller and heartbeat are OFF.
-- Ordinary verified local commits and exact verified QA cleanup are authorized.
-- Human decisions are not inferred from stale summaries. Preserve truthful evidence.
+- Supabase stays on the Free plan, 50 MB per file (FINAL; do not raise an upgrade again).
+- agent-device: only the open+snapshot action is approved. If a new rejection occurs, stop; do not bypass.
+- Screenshots go in docs/evidence/. Record QA IDs when created; clean up by exact ID only.
+- Ordinary verified local commits are authorized. Push only on request.
+- Focused checks for focused changes; full RLS after access/deletion changes.
+- Metro must not run with CI=1 (no file watching, stale bundle).
+- No new skills/frameworks/orchestration. The Codex controller and heartbeat are OFF.

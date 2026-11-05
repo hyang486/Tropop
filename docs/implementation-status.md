@@ -129,6 +129,8 @@ Face matching scaffolding (2026-11-04, no AWS calls made, nothing deployed):
 | Media integrity (migration 15, 2026-11-05) | `execute_sql` with `supabase/tests/media_integrity_test.sql` (ROLLBACK) | 22 expectations pass (`ready` only when the original object exists with size > 0; size copied from Storage; paths `{room_id}/{media_id}/`) |
 | RLS test after migration 15 | `execute_sql` with full `supabase/tests/rls_test.sql` (ROLLBACK; media paths updated to `{room_id}/{media_id}/`) | `RLS TESTS PASSED`. Follow-up: `tests` schema 0, `a0000000-…` users 0, media 0, room-media objects 0 |
 | Media client static checks | `npx tsc --noEmit`, `npx expo lint` in `mobile/` | both exit 0 (gallery, viewer, `lib/media.ts`; initial gallery fetch runs from the realtime subscribe callback). On-device upload/download NOT verified |
+| S1 QA cleanup: execution (2026-11-05, human decision in planning/USER_DECISIONS_2026-11-04_OPERATIONS_EN.md) | `execute_sql`, one transaction: `delete from public.rooms where id = '88aecc77-aba7-4d70-8a4e-ef45d3163e73'`; `delete from auth.users where id in ('39785f4d-3c9a-4b84-bae8-cf6ce8ced730', '08ed7282-a2d4-4b18-86ba-6233b06620e0', '3515d17a-b824-4632-8d40-8298afdbee39')` (exact IDs, no wildcards) | committed without error |
+| S1 QA cleanup: verification (read-only) | count by each exact ID | room 0, room_members 0, host 0, guest 0, outsider 0, profiles 0. Kept (out of scope): room 031bc8aa-… 1, the 2 pre-existing users 2 |
 
 ## Feature status
 
