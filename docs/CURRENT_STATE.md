@@ -55,7 +55,10 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   centers on own position (no prompt). M4 freehand drawing: gap list (tap points only).
   M7 opt-in race (supervisor, 2026-11-05): share reads that overlap a set_share_location call, or began before
   consent last changed, are ignored (pending count + per-room generation; pure rule reconcileShare in
-  location-plan.ts, npm test 36/36); a settled call triggers a fresh read. Supervisor accepted M1–M6 with M7 required.
+  location-plan.ts, npm test 36/36); a settled call triggers a fresh read. Supervisor accepted M1–M6 with M7 required. Committed 5288abf. 14:08 PST cold restart of both sims + deep link to the 94673
+  map: renders on both (guest 17 Pro idle + share switch; host 17 allow ON + Start activity), no red box. Server
+  before QA: allowed, idle, both share false, presence 0. Evidence: docs/evidence/2026-11-05-map-5288abf-*.png.
+  Taps not automated (expo-mcp tunnel not connected): QA steps wait on human taps.
 - Sports/location server (0020, uncommitted, NOT applied live): fixes L1–L3 included. 2026-11-05 dry run (0020 +
   supabase/tests/sports_location_test.sql in one begin…rollback) PASS. Waiting on supervisor review before
   commit/apply and before the client (activity start/end, opt-in, map, route). Supervisor ACCEPTED 0020; committed
@@ -72,6 +75,29 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   (cleared). Evidence: docs/evidence/2026-11-05-qa-94673-activity-{guest,host}.png.
   Still NOT verified: live photo appearance, local reminder firing/tap, duplicate-notification check (CUA could not tap the
   host header "Photos").
+
+## Video gaps (P5), uncommitted, awaiting supervisor review (2026-11-05)
+- Already present before this change (code, earlier commits): per-file progress bar, failure state with the error text, Retry
+  (same media id/paths; the row is updated, not re-inserted), Remove. Size limit: 50 MB per file (Free plan, final; M1 closed),
+  so the "100 MB or more" part of P5 is answered by the documented limit and the pre-upload "Too large to share" alert.
+- New: the upload queue moved out of the gallery screen into an app-wide store (lib/media.ts; pure rules in
+  lib/upload-plan.ts, tests/upload-plan.test.mjs). Uploads keep running and their progress/failure stay visible after leaving
+  the gallery; one upload at a time across the app; "Waiting to upload" for queued items; file size shown per row.
+  Cancel (x, with confirmation) aborts the native upload through AbortSignal; the partial row is marked failed (never listed,
+  deleted with the room). Late progress callbacks cannot revive a cancelled or failed job. The room header "Photos" link shows
+  "Photos ↑N" while uploads are pending and "Photos !" (red) when one failed. Sign-out and account-gone cancel and clear the queue.
+  iOS upload tasks use the default background URLSession, so a short suspension does not stop a long video; if the app is
+  terminated the JS job is lost and the row stays 'uploading' (never listed, removed at expiry).
+- Checks: tsc clean, expo lint clean, npm test 43/43. NOT verified on device: a large video upload with progress, leaving and
+  returning to the gallery mid-upload, cancel, a forced failure + Retry, video playback/download (needs human taps in the picker).
+- Gaps kept: no resume of a partially uploaded file (a retry re-sends the whole original); a dismissed failed row and any partial
+  object stay in Storage until the room ends.
+- V2 gap: with the background URLSession, a terminated app may still finish the native transfer, leaving a full object under a
+  non-ready row until expiry (counts toward Storage). V1 (accepted): on sign-out the aborted job's 'failed' update may run after
+  signOut and be rejected by RLS, leaving the row 'uploading' (same end state as app termination).
+- Supervisor ACCEPTED; committed 9c098dd (npm test 43/43, tsc/lint clean). Device QA still required: progress, "Photos ↑1" after leaving, cancel (row removed,
+  server row 'failed'), forced failure + Retry (same media id becomes ready), playback on the other device, Download original
+  size + SHA-256 = content_sha256.
 
 ## Active task: media device flow
 - Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both
