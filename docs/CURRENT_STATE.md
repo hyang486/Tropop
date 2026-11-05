@@ -23,7 +23,7 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 ## Not yet verified
 - Media upload/download on a device: IN PROGRESS (see Active task). DB tests and full RLS PASS.
 - Activity UI (Arrived, status sheet, Emergency banner/ack) on the simulator; chat keyboard-open layout
-  and checklist steps 5–10. Known: room activity_seq is read on screen focus only.
+  and checklist steps 5–10.
 - Face matching: scaffolding plus F8–F10 committed; no live AWS CompareFaces result (needs rights-cleared photos).
   AWS secrets are already in Supabase Secrets; do NOT ask for them again.
 - Reminders, map/route/speed, final account/plan flows: not accepted as working features.
@@ -33,6 +33,13 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   sims' Photos (5927272 bytes, sha256 f50c71d63bba1093392deaab6e344f7d80181e2c880a8a0bbc97b4202b43d72e;
   source in the session scratchpad). Room "test chat" 031bc8aa-17c0-402c-bc52-bb2ba36fa54f, baseline
   media 0 / objects 0. iPhone 17 Pro = guest "Test joiner", iPhone 17 = host "Test".
+- 2026-11-05 photo-picker crash (TCC SIGABRT, Moment-2026-11-04-220930.ips): the dev builds came from a stale ios/
+  (prebuilt Nov 4 02:56, before the image-picker/media-library/camera plugins), so the Info.plist had no photo or camera
+  keys. Fix: `expo prebuild --platform ios` + one `expo run:ios` build (succeeded, 0 errors), installed on the 17 Pro
+  and then `simctl install`ed on the 17. Both installed Info.plists now have NSPhotoLibraryUsageDescription,
+  NSPhotoLibraryAddUsageDescription and NSCameraUsageDescription; both sims kept their session and the "test chat" room.
+  Gallery access after the fix: waiting on the human's taps. Later: expo-secure-store faceIDPermission false (before TestFlight);
+  merge the camera copy if camera capture is added.
 - Steps asked of the human: guest uploads → host gallery updates live → host downloads the original.
   Then: check the media row, object size/hash, and the downloaded file hash in the sim container.
 
