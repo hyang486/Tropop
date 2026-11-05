@@ -46,6 +46,12 @@ in docs/implementation-status.md and docs/reviews/current.md; read it on demand.
   tsc/lint/npm test PASS. Device UI still unverified.
   PENDING CLEANUP: QA IDs in tmp/qa-s1-ids.tsv (room 88aecc77-…, users 39785f4d-…, 08ed7282-…, 3515d17a-…).
   The exact-ID delete needs human confirmation (the prompt expired unanswered).
+  Supervisor accepted S1/N17 (docs/reviews/current.md). N19 is an accepted risk.
+  Only 3 users are S1 fixtures; test@example.com (04:25Z) and "Test joiner" (04:33Z) predate S1 and are not in tmp/qa-s1-ids.tsv.
+- N18 (0018 broadcast_live_rooms_only, applied live): broadcasts only while the room is live; rooms
+  DELETE is never sent; a rooms UPDATE is sent only if the room was live before it (end_room/expiry notices
+  still go out). room_broadcast_test.sql extended (expired-room changes, janitor-style cascade, end_room);
+  0018 + full test dry run PASS in a forced-rollback transaction.
 - Next concrete step: QA S1 cleanup on confirmation; media device flow.
 - Supervisor reviews stable checkpoints; independent approved implementation continues.
 

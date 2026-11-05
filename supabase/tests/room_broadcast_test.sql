@@ -150,6 +150,37 @@ set local role authenticated;
 select tests.expect_count($q$ select 1 from realtime.messages $q$, 0, 'member of an expired room cannot receive');
 reset role;
 
+-- N18 (0018): only live rooms broadcast.
+select tests.expect_count($q$ select 1 from realtime.messages where topic = 'room:' || current_setting('t.r')
+  and event = 'rooms' and payload ->> 'op' = 'UPDATE' $q$, 1, 'the live -> expired transition is still broadcast');
+select set_config('t.n', (select count(*) from realtime.messages where topic = 'room:' || current_setting('t.r'))::text, true);
+update public.status_definitions set label = label where room_id = current_setting('t.r')::uuid;
+update public.rooms set name = name where id = current_setting('t.r')::uuid;
+select tests.expect_count($q$ select 1 from realtime.messages where topic = 'room:' || current_setting('t.r') $q$,
+  current_setting('t.n')::bigint, 'changes in an expired room are not broadcast');
+delete from public.rooms where id = current_setting('t.r')::uuid;
+select tests.expect_count($q$ select 1 from realtime.messages where topic = 'room:' || current_setting('t.r') $q$,
+  current_setting('t.n')::bigint, 'janitor-style cascade delete of an expired room sends nothing');
+
+-- Host-ended room (end_room sets deleted_at): the end notice is sent, later changes are not.
+select tests.login('b0000000-0000-4000-8000-000000000001', false, '');
+set local role authenticated;
+do $$
+declare r public.rooms;
+begin
+  r := public.create_room('Broadcast end test', 'sports', now() + interval '1 day', false, array['Resting']);
+  perform set_config('t.r2', r.id::text, true);
+end $$;
+select public.end_room(current_setting('t.r2')::uuid);
+reset role;
+select tests.expect_count($q$ select 1 from realtime.messages where topic = 'room:' || current_setting('t.r2')
+  and event = 'rooms' and payload ->> 'op' = 'UPDATE' $q$, 1, 'end_room notice is broadcast');
+select set_config('t.n2', (select count(*) from realtime.messages where topic = 'room:' || current_setting('t.r2'))::text, true);
+update public.status_definitions set label = label where room_id = current_setting('t.r2')::uuid;
+delete from public.rooms where id = current_setting('t.r2')::uuid;
+select tests.expect_count($q$ select 1 from realtime.messages where topic = 'room:' || current_setting('t.r2') $q$,
+  current_setting('t.n2')::bigint, 'ended room: later changes and the cascade delete send nothing');
+
 select 'ROOM BROADCAST TESTS PASSED' as result;
 
 rollback;
