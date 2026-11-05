@@ -14,18 +14,21 @@ in docs/implementation-status.md and docs/reviews/current.md; read it on demand.
   (rooms deleted, Storage objects removed and verified, orphan sweep). No cron yet.
 
 ## Active task
-- J1/J2 implemented locally (claim order + jobsStuck; migration 0014 janitor_health
-  NOT applied, function not redeployed). Waiting for supervisor review before
-  apply/deploy and before creating the cron schedule.
+- J1/J2 done: 0014 janitor_health applied + tested, room-janitor v2 deployed, manual
+  run health = ok. Cron schedule (supervisor-approved) was DENIED by the auto-mode
+  classifier: needs the human (permission rule or run it themselves). Not scheduled.
 - Next concrete step: chat UI check. agent-device stays denied; give the human the
-  two-client manual checklist (docs/evidence/ screenshots), then media upload/download
+  two-client manual checklist (docs/evidence/chat-ui-checklist.md, awaiting the human), then media upload/download
   as a complete screen flow (6–18h window).
 - Supervisor reviews stable checkpoints; independent approved implementation continues.
 
 ## Blockers and gaps
 - agent-device was rejected by Claude auto-mode as external code. Do not bypass.
   Obtain normal authorization or provide a short human-assisted UI test checklist.
-- AWS live test needs server secrets and rights-cleared photos. No keys in chat.
+- Human screenshot confirms AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_REGION
+  are already saved in Supabase Secrets (November 4). Do NOT ask to enter them
+  again. Key validity/permissions and an actual CompareFaces result remain unverified.
+  Live test still needs rights-cleared photos. No keys in chat.
   Keep Free plan; no Organizations creation or paid upgrade. Actual participant
   photos await retention/opt-out review. Other features continue meanwhile.
 - Media, sports/status/emergency, reminders, map/route/speed and final account/plan
