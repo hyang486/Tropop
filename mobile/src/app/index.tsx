@@ -1,6 +1,6 @@
 import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -83,6 +83,10 @@ export default function Rooms() {
           </View>
         ) : null}
 
+        {rooms === null && !error ? (
+          <ActivityIndicator style={styles.loading} accessibilityLabel={en.home.loading} />
+        ) : null}
+
         {rooms?.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>{en.home.empty}</Text>
@@ -115,6 +119,7 @@ export default function Rooms() {
 }
 
 const styles = StyleSheet.create({
+  loading: { marginTop: 24 },
   actions: { gap: 12 },
   empty: { paddingVertical: 48, alignItems: 'center', gap: 8 },
   emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label },

@@ -45,6 +45,7 @@ export const en = {
     create: 'Create room',
     join: 'Join a room',
     guestCreateHint: 'Only hosts can create rooms.',
+    loading: 'Loading rooms',
     loadFailed: 'Could not load your rooms.',
     retry: 'Try again',
     endsIn: (remaining: string) => `Ends in ${remaining}`,
@@ -318,5 +319,12 @@ export const en = {
   errors: {
     generic: 'Something went wrong. Try again.',
     emailPasswordRequired: 'Enter an email and password.',
+    nameEmpty: 'Name cannot be empty.',
+    notSignedIn: 'You are signed out. Sign in and try again.',
+    photoUnreadable: 'The photo could not be read.',
+    fileGone: 'The selected file is no longer available. Choose it again.',
+    downloadIncomplete: 'The download did not finish.',
+    downloadMismatch: 'The downloaded file does not match the original. Try again.',
+    photosPermission: 'Allow Moment to add to Photos in Settings to save originals.',
   },
 } as const;

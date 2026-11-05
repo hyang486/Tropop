@@ -192,7 +192,7 @@ export async function upgradeGuestToHost(email: string, password: string, displa
 
 export async function updateDisplayName(userId: string, displayName: string) {
   const name = cleanName(displayName);
-  if (!name) throw new Error('Name cannot be empty.');
+  if (!name) throw new Error(en.errors.nameEmpty);
   const { error } = await supabase.from('profiles').update({ display_name: name }).eq('id', userId);
   if (error) throw error;
 }

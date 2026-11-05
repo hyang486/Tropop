@@ -152,6 +152,14 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   file needed a full reload; Fast Refresh alone showed Unmatched Route): docs/evidence/2026-11-05-plan-preview-17pro.png.
   NOT verified: the Get Plus alert tap, the profile and create-room links (human taps).
 
+## 40-48 h polish, supervisor ACCEPTED (DM1-DM3 applied), committed (2026-11-05)
+- Home: spinner while the room list loads (before: blank until loaded). en.home.loading.
+- English/copy pass: no hard-coded JSX text found; user-facing Error strings in lib/media.ts, lib/auth.tsx and
+  lib/face.ts moved to en.errors (notSignedIn reworded to "You are signed out. Sign in and try again.").
+  Raw Supabase/Storage error text is still shown as-is in some failure hints (gap).
+- docs/DEMO.md: run steps, walkthrough with verified/unverified state per step, remaining-gap list.
+- tsc/lint clean, npm test 43/43. Not seen on device.
+
 ## Active task: media device flow
 - Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both
   sims' Photos (5927272 bytes, sha256 f50c71d63bba1093392deaab6e344f7d80181e2c880a8a0bbc97b4202b43d72e;

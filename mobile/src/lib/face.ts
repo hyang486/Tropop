@@ -1,5 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 
+import { en } from '@/i18n/en';
+
 import { supabase } from './supabase';
 
 /**
@@ -15,11 +17,11 @@ export function faceRefPath(roomId: string, userId: string, id: string) {
 export async function enrollFace(roomId: string, photoUri: string): Promise<{ enrollmentId: string } | { error: string }> {
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id;
-  if (!userId) return { error: 'Not signed in' };
+  if (!userId) return { error: en.errors.notSignedIn };
   const path = faceRefPath(roomId, userId, randomUUID());
   // ArrayBuffer body, not Blob: React Native Blob uploads can be stored empty.
   const bytes = await (await fetch(photoUri)).arrayBuffer();
-  if (bytes.byteLength === 0) return { error: 'The photo could not be read' };
+  if (bytes.byteLength === 0) return { error: en.errors.photoUnreadable };
   const { error: upErr } = await supabase.storage.from('face-refs').upload(path, bytes, { contentType: 'image/jpeg', upsert: false });
   if (upErr) return { error: upErr.message };
   const { data, error } = await supabase.rpc('enroll_face', { p_room_id: roomId, p_ref_path: path });

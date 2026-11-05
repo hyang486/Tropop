@@ -78,7 +78,7 @@ export function authHeaders(accessToken: string): Record<string, string> {
 async function freshToken() {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  if (!token) throw new Error('Not signed in');
+  if (!token) throw new Error(en.errors.notSignedIn);
   return token;
 }
 
@@ -269,7 +269,7 @@ export function createJob(roomId: string, uploaderId: string, item: PickedItem):
 export async function runJob(job: UploadJob, onProgress: (fraction: number) => void, signal?: AbortSignal): Promise<UploadJob> {
   const { item } = job;
   const file = new File(item.uri);
-  if (!file.exists) throw new Error('The selected file is no longer available. Choose it again.');
+  if (!file.exists) throw new Error(en.errors.fileGone);
   const size = Number(file.size ?? 0);
   if (size <= 0) throw new Error(en.media.emptyFile);
   if (size > MAX_MEDIA_BYTES) throw new Error(en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
@@ -578,12 +578,12 @@ export async function downloadOriginal(media: Media, onProgress?: (fraction: num
       : undefined,
   });
   const file = await task.downloadAsync();
-  if (!file) throw new Error('The download did not finish.');
+  if (!file) throw new Error(en.errors.downloadIncomplete);
   const bytes = Number(file.size ?? 0);
   const sha256 = await file.digest('SHA-256');
   if (bytes <= 0 || (media.size_bytes != null && bytes !== media.size_bytes) || (media.content_sha256 && sha256 !== media.content_sha256)) {
     file.delete();
-    throw new Error('The downloaded file does not match the original. Try again.');
+    throw new Error(en.errors.downloadMismatch);
   }
   return { file, bytes, sha256 };
 }
@@ -595,7 +595,7 @@ export async function downloadOriginal(media: Media, onProgress?: (fraction: num
 export async function saveOriginal(media: Media, file: File): Promise<'library' | 'shared' | 'cancelled'> {
   if (media.kind === 'photo' || media.kind === 'video') {
     const permission = await MediaLibrary.requestPermissionsAsync(true);
-    if (!permission.granted) throw new Error('Allow Moment to add to Photos in Settings to save originals.');
+    if (!permission.granted) throw new Error(en.errors.photosPermission);
     await MediaLibrary.Asset.create(file.uri);
     return 'library';
   }
