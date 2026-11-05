@@ -10,6 +10,7 @@ import {
   isStale,
   MAX_ROUTE_POINTS,
   parseRoute,
+  reconcileShare,
   REPORT_MIN_INTERVAL_MS,
   shouldReport,
   STALE_AFTER_MS,
@@ -89,4 +90,26 @@ test('route payload is {lat, lng}, capped at the server limit', () => {
   assert.deepEqual(toRoutePayload([A]), [{ lat: A.latitude, lng: A.longitude }]);
   const many = Array.from({ length: MAX_ROUTE_POINTS + 5 }, () => A);
   assert.equal(toRoutePayload(many).length, MAX_ROUTE_POINTS);
+});
+
+// M7: the opt-in race between the share read and the set_share_location RPC.
+test('reconcileShare ignores a read while an opt-in RPC is pending', () => {
+  for (const server of [true, false]) {
+    assert.equal(reconcileShare({ server, consented: true, pending: true, genAtStart: 1, genNow: 1 }), 'ignore');
+  }
+});
+
+test('reconcileShare ignores a read that began before consent last changed', () => {
+  assert.equal(reconcileShare({ server: false, consented: true, pending: false, genAtStart: 1, genNow: 2 }), 'ignore');
+  assert.equal(reconcileShare({ server: true, consented: false, pending: false, genAtStart: 3, genNow: 4 }), 'ignore');
+});
+
+test('reconcileShare on a current read', () => {
+  const read = (server, consented) => reconcileShare({ server, consented, pending: false, genAtStart: 5, genNow: 5 });
+  assert.equal(read(true, true), 'on');
+  // Left on by an earlier run or another device: switched off, never resumed silently.
+  assert.equal(read(true, false), 'turn-off-server');
+  // The server stopped it (activity ended, location disallowed, left the room).
+  assert.equal(read(false, true), 'drop-consent');
+  assert.equal(read(false, false), 'off');
 });

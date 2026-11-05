@@ -31,6 +31,47 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   firing, the tap opening the room, the tap on an ended room showing the gone screen (§72). Test: a room expiring in
   about 24 h + 3 min, so the reminder fires about 3 min later on both sims.
 - Map/route/speed, final account/plan flows: not accepted as working features.
+- Sports/location client lib committed 220e8c6 (supervisor accepted; npm test 33/33, tsc/lint clean). Map/room UI
+  not written yet. 2026-11-05 device blocker "Cannot find native module ExpoLocation" (old dev client + new JS):
+  fixed by `expo prebuild --platform ios --clean` (removed stray "Moment 2"/"Podfile 2" duplicates; pods now include
+  ExpoLocation 58.0.20, ExpoMaps 58.0.11) and one `expo run:ios --no-bundler` build (0 errors) on the 17 Pro, the same
+  .app installed over the existing app on the 17 (data kept). Launch PASS on both at 13:59 PST: Rooms screen, no
+  red box, sessions kept (17 Pro guest "Test joiner", 17 host "Test", room "QA verification" listed). Evidence:
+  docs/evidence/2026-11-05-rebuild-location-launch-{17pro,17}.png. C2 Info.plist: NSLocationWhenInUseUsageDescription
+  present; no NSLocationAlways*/NSMotion keys; no UIBackgroundModes key. Gap: expo-maps on Android needs a Google
+  Maps API key (Android is follow-up, C6).
+- Map UI (uncommitted, awaiting review): room/[id]/map.tsx (Apple map, presence markers, route polyline, host allow
+  toggle + Start/End activity + tap-point route editor, own share toggle with permission first (C1), member list where
+  stale rows show "Location stale · age" and no speed (C4)); "Map" header link when location is allowed or for the host.
+  tsc/lint clean. Render only: host 17 opened via moment://room/<94673 id>/map shows the idle screen
+  (docs/evidence/2026-11-05-map-host-17-idle.png). Simulated locations set: 17 Pro 37.7694,-122.4862; 17 37.7700,-122.4848.
+  NOT verified: Start activity, permission prompt, opt-in, live markers on the other device, stale label, route
+  save/sync, End activity clearing positions, sign-out stop.
+  Supervisor map findings, 2026-11-05 (uncommitted, tsc/lint clean, npm test 33/33, NOT on device yet):
+  M2 sharing store in lib/location.ts + components/location-reporters.tsx mounted in _layout (one reporter per
+  opted-in room, keeps running outside the map; map reads useSharingState). M3 stopMyLocationOnLaunch() after
+  session restore in AuthProvider; setShareLocation awaits it. M1 markers: initials monogram + "Name · speed"
+  title (no speed when stale), profile photos still a gap. M5 permission re-read on foreground. M6 no points →
+  centers on own position (no prompt). M4 freehand drawing: gap list (tap points only).
+  M7 opt-in race (supervisor, 2026-11-05): share reads that overlap a set_share_location call, or began before
+  consent last changed, are ignored (pending count + per-room generation; pure rule reconcileShare in
+  location-plan.ts, npm test 36/36); a settled call triggers a fresh read. Supervisor accepted M1–M6 with M7 required.
+- Sports/location server (0020, uncommitted, NOT applied live): fixes L1–L3 included. 2026-11-05 dry run (0020 +
+  supabase/tests/sports_location_test.sql in one begin…rollback) PASS. Waiting on supervisor review before
+  commit/apply and before the client (activity start/end, opt-in, map, route). Supervisor ACCEPTED 0020; committed
+  72663d5. LIVE since 2026-11-05 21:51:52Z. V1 mapping: local 20261104000020_sports_location.sql → remote
+  20261105215152 sports_location (file sha256 9c1284f4…6d1e, identical to 72663d5). Read-only check PASS:
+  stop_my_location, set_location_allowed, report_location, set_activity_state, set_share_location, set_route and
+  private.room_location_live exist, are SECURITY DEFINER with search_path '', authenticated execute yes, anon no.
+- 2026-11-05 13:41–13:49 PST device QA in room 94673 "QA verification" (b03236a9-7092-4348-951d-99aa8937dc33), done by a
+  Codex CUA run that the human authorized: guest join, Arrived (once; button disabled after), status Resting, Emergency → host
+  "needs help" + Seen by 0 of 1 → host "I see it" → 1 of 1 on both, guest "I'm OK" clears the banners, notification permission
+  Allow on both, and the 17 Pro soft keyboard keeps the composer above the keys (typing/sending not verified).
+  Developer read-only server cross-check MATCHES: guest 97ed7d32 joined 21:41:29Z; one arrival (seq 0) at 21:42:21Z; status notice
+  "Resting" at 21:42:49Z; emergency 5d365acc at 21:43:28Z; host edeaea51 ack at 21:45:59Z; no member_status row now
+  (cleared). Evidence: docs/evidence/2026-11-05-qa-94673-activity-{guest,host}.png.
+  Still NOT verified: live photo appearance, local reminder firing/tap, duplicate-notification check (CUA could not tap the
+  host header "Photos").
 
 ## Active task: media device flow
 - Taps are not automated: the human taps and the developer verifies on the server. Test photo is in both

@@ -188,6 +188,15 @@ function ChatRoom({
               >
                 {en.media.headerLink}
               </Link>
+              {room.location_allowed || room.host_id === userId ? (
+                <Link
+                  href={{ pathname: '/room/[id]/map', params: { id: room.id } }}
+                  style={styles.headerLink}
+                  accessibilityRole="button"
+                >
+                  {en.map.headerLink}
+                </Link>
+              ) : null}
               <Link
                 href={{ pathname: '/room/[id]/invite', params: { id: room.id } }}
                 style={styles.headerLink}

@@ -3,6 +3,7 @@ import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { reminderRoomFromResponse, setPendingReminderRoom } from '@/lib/expiry-reminders';
@@ -33,6 +34,8 @@ function RootNavigator() {
   if (loading) return null;
 
   return (
+    <>
+    <LocationReporters />
     <Stack screenOptions={{ headerLargeTitle: false, headerBackButtonDisplayMode: 'minimal' }}>
       <Stack.Protected guard={signedIn} redirectTo="/welcome">
         <Stack.Screen name="index" options={{ title: en.home.title, headerLargeTitle: true }} />
@@ -45,6 +48,7 @@ function RootNavigator() {
         <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/info" options={{ title: en.room.info }} />
         <Stack.Screen name="room/[id]/gallery" options={{ title: en.media.title }} />
+        <Stack.Screen name="room/[id]/map" options={{ title: en.map.title }} />
         <Stack.Screen name="room/[id]/media/[mediaId]" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/invite" options={{ title: en.invite.title, presentation: 'modal' }} />
       </Stack.Protected>
@@ -59,6 +63,7 @@ function RootNavigator() {
         <Stack.Screen name="sign-up" options={{ title: en.signUp.title }} />
       </Stack.Protected>
     </Stack>
+    </>
   );
 }
 

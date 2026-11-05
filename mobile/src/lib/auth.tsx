@@ -6,7 +6,7 @@ import { en } from '@/i18n/en';
 import { checkAccount } from './account-check';
 import { clearAllRoomCaches } from './media';
 import { cancelAllExpiryReminders } from './expiry-reminders';
-import { stopMyLocation } from './location';
+import { stopMyLocation, stopMyLocationOnLaunch } from './location';
 import type { Tables } from './database.types';
 import { supabase } from './supabase';
 
@@ -45,6 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // getSession() only reads local storage. Check with the server that the account still exists;
       // offline or server errors keep the stored session (it is checked again on the next launch).
       if (data.session) verifyAccount();
+      // M3: consent is OFF after a restart, so a share left on by the previous run is cleared.
+      if (data.session) stopMyLocationOnLaunch();
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);

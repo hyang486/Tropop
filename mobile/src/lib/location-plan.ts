@@ -103,3 +103,24 @@ export function centerOf(points: LatLng[]): LatLng | null {
     longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
   };
 }
+
+/**
+ * M7: what a read of the user's own room_members.share_location may change. The read and the
+ * set_share_location RPC are separate requests, so a read that overlaps an opt-in (pending) or
+ * started before consent last changed (generation moved) can see an old value: it is ignored, and
+ * the store change after the RPC triggers a fresh read.
+ */
+export type ShareRead = {
+  server: boolean;
+  consented: boolean;
+  pending: boolean;
+  genAtStart: number;
+  genNow: number;
+};
+export type ShareDecision = 'ignore' | 'on' | 'off' | 'drop-consent' | 'turn-off-server';
+
+export function reconcileShare({ server, consented, pending, genAtStart, genNow }: ShareRead): ShareDecision {
+  if (pending || genAtStart !== genNow) return 'ignore';
+  if (server) return consented ? 'on' : 'turn-off-server';
+  return consented ? 'drop-consent' : 'off';
+}

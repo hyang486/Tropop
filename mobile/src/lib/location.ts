@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import type { Tables } from './database.types';
@@ -9,6 +9,7 @@ import {
   PRESENCE_REFETCH_DEBOUNCE_MS,
   REPORT_MIN_DISTANCE_M,
   REPORT_MIN_INTERVAL_MS,
+  reconcileShare,
   shouldReport,
   STALE_AFTER_MS,
   toRoutePayload,
@@ -18,11 +19,104 @@ import { supabase } from './supabase';
 
 export type Presence = Tables<'live_presence'>;
 
+// Sharing store ----------------------------------------------------------------
+
+export type ReporterState = 'off' | 'starting' | 'sharing' | 'no-permission' | 'error';
+/** What the map shows for the user's own sharing in a room. 'refused': the server stopped it. */
+export type SharingState = ReporterState | 'refused';
+
 /**
- * Rooms where the user turned sharing on during this app run. It lives in memory only, so a cold
+ * `rooms`: where the user turned sharing on during this app run. It lives in memory only, so a cold
  * start forgets it: consent is OFF again after an app restart (safe default for the open §92 policy).
+ * The app-level LocationReporters runs one reporter per room in it, so sharing continues while the
+ * user is in chat or another screen (M2). `states`: each room's last reporter state.
  */
-const consentedThisRun = new Set<string>();
+type SharingSnapshot = { rooms: ReadonlySet<string>; states: ReadonlyMap<string, SharingState> };
+
+let sharing: SharingSnapshot = { rooms: new Set(), states: new Map() };
+
+/**
+ * M7: `pending` counts set_share_location calls in flight per room; `gens` moves whenever a room's
+ * consent changes or such a call settles. A share read compares them (reconcileShare) so an
+ * overlapping read cannot undo an opt-in. Every change notifies, and useMyShare reads again.
+ */
+const pending = new Map<string, number>();
+const gens = new Map<string, number>();
+let globalGen = 0;
+
+function consentGen(roomId: string) {
+  return globalGen * 1_000_000 + (gens.get(roomId) ?? 0);
+}
+
+function bumpGen(roomId: string) {
+  gens.set(roomId, (gens.get(roomId) ?? 0) + 1);
+}
+const sharingListeners = new Set<() => void>();
+
+function emitSharing(next: SharingSnapshot) {
+  sharing = next;
+  sharingListeners.forEach((listener) => listener());
+}
+
+function subscribeSharing(listener: () => void) {
+  sharingListeners.add(listener);
+  return () => {
+    sharingListeners.delete(listener);
+  };
+}
+
+function setConsent(roomId: string, on: boolean) {
+  if (sharing.rooms.has(roomId) === on) return;
+  bumpGen(roomId);
+  const rooms = new Set(sharing.rooms);
+  let states = sharing.states;
+  if (on) {
+    rooms.add(roomId);
+    // A new opt-in starts clean: an old 'refused' / 'no-permission' no longer applies.
+    if (states.has(roomId)) {
+      const next = new Map(states);
+      next.delete(roomId);
+      states = next;
+    }
+  } else rooms.delete(roomId);
+  emitSharing({ rooms, states });
+}
+
+/** Called by LocationReporters when the device permission is lost while sharing in a room. */
+export function dropConsent(roomId: string) {
+  setConsent(roomId, false);
+}
+
+function clearConsent() {
+  globalGen += 1;
+  if (sharing.rooms.size > 0) emitSharing({ ...sharing, rooms: new Set() });
+}
+
+/** 'off' from a stopped reporter never hides why it stopped ('refused', 'no-permission'). */
+export function setSharingState(roomId: string, state: SharingState) {
+  const current = sharing.states.get(roomId);
+  if (current === state) return;
+  if (state === 'off' && (current === 'refused' || current === 'no-permission')) return;
+  const states = new Map(sharing.states);
+  states.set(roomId, state);
+  emitSharing({ ...sharing, states });
+}
+
+export function useSharingRooms(): ReadonlySet<string> {
+  return useSyncExternalStore(subscribeSharing, () => sharing.rooms);
+}
+
+export function useSharingState(roomId: string): SharingState {
+  return useSyncExternalStore(subscribeSharing, () => sharing.states.get(roomId) ?? 'off');
+}
+
+/** Changes whenever the room's consent changes or an opt-in call settles (M7). */
+function useConsentGen(roomId: string): number {
+  return useSyncExternalStore(subscribeSharing, () => consentGen(roomId));
+}
+
+/** Promise of the cold-start stop (M3); an opt-in waits for it so the stop cannot undo it. */
+let launchStop: Promise<void> | null = null;
 
 // RPCs (migration 0020) ------------------------------------------------------
 
@@ -37,14 +131,26 @@ export async function setActivityState(roomId: string, state: 'active' | 'ended'
 }
 
 export async function setShareLocation(roomId: string, share: boolean) {
-  // Mark consent before the RPC: its realtime notice can reach useMyShare.reload before the RPC
-  // resolves, and an unmarked server `true` would be switched off again.
-  if (share) consentedThisRun.add(roomId);
-  else consentedThisRun.delete(roomId);
-  const { error } = await supabase.rpc('set_share_location', { p_room_id: roomId, p_share: share });
-  if (error) {
-    if (share) consentedThisRun.delete(roomId);
-    throw error;
+  if (launchStop) await launchStop;
+  // Mark consent and the pending call before the RPC: a share read that overlaps it is ignored
+  // (M7), and its realtime notice cannot switch an unmarked server `true` off again.
+  pending.set(roomId, (pending.get(roomId) ?? 0) + 1);
+  setConsent(roomId, share);
+  let failed = false;
+  try {
+    const { error } = await supabase.rpc('set_share_location', { p_room_id: roomId, p_share: share });
+    if (error) throw error;
+  } catch (e) {
+    failed = true;
+    throw e;
+  } finally {
+    const left = (pending.get(roomId) ?? 1) - 1;
+    if (left > 0) pending.set(roomId, left);
+    else pending.delete(roomId);
+    if (failed && share) setConsent(roomId, false);
+    // Reads that overlapped the call are now outdated; notify so useMyShare reads again.
+    bumpGen(roomId);
+    emitSharing({ ...sharing });
   }
 }
 
@@ -58,7 +164,7 @@ export async function saveRoute(roomId: string, points: LatLng[]) {
  * device permission is lost. Best effort: a failure never blocks sign-out.
  */
 export async function stopMyLocation() {
-  consentedThisRun.clear();
+  clearConsent();
   try {
     const { error } = await supabase.rpc('stop_my_location');
     if (error) console.warn('stop_my_location failed', error.message);
@@ -67,9 +173,35 @@ export async function stopMyLocation() {
   }
 }
 
+/**
+ * M3: once per cold start with a restored session. Consent does not survive a restart, and iOS
+ * usually kills the app when location access is lowered in Settings, so a share left on the server by
+ * the previous run (and its last position) is cleared here.
+ */
+export function stopMyLocationOnLaunch() {
+  launchStop ??= stopMyLocation();
+  return launchStop;
+}
+
 export async function hasForegroundPermission() {
   const { granted } = await Location.getForegroundPermissionsAsync();
   return granted;
+}
+
+/**
+ * The device's own position for centering the map (M6). Never prompts: null without permission.
+ * Uses the cached fix when there is one, otherwise one balanced-accuracy fix.
+ */
+export async function getMyPosition(): Promise<LatLng | null> {
+  try {
+    if (!(await hasForegroundPermission())) return null;
+    const pos =
+      (await Location.getLastKnownPositionAsync()) ??
+      (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+  } catch {
+    return null;
+  }
 }
 
 /** Asks for When In Use permission only. Returns whether it is granted. */
@@ -101,6 +233,7 @@ export function useMyShare(roomId: string, userId: string | undefined) {
   const reload = useCallback(async () => {
     if (!userId) return;
     const mine = ++seq.current;
+    const genAtStart = consentGen(roomId);
     let server: boolean | null;
     try {
       server = await fetchMyShare(roomId, userId);
@@ -108,14 +241,39 @@ export function useMyShare(roomId: string, userId: string | undefined) {
       server = null;
     }
     if (server === null || mine !== seq.current) return;
-    if (server && !consentedThisRun.has(roomId)) {
-      setShare(false);
-      setShareLocation(roomId, false).catch(() => {});
-      return;
+    const decision = reconcileShare({
+      server,
+      consented: sharing.rooms.has(roomId),
+      pending: (pending.get(roomId) ?? 0) > 0,
+      genAtStart,
+      genNow: consentGen(roomId),
+    });
+    switch (decision) {
+      case 'ignore':
+        return;
+      case 'turn-off-server':
+        setShare(false);
+        setShareLocation(roomId, false).catch(() => {});
+        return;
+      case 'drop-consent':
+        setConsent(roomId, false);
+        setShare(false);
+        return;
+      case 'off':
+        setShare(false);
+        return;
+      case 'on':
+        setShare(true);
     }
-    if (!server) consentedThisRun.delete(roomId);
-    setShare(server);
   }, [roomId, userId]);
+
+  // A settled opt-in or a consent change makes earlier reads outdated: read again.
+  const gen = useConsentGen(roomId);
+  useEffect(() => {
+    // reload only sets state after its first await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    reload();
+  }, [gen, reload]);
 
   useRoomEvents(
     roomId,
@@ -141,8 +299,6 @@ export function useMyShare(roomId: string, userId: string | undefined) {
 }
 
 // Reporting -------------------------------------------------------------------
-
-export type ReporterState = 'off' | 'starting' | 'sharing' | 'no-permission' | 'error';
 
 /**
  * Sends this device's position while `enabled` and the app is in the foreground (no background
