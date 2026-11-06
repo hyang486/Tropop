@@ -6,18 +6,26 @@ import {
   distanceMeters,
   formatAge,
   formatSpeedKmh,
+  FRESH_FIX_MAX_AGE_MS,
+  FRESH_FIX_TIMEOUT_MS,
+  freshFixAttemptDue,
   HEARTBEAT_MS,
+  heartbeatDue,
+  isFreshReading,
   initials,
   isStale,
   MAX_ROUTE_POINTS,
   parseRoute,
+  planHeartbeat,
   planPins,
   reconcileShare,
   REPORT_MIN_INTERVAL_MS,
+  reportedSpeed,
   shouldReport,
   STALE_AFTER_MS,
   toRoutePayload,
   wantedIconPaths,
+  withTimeout,
 } from '../src/lib/location-plan.ts';
 
 const A = { latitude: 37.5665, longitude: 126.978 };
@@ -161,4 +169,104 @@ test('initials takes up to two letters', () => {
   assert.equal(initials('Test joiner'), 'TJ');
   assert.equal(initials('  '), '?');
   assert.equal(initials('a b c'), 'AB');
+});
+
+// MS1/MS2: fresh fixes only, speed only from the reported fix ---------------------------------------
+
+const T = 1_000_000;
+const reading = (over = {}) => ({
+  latitude: 37.7694,
+  longitude: -122.4862,
+  speed: 5,
+  accuracy: 5,
+  heading: 90,
+  timestampMs: T - 500,
+  ...over,
+});
+
+test('reportedSpeed keeps a measured speed and 0, drops iOS -1 and non-finite values', () => {
+  assert.equal(reportedSpeed(5), 5);
+  assert.equal(reportedSpeed(0), 0);
+  assert.equal(reportedSpeed(-1), null);
+  assert.equal(reportedSpeed(null), null);
+  assert.equal(reportedSpeed(NaN), null);
+  assert.equal(reportedSpeed(Infinity), null);
+});
+
+test('isFreshReading accepts a new, recent, valid reading', () => {
+  assert.equal(isFreshReading(reading(), null, T), true);
+  assert.equal(isFreshReading(reading(), T - 31_000, T), true);
+});
+
+test('isFreshReading rejects a cached or same-timestamp reading', () => {
+  const r = reading({ timestampMs: T - 31_000 });
+  assert.equal(isFreshReading(r, T - 31_000, T), false, 'same timestamp as the last report');
+  assert.equal(isFreshReading(r, T - 30_000, T), false, 'older than the last report');
+});
+
+test('isFreshReading rejects an old reading even when nothing was sent yet (no frozen fixes, C5)', () => {
+  assert.equal(isFreshReading(reading({ timestampMs: T - FRESH_FIX_MAX_AGE_MS }), null, T), true);
+  assert.equal(isFreshReading(reading({ timestampMs: T - FRESH_FIX_MAX_AGE_MS - 1 }), null, T), false);
+  assert.equal(isFreshReading(reading({ timestampMs: NaN }), null, T), false);
+});
+
+test('isFreshReading rejects invalid coordinates', () => {
+  assert.equal(isFreshReading(reading({ latitude: 91 }), null, T), false);
+  assert.equal(isFreshReading(reading({ longitude: NaN }), null, T), false);
+});
+
+test('heartbeatDue: before any report, and once HEARTBEAT_MS has passed since the last report', () => {
+  assert.equal(heartbeatDue(null, T), true);
+  assert.equal(heartbeatDue(T - HEARTBEAT_MS + 1, T), false);
+  assert.equal(heartbeatDue(T - HEARTBEAT_MS, T), true);
+});
+
+test('planHeartbeat: moving fresh fix is reported with its own speed', () => {
+  const r = reading();
+  assert.deepEqual(planHeartbeat({ ok: true, reading: r }, T - 31_000, T), r);
+});
+
+test('planHeartbeat: stationary fresh fix is reported without the old moving speed', () => {
+  const stillIos = planHeartbeat({ ok: true, reading: reading({ speed: -1 }) }, T - 31_000, T);
+  assert.equal(stillIos?.speed, null);
+  const measuredZero = planHeartbeat({ ok: true, reading: reading({ speed: 0 }) }, T - 31_000, T);
+  assert.equal(measuredZero?.speed, 0);
+  const noSpeed = planHeartbeat({ ok: true, reading: reading({ speed: null }) }, T - 31_000, T);
+  assert.equal(noSpeed?.speed, null);
+});
+
+test('planHeartbeat: a cached (not newer) reading sends nothing', () => {
+  const r = reading({ timestampMs: T - 31_000 });
+  assert.equal(planHeartbeat({ ok: true, reading: r }, T - 31_000, T), null);
+});
+
+test('planHeartbeat: a failed or timed-out read sends nothing', () => {
+  assert.equal(planHeartbeat({ ok: false }, T - 31_000, T), null);
+  assert.equal(planHeartbeat({ ok: false }, null, T), null);
+});
+
+test('fresh-fix timing keeps a stationary sharer fresh: heartbeat + timeout + max age stay under the stale cutoff', () => {
+  assert.ok(HEARTBEAT_MS + FRESH_FIX_TIMEOUT_MS < STALE_AFTER_MS);
+  assert.ok(FRESH_FIX_MAX_AGE_MS < STALE_AFTER_MS);
+});
+
+test('withTimeout resolves with the value, or rejects after the timeout', async () => {
+  assert.equal(await withTimeout(Promise.resolve(7), 50), 7);
+  await assert.rejects(withTimeout(new Promise(() => {}), 10), /timed out/);
+  await assert.rejects(withTimeout(Promise.reject(new Error('boom')), 50), /boom/);
+});
+
+test('freshFixAttemptDue (MS-R1): after a failed attempt, the next waits HEARTBEAT_MS, not one tick', () => {
+  // Nothing sent yet, no attempt yet: start one.
+  assert.equal(freshFixAttemptDue(null, null, T), true);
+  // A failed attempt at T: every following 5 s tick stays blocked until HEARTBEAT_MS has passed.
+  for (let dt = 5_000; dt < HEARTBEAT_MS; dt += 5_000) {
+    assert.equal(freshFixAttemptDue(null, T, T + dt), false);
+  }
+  assert.ok(HEARTBEAT_MS > FRESH_FIX_TIMEOUT_MS);
+  assert.equal(freshFixAttemptDue(null, T, T + HEARTBEAT_MS), true);
+  // After a report, the heartbeat rule still applies first.
+  assert.equal(freshFixAttemptDue(T, T - HEARTBEAT_MS, T + HEARTBEAT_MS - 1), false);
+  // Successful heartbeat at T (attempt and report both at T): next attempt at T + HEARTBEAT_MS, unchanged.
+  assert.equal(freshFixAttemptDue(T, T, T + HEARTBEAT_MS), true);
 });

@@ -335,6 +335,25 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   host-moving-pin-and-row,host-moving-later,host-stationary-stale,host-clean,guest-clean}.png; Codex record
   docs/evidence/codex-f1-map-speed-qa.md.
 
+## MS1/MS2 fresh-fix fix (human-approved 2026-11-06 afternoon), supervisor-accepted with MS-R1, committed; device QA pending
+- App code only (mobile/src/lib/location.ts, location-plan.ts, tests); no server change. report_location already writes
+  the given speed (null when omitted), so a stationary report clears the old speed on the server.
+- Pure helpers (location-plan.ts): reportedSpeed (iOS -1 and non-finite -> null, measured 0 kept); isFreshReading
+  (valid coords, device timestamp newer than the last reported reading, at most FRESH_FIX_MAX_AGE_MS 15 s old);
+  heartbeatDue (nothing sent yet, or HEARTBEAT_MS 30 s since the last report); planHeartbeat (failure, timeout,
+  cached or old reading -> nothing; otherwise the reading with its own speed); withTimeout.
+- Reporter: no cached fix is ever re-sent. Watch readings pass isFreshReading + shouldReport (L4) and carry their own
+  speed. Every 5 s a tick checks heartbeatDue; if due, getCurrentPositionAsync (High; SDK 58 has no timeout/maxAge
+  option, iOS uses CLLocationManager.requestLocation) under a 10 s JS timeout. Failure: permission re-read (lost ->
+  existing permissionLost path), otherwise nothing is sent. heartbeatDue is re-checked after the read (L4).
+- MS-R1 (supervisor): a failed read did not update lastSent, so a new getCurrentPositionAsync started every 5 s tick
+  and timed-out native requests stacked. freshFixAttemptDue now also requires HEARTBEAT_MS since the last attempt
+  start, so at most one fresh-fix request per 30 s. Staleness bounds unchanged.
+- Accepted residual: after a stop the old speed can still show up to about 45 s (30 s heartbeat + 5 s tick + 10 s
+  timeout), until the first heartbeat report replaces it.
+- tsc clean, expo lint clean, npm test 61/61 (13 new). NOT verified on device. Device QA (room 94673, cases 1, 2, 3a,
+  3b, cleanup, with supervisor additions a-d) waits for the supervisor's go; taps go through Codex.
+
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
 - Keep the pre-existing test@example.com and "Test joiner" accounts and their room (human decision).

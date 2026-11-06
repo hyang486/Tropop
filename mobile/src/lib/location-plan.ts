@@ -7,8 +7,16 @@ export type Fix = LatLng & { atMs: number };
 export const REPORT_MIN_INTERVAL_MS = 5_000;
 /** A new fix closer than this to the last report is not sent, except as a heartbeat. */
 export const REPORT_MIN_DISTANCE_M = 10;
-/** A member who has not moved still re-sends the last fix this often, so others do not see them as stale. */
+/**
+ * A member who has not moved (iOS sends no watch updates under REPORT_MIN_DISTANCE_M) requests a FRESH
+ * fix this long after their last report, so others do not see them as stale (MS2). A cached fix is never
+ * re-sent with a new timestamp.
+ */
 export const HEARTBEAT_MS = 30_000;
+/** A fresh-fix request that has not answered by then counts as failed: nothing is sent (the row goes stale). */
+export const FRESH_FIX_TIMEOUT_MS = 10_000;
+/** A reading whose own timestamp is older than this is not reported (no frozen fixes, C5). */
+export const FRESH_FIX_MAX_AGE_MS = 15_000;
 /** Other members show "Location stale" once the server row is older than this. */
 export const STALE_AFTER_MS = 60_000;
 /** Presence change notices arrive per report; refetch at most once per this window. */
@@ -40,6 +48,74 @@ export function shouldReport(lastSent: Fix | null, next: LatLng, nowMs: number):
   if (elapsed < REPORT_MIN_INTERVAL_MS) return false;
   if (elapsed >= HEARTBEAT_MS) return true;
   return distanceMeters(lastSent, next) >= REPORT_MIN_DISTANCE_M;
+}
+
+/** One position reading with the device's own timestamp (`LocationObject.timestamp`). */
+export type Reading = LatLng & {
+  speed: number | null;
+  accuracy: number | null;
+  heading: number | null;
+  timestampMs: number;
+};
+
+export type FreshFixResult = { ok: true; reading: Reading } | { ok: false };
+
+/** Speed in m/s as measured for this reading. iOS gives -1 when it has none (e.g. standing still): null. */
+export function reportedSpeed(speed: number | null | undefined): number | null {
+  return typeof speed === 'number' && Number.isFinite(speed) && speed >= 0 ? speed : null;
+}
+
+/**
+ * A reading may be reported only if it is genuinely new: valid coordinates, its own timestamp newer
+ * than the last reported reading (a cached reading repeats an old timestamp), and not older than
+ * FRESH_FIX_MAX_AGE_MS.
+ */
+export function isFreshReading(reading: Reading, lastSentReadingMs: number | null, nowMs: number): boolean {
+  if (!isValidLatLng(reading) || !Number.isFinite(reading.timestampMs)) return false;
+  if (lastSentReadingMs !== null && reading.timestampMs <= lastSentReadingMs) return false;
+  return nowMs - reading.timestampMs <= FRESH_FIX_MAX_AGE_MS;
+}
+
+/** Whether to request a fresh fix now: nothing reported yet, or HEARTBEAT_MS since the last report. */
+export function heartbeatDue(lastSentAtMs: number | null, nowMs: number): boolean {
+  return lastSentAtMs === null || nowMs - lastSentAtMs >= HEARTBEAT_MS;
+}
+
+/**
+ * Whether to START a fresh-fix request now (MS-R1): the heartbeat is due, and no request was started
+ * within the last HEARTBEAT_MS. A timed-out native request keeps running, so after a failure the next
+ * attempt waits a full HEARTBEAT_MS instead of stacking requests every tick.
+ */
+export function freshFixAttemptDue(lastSentAtMs: number | null, lastAttemptAtMs: number | null, nowMs: number): boolean {
+  if (!heartbeatDue(lastSentAtMs, nowMs)) return false;
+  return lastAttemptAtMs === null || nowMs - lastAttemptAtMs >= HEARTBEAT_MS;
+}
+
+/**
+ * What a heartbeat reports, given its fresh-fix request. A failed or timed-out request and a stale or
+ * repeated reading report nothing, so the server row goes stale truthfully. Speed comes only from this
+ * reading; a previous moving speed is never carried forward (MS1).
+ */
+export function planHeartbeat(result: FreshFixResult, lastSentReadingMs: number | null, nowMs: number): Reading | null {
+  if (!result.ok || !isFreshReading(result.reading, lastSentReadingMs, nowMs)) return null;
+  return { ...result.reading, speed: reportedSpeed(result.reading.speed) };
+}
+
+/** Rejects with "timed out" if `promise` has not settled within `ms`. The underlying work is not cancelled. */
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timed out')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 export function isValidLatLng(p: LatLng | null | undefined): p is LatLng {

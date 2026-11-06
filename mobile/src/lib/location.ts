@@ -5,14 +5,22 @@ import { AppState, type AppStateStatus } from 'react-native';
 import type { Tables } from './database.types';
 import {
   type Fix,
+  FRESH_FIX_TIMEOUT_MS,
+  type FreshFixResult,
+  freshFixAttemptDue,
+  heartbeatDue,
+  isFreshReading,
   type LatLng,
+  planHeartbeat,
   PRESENCE_REFETCH_DEBOUNCE_MS,
+  type Reading,
+  reconcileShare,
   REPORT_MIN_DISTANCE_M,
   REPORT_MIN_INTERVAL_MS,
-  reconcileShare,
+  reportedSpeed,
   shouldReport,
-  STALE_AFTER_MS,
   toRoutePayload,
+  withTimeout,
 } from './location-plan';
 import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
@@ -311,9 +319,16 @@ export function useMyShare(roomId: string, userId: string | undefined) {
 
 // Reporting -------------------------------------------------------------------
 
+function toReading(loc: Location.LocationObject): Reading {
+  const { latitude, longitude, speed, accuracy, heading } = loc.coords;
+  return { latitude, longitude, speed, accuracy, heading, timestampMs: loc.timestamp };
+}
+
 /**
  * Sends this device's position while `enabled` and the app is in the foreground (no background
- * location: the app has no UIBackgroundModes location). Throttled by shouldReport (L4).
+ * location: the app has no UIBackgroundModes location). Throttled by shouldReport (L4). Only genuinely
+ * fresh readings are sent, each with its own speed (MS1); a member standing still gets a fresh-fix
+ * heartbeat (MS2), and if that fails nothing is sent.
  * When the server refuses a report (the room, activity or opt-in changed) it calls `onRefused`.
  * When the device permission is gone it calls stopMyLocation (L1) and `onPermissionLost`.
  */
@@ -346,10 +361,12 @@ export function useLocationReporter({
     let watch: Location.LocationSubscription | null = null;
     let heartbeat: ReturnType<typeof setInterval> | null = null;
     let lastSent: Fix | null = null;
-    let lastFix:
-      | (LatLng & { speed: number | null; accuracy: number | null; heading: number | null; receivedMs: number })
-      | null = null;
+    /** Device timestamp of the last reported reading: a reading not newer than this is never re-sent. */
+    let lastSentReadingMs: number | null = null;
     let inFlight = false;
+    let reading = false;
+    /** Start time of the last fresh-fix request (MS-R1): at most one request per HEARTBEAT_MS. */
+    let lastAttemptMs: number | null = null;
 
     const stop = () => {
       cancelled = true;
@@ -366,14 +383,10 @@ export function useLocationReporter({
       callbacks.current.onPermissionLost();
     };
 
-    const send = async () => {
-      if (cancelled || inFlight || !lastFix) return;
-      const now = Date.now();
-      // GPS stopped delivering: do not keep a frozen fix looking fresh to others (C5).
-      if (now - lastFix.receivedMs > STALE_AFTER_MS) return;
-      if (!shouldReport(lastSent, lastFix, now)) return;
+    /** Sends one genuinely fresh reading; its speed is already the reading's own (reportedSpeed). */
+    const report = async (fix: Reading) => {
+      if (cancelled || inFlight) return;
       inFlight = true;
-      const fix = lastFix;
       try {
         const { data, error } = await supabase.rpc('report_location', {
           p_room_id: roomId,
@@ -394,7 +407,8 @@ export function useLocationReporter({
           callbacks.current.onRefused();
           return;
         }
-        lastSent = { latitude: fix.latitude, longitude: fix.longitude, atMs: now };
+        lastSent = { latitude: fix.latitude, longitude: fix.longitude, atMs: Date.now() };
+        lastSentReadingMs = fix.timestampMs;
         setState('sharing');
       } catch {
         // A thrown rejection (network) is reported like a returned error (C3).
@@ -402,6 +416,47 @@ export function useLocationReporter({
       } finally {
         inFlight = false;
       }
+    };
+
+    /** Watch updates (moving): throttled by shouldReport (L4); stale or repeated readings are dropped (C5). */
+    const onWatchReading = (r: Reading) => {
+      const now = Date.now();
+      if (!isFreshReading(r, lastSentReadingMs, now) || !shouldReport(lastSent, r, now)) return;
+      report({ ...r, speed: reportedSpeed(r.speed) });
+    };
+
+    /**
+     * Heartbeat (standing still, MS2): iOS sends no watch updates under REPORT_MIN_DISTANCE_M, so once
+     * HEARTBEAT_MS has passed since the last report, ask for a FRESH fix. Only a genuinely new reading is
+     * sent (planHeartbeat); a failure or timeout sends nothing and the row goes stale truthfully.
+     */
+    const heartbeatTick = async () => {
+      const startMs = Date.now();
+      if (cancelled || inFlight || reading || !freshFixAttemptDue(lastSent?.atMs ?? null, lastAttemptMs, startMs)) return;
+      reading = true;
+      lastAttemptMs = startMs;
+      let result: FreshFixResult;
+      try {
+        const loc = await withTimeout(
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+          FRESH_FIX_TIMEOUT_MS,
+        );
+        result = { ok: true, reading: toReading(loc) };
+      } catch {
+        result = { ok: false };
+      } finally {
+        reading = false;
+      }
+      if (cancelled) return;
+      if (!result.ok && !(await hasForegroundPermission())) {
+        if (!cancelled) await permissionLost();
+        return;
+      }
+      const now = Date.now();
+      // A watch report may have landed while reading; keep the L4 throttle.
+      if (!heartbeatDue(lastSent?.atMs ?? null, now)) return;
+      const fix = planHeartbeat(result, lastSentReadingMs, now);
+      if (fix) await report(fix);
     };
 
     (async () => {
@@ -418,11 +473,7 @@ export function useLocationReporter({
             timeInterval: REPORT_MIN_INTERVAL_MS,
             distanceInterval: REPORT_MIN_DISTANCE_M,
           },
-          (loc) => {
-            const { latitude, longitude, speed, accuracy, heading } = loc.coords;
-            lastFix = { latitude, longitude, speed, accuracy, heading, receivedMs: Date.now() };
-            send();
-          },
+          (loc) => onWatchReading(toReading(loc)),
           () => {
             // iOS reports an error when the permission is revoked while watching.
             hasForegroundPermission().then((ok) => {
@@ -435,8 +486,8 @@ export function useLocationReporter({
           return;
         }
         watch = sub;
-        // A member standing still gets no new fixes; re-send the last one so they do not look stale.
-        heartbeat = setInterval(send, REPORT_MIN_INTERVAL_MS);
+        // Checks every REPORT_MIN_INTERVAL_MS whether a fresh-fix heartbeat is due (heartbeatDue).
+        heartbeat = setInterval(heartbeatTick, REPORT_MIN_INTERVAL_MS);
       } catch {
         if (!cancelled) setState('error');
       }
