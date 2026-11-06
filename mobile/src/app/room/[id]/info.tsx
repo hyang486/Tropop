@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { StatusEditor } from '@/components/status-editor';
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -128,6 +129,8 @@ export default function RoomInfoScreen() {
           </View>
         ))}
       </View>
+
+      <StatusEditor roomId={room.id} isHost={isHost} />
 
       <Button
         title={isHost ? en.room.end : en.room.leave}

@@ -21,6 +21,9 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Arrival/status/Emergency (0016, activity.ts, room-activity.tsx): server path live PASS through S1.
 
 ## Not yet verified
+- Host status-list editor (Room info → Statuses; set_status_definitions, no server change): supervisor ACCEPTED
+  2026-11-06; npm test 68/68, tsc and lint clean. NOT on a device: no render or edit/save yet, because room 94673 expired
+  13:31 PST and new QA rooms wait on human approval.
 - Media on a device: photo upload → download → save is a byte-exact PASS (run 2); the remaining items are in Active task. DB tests and full RLS PASS.
 - Activity UI (Arrived, status sheet, Emergency banner/ack) on the simulator; chat keyboard-open layout
   and checklist steps 5–10.
