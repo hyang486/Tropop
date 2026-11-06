@@ -1,5 +1,5 @@
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -152,6 +152,7 @@ function ChatRoom({
   const chat = useChat(room.id, userId, onNewSender);
   const uploadSummary = useRoomUploadSummary(room.id);
   const [draft, setDraft] = useState('');
+  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const remaining = formatRemaining(remainingMs);
   const canSend = draft.trim().length > 0;
 
@@ -159,6 +160,8 @@ function ChatRoom({
     if (!canSend) return;
     chat.send(draft);
     setDraft('');
+    // Native clear too: iOS can re-commit a pending predictive/autocorrect word after a JS-only clear (C-2).
+    inputRef.current?.clear();
   }
 
   const failedCount = chat.messages.filter((m) => m.pending === 'failed').length;
@@ -278,6 +281,7 @@ function ChatRoom({
 
           <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
             <TextInput
+              ref={inputRef}
               style={styles.input}
               value={draft}
               onChangeText={setDraft}

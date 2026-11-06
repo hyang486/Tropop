@@ -1,6 +1,6 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { QrCode } from '@/components/qr-code';
 import { Button, colors, Hint, Screen } from '@/components/ui';
@@ -10,6 +10,7 @@ import { getRoom, inviteUrl, rotateInvite, type Room } from '@/lib/rooms';
 
 export default function Invite() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,9 +47,24 @@ export default function Invite() {
     ]);
   }
 
+  // Invite is a modal. Native-stack shows later pushes (deep links, reminder taps) inside an open modal,
+  // which left the room chat as a sheet with its composer under the keyboard (C-1). Done closes it.
+  const header = (
+    <Stack.Screen
+      options={{
+        headerRight: () => (
+          <Pressable accessibilityRole="button" accessibilityLabel={en.invite.done} hitSlop={8} onPress={() => router.dismiss()}>
+            <Text style={styles.done}>{en.invite.done}</Text>
+          </Pressable>
+        ),
+      }}
+    />
+  );
+
   if (!room) {
     return (
       <Screen>
+        {header}
         {error ? <Hint tone="error">{error}</Hint> : <ActivityIndicator style={styles.loading} />}
       </Screen>
     );
@@ -58,6 +74,7 @@ export default function Invite() {
 
   return (
     <Screen>
+      {header}
       <Text style={styles.name}>{room.name}</Text>
       <Hint>{en.invite.hint}</Hint>
       <View style={styles.qr}>
@@ -81,6 +98,7 @@ export default function Invite() {
 }
 
 const styles = StyleSheet.create({
+  done: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 6 },
   loading: { marginTop: 48 },
   name: { fontSize: 22, fontWeight: '700', color: colors.label, textAlign: 'center' },
   qr: {

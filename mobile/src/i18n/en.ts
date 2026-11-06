@@ -316,6 +316,7 @@ export const en = {
   },
   invite: {
     title: 'Invite',
+    done: 'Done',
     hint: 'Scan with the Moment app, or enter the code.',
     code: 'Code',
     share: 'Share invite',
