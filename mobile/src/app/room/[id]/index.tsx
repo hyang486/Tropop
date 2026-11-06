@@ -156,8 +156,16 @@ function ChatRoom({
   const remaining = formatRemaining(remainingMs);
   const canSend = draft.trim().length > 0;
 
+  // C-2 DIAGNOSTIC (dev only, temporary): trace composer events around Send in the Metro log.
+  const c2t0 = useRef(0);
+  const c2 = (what: string, detail?: unknown) => {
+    if (__DEV__) console.log(`[C2] +${Date.now() - c2t0.current}ms ${what}`, detail === undefined ? '' : JSON.stringify(detail));
+  };
+
   function submit() {
     if (!canSend) return;
+    c2t0.current = Date.now();
+    c2('submit', { draft });
     chat.send(draft);
     setDraft('');
     // Native clear too: iOS can re-commit a pending predictive/autocorrect word after a JS-only clear (C-2).
@@ -285,6 +293,11 @@ function ChatRoom({
               style={styles.input}
               value={draft}
               onChangeText={setDraft}
+              onChange={(e) => c2('change', { text: e.nativeEvent.text, eventCount: e.nativeEvent.eventCount })}
+              onSelectionChange={(e) => c2('selection', e.nativeEvent.selection)}
+              onKeyPress={(e) => c2('key', e.nativeEvent.key)}
+              onFocus={() => c2('focus')}
+              onBlur={() => c2('blur')}
               placeholder={en.chat.placeholder}
               placeholderTextColor={colors.secondaryLabel}
               accessibilityLabel={en.chat.placeholder}
@@ -296,6 +309,7 @@ function ChatRoom({
               accessibilityLabel={en.chat.send}
               accessibilityState={{ disabled: !canSend }}
               disabled={!canSend}
+              onPressIn={() => c2('sendPressIn', { draft })}
               onPress={submit}
               style={({ pressed }) => [styles.sendButton, (!canSend || pressed) && { opacity: 0.4 }]}
             >
