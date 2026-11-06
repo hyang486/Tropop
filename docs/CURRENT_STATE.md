@@ -262,9 +262,14 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   face-match.test.ts was not run (no Deno).
 - Missing input for a positive match: authorized face-bearing fixtures (reference plus target of one consenting
   person, and a non-match). QA-A/QA-B contain no face.
-- Deploy waits on the supervisor's ACK: deploy_edge_function(face-match, entrypoint index.ts, verify_jwt=false,
-  files index/core/provider/rekognition/sigv4), switch left unset; smoke no token -> 401, GET -> 405,
-  test JWT -> 503 face_match_disabled.
+- Supervisor correction (known gap, no fix now): the saveMatch in core.ts's bad_image catch branch is outside the try,
+  so a DB throw there escapes processBatch (500) and leaves the job 'running'. The FM2 cap bounds it to 3 claims.
+- DEPLOYED 2026-11-06 after the supervisor ACK on 4d5f92f: face-match v1 (id 2114cb00, ACTIVE, verify_jwt=false; files
+  index/core/provider/rekognition/sigv4; get_edge_function source matches the repo files). FACE_MATCH_ENABLED and all
+  other secrets were left untouched. Smoke: POST with no token -> 401 {"error":"unauthorized"}; GET -> 405
+  {"error":"method_not_allowed"}. Valid-JWT -> 503 check: PENDING (no password or token for the existing test
+  accounts is available to the developer). After the deploy: face tables 0/0/0 rows, face-refs 0 objects.
+  The index.ts header still says "NOT DEPLOYED" (a comment-only fix belongs in the next commit, no redeploy needed).
 
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
