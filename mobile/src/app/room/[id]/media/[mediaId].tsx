@@ -3,12 +3,13 @@ import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
+import { excludeFaceMatch, myVisibleMatch } from '@/lib/face';
 import { authHeaders, downloadOriginal, formatBytes, getMedia, type Media, objectUrl, saveOriginal } from '@/lib/media';
 import { listMembers } from '@/lib/rooms';
 
@@ -16,7 +17,7 @@ type State =
   | { status: 'loading' }
   | { status: 'missing' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; media: Media; uploader: string };
+  | { status: 'ready'; media: Media; uploader: string; matchEnrollment: string | null };
 
 export default function MediaScreen() {
   const { id, mediaId } = useLocalSearchParams<{ id: string; mediaId: string }>();
@@ -39,7 +40,10 @@ export default function MediaScreen() {
         const members = await listMembers(id);
         uploader = members.find((m) => m.user_id === media.uploader_id)?.display_name ?? uploader;
       }
-      setState({ status: 'ready', media, uploader });
+      // "Not me" is offered only for a photo currently in my Photos of me.
+      const matchEnrollment =
+        media.kind === 'photo' && userId ? await myVisibleMatch(id, userId, media.id).catch(() => null) : null;
+      setState({ status: 'ready', media, uploader, matchEnrollment });
     } catch (e) {
       setState({ status: 'error', message: errorMessage(e) });
     }
@@ -68,10 +72,30 @@ export default function MediaScreen() {
     );
   }
 
-  return <MediaDetail media={state.media} uploader={state.uploader} token={token} />;
+  return (
+    <MediaDetail
+      media={state.media}
+      uploader={state.uploader}
+      token={token}
+      matchEnrollment={state.matchEnrollment}
+      onExcluded={() => setState({ ...state, matchEnrollment: null })}
+    />
+  );
 }
 
-function MediaDetail({ media, uploader, token }: { media: Media; uploader: string; token: string }) {
+function MediaDetail({
+  media,
+  uploader,
+  token,
+  matchEnrollment,
+  onExcluded,
+}: {
+  media: Media;
+  uploader: string;
+  token: string;
+  matchEnrollment: string | null;
+  onExcluded: () => void;
+}) {
   const [download, setDownload] = useState<
     { status: 'idle' } | { status: 'busy'; pct: number } | { status: 'done'; message: string } | { status: 'error'; message: string }
   >({ status: 'idle' });
@@ -133,6 +157,28 @@ function MediaDetail({ media, uploader, token }: { media: Media; uploader: strin
       />
       {download.status === 'done' ? <Hint>{download.message}</Hint> : null}
       {download.status === 'error' ? <Hint tone="error">{download.message}</Hint> : null}
+      {matchEnrollment ? (
+        <Button
+          title={en.face.notMe}
+          variant="secondary"
+          onPress={() =>
+            Alert.alert(en.face.notMeTitle, en.face.notMeBody, [
+              { text: en.face.cancel, style: 'cancel' },
+              {
+                text: en.face.notMe,
+                onPress: async () => {
+                  try {
+                    await excludeFaceMatch(matchEnrollment, media.id);
+                    onExcluded();
+                  } catch (e) {
+                    Alert.alert(errorMessage(e));
+                  }
+                },
+              },
+            ])
+          }
+        />
+      ) : null}
     </Screen>
   );
 }

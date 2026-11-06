@@ -1,0 +1,64 @@
+// Pure rules for "Photos of me" (room-scoped face matching). Server side: face_enrollments,
+// face_jobs and face_matches (own rows only, RLS) and the face-match Edge Function, which returns
+// 503 face_match_disabled while FACE_MATCH_ENABLED is off.
+
+/** Same as MAX_ATTEMPTS in supabase/functions/face-match/core.ts. */
+export const FACE_JOB_MAX_ATTEMPTS = 3;
+/** The function retakes a 'running' job after this long (crashed worker). */
+export const FACE_JOB_STALE_MS = 5 * 60_000;
+
+type MediaLike = { id: string; kind: string; status: string };
+type MatchLike = { media_id: string; matched: boolean; excluded: boolean };
+type JobLike = { status: string; attempts: number; updated_at: string };
+
+/** Ready photos that the service matched to me and that I did not mark "Not me", in the given media order. */
+export function photosOfMe<M extends MediaLike>(media: readonly M[], matches: readonly MatchLike[]): M[] {
+  const mine = new Set(matches.filter((m) => m.matched && !m.excluded).map((m) => m.media_id));
+  return media.filter((m) => m.kind === 'photo' && m.status === 'ready' && mine.has(m.id));
+}
+
+/**
+ * Pending = queued, or running and either still fresh or retakeable. Failed = failed, or running,
+ * stale and out of attempts (the function never retakes it).
+ */
+export function faceJobCounts(jobs: readonly JobLike[], now: number): { pending: number; failed: number } {
+  let pending = 0;
+  let failed = 0;
+  for (const j of jobs) {
+    if (j.status === 'queued') pending++;
+    else if (j.status === 'failed') failed++;
+    else if (j.status === 'running') {
+      const stale = now - Date.parse(j.updated_at) > FACE_JOB_STALE_MS;
+      if (stale && j.attempts >= FACE_JOB_MAX_ATTEMPTS) failed++;
+      else pending++;
+    }
+  }
+  return { pending, failed };
+}
+
+export type MatchRun = { kind: 'ok' } | { kind: 'disabled' } | { kind: 'error'; message: string };
+
+/** Classifies a face-match call. status 0 = no HTTP response (network). */
+export function classifyMatchRun(r: { status: number; error?: string }): MatchRun {
+  if (r.status >= 200 && r.status < 300) return { kind: 'ok' };
+  if (r.status === 503 && r.error === 'face_match_disabled') return { kind: 'disabled' };
+  return { kind: 'error', message: r.error ?? `HTTP ${r.status}` };
+}
+
+/** FG-2: call the function right after enrolling, or while my enrollment still has pending jobs. */
+export function shouldRunMatch(justEnrolled: boolean, pending: number): boolean {
+  return justEnrolled || pending > 0;
+}
+
+export type FaceViewState = 'consent' | 'disabled' | 'error' | 'checking' | 'ready';
+
+/**
+ * What the Photos of me view shows. Disabled hides every match badge and count (FG-3), so it wins
+ * over pending work; so does an error.
+ */
+export function faceViewState(s: { enrolled: boolean; run: MatchRun | null; pending: number }): FaceViewState {
+  if (!s.enrolled) return 'consent';
+  if (s.run?.kind === 'disabled') return 'disabled';
+  if (s.run?.kind === 'error') return 'error';
+  return s.pending > 0 ? 'checking' : 'ready';
+}

@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 
+import { PhotosOfMe } from '@/components/photos-of-me';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -36,10 +37,13 @@ import {
 } from '@/lib/media';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
-const FILTERS: { key: MediaFilter; label: string }[] = [
+/** 'me' = Photos of me (face matching); it lists from the 'all' media query. */
+type GalleryFilter = MediaFilter | 'me';
+const FILTERS: { key: GalleryFilter; label: string }[] = [
   { key: 'all', label: en.media.all },
   { key: 'mine', label: en.media.mine },
   { key: 'others', label: en.media.others },
+  { key: 'me', label: en.face.filter },
 ];
 const COLUMNS = 3;
 const GAP = 2;
@@ -49,9 +53,9 @@ export default function GalleryScreen() {
   const { session } = useAuth();
   const userId = session?.user.id;
   const token = session?.access_token;
-  const [filter, setFilter] = useState<MediaFilter>('all');
+  const [filter, setFilter] = useState<GalleryFilter>('all');
   const { rootRef, onLayout: measureRoot, overlap: headerOverlap } = useHeaderOverlap();
-  const media = useRoomMedia(id, filter, userId);
+  const media = useRoomMedia(id, filter === 'me' ? 'all' : filter, userId);
   const { reload } = media;
   const uploads = useUploads(id, reload);
   const { width } = useWindowDimensions();
@@ -135,7 +139,21 @@ export default function GalleryScreen() {
         </View>
       ) : null}
 
-      {media.loading ? (
+      {filter === 'me' && userId ? (
+        media.loading ? (
+          <ActivityIndicator style={styles.loading} />
+        ) : (
+          <PhotosOfMe
+            roomId={id}
+            userId={userId}
+            media={media.items}
+            columns={COLUMNS}
+            gap={GAP}
+            renderTile={(item) => <Tile media={item} size={tile} token={token} />}
+            onRefreshMedia={media.reload}
+          />
+        )
+      ) : media.loading ? (
         <ActivityIndicator style={styles.loading} />
       ) : media.error && media.items.length === 0 ? (
         <View style={styles.center}>

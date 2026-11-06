@@ -28,6 +28,14 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Activity UI (Arrived, status sheet, Emergency banner/ack) on the simulator; chat keyboard-open layout
   and checklist steps 5–10.
 - Face matching: scaffolding plus F8–F10 committed; no live AWS CompareFaces result (needs rights-cleared photos).
+- Face gallery UI (IMPLEMENTED-UNVERIFIED, supervisor ACCEPTED 2026-11-06, FG-1..4 + FG-R1): gallery "Me" segment →
+  Photos of me; room/[id]/face.tsx consent (names the external service) → reference (camera/library, JPEG, EXIF dropped)
+  → enroll_face; Replace; Stop and remove (remove_face_enrollment; the object is deleted by the next room-janitor run);
+  media viewer "Not me" (face_matches.excluded). face-match is invoked only after enroll or while jobs are pending.
+  Switch OFF → the UI shows only the "off in this draft" notice. npm test 74/74, tsc/lint clean. NOT on a device.
+  Known gaps: face-refs has no owner delete policy, so a reference uploaded before a failed enroll_face stays until the
+  room is deleted (the janitor removes the room prefix); camera Info.plist string does not mention face photos; no
+  live refresh of face tables (focus/pull); Photos of me only covers the media list the gallery loaded.
   AWS secrets are already in Supabase Secrets; do NOT ask for them again.
 - Expiry reminders (R3): server 0019 live (981398b, cron active); client committed fa7ff6d (supervisor accepted
   the design; npm test 22/22, tsc and lint clean; built on both sims). NOT verified on device: the local reminder
