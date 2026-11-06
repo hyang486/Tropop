@@ -1,12 +1,13 @@
 // face-match Edge Function (NOT DEPLOYED: it would call AWS once secrets exist).
 // A signed-in member calls it to process queued face_jobs for THEIR OWN enrollments.
 // Secrets (set by the human, never logged): AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION.
-// Switch: FACE_MATCH_ENABLED must be exactly 'true', otherwise 503 before any other work.
+// Order: 405 (not POST) -> 401 (no valid user JWT) -> 503 switch -> 503 AWS config.
+// Switch: FACE_MATCH_ENABLED must be exactly 'true', otherwise 503 before any AWS or job work.
 // Matching runs only when an enrolled member's app calls this function (no background worker yet).
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-import { DEFAULT_SIMILARITY_THRESHOLD, processBatch, type FaceStore, type Job } from './core.ts';
+import { DEFAULT_SIMILARITY_THRESHOLD, MAX_ATTEMPTS, processBatch, type FaceStore, type Job } from './core.ts';
 import { createRekognitionProvider } from './rekognition.ts';
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (req: Request) => Promise<Response> | Response): void };
@@ -17,19 +18,21 @@ const json = (status: number, body: unknown) =>
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
-  // Server switch: on only during the rights-cleared test, off otherwise (see docs/aws-rekognition-human-steps.md).
-  if (Deno.env.get('FACE_MATCH_ENABLED') !== 'true') return json(503, { error: 'face_match_disabled' });
-  const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
-  const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
-  const region = Deno.env.get('AWS_REGION');
-  if (!accessKeyId || !secretAccessKey || !region) return json(503, { error: 'face_provider_not_configured' });
 
+  // FM1: authenticate first, so an unauthenticated caller learns nothing beyond 401.
   const url = Deno.env.get('SUPABASE_URL')!;
   const authHeader = req.headers.get('authorization') ?? '';
   const asUser = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { authorization: authHeader } } });
   const { data: userData, error: userErr } = await asUser.auth.getUser();
   if (userErr || !userData.user) return json(401, { error: 'unauthorized' });
   const userId = userData.user.id;
+
+  // Server switch: on only during the rights-cleared test, off otherwise (see docs/aws-rekognition-human-steps.md).
+  if (Deno.env.get('FACE_MATCH_ENABLED') !== 'true') return json(503, { error: 'face_match_disabled' });
+  const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
+  const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
+  const region = Deno.env.get('AWS_REGION');
+  if (!accessKeyId || !secretAccessKey || !region) return json(503, { error: 'face_provider_not_configured' });
 
   const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
@@ -44,6 +47,8 @@ Deno.serve(async (req) => {
         .from('face_jobs')
         .select('id, enrollment_id, media_id, attempts')
         .in('enrollment_id', ids)
+        // FM2: a job that crashes the worker every time is retaken at most MAX_ATTEMPTS times (one paid call each).
+        .lt('attempts', MAX_ATTEMPTS)
         .or(`status.eq.queued,and(status.eq.running,updated_at.lt.${cutoff})`)
         .order('created_at')
         .limit(limit);

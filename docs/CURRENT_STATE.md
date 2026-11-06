@@ -245,6 +245,27 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - NOT verified: gallery tabs clear of the header; live appearance without a refresh; preview rendering; video;
   the oversize (>50 MB) path on a device. Keep media 04d2152b and all existing data.
 
+## face-match F3 review (Nov 6 item 3), FM1+FM2 applied, NOT deployed (2026-11-06)
+- Read-only review sent to the supervisor. Live: face tables have RLS (policies 1/1/2), 0 rows each; face-refs bucket has
+  0 objects; face-match was not deployed (live functions: room-janitor v2, delete-account v1). The earlier "SQL error" was
+  an auto-handoff block, so the query never ran. It ran now.
+- FM1 (supervisor approved): index.ts order is now 405 -> getUser 401 -> FACE_MATCH_ENABLED 503 -> AWS config 503.
+- FM2 (supervisor approved): claimJobs filters attempts < MAX_ATTEMPTS (imported from core.ts) for both queued and
+  stale-running jobs. The claim sets attempts+1 before each paid call, so a job that crashes the worker every time
+  costs at most MAX_ATTEMPTS (3) calls and then stays 'running'. It is never retaken and is removed by the
+  enrollment/media cascade when the room ends. saveMatch errors are thrown inside core's try block, so they are
+  caught as 'transient' (requeued or failed by attempts) and do not leave a job 'running'.
+- Known gaps (no fix now): FM3 enroll_face has no throttle (each re-enroll re-queues every ready photo; bounded by
+  the kill switch and 10 calls per invocation). No client code calls face-match (testing needs a manual POST with a
+  test user's JWT). getPhotoPath falls back to original_path (an original over 5 MB is downloaded, then marked
+  bad_image). The secret names cannot be listed through MCP, so the developer has not verified them. The Deno test
+  face-match.test.ts was not run (no Deno).
+- Missing input for a positive match: authorized face-bearing fixtures (reference plus target of one consenting
+  person, and a non-match). QA-A/QA-B contain no face.
+- Deploy waits on the supervisor's ACK: deploy_edge_function(face-match, entrypoint index.ts, verify_jwt=false,
+  files index/core/provider/rekognition/sigv4), switch left unset; smoke no token -> 401, GET -> 405,
+  test JWT -> 503 face_match_disabled.
+
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
 - Keep the pre-existing test@example.com and "Test joiner" accounts and their room (human decision).
