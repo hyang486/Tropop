@@ -1,5 +1,5 @@
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -157,17 +157,8 @@ function ChatRoom({
   const remaining = formatRemaining(remainingMs);
   const canSend = canSendDraft(draft);
 
-  // C-2 DIAGNOSTIC (dev only, temporary): composer event types, lengths and timings around Send, in the
-  // Metro log. No message text. Removed in the final C-2 commit.
-  const c2t0 = useRef(0);
-  const c2 = (what: string, detail?: unknown) => {
-    if (__DEV__) console.log(`[C2] +${Date.now() - c2t0.current}ms ${what}`, detail === undefined ? '' : JSON.stringify(detail));
-  };
-
   function submit() {
     if (!canSend) return;
-    c2t0.current = Date.now();
-    c2('submit', { len: draft.length, key: composer.key });
     chat.send(draft);
     // Remount the input instead of clearing it in place (C-2, see lib/composer.ts).
     dispatchComposer({ type: 'sent' });
@@ -294,15 +285,7 @@ function ChatRoom({
               autoFocus={composerAutoFocus(composer)}
               style={styles.input}
               value={draft}
-              onChange={(e) => {
-                const inputKey = composer.key;
-                c2('change', { key: inputKey, len: e.nativeEvent.text.length, eventCount: e.nativeEvent.eventCount });
-                dispatchComposer({ type: 'change', key: inputKey, text: e.nativeEvent.text });
-              }}
-              onSelectionChange={(e) => c2('selection', { key: composer.key, ...e.nativeEvent.selection })}
-              onKeyPress={(e) => c2('key', e.nativeEvent.key.length > 1 ? e.nativeEvent.key : 'char')}
-              onFocus={() => c2('focus', { key: composer.key })}
-              onBlur={() => c2('blur', { key: composer.key })}
+              onChange={(e) => dispatchComposer({ type: 'change', key: composer.key, text: e.nativeEvent.text })}
               placeholder={en.chat.placeholder}
               placeholderTextColor={colors.secondaryLabel}
               accessibilityLabel={en.chat.placeholder}
@@ -314,7 +297,6 @@ function ChatRoom({
               accessibilityLabel={en.chat.send}
               accessibilityState={{ disabled: !canSend }}
               disabled={!canSend}
-              onPressIn={() => c2('sendPressIn', { len: draft.length })}
               onPress={submit}
               style={({ pressed }) => [styles.sendButton, (!canSend || pressed) && { opacity: 0.4 }]}
             >
