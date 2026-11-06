@@ -270,8 +270,7 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   {"error":"method_not_allowed"}. Valid-JWT -> 503 check: PENDING (no password or token for the existing test
   accounts is available to the developer). After the deploy: face tables 0/0/0 rows, face-refs 0 objects.
   The index.ts header still says "NOT DEPLOYED" (a comment-only fix belongs in the next commit, no redeploy needed).
-
-- AUTH BUG FA1 (2026-11-06, found in F2 setup; fix uncommitted, NOT redeployed): a valid user JWT (ES256, accepted by
+- AUTH BUG FA1 (2026-11-06, found in F2 setup; FIXED be82fd1, redeployed after supervisor ACK): a valid user JWT (ES256, accepted by
   /auth/v1/user with 200) got 401 from face-match. Cause, reproduced locally with supabase-js 2.118: createClient(...,
   { global: { headers: { authorization } } }) with a lowercase key still sends supabase-js's own Authorization (the API
   key), so auth.getUser() fails with "This endpoint requires a valid Bearer token". delete-account v1 has the SAME code,
@@ -281,6 +280,24 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   face-match (v2) and delete-account (v2), then smoke: no token 401, GET 405, valid JWT -> face-match 503.
   F2 disposable account: 6ff53e9a-d08d-43c1-82a0-fcc164597a0e (tmp/qa-delete-ids.tsv) with avatar, room
   e73a39c6-ba54-46a0-b440-0ad496bddf0d (code 00046, expires 09:32Z) and one message; delete-account not called yet.
+
+- FA1 deploy (2026-11-06 08:35Z): delete-account v2 (get_edge_function source == repo) and face-match v2 (5 files, same
+  args), both verify_jwt=false; secrets and FACE_MATCH_ENABLED untouched. Smoke, both functions: no token -> 401, GET -> 405;
+  face-match with a valid user JWT -> 503 {"error":"face_match_disabled"} (FM1 path now confirmed live). Same-pattern grep:
+  no other function uses global.headers authorization (room-janitor is service role only; sigv4's header is AWS signing).
+- F2 account deletion (2026-11-06): POST delete-account as 6ff53e9a (token subject checked first) -> 200
+  {"deleted":true,"rooms_ended":1,"media_folders_queued":0} at 08:37:40Z; the old token then gets 403 at /auth/v1/user.
+  By exact id, before -> after: auth.users 1->0, profiles 1->0, rooms hosted 1->0 (room e73a39c6 row removed),
+  memberships 1->0, messages 1->0, expiry_reminders 1->0; other tables were 0. avatars objects under 6ff53e9a/: 1 -> 1, queued
+  as cleanup_jobs a5c1dda7 (avatars, account_deleted, 08:37:40Z), plus room-media and face-refs prefixes for e73a39c6
+  (room_deleted). Kept accounts unchanged before/after: test@example.com (edeaea51) auth 1, profile 1, rooms 1 live,
+  memberships 1, acks 1, reminders 1; Test joiner (97ed7d32) auth 1, profile 1, memberships 1, messages 4, arrivals 1,
+  emergency 1, reminders 1, join_attempts 2. CLOSED after the room-janitor cron run 08:45:00Z (succeeded): avatars under
+  6ff53e9a/ 1 -> 0; room-media and face-refs under e73a39c6/ 0; verified_empty_at set on a5c1dda7 (08:45:02Z),
+  c9d365df and 1c2476a9 (08:45:03Z), attempts 0, no errors; open cleanup jobs total 0. F2 PASS (server side; no app UI).
+  Unrelated job 1a572253 (avatars, avatar_replaced, 08:10Z, verified 08:15Z) covered the test@example.com host (edeaea51)
+  old avatar file: the Codex avatar QA replacing the host photo with QA-B around 00:10 PST, before this account existed.
+  face-match v2 served source checked against the repo by reading all 5 files (no byte hash): matches.
 
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
