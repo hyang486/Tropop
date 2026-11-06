@@ -335,7 +335,7 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   host-moving-pin-and-row,host-moving-later,host-stationary-stale,host-clean,guest-clean}.png; Codex record
   docs/evidence/codex-f1-map-speed-qa.md.
 
-## MS1/MS2 fresh-fix fix (human-approved 2026-11-06 afternoon), supervisor-accepted with MS-R1, committed; device QA pending
+## MS1/MS2 fresh-fix fix (human-approved 2026-11-06 afternoon), supervisor-accepted with MS-R1, committed 559233d; short QA done
 - App code only (mobile/src/lib/location.ts, location-plan.ts, tests); no server change. report_location already writes
   the given speed (null when omitted), so a stationary report clears the old speed on the server.
 - Pure helpers (location-plan.ts): reportedSpeed (iOS -1 and non-finite -> null, measured 0 kept); isFreshReading
@@ -353,6 +353,20 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   timeout), until the first heartbeat report replaces it.
 - tsc clean, expo lint clean, npm test 61/61 (13 new). NOT verified on device. Device QA (room 94673, cases 1, 2, 3a,
   3b, cleanup, with supervisor additions a-d) waits for the supervisor's go; taps go through Codex.
+- Device QA (2026-11-06, simulators, room 94673 b03236a9, shortened for room expiry; supervisor record
+  docs/reviews/codex-ms-live-status.md, Codex record docs/evidence/codex-ms-fix-qa.md, screenshots
+  docs/evidence/2026-11-06-ms-*.png). Route 5 m/s east 37.7694,-122.4862 -> -122.4845 started 21:17:26Z, ended ~21:17:57Z.
+  - Case 1 moving: PASS (host "18.0 km/h · Updated just now"; server speed 5, lng moving east).
+  - MS2 (not stale while still): PASS on server and simulator UI. Post-stop heartbeat writes 21:18:22, 21:18:57,
+    21:19:32, 21:20:07Z (35 s apart); host never stale in about 130 s.
+  - MS1 natural stop (parked end of a `simctl location start` route): heartbeats carried speed 5 (heading null), host
+    showed 18.0 km/h at +15/+45/+75 s. Classified SIMULATOR ARTIFACT, likely but NOT proven (raw coords.speed not logged).
+  - MS1 fixed point (`simctl location set 37.7694,-122.4845` at 21:19:59Z, 11 s earlier than planned by a developer
+    script error; ms-2-130s.png counts as after the set): next heartbeat 21:20:07Z speed null; host shows no speed,
+    "Updated just now". Server PASS, host UI PASS.
+  - MS1 on a real device after a real stop: UNVERIFIED. Case 3 (fresh-fix loss, permission revoke): NOT RUN (time).
+  - Cleanup: Codex Part C ~21:21Z (guest share off, host End activity); `simctl location clear` exit 0 at 21:22:30Z;
+    server 21:22:30Z: activity ended (seq 3), share false for both, live_presence 0.
 
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
