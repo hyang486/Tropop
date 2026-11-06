@@ -11,6 +11,7 @@ import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
 import { errorMessage } from './errors';
+import { EXT_BY_MIME, exportFileName, extensionFor } from './file-name';
 import { clearImageDiskCache } from './image-cache';
 import { progressFraction } from './progress';
 import { useRoomEvents } from './room-channel';
@@ -81,25 +82,6 @@ async function freshToken() {
   const token = data.session?.access_token;
   if (!token) throw new Error(en.errors.notSignedIn);
   return token;
-}
-
-const EXT_BY_MIME: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/heic': 'heic',
-  'image/heif': 'heif',
-  'image/png': 'png',
-  'image/gif': 'gif',
-  'image/webp': 'webp',
-  'image/avif': 'avif',
-  'video/quicktime': 'mov',
-  'video/mp4': 'mp4',
-  'video/x-m4v': 'm4v',
-};
-
-/** File extension for the stored original: from the file name, else from the MIME type. */
-export function extensionFor(fileName: string, mimeType: string) {
-  const fromName = /\.([A-Za-z0-9]{1,8})$/.exec(fileName)?.[1]?.toLowerCase();
-  return fromName ?? EXT_BY_MIME[mimeType] ?? 'bin';
 }
 
 export function formatBytes(n: number | null | undefined) {
@@ -567,10 +549,11 @@ export type DownloadResult = { file: File; bytes: number; sha256: string };
 export async function downloadOriginal(media: Media, onProgress?: (fraction: number) => void): Promise<DownloadResult> {
   const token = await freshToken();
   const dir = roomCacheDir(media.room_id);
-  if (!dir.exists) dir.create({ intermediates: true, idempotent: true });
-  const ext = extensionFor(media.file_name, media.mime_type);
-  const dest = new File(dir, `${media.id}.${ext}`);
-  if (dest.exists) dest.delete();
+  // One folder per media id keeps names unique while the file keeps its original name (M-1).
+  const mediaDir = new Directory(dir, media.id);
+  if (mediaDir.exists) mediaDir.delete();
+  mediaDir.create({ intermediates: true, idempotent: true });
+  const dest = new File(mediaDir, exportFileName(media.file_name, media.mime_type, media.id));
 
   const task = File.createDownloadTask(objectUrl(media.original_path), dest, {
     headers: authHeaders(token),
