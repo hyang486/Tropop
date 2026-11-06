@@ -299,6 +299,42 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   old avatar file: the Codex avatar QA replacing the host photo with QA-B around 00:10 PST, before this account existed.
   face-match v2 served source checked against the repo by reading all 5 files (no byte hash): matches.
 
+## F1 moving-speed check (2026-11-06), accepted by the supervisor (MS1/MS2 open for the human)
+- Guest 17 Pro (Test joiner 97ed7d32) in room b03236a9 is simulated driving east at 5 m/s from 37.7694,-122.4862.
+  The route started at 19:32:59Z, covers about 1.4 km, and ends near 19:37:40Z. Host-side evidence so far:
+  docs/evidence/2026-11-06-f1-host-moving-{initial,pin}.png.
+- live_presence read at about 40 s: failed, and the error text was lost in a context handoff. The retry
+  (db_now 19:34:13.51Z) returned lat 37.7694, lng -122.482215, speed_mps 5, accuracy_m 5, heading 90,
+  updated_at 19:34:10.46Z. So the server stores the moving speed.
+- Supervisor confirmed the route was cleared to run (Part A done before 19:32:59Z).
+- Host map at about 19:34Z (Codex, supervisor checked the screenshot): the pin reads "Test joiner · 18.0 km/h" and the
+  row's accessibility text is "18.0 km/h · Updated just now". That matches 5 m/s.
+- Stationary read (db_now 19:38:34.68Z, after the route end at about 19:37:40Z): lng -122.470259 (the route end,
+  about 1.41 km east of the start), speed_mps 5, heading 90, updated_at 19:38:10.89Z. No later update with a lower speed
+  was written, so the last moving speed stays on the row while the guest is stopped. Cause, checked in the code: the
+  watch uses distanceInterval 10 m (location.ts:419), so a stopped sim produces no new fixes, and send() skips a fix
+  older than 60 s (location.ts:373). The host marks a row stale 60 s after updated_at and shows no speed
+  (location-plan.ts:13,57, map.tsx:428). Expected host view: 18.0 km/h until about 19:39:11Z, then the stale clock
+  pin. The supervisor confirmed at 19:39:17Z: updated_at still 19:38:10.89Z (age 66 s), no more heartbeats. Correction:
+  stale-with-no-speed follows C4, but going stale while still sharing contradicts the heartbeat's purpose
+  (location.ts:438); see MS2. Neither is an F1 failure.
+- Supervisor findings, both pending confirmation (no code change, fix decision goes to the human): MS1, a stopped
+  member keeps showing the last moving speed for about 60-90 s. The heartbeat (location.ts:439, setInterval(send, 5 s))
+  re-sends the cached lastFix with speed 5, which wrote the 19:38:10Z row. MS2, a member who is still sharing but
+  standing still always goes stale after about 90 s, because iOS sends no fixes with distanceInterval 10 and
+  send() stops once lastFix is more than 60 s old (:373). That defeats the heartbeat's stated purpose.
+- Timing caveat: no exact stale cutoff is claimed. On the host, the old speed was seen at about 67 s and the pin was
+  stale by about 110 s (host-stationary-stale.png). The 19:39:11Z figure above is the code's expected value, not a
+  measured one.
+- Part C (Codex, about 19:40Z): guest sharing OFF, host ended the activity, both maps show "No activity running".
+- Cleanup: `xcrun simctl location 20541309-C36F-4864-94CA-D8A341F70EEB clear` exit 0 at 19:40:54Z. Server at
+  db_now 19:40:59.29Z, room b03236a9: live_presence 0 rows; activity_state ended, activity_seq 2, started
+  19:32:13.69Z, ended 19:40:07.54Z; location_allowed true (room setting, left as is); share_location false for both
+  97ed7d32 (guest) and edeaea51 (host).
+- Evidence: docs/evidence/2026-11-06-f1-{host-moving-initial,host-moving-pin,host-moving-pin-visible,
+  host-moving-pin-and-row,host-moving-later,host-stationary-stale,host-clean,guest-clean}.png; Codex record
+  docs/evidence/codex-f1-map-speed-qa.md.
+
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
 - Keep the pre-existing test@example.com and "Test joiner" accounts and their room (human decision).
