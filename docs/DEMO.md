@@ -28,9 +28,9 @@ Passwords are not stored in the repo. Create any extra test data with disposable
 | Video upload | Same flow with a video; progress, leave and return, cancel, Retry | Implemented, not verified on device |
 | Arrival / status / Emergency | Room → Arrived; status sheet; Emergency → other device sees banner, "I see it", "I'm OK" | Verified (2026-11-05 run in room 94673) |
 | Expiry reminder | Room ending in about 24 h + 3 min; the local reminder fires about 3 min later | Server live; device firing and tap not verified |
-| Map / location | Host allows location, Start activity; members opt in; markers, route, speed, stale label | Screens render; taps and live markers not verified |
-| Profile photo | Profile → Add photo | Code committed; blocked: migration 0021 not live |
-| Delete account | Profile → Delete account (disposable accounts only) | Code committed; blocked: 0021 not live, delete-account not deployed |
+| Map / location | Host allows location, Start activity; members opt in; markers, route, speed, stale label | Photo pin, stale clock pin, sharing off and End activity seen on device (2026-11-06 avatar QA); speed on a pin NOT verified (a static simulated location gives no speed); route not re-verified |
+| Profile photo | Profile → Add photo / replace / remove | Verified 2026-11-06 (set, replace, remove; co-member sees it after reopening Info; old objects purged by the janitor; outsider RLS 0 rows). Live refresh without navigation not verified |
+| Delete account | Profile → Delete account (disposable accounts only) | 0021 live and delete-account deployed (no-token request → 401); deletion QA not run (not approved yet) |
 | Plus preview | Profile → Plus plan preview, or the link on New room | Render verified; "Get Plus" only explains, no payment |
 | Face matching | Gallery face feature | Scaffolding only; no live CompareFaces run (needs rights-cleared photos) |
 | Expiry cleanup | Room expires → access denied; room-janitor deletes Storage objects | Verified (live janitor runs) |
@@ -38,9 +38,8 @@ Passwords are not stored in the repo. Create any extra test data with disposable
 ## 3. Remaining gaps
 
 Blocked on the human
-- Migration 0021 live apply and delete-account deploy: denied by the Claude Code auto-mode classifier. Needs an allow
-  rule or a human apply. Then: post-apply check, no-token request returns 401, device QA (photo set/replace/remove
-  seen by a co-member, guest and host deletion).
+- Account-deletion QA (guest and host deletion on disposable accounts): not approved yet. 0021 is live and
+  delete-account is deployed (2026-11-05).
 - Face matching: rights-cleared test photos for a live AWS CompareFaces run.
 
 Implemented, not verified on device
@@ -54,13 +53,18 @@ Implemented, not verified on device
 - Gallery: All/Mine/Others clear of the header (not re-seen after the fix); preview rendering; the >50 MB
   "Too large to share" notice on a device.
 - Plus preview "Get Plus" alert and its two entry links (render only so far).
-- Member-list avatars (needs 0021 live).
+- Member-list avatar refresh without navigation (seen only after reopening Info).
 
 Known limits (accepted for the draft)
 - M1: map pins show the member's profile photo (expo-maps annotation icon), initials when there is no photo or it
   fails to load, and a grey clock with no speed when stale. Photo pins are square (expo-maps draws the icon as a plain
-  50 pt image and cannot round it). Photo pins NOT verified on a device: profile photos need 0021 (not live). Live pins
-  (initials, stale clock) need an active activity and taps; not re-seen after this change.
+  50 pt image and cannot round it). Photo pin and stale clock pin seen on a device (2026-11-06). The label under a pin
+  always shows "name · speed" (name only when stale or when there is no speed); there is no tap callout (expo-maps
+  SwiftUI Map has none) and pins have no tap action: option (b), selecting a pin to highlight its member row, is
+  deferred to a product decision. Speed on a pin NOT verified: a static simulated location reports no speed.
+- Avatar purge window: a replaced or removed profile photo object stays readable by co-members until the room-janitor
+  purges it (up to 15 min; observed 5 min). The app only shows the current photo.
+- The cleanup reason is recorded as 'avatar_replaced' for a removed photo too (cosmetic).
 - MK3: a room expiry noticed only through the Home list prune (pruneRoomCaches) does not clear expo-image's disk
   cache directly; the map screen's unmount and the next app launch clear it.
 - M4: route drawing is tap-to-add points; no freehand drawing.

@@ -248,7 +248,8 @@ function RoomMap({
   // M1: a fresh member with a profile photo is an annotation with the photo as its icon (square: expo-maps
   // draws the icon as a plain 50 pt image and cannot round it). No photo, still loading or a failed load:
   // an initials marker. Stale: a grey clock marker with no speed (C4), photo or not. Only current members
-  // (`avatars` comes from listMembers) get a photo; the title (name · speed) is the selection callout for both.
+  // (`avatars` comes from listMembers) get a photo. The title (name · speed) is the label always drawn under the pin;
+  // expo-maps' SwiftUI Map has no tap callout, and pins have no tap action.
   const pinInputs: PinInput[] = presence.rows.map((row) => ({
     userId: row.user_id,
     coordinates: { latitude: row.lat, longitude: row.lng },

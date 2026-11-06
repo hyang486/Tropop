@@ -143,6 +143,39 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Next (after the human unblocks): apply 0021 -> deploy delete-account -> device QA (photo set/replace/remove seen
   by a co-member, delete guest + host accounts with server and Storage checks).
 
+- 2026-11-05 (supervisor/human instruction: deploy delete-account only, no 0021): read-only checks: 0021 not in
+  list_migrations; only room-janitor deployed (face-match not deployed); project JWKS is ES256 (asymmetric), so
+  verify_jwt=false chosen. deploy_edge_function was DENIED by the auto-mode classifier ("Production Deploy"); not retried.
+  delete-account NOT deployed, 0021 NOT applied; account deletion and profile photos unusable in the app.
+- 2026-11-05 ~23:49Z (human authorization recorded in USER_DECISIONS_2026-11-04_OPERATIONS_EN.md, "0021 apply and
+  delete-account deploy authorized"): file sha256 e3df77d0…1fde re-checked, then apply_migration SUCCESS. The previous
+  attempt's ERROR had left nothing behind (0021 absent before the retry). V1 mapping: local 20261104000021 → remote
+  20261105234900 profile_photo_and_account_deletion. delete-account deployed v1 (id ad3d353f, ACTIVE, verify_jwt=false,
+  source identical to c6e2f73). Smoke: POST without a token → 401; GET → 405. Read-only check PASS: avatars bucket
+  private, 2 MB, image/jpeg; policies avatars_select/insert/update; trigger profile_avatar; prepare_account_deletion and
+  on_profile_avatar SECURITY DEFINER with search_path ""; prepare_account_deletion execute: service_role only (anon and
+  authenticated no). No account was deleted. NOT verified: photo set/replace/remove on a device and account-deletion QA
+  (not authorized yet; disposable accounts only, exact IDs).
+- Avatar device QA (supervisor assignment, option A, 2026-11-05 ~23:55Z): Codex drives the taps on both sims; the
+  developer does only SELECT checks, simctl io screenshots and evidence (no input, no package/Metro change, no installs).
+  Baseline: host edeaea51 and Test joiner 97ed7d32 avatar_path null, 0 avatars objects; evidence
+  docs/evidence/2026-11-05-avatar-0-baseline-{host-17,guest-17pro}.png. Synthetic images (no person) added to both sims:
+  docs/evidence/avatar-qa/QA-A.jpg sha256 f26e9168…4f61, QA-B.jpg sha256 53058e95…8e24. Waiting on step results from Codex.
+  Step 6 (rollback-only outsider select; positive control 97ed7d32 → 1, random sub → 0) runs after step 1. End state:
+  host avatar null.
+  RESULT (2026-11-06 ~08:15Z): Codex UI PASS for set QA-A, guest sees it, replace QA-B, guest sees it, photo pin plus
+  stale clock pin on the guest map, sharing off and activity ended, remove → T on both. Developer checks PASS: every
+  replaced or removed path was queued and the janitor verified it gone (bucket at 0 objects 08:15:29Z); outsider RLS
+  object variant gave random sub 0 and joiner 1; guest SDImageCache had 0 files. NOT passed: tapping the pin opens no
+  callout (expo-maps SwiftUI has no callout; map.tsx passes no onAnnotationClick; comment at map.tsx:251 is wrong);
+  speed not seen (static sim location gives speed -1 → null). Live refresh without navigation not tested. Fix proposal
+  waiting on supervisor review. Evidence: docs/evidence/2026-11-05-avatar-qa-developer-checks.md,
+  codex-avatar-qa-progress.md, 2026-11-05-avatar-{0,5}-*.png.
+  Supervisor ACCEPTED the checks; MK4 reclassified (no callout by design, not a defect). Fix (a) done: map.tsx comment
+  and DEMO.md wording and gaps (purge window, 'avatar_replaced' reason on remove, no pin tap action; (b) deferred to a
+  product decision). DA1: delete-account header comment now says deployed v1; comment-only change, NOT redeployed
+  (live v1 differs from the repo file only in that comment line). tsc/lint clean, npm test 48/48.
+
 ## Plus plan preview (48H 30-40 h item 3), supervisor ACCEPTED, committed (2026-11-05)
 - app/plan-preview.tsx ("Plus preview"): "Preview — no payment" badge, Free vs Plus table (Free = current limits: 30
   members, up to 7 days, standard emoji; Plus = Larger/Longer/Extra set "(TBD)", price "Not set yet"), TBD note,

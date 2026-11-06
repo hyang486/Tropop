@@ -1,4 +1,4 @@
-// delete-account Edge Function (NOT DEPLOYED; depends on migration 0021).
+// delete-account Edge Function (deployed v1 on 2026-11-05, verify_jwt=false; depends on migration 0021).
 // The signed-in user (host account or guest) deletes their own account. There is no other target:
 // the user id comes only from the caller's verified JWT.
 //   1. public.prepare_account_deletion(uid) (service role): ends hosted rooms, queues Storage cleanup
