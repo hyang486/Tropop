@@ -11,6 +11,7 @@ import {
   type StatusLabelsResult,
   statusLabelsChanged,
 } from '@/lib/status-plan';
+import { useRoomEvents } from '@/lib/room-channel';
 import { supabase } from '@/lib/supabase';
 
 type Row = { key: number; text: string };
@@ -60,6 +61,25 @@ export function StatusEditor({ roomId, isHost }: { roomId: string; isHost: boole
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
+
+  // Live refresh (SE-1): the list is broadcast as status_definitions notices (0017). The host's unsaved
+  // edits win: no reload while the rows differ from the saved list or a save is in flight.
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (reloadTimer.current) clearTimeout(reloadTimer.current);
+  }, []);
+  useRoomEvents(roomId, (event) => {
+    if (event.table !== 'status_definitions' || busy) return;
+    if (saved !== null) {
+      const current = normalizeStatusLabels(rows.map((r) => r.text));
+      if (!current.ok || statusLabelsChanged(saved, current.labels)) return;
+    }
+    if (reloadTimer.current) clearTimeout(reloadTimer.current);
+    reloadTimer.current = setTimeout(() => {
+      reloadTimer.current = null;
+      load();
+    }, 300);
+  });
 
   if (loadFailed) {
     return (

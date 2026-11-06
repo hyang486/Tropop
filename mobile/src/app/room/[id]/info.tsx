@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
@@ -9,6 +9,7 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
+import { useRoomEvents } from '@/lib/room-channel';
 import { cancelExpiryReminder } from '@/lib/expiry-reminders';
 import { endRoom, getRoom, leaveRoom, listMembers, type Room, type RoomMember } from '@/lib/rooms';
 
@@ -45,6 +46,21 @@ export default function RoomInfoScreen() {
       load();
     }, [load]),
   );
+
+  // Live refresh while open: membership and room changes arrive as broadcast notices (0017).
+  // Debounced so a burst of notices costs one reload.
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (reloadTimer.current) clearTimeout(reloadTimer.current);
+  }, []);
+  useRoomEvents(id, (event) => {
+    if (event.table !== 'rooms' && event.table !== 'room_members') return;
+    if (reloadTimer.current) clearTimeout(reloadTimer.current);
+    reloadTimer.current = setTimeout(() => {
+      reloadTimer.current = null;
+      load();
+    }, 300);
+  });
 
   if (state.status === 'loading') {
     return (
