@@ -271,6 +271,17 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   accounts is available to the developer). After the deploy: face tables 0/0/0 rows, face-refs 0 objects.
   The index.ts header still says "NOT DEPLOYED" (a comment-only fix belongs in the next commit, no redeploy needed).
 
+- AUTH BUG FA1 (2026-11-06, found in F2 setup; fix uncommitted, NOT redeployed): a valid user JWT (ES256, accepted by
+  /auth/v1/user with 200) got 401 from face-match. Cause, reproduced locally with supabase-js 2.118: createClient(...,
+  { global: { headers: { authorization } } }) with a lowercase key still sends supabase-js's own Authorization (the API
+  key), so auth.getUser() fails with "This endpoint requires a valid Bearer token". delete-account v1 has the SAME code,
+  so every signed-in account deletion would have returned 401 (F2 blocked). Fix in both index.ts files: parse
+  "Bearer <token>" (missing -> 401) and call auth.getUser(token) on a client without custom headers. Local check of the
+  new pattern: valid token ok; missing, garbage, and API-key-as-token -> 401. Needs supervisor ACK, then redeploy of
+  face-match (v2) and delete-account (v2), then smoke: no token 401, GET 405, valid JWT -> face-match 503.
+  F2 disposable account: 6ff53e9a-d08d-43c1-82a0-fcc164597a0e (tmp/qa-delete-ids.tsv) with avatar, room
+  e73a39c6-ba54-46a0-b440-0ad496bddf0d (code 00046, expires 09:32Z) and one message; delete-account not called yet.
+
 ## QA data
 - S1 fixtures (tmp/qa-s1-ids.tsv) are deleted; see the cleanup row in implementation-status.md.
 - Keep the pre-existing test@example.com and "Test joiner" accounts and their room (human decision).

@@ -19,8 +19,12 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const authHeader = req.headers.get('authorization') ?? '';
-  const asUser = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { authorization: authHeader } } });
-  const { data: userData, error: userErr } = await asUser.auth.getUser();
+  // Pass the token to getUser explicitly. A lowercase 'authorization' key in global.headers is overridden by
+  // supabase-js's own Authorization header (the API key), so getUser() rejected valid user tokens (2026-11-06).
+  const token = /^Bearer\s+(\S+)$/i.exec(authHeader)?.[1];
+  if (!token) return json(401, { error: 'unauthorized' });
+  const asUser = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
+  const { data: userData, error: userErr } = await asUser.auth.getUser(token);
   if (userErr || !userData.user) return json(401, { error: 'unauthorized' });
   const userId = userData.user.id;
 
