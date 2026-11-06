@@ -360,7 +360,12 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   - MS2 (not stale while still): PASS on server and simulator UI. Post-stop heartbeat writes 21:18:22, 21:18:57,
     21:19:32, 21:20:07Z (35 s apart); host never stale in about 130 s.
   - MS1 natural stop (parked end of a `simctl location start` route): heartbeats carried speed 5 (heading null), host
-    showed 18.0 km/h at +15/+45/+75 s. Classified SIMULATOR ARTIFACT, likely but NOT proven (raw coords.speed not logged).
+    showed 18.0 km/h at +15/+45/+75 s. Supervisor classification: SIMULATOR ARTIFACT, likely, unproven at the time.
+    Follow-up proof (21:23-21:24Z, guest sim, share off, no server writes): locationd's client fixes
+    (docs/evidence/2026-11-06-ms-sim-speed-locationd.txt) keep "speed 5.0, course -1.0" every 1 s at the parked
+    end of a `simctl location start` route ("No more pending locations"), and switch to "speed -1.0, course -1.0"
+    right after `simctl location set`. So the simulator itself reports 5 m/s when parked; the app forwards the
+    reading's own speed (-1 -> null). PROVEN at the CoreLocation level for the simulator.
   - MS1 fixed point (`simctl location set 37.7694,-122.4845` at 21:19:59Z, 11 s earlier than planned by a developer
     script error; ms-2-130s.png counts as after the set): next heartbeat 21:20:07Z speed null; host shows no speed,
     "Updated just now". Server PASS, host UI PASS.

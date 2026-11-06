@@ -1,0 +1,53 @@
+# Guest iPhone 17 Pro simulator (20541309), locationd unified log, 2026-11-06 (times are PDT = UTC-7).
+# Commands: 13:23:27 simctl location start --speed=5 37.7694,-122.4862 37.7694,-122.4856 (52.9 m, ends ~13:23:38);
+#           13:23:52.78 simctl location set 37.7694,-122.4856; 13:24:00 clear. Room activity ended, share off: no server writes.
+# Capture: simctl spawn <udid> log stream --level debug (locationd). Fix lines are what CoreLocation hands to clients.
+
+## Moving, then route end ('No more pending locations') and parked fixes
+2026-11-06 13:23:36.248 Df locationd[7612:8871b3] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, 90.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:37.253 Df locationd[7612:889d88] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, 90.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:38.255 Db locationd[7612:889d8b] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:38.256 Df locationd[7612:889d88] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:39.260 Db locationd[7612:889d8b] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:39.261 Df locationd[7612:889d8a] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:40.264 Db locationd[7612:889d88] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:40.265 Df locationd[7612:889d88] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:41.269 Db locationd[7612:889d8a] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:41.270 Df locationd[7612:889d8a] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:42.271 Db locationd[7612:889d88] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:42.273 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:43.275 Db locationd[7612:8888ee] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:43.276 Df locationd[7612:8871b3] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:44.280 Db locationd[7612:887da2] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:44.281 Df locationd[7612:8871b3] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:45.285 Db locationd[7612:887da2] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:45.286 Df locationd[7612:887da2] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:46.289 Db locationd[7612:887da2] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:46.290 Df locationd[7612:889d8a] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:47.295 Db locationd[7612:889d8b] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:47.296 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:48.301 Db locationd[7612:889d8a] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:48.302 Df locationd[7612:889d8a] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:49.302 Db locationd[7612:889d8b] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:49.303 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:50.307 Db locationd[7612:889d8a] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:50.308 Df locationd[7612:8888ee] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:51.311 Db locationd[7612:889d88] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:51.312 Df locationd[7612:889d88] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:52.314 Db locationd[7612:889d88] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:52.316 Df locationd[7612:889d88] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, 5.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidalA
+2026-11-06 13:23:52.783 Df locationd[7612:889d8b] [com.apple.locationd.Core:Simulation] {"msg":"Simulation stop request received", "fSimulationRunning":1}
+2026-11-06 13:23:52.784 Df locationd[7612:889d8b] [com.apple.locationd.Core:Simulation] {"msg":"Simulation start request received", "fSimulationRunning":0, "fIsInEmergencyState":0}
+2026-11-06 13:23:52.784 Db locationd[7612:889d8b] [com.apple.locationd.Core:Simulation] {"msg":"No more pending locations"}
+2026-11-06 13:23:52.785 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+
+## After simctl location set
+2026-11-06 13:23:52.785 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:23:53.789 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:23:54.790 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:23:55.795 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:23:56.797 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:23:57.803 Df locationd[7612:889d8b] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:23:58.806 Df locationd[7612:8888ee] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:23:59.810 Df locationd[7612:889d88] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
+2026-11-06 13:24:00.814 Df locationd[7612:889d88] [com.apple.locationd.Position:GeneralCLX] @ClxClient, Fix, 1, ll, <private>, <private>, acc, 5.00, speed, -1.0, course, -1.0, type, 1, alt, 0.0, altunc, -1.0, ellipsoidal
