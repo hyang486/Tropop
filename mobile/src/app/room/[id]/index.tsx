@@ -1,5 +1,5 @@
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +18,7 @@ import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
+import { canSendDraft, composerAutoFocus, composerReducer, initialComposer } from '@/lib/composer';
 import { errorMessage } from '@/lib/errors';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
 import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
@@ -151,12 +152,13 @@ function ChatRoom({
   const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
   const chat = useChat(room.id, userId, onNewSender);
   const uploadSummary = useRoomUploadSummary(room.id);
-  const [draft, setDraft] = useState('');
-  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
+  const draft = composer.draft;
   const remaining = formatRemaining(remainingMs);
-  const canSend = draft.trim().length > 0;
+  const canSend = canSendDraft(draft);
 
-  // C-2 DIAGNOSTIC (dev only, temporary): trace composer events around Send in the Metro log.
+  // C-2 DIAGNOSTIC (dev only, temporary): composer event types, lengths and timings around Send, in the
+  // Metro log. No message text. Removed in the final C-2 commit.
   const c2t0 = useRef(0);
   const c2 = (what: string, detail?: unknown) => {
     if (__DEV__) console.log(`[C2] +${Date.now() - c2t0.current}ms ${what}`, detail === undefined ? '' : JSON.stringify(detail));
@@ -165,11 +167,10 @@ function ChatRoom({
   function submit() {
     if (!canSend) return;
     c2t0.current = Date.now();
-    c2('submit', { draft });
+    c2('submit', { len: draft.length, key: composer.key });
     chat.send(draft);
-    setDraft('');
-    // Native clear too: iOS can re-commit a pending predictive/autocorrect word after a JS-only clear (C-2).
-    inputRef.current?.clear();
+    // Remount the input instead of clearing it in place (C-2, see lib/composer.ts).
+    dispatchComposer({ type: 'sent' });
   }
 
   const failedCount = chat.messages.filter((m) => m.pending === 'failed').length;
@@ -289,15 +290,19 @@ function ChatRoom({
 
           <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
             <TextInput
-              ref={inputRef}
+              key={composer.key}
+              autoFocus={composerAutoFocus(composer)}
               style={styles.input}
               value={draft}
-              onChangeText={setDraft}
-              onChange={(e) => c2('change', { text: e.nativeEvent.text, eventCount: e.nativeEvent.eventCount })}
-              onSelectionChange={(e) => c2('selection', e.nativeEvent.selection)}
-              onKeyPress={(e) => c2('key', e.nativeEvent.key)}
-              onFocus={() => c2('focus')}
-              onBlur={() => c2('blur')}
+              onChange={(e) => {
+                const inputKey = composer.key;
+                c2('change', { key: inputKey, len: e.nativeEvent.text.length, eventCount: e.nativeEvent.eventCount });
+                dispatchComposer({ type: 'change', key: inputKey, text: e.nativeEvent.text });
+              }}
+              onSelectionChange={(e) => c2('selection', { key: composer.key, ...e.nativeEvent.selection })}
+              onKeyPress={(e) => c2('key', e.nativeEvent.key.length > 1 ? e.nativeEvent.key : 'char')}
+              onFocus={() => c2('focus', { key: composer.key })}
+              onBlur={() => c2('blur', { key: composer.key })}
               placeholder={en.chat.placeholder}
               placeholderTextColor={colors.secondaryLabel}
               accessibilityLabel={en.chat.placeholder}
@@ -309,7 +314,7 @@ function ChatRoom({
               accessibilityLabel={en.chat.send}
               accessibilityState={{ disabled: !canSend }}
               disabled={!canSend}
-              onPressIn={() => c2('sendPressIn', { draft })}
+              onPressIn={() => c2('sendPressIn', { len: draft.length })}
               onPress={submit}
               style={({ pressed }) => [styles.sendButton, (!canSend || pressed) && { opacity: 0.4 }]}
             >
