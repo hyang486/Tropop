@@ -314,6 +314,12 @@ export const en = {
     cancel: 'Cancel',
     routeTooLong: (max: number) => `A route can have up to ${max} points.`,
     recenter: 'Recenter',
+    showMine: 'Show my location',
+    showMineHint: 'Only on your phone. This does not share your location.',
+    locating: 'Finding you…',
+    locateDenied: 'Location access is off for Moment.',
+    locateDeniedSettings: 'Location access is off for Moment. Turn it on in Settings to see yourself on the map.',
+    locateUnavailable: 'Could not find your position. Try again.',
   },
   invite: {
     title: 'Invite',

@@ -298,3 +298,15 @@ export function initials(name: string) {
     .join('');
   return letters.toUpperCase() || '?';
 }
+
+/**
+ * F5-1 "Show my location": what a tap does for the current foreground permission. 'locate': read one
+ * position; 'ask': show the When In Use prompt first (only from the tap); 'settings': iOS will not ask
+ * again, so only Settings can turn it on.
+ */
+export type LocateStep = 'locate' | 'ask' | 'settings';
+
+export function planLocate(permission: { granted: boolean; canAskAgain: boolean }): LocateStep {
+  if (permission.granted) return 'locate';
+  return permission.canAskAgain ? 'ask' : 'settings';
+}

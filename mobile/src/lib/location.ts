@@ -12,6 +12,7 @@ import {
   isFreshReading,
   type LatLng,
   planHeartbeat,
+  planLocate,
   PRESENCE_REFETCH_DEBOUNCE_MS,
   type Reading,
   reconcileShare,
@@ -220,6 +221,41 @@ export async function getMyPosition(): Promise<LatLng | null> {
     return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
   } catch {
     return null;
+  }
+}
+
+export type LocateResult =
+  | { kind: 'ok'; position: LatLng }
+  | { kind: 'denied'; canAskAgain: boolean }
+  | { kind: 'unavailable' };
+
+/**
+ * F5-1 "Show my location". Called only from the button's tap: asks for When In Use permission if it
+ * is undecided, then reads ONE foreground position (no watch, no background, no task). Local only:
+ * it writes nothing to the server and never touches the Share opt-in or the sharing store.
+ */
+export async function locateMe(): Promise<LocateResult> {
+  try {
+    let permission = await Location.getForegroundPermissionsAsync();
+    let step = planLocate(permission);
+    if (step === 'ask') {
+      permission = await Location.requestForegroundPermissionsAsync();
+      step = planLocate(permission);
+    }
+    if (step !== 'locate') return { kind: 'denied', canAskAgain: step === 'ask' };
+    let pos: Location.LocationObject | null = null;
+    try {
+      pos = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        FRESH_FIX_TIMEOUT_MS,
+      );
+    } catch {
+      pos = await Location.getLastKnownPositionAsync();
+    }
+    if (!pos) return { kind: 'unavailable' };
+    return { kind: 'ok', position: { latitude: pos.coords.latitude, longitude: pos.coords.longitude } };
+  } catch {
+    return { kind: 'unavailable' };
   }
 }
 

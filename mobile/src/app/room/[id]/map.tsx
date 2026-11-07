@@ -11,6 +11,7 @@ import { errorMessage } from '@/lib/errors';
 import {
   getMyPosition,
   hasForegroundPermission,
+  locateMe,
   type Presence,
   requestForegroundPermission,
   saveRoute,
@@ -193,6 +194,33 @@ function RoomMap({
     if (camera) mapRef.current?.setCameraPosition(camera).catch(() => {});
   }
 
+  // F5-1: "Show my location" works with Share off. The permission prompt comes only from this tap;
+  // the position is read once, kept on this screen, and never sent (no RPC, no sharing-store change).
+  const [locate, setLocate] = useState<'idle' | 'busy' | 'denied' | 'settings' | 'unavailable'>('idle');
+  const [showingMine, setShowingMine] = useState(false);
+  async function showMyLocation() {
+    if (locate === 'busy') return;
+    setLocate('busy');
+    const result = await locateMe();
+    if (result.kind === 'denied') {
+      setGranted(false);
+      setShowingMine(false);
+      setLocate(result.canAskAgain ? 'denied' : 'settings');
+      return;
+    }
+    if (result.kind === 'unavailable') {
+      setLocate('unavailable');
+      return;
+    }
+    setGranted(true);
+    setMyPosition(result.position);
+    setShowingMine(true);
+    setLocate('idle');
+    mapRef.current
+      ?.setCameraPosition({ coordinates: result.position, zoom: MAX_CAMERA_ZOOM })
+      .catch(() => {});
+  }
+
   async function run(key: string, action: () => Promise<void>) {
     setBusy(key);
     try {
@@ -309,15 +337,33 @@ function RoomMap({
               ? [{ id: 'route', coordinates: shownRoute, color: draft ? DRAFT_COLOR : ROUTE_COLOR, width: 4 }]
               : []
           }
-          properties={{ isMyLocationEnabled: my.share && granted === true }}
+          properties={{ isMyLocationEnabled: granted === true && (my.share || showingMine) }}
           onMapClick={draft ? onMapClick : undefined}
         />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={en.map.showMine}
+          accessibilityState={{ busy: locate === 'busy' }}
+          onPress={showMyLocation}
+          style={[styles.overlayButton, styles.showMine]}
+        >
+          <Text style={styles.link}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
+        </Pressable>
         {camera ? (
-          <Pressable accessibilityRole="button" onPress={recenter} style={styles.recenter}>
+          <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
             <Text style={styles.link}>{en.map.recenter}</Text>
           </Pressable>
         ) : null}
       </View>
+      {locate === 'denied' ? <Hint tone="error">{en.map.locateDenied}</Hint> : null}
+      {locate === 'settings' ? (
+        <>
+          <Hint tone="error">{en.map.locateDeniedSettings}</Hint>
+          <Button title={en.map.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
+        </>
+      ) : null}
+      {locate === 'unavailable' ? <Hint tone="error">{en.map.locateUnavailable}</Hint> : null}
+      {showingMine && !my.share ? <Hint>{en.map.showMineHint}</Hint> : null}
 
       {isHost ? (
         <View style={styles.group}>
@@ -457,15 +503,16 @@ const styles = StyleSheet.create({
   goneTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
   mapWrap: { height: 360, borderRadius: 12, borderCurve: 'continuous', overflow: 'hidden' },
   map: { flex: 1 },
-  recenter: {
+  overlayButton: {
     position: 'absolute',
-    right: 8,
     bottom: 8,
     backgroundColor: colors.field,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
+  showMine: { left: 8 },
+  recenter: { right: 8 },
   group: { gap: 8 },
   row: { flexDirection: 'row', gap: 20 },
   status: { fontSize: 17, fontWeight: '600', color: colors.label },

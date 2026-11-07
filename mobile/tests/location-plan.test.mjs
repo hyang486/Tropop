@@ -280,3 +280,11 @@ test('freshFixAttemptDue (MS-R1): after a failed attempt, the next waits HEARTBE
   // Successful heartbeat at T (attempt and report both at T): next attempt at T + HEARTBEAT_MS, unchanged.
   assert.equal(freshFixAttemptDue(T, T, T + HEARTBEAT_MS), true);
 });
+
+test('planLocate: granted locates, undecided asks, denied for good goes to Settings', async () => {
+  const { planLocate } = await import('../src/lib/location-plan.ts');
+  assert.equal(planLocate({ granted: true, canAskAgain: true }), 'locate');
+  assert.equal(planLocate({ granted: true, canAskAgain: false }), 'locate');
+  assert.equal(planLocate({ granted: false, canAskAgain: true }), 'ask');
+  assert.equal(planLocate({ granted: false, canAskAgain: false }), 'settings');
+});
