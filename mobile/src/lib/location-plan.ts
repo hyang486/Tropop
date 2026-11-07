@@ -247,17 +247,29 @@ export type PinPlan<T> =
   | { kind: 'monogram'; id: string; coordinates: LatLng; title: string; monogram: string }
   | { kind: 'stale'; id: string; coordinates: LatLng; title: string };
 
+/** F6-1: the stale pin's marker id. Different from the fresh id so the map draws a new marker instead of
+ * restyling the existing one in place (expo-maps' SwiftUI Map kept the red monogram on an in-place change). */
+export function stalePinId(userId: string) {
+  return `${userId}:stale`;
+}
+
 /**
- * C4: a stale member never shows a speed and is drawn as a grey clock pin, photo or not.
+ * C4: a stale member never shows a speed and is drawn as a grey clock pin, photo or not, titled
+ * "<name> · <staleWord>" (F6-1) so stale coordinates never look current.
  * A fresh member shows their photo once it has loaded; with no photo, while it loads, or when
  * it failed (pre-0021, no access, room ended) they show their initials instead.
  */
-export function planPins<T>(pins: PinInput[], nowMs: number, icons: ReadonlyMap<string, T>): PinPlan<T>[] {
+export function planPins<T>(
+  pins: PinInput[],
+  nowMs: number,
+  icons: ReadonlyMap<string, T>,
+  staleWord = 'stale',
+): PinPlan<T>[] {
   return pins.map((pin) => {
     const stale = isStale(pin.updatedAt, nowMs);
     const speed = stale ? null : formatSpeedKmh(pin.speedMps);
     const base = { id: pin.userId, coordinates: pin.coordinates, title: [pin.label, speed].filter(Boolean).join(' · ') };
-    if (stale) return { kind: 'stale', ...base };
+    if (stale) return { kind: 'stale', ...base, id: stalePinId(pin.userId), title: `${pin.label} · ${staleWord}` };
     const icon = pin.avatarPath ? icons.get(pin.avatarPath) : undefined;
     if (icon !== undefined) return { kind: 'photo', ...base, icon };
     return { kind: 'monogram', ...base, monogram: initials(pin.initialsOf || pin.label) };

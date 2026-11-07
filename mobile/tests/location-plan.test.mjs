@@ -154,7 +154,17 @@ test('planPins: no photo, not loaded yet, or failed falls back to initials', () 
 
 test('planPins: a stale member is a clock pin without speed, even with a loaded photo (C4)', () => {
   const [p] = planPins([pin({ updatedAt: OLD })], NOW, new Map([['u1/a.jpg', 'ICON']]));
-  assert.deepEqual(p, { kind: 'stale', id: 'u1', coordinates: A, title: 'Test joiner' });
+  assert.deepEqual(p, { kind: 'stale', id: 'u1:stale', coordinates: A, title: 'Test joiner · stale' });
+});
+
+test('planPins: a pin going stale changes marker identity and says so (F6-1)', () => {
+  const fresh = planPins([pin({ avatarPath: null })], NOW, new Map())[0];
+  const stale = planPins([pin({ avatarPath: null, updatedAt: OLD })], NOW, new Map(), 'stale')[0];
+  assert.equal(fresh.kind, 'monogram');
+  assert.equal(stale.kind, 'stale');
+  assert.notEqual(stale.id, fresh.id);
+  assert.match(stale.title, /stale/);
+  assert.doesNotMatch(stale.title, /km\/h/);
 });
 
 test('wantedIconPaths holds only fresh pins with a photo', () => {

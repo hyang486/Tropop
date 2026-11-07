@@ -269,7 +269,7 @@ function RoomMap({
     avatarPath: avatars.get(row.user_id) ?? null,
   }));
   const icons = useMarkerIcons(wantedIconPaths(pinInputs, now), session?.access_token);
-  const pins = planPins(pinInputs, now, icons);
+  const pins = planPins(pinInputs, now, icons, en.map.stalePin);
   const markers = pins.flatMap((pin) =>
     pin.kind === 'photo'
       ? []

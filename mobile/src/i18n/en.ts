@@ -303,6 +303,7 @@ export const en = {
     nobody: 'Nobody is sharing yet.',
     you: 'You',
     stale: (age: string) => `Location stale · ${age}`,
+    stalePin: 'stale',
     updated: (age: string) => `Updated ${age}`,
     route: 'Route',
     drawRoute: 'Draw route',
