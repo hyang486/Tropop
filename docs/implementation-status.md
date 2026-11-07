@@ -16,9 +16,15 @@ Updated: 2026-11-06 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.
   Web Mercator from the region in onCameraMove (lib/route-draw.ts, tests/route-draw.test.mjs); a rotated or
   tilted map is first snapped flat and north-up. tsc/lint clean, npm test 114/114, iOS bundle from Metro 8083
   compiles. NOT verified on a device (no taps available to the developer).
-  Open points: whether expo-maps sends onCameraMove before the first user move (if not, the first Pen tap shows
-  "Move the map a little"); a single tap adds one invisible point that the next stroke joins; strokes join end
-  to start as one line; Android not covered.
+  Supervisor review of 2a1acee: acceptable on code with R1-A/R1-B required; both fixed in the follow-up commit.
+  R1-A: a Pen press that must move the camera waits only for that move's report (or 2 s); a report that is
+  still rotated/tilted, a timeout or a rejected move clears the wait and shows "Turn the map flat with north up"
+  (never a later surprise pen-on). R1-B: a tap (under 2 points) is dropped. N1: with no region yet, Pen moves
+  the camera to the screen's own camera to get one ("Move the map a little" only if that fails).
+  Open (device check): whether setCameraPosition({coordinates, zoom}) really resets bearing/tilt; a Pen press
+  during map deceleration may use the previous region (N3); strokes join end to start as one line; Android
+  not covered. Device acceptance list: supervisor message 2026-11-07 (lock, line placement at 2 zooms and after
+  a pan, rotate → snap or note, Done → guest sees it live, Edit/Undo/Clear/Cancel, first Pen without a move).
 
 ## Current checkpoint
 

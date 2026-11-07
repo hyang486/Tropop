@@ -312,6 +312,7 @@ export const en = {
     penOnHint: 'The map is locked. Draw the route with your finger. Turn the pen off to move the map.',
     penOffHint: 'Move the map, then tap Pen to keep drawing.',
     penWait: 'Move the map a little, then tap Pen again.',
+    penNorthUp: 'Turn the map flat with north up, then tap Pen again.',
     undo: 'Undo',
     clear: 'Clear',
     done: 'Done',

@@ -91,7 +91,7 @@ test('simplify keeps the ends and corners, drops wobble on a straight line', () 
   assert.deepEqual(simplifyStroke([{ x: 3, y: 3 }]), [{ x: 3, y: 3 }]);
 });
 
-test('a stroke becomes route coordinates; a tap stays one point', () => {
+test('a stroke becomes route coordinates; a tap is dropped', () => {
   const r = region();
   const route = strokeToRoute(
     [
@@ -105,7 +105,8 @@ test('a stroke becomes route coordinates; a tap stays one point', () => {
   assert.equal(route.length, 2);
   close(route[0].longitude, SF.longitude);
   close(route[1].longitude, SF.longitude + r.longitudeDelta / 2);
-  assert.equal(strokeToRoute([{ x: 10, y: 10 }], SIZE, r).length, 1);
+  assert.deepEqual(strokeToRoute([{ x: 10, y: 10 }], SIZE, r), []);
+  assert.deepEqual(strokeToRoute([], SIZE, r), []);
 });
 
 test('strokes join in drawing order and stay within the point limit', () => {

@@ -89,13 +89,15 @@ export function simplifyStroke(points: Point[], tolerance = SIMPLIFY_TOLERANCE_P
 }
 
 /**
- * A finished stroke as route coordinates: simplified on screen, then converted. A tap (a single point) is
- * kept as one point, so a stroke after it joins it. Points that fail to convert are skipped.
+ * A finished stroke as route coordinates: simplified on screen, then converted. Points that fail to convert
+ * are skipped. A tap (fewer than 2 points) gives nothing: kept, it would be an invisible point that the next
+ * stroke joins with a straight jump.
  */
 export function strokeToRoute(stroke: Point[], size: Size, region: MapRegion): LatLng[] {
-  return simplifyStroke(stroke)
+  const points = simplifyStroke(stroke)
     .map((p) => screenToLatLng(p, size, region))
     .filter((p): p is LatLng => p !== null);
+  return points.length < 2 ? [] : points;
 }
 
 /** The saved route is one line: strokes are joined end to start, in the order they were drawn. */
