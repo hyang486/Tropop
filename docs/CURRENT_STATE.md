@@ -541,5 +541,7 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - R-1 iPhone check (human via qa, 2026-11-07): drawing works, but tapping a store/POI opens the Apple place card.
   Fix c4058f9 on r1c-fullscreen-pen: `selectionEnabled: false` on the route editor and room map (SDK 58 sets
   mapFeatureSelectionAccessory nil). tsc/lint clean, 116/116. Waiting for qa sim check, then the human's iPhone re-check.
+  Supervisor ACK. Known limit: AppleMapsViewiOS17.swift ignores selectionEnabled, so iOS 17 devices still show the
+  card (app.json sets no deploymentTarget). A POI may still highlight without a card (existing behavior).
 - Guest 4 user 49f93ead-65ae-468b-84be-a273edcec5e3: human ordered deletion directly; 2 execute_sql prompts expired
   unanswered. Not deleted yet.
