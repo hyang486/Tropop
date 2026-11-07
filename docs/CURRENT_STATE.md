@@ -555,8 +555,10 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   (room map, editor pen off); pen on: tap does nothing. Evidence 2026-11-07-r1-canary-*.png, -r1-cf8af60-*.png.
   Canary reverted (never committed). Member marker tap not tested. Next: supervisor review, then the human's iPhone
   re-check (their earlier check also ran main). Not merged.
-- FM-Q ③ caveat (20:5xZ): wt-fmq used the same node_modules symlink, so the ③ sim UI run may have bundled main's client
-  at d0ec958 (no detect-copy upload code). Server PASS stands for whatever was uploaded, but the client detect-copy
-  path is NOT VERIFIED on a device. main now contains that client (bfc76ac), so a re-run from main's Metro tests it.
+- FM-Q ③ caveat resolved (21:0xZ, from logs, no re-run): the ③ sim client DID run the detect-copy code. API logs show the
+  app's detect query (media select id,room_id,original_path,width,height for the 3 jobs, 19:50:34Z), then 3 client
+  POSTs (Moment/1 CFNetwork) to room-media/<room>/<media>/detect/53d00236….jpg at 19:50:35.355/35.432/36.768Z. face-match
+  GET each detect copy (19:50:39.9/43.8/47.1Z) and deleted all 3 (19:50:43–49Z). No detect_fallback in function_logs.
+  So the wt-fmq symlink did not affect that run. Still NOT VERIFIED: detect copy size/dimensions; real-iPhone HEIC.
 - Guest 4 user 49f93ead-65ae-468b-84be-a273edcec5e3: human ordered deletion directly; 2 execute_sql prompts expired
   unanswered. Not deleted yet.
