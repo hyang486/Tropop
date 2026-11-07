@@ -127,11 +127,15 @@ select fdtests.expect_count($q$ select 1 from storage.objects where bucket_id = 
 select fdtests.expect_count($q$ select 1 from storage.objects where bucket_id = 'room-media'
   and name = 'e1000000-0000-4000-8000-000000000001/e2000000-0000-4000-8000-000000000001/preview.jpg' $q$, 1,
   'A still reads the preview');
+-- storage.protect_delete() rejects every direct SQL delete unless storage.allow_delete_query is 'true'.
+-- Lift it for this block only (transaction-local) so RLS, not the trigger, decides A's delete.
 do $$ begin
   update storage.objects set metadata = '{"size":1}' where bucket_id = 'room-media' and name like '%/detect/%';
   if found then raise exception 'FAIL: A updated a detect copy'; end if;
+  perform set_config('storage.allow_delete_query', 'true', true);
   delete from storage.objects where bucket_id = 'room-media' and name like '%/detect/%';
   if found then raise exception 'FAIL: A deleted a detect copy'; end if;
+  perform set_config('storage.allow_delete_query', 'false', true);
 end $$;
 reset role;
 
@@ -170,7 +174,8 @@ reset role;
 delete from public.face_jobs where enrollment_id = 'ea000000-0000-4000-8000-000000000001' and media_id = 'e2000000-0000-4000-8000-000000000001';
 insert into public.face_jobs (enrollment_id, media_id, status) values
   ('ea000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000005', 'queued');
-update public.rooms set expires_at = now() - interval '1 second' where id = 'e1000000-0000-4000-8000-000000000001';
+update public.rooms set created_at = now() - interval '2 hours', expires_at = now() - interval '1 second'
+  where id = 'e1000000-0000-4000-8000-000000000001';
 select fdtests.login('e0000000-0000-4000-8000-000000000001');
 set local role authenticated;
 select fdtests.expect_denied(fdtests.put('e1000000-0000-4000-8000-000000000001/e2000000-0000-4000-8000-000000000005/detect/ea000000-0000-4000-8000-000000000001.jpg'),
