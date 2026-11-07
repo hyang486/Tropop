@@ -5,6 +5,24 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-07: J-1 and R-1 (human request: each on its own branch, review, then main; no push)
+- J-1 (Join-room keyboard pushed the "5-DIGIT CODE" field under the translucent header on the 17 Pro): fixed in
+  6f2a512 (components/ui.tsx Screen: no automatic keyboard inset adjustment on the ScrollView). Supervisor GO;
+  main fast-forwarded to 6f2a512. tsc/lint clean, npm test 104/104. NOT verified on any device or other model yet
+  (human iPhone / qa). Evidence of the bug: docs/evidence/2026-11-06-bug-join-17pro-shifted.png.
+- R-1 freehand route (branch r1-freehand-route, replaces tap-to-plot and so F5-2 inside route editing): host
+  "Pen" button on the map (or Draw route / Edit route) → the map is locked by a touch layer (no pan, zoom,
+  rotate, or building/place selection) → draw with a finger (react-native-svg live stroke) → Done saves through
+  set_route (no server change; 2000-point cap) → "Edit route" reopens it with the saved route as the first
+  stroke. Pen off unlocks the map to reposition; Pen on locks again. Undo removes the last stroke drawn in this
+  edit (never the saved route); Clear empties; Cancel discards. Screen points become coordinates with
+  Web Mercator from the region in onCameraMove (lib/route-draw.ts, tests/route-draw.test.mjs); a rotated or
+  tilted map is first snapped flat and north-up. tsc/lint clean, npm test 114/114, iOS bundle from Metro 8083
+  compiles. NOT verified on a device (no taps available to the developer).
+  Open points: whether expo-maps sends onCameraMove before the first user move (if not, the first Pen tap shows
+  "Move the map a little"); a single tap adds one invisible point that the next stroke joins; strokes join end
+  to start as one line; Android not covered.
+
 ## Verified
 - Host auth, guest entry, room create/invite/join/leave/end: simulator evidence (implementation-status.md).
 - Chat: backend, realtime, access and paging verified. On simulators: two-way messages PASS (human-confirmed);

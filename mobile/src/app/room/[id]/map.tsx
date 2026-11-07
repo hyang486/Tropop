@@ -1,9 +1,11 @@
-import { AppleMaps } from 'expo-maps';
+import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
+import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { RouteDrawLayer } from '@/components/route-draw-layer';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -37,6 +39,15 @@ import {
   wantedIconPaths,
 } from '@/lib/location-plan';
 import { useMarkerIcons } from '@/lib/marker-icons';
+import {
+  appendStroke,
+  isFlatNorthUp,
+  joinStrokes,
+  type MapRegion,
+  type Point,
+  type Size,
+  strokeToRoute,
+} from '@/lib/route-draw';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
@@ -152,8 +163,36 @@ function RoomMap({
 
   const presence = useLivePresence(room.id, active);
   const savedRoute = useMemo(() => parseRoute(room.route), [room.route]);
-  const [draft, setDraft] = useState<LatLng[] | null>(null);
-  const shownRoute = draft ?? savedRoute;
+  // R-1: the route being edited, as the strokes drawn so far (the saved route is the first one). Null when
+  // not editing. The pen locks the map: while it is on, a layer over the map takes every touch.
+  const [draft, setDraft] = useState<LatLng[][] | null>(null);
+  const [pen, setPen] = useState(false);
+  const [penNote, setPenNote] = useState<'none' | 'wait' | 'truncated'>('none');
+  // Undo takes back only strokes drawn in this edit, never the saved route it started from (Clear does that).
+  const [undoFloor, setUndoFloor] = useState(0);
+  const drawing = draft !== null && pen;
+  const draftRoute = useMemo(() => (draft ? joinStrokes(draft) : null), [draft]);
+  const shownRoute = draftRoute ?? savedRoute;
+
+  // The visible region after the last camera move: needed to turn screen points into coordinates.
+  const region = useRef<MapRegion | null>(null);
+  const penPending = useRef(false);
+  function onCameraMove(event: CameraMoveEvent) {
+    const { latitude, longitude } = event.coordinates;
+    if (latitude == null || longitude == null) return;
+    const next: MapRegion = {
+      center: { latitude, longitude },
+      longitudeDelta: event.longitudeDelta,
+      zoom: event.zoom,
+      bearing: event.bearing,
+      tilt: event.tilt,
+    };
+    region.current = next;
+    if (penPending.current && isFlatNorthUp(next)) {
+      penPending.current = false;
+      setPen(true);
+    }
+  }
 
   // M6: with no route or positions yet, the map starts on the user's own position (no prompt).
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
@@ -183,12 +222,13 @@ function RoomMap({
   const [initialCamera, setInitialCamera] = useState<Camera | null>(null);
   const centeredOn = useRef<'none' | 'mine' | 'points'>('none');
   useEffect(() => {
-    if (centeredOn.current === 'points' || !camera) return;
+    // R-1: the camera must not move under a locked map; the first centering waits until the pen is off.
+    if (drawing || centeredOn.current === 'points' || !camera) return;
     if (!pointsCamera && centeredOn.current === 'mine') return;
     centeredOn.current = pointsCamera ? 'points' : 'mine';
     // A one-time snapshot: later moves of the points must not move the camera.
     setInitialCamera(camera);
-  }, [camera, pointsCamera]);
+  }, [camera, pointsCamera, drawing]);
 
   function recenter() {
     if (camera) mapRef.current?.setCameraPosition(camera).catch(() => {});
@@ -268,17 +308,60 @@ function RoomMap({
     ]);
   }
 
-  function onMapClick(event: { coordinates: { latitude?: number; longitude?: number } }) {
-    const { latitude, longitude } = event.coordinates;
-    if (latitude == null || longitude == null) return;
-    setDraft((d) => (d && d.length < MAX_ROUTE_POINTS ? [...d, { latitude, longitude }] : d));
+  /**
+   * R-1: turns the pen on. Screen points convert exactly only on a flat, north-up map, so a rotated or
+   * tilted camera is first snapped flat (expo-maps' zoom camera is always north-up); the pen comes on when
+   * that move reports back. With no reported region yet there is nothing to convert against.
+   */
+  function penOn() {
+    setPenNote('none');
+    const current = region.current;
+    if (current && isFlatNorthUp(current)) {
+      setPen(true);
+      return;
+    }
+    if (!current) {
+      setPenNote('wait');
+      return;
+    }
+    penPending.current = true;
+    mapRef.current?.setCameraPosition({ coordinates: current.center, zoom: current.zoom }).catch(() => {
+      penPending.current = false;
+      setPenNote('wait');
+    });
+  }
+
+  function penOff() {
+    penPending.current = false;
+    setPen(false);
+  }
+
+  function startEditing() {
+    const start = savedRoute.length > 0 ? [savedRoute] : [];
+    setDraft(start);
+    setUndoFloor(start.length);
+    penOn();
+  }
+
+  function stopEditing() {
+    penOff();
+    setPenNote('none');
+    setDraft(null);
+  }
+
+  function onStroke(stroke: Point[], size: Size) {
+    const current = region.current;
+    if (!current || !draft) return;
+    const next = appendStroke(draft, strokeToRoute(stroke, size, current), MAX_ROUTE_POINTS);
+    if (next.truncated) setPenNote('truncated');
+    setDraft(next.strokes);
   }
 
   function saveDraft() {
-    if (!draft) return;
+    if (!draftRoute) return;
     run('route', async () => {
-      await saveRoute(room.id, draft);
-      setDraft(null);
+      await saveRoute(room.id, draftRoute);
+      stopEditing();
     });
   }
 
@@ -322,6 +405,7 @@ function RoomMap({
       style={styles.screen}
       contentContainerStyle={styles.content}
       contentInsetAdjustmentBehavior="automatic"
+      scrollEnabled={!drawing}
     >
       <Stack.Screen options={{ title: en.map.title }} />
 
@@ -338,20 +422,37 @@ function RoomMap({
               : []
           }
           properties={{ isMyLocationEnabled: granted === true && (my.share || showingMine) }}
-          onMapClick={draft ? onMapClick : undefined}
+          onCameraMove={onCameraMove}
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={en.map.showMine}
-          accessibilityState={{ busy: locate === 'busy' }}
-          onPress={showMyLocation}
-          style={[styles.overlayButton, styles.showMine]}
-        >
-          <Text style={styles.link}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
-        </Pressable>
-        {camera ? (
-          <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
-            <Text style={styles.link}>{en.map.recenter}</Text>
+        {drawing ? <RouteDrawLayer color={DRAFT_COLOR} onStroke={onStroke} /> : null}
+        {drawing ? null : (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={en.map.showMine}
+              accessibilityState={{ busy: locate === 'busy' }}
+              onPress={showMyLocation}
+              style={[styles.overlayButton, styles.showMine]}
+            >
+              <Text style={styles.link}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
+            </Pressable>
+            {camera ? (
+              <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
+                <Text style={styles.link}>{en.map.recenter}</Text>
+              </Pressable>
+            ) : null}
+          </>
+        )}
+        {isHost ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={en.map.pen}
+            accessibilityState={{ selected: drawing }}
+            onPress={() => (draft === null ? startEditing() : pen ? penOff() : penOn())}
+            style={[styles.overlayButton, styles.pen, drawing && styles.penOn]}
+          >
+            <SymbolView name="pencil.tip" size={18} tintColor={drawing ? 'white' : colors.tint} />
+            <Text style={[styles.link, drawing && styles.penOnText]}>{en.map.pen}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -438,23 +539,42 @@ function RoomMap({
         <Text style={styles.status}>{en.map.route}</Text>
         {isHost && draft ? (
           <>
-            <Hint>{en.map.drawHint}</Hint>
-            {draft.length >= MAX_ROUTE_POINTS ? <Hint tone="error">{en.map.routeTooLong(MAX_ROUTE_POINTS)}</Hint> : null}
+            <Hint>{drawing ? en.map.penOnHint : en.map.penOffHint}</Hint>
+            {penNote === 'wait' ? <Hint tone="error">{en.map.penWait}</Hint> : null}
+            {penNote === 'truncated' ? <Hint tone="error">{en.map.routeTooLong(MAX_ROUTE_POINTS)}</Hint> : null}
             <View style={styles.row}>
-              <Pressable accessibilityRole="button" onPress={() => setDraft((d) => (d ? d.slice(0, -1) : d))}>
-                <Text style={styles.link}>{en.map.undo}</Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={draft.length <= undoFloor}
+                onPress={() => {
+                  setPenNote('none');
+                  setDraft((d) => (d && d.length > undoFloor ? d.slice(0, -1) : d));
+                }}
+              >
+                <Text style={[styles.link, draft.length <= undoFloor && styles.disabledLink]}>{en.map.undo}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => setDraft([])}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setPenNote('none');
+                  setDraft([]);
+                  setUndoFloor(0);
+                }}
+              >
                 <Text style={styles.link}>{en.map.clear}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => setDraft(null)}>
+              <Pressable accessibilityRole="button" onPress={stopEditing}>
                 <Text style={styles.link}>{en.map.cancel}</Text>
               </Pressable>
             </View>
-            <Button title={en.map.save} busy={busy === 'route'} onPress={saveDraft} />
+            <Button title={en.map.done} busy={busy === 'route'} onPress={saveDraft} />
           </>
         ) : isHost ? (
-          <Button title={en.map.drawRoute} variant="secondary" onPress={() => setDraft(savedRoute)} />
+          <Button
+            title={savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}
+            variant="secondary"
+            onPress={startEditing}
+          />
         ) : null}
       </View>
     </ScrollView>
@@ -512,6 +632,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   showMine: { left: 8 },
+  pen: { top: 8, bottom: undefined, right: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  penOn: { backgroundColor: colors.tint },
+  penOnText: { color: 'white' },
   recenter: { right: 8 },
   group: { gap: 8 },
   row: { flexDirection: 'row', gap: 20 },
@@ -528,6 +651,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: { fontSize: 17, color: colors.label, flexShrink: 1 },
   link: { fontSize: 17, color: colors.tint },
+  disabledLink: { color: colors.secondaryLabel },
   presence: {
     backgroundColor: colors.field,
     borderRadius: 12,
