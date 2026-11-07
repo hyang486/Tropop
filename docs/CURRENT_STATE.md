@@ -548,5 +548,15 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   ACK. Caveat: categories added in later SDKs are not covered. Option B (editor only) = 405c760 on r1c-poi-editor-only,
   stale (based on a025558). If v3 fails: canary (mapType HYBRID, uncommitted) plus full reload to prove properties reach
   native before any native patch. Trade-off for the human: no store/landmark labels.
+  20:5xZ qa found its sim runs of c4058f9 and a025558 had served MAIN (worktree node_modules symlink to main), so those
+  two FAILs are not evidence about those commits. Metro 8086 fixed to bundle wt-r1c. qa sim on cf8af60: canary HYBRID
+  showed on the room map (props reach native); categorized POIs gone on both maps; some civic POIs (City Hall East,
+  Roybal Courthouse, LA Mission, Dept of Public Health) still render, tap highlights the pin but opens NO place card
+  (room map, editor pen off); pen on: tap does nothing. Evidence 2026-11-07-r1-canary-*.png, -r1-cf8af60-*.png.
+  Canary reverted (never committed). Member marker tap not tested. Next: supervisor review, then the human's iPhone
+  re-check (their earlier check also ran main). Not merged.
+- FM-Q ③ caveat (20:5xZ): wt-fmq used the same node_modules symlink, so the ③ sim UI run may have bundled main's client
+  at d0ec958 (no detect-copy upload code). Server PASS stands for whatever was uploaded, but the client detect-copy
+  path is NOT VERIFIED on a device. main now contains that client (bfc76ac), so a re-run from main's Metro tests it.
 - Guest 4 user 49f93ead-65ae-468b-84be-a273edcec5e3: human ordered deletion directly; 2 execute_sql prompts expired
   unanswered. Not deleted yet.
