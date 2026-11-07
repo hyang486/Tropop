@@ -21,3 +21,6 @@ mobile/web-build/
 *.tsbuildinfo
 supabase/.temp/
 supabase/.branches/
+
+# Python cache
+__pycache__/

@@ -58,3 +58,7 @@ An already open Claude session may need its MCP connection refreshed through `/m
 MCP authentication connects Claude's service tools. It does not itself create the Expo app, initialize EAS project configuration, or configure the app's Supabase client. Those steps belong to implementation in mobile/. The Expo screenshot contains a truncated project identifier; do not guess it or scaffold a second app from the dashboard's generic starter commands. Discover the full existing project identifier when linking the app.
 
 Apple Developer signing/push configuration and the selected photo face-matching provider account are implementation-stage setup. Android tooling and real purchase integration remain follow-up scope. React Native/Expo project dependencies will be installed when Claude creates mobile/; they are not global prerequisite programs.
+
+## Role-specific model policy
+
+The human selected automatic model choice for developer and Opus for supervisor. Both launchers now pin Opus 5.5 as their base model. Their separate runtime files set Effortless `modelAuto` to `on` for developer and `off` for supervisor, and explicitly select the Haiku judge without Jev credit. See planning/MODEL_POLICY_EN.md for behavior, verification and the distinction between a session base model and a routed request. Product requirements and permission settings were not changed.

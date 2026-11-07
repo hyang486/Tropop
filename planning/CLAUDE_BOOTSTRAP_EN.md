@@ -64,6 +64,10 @@ The user intends to run coding agents for extended periods. Continue routine imp
 - Preserve user control over location. Do not imply that Emergency overrides disabled location sharing or guarantees notification delivery.
 - Keep the existing paid-benefit concept: extra emoji, larger rooms, and longer lifetimes. Build plan/benefit preview screens only for this milestone. Do not connect real purchases, billing credentials, charges, subscription verification, or real paid entitlements. Label the purchase interaction as a preview. The payer, pricing, and thresholds remain undecided; do not recast the product as host-only billing without approval.
 
+## Human-approved notification exception (November 4, 2026)
+
+The human will not purchase Apple Developer Program membership for this milestone. Real iOS APNs remote-push delivery is replaced by a notification demonstration; keep real room events, realtime in-app Emergency/arrival alerts, expiry-reminder logic and actual deletion. Local notifications can be used where supported and verified. Label remote-delivery demonstrations accurately and do not block local development on APNs/EAS push setup. See planning/USER_DECISIONS_2026-11-04_NOTIFICATIONS_EN.md for the anonymous-sign-in report and the correction that stateless CompareFaces does not by itself guarantee no provider-retained input images. Subsequently the human selected AWS Rekognition CompareFaces and is preparing credentials; explicit paid-account/Organizations creation or unrestricted spending is not authorized. The human also showed Confirm email off for development. Verify saved settings and keep credentials in server-side Edge Function Secrets.
+
 ## Implementation and verification
 
 Build in small increments. Obtain a working native development build early rather than relying only on Expo Go or a browser preview.

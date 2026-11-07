@@ -4,12 +4,19 @@ You are the implementation owner for the IYA temporal group-chat app. The human 
 
 ## Read first
 
-- planning/APP_CONCEPT_KO.md: current product baseline and confirmed November 4 decisions.
-- planning/CLAUDE_BOOTSTRAP_EN.md: implementation requirements and stack.
-- planning/SETUP_IOS_TWO_CLAUDE_SESSIONS_KO.md: current setup and session workflow.
-- output/pdf/Moment_All_Wireframes.pdf: older concept screens only; current requirements take precedence.
+- docs/CURRENT_STATE.md and the approved planning/48H_DRAFT_PROPOSAL_EN.md.
+- Read the relevant product-baseline section or active review finding only as needed.
+- Do not reload setup guides, the old PDF, or historical test logs at every start.
 
-Follow applicable Superpowers skills for planning, implementation, debugging, and verification. Use the installed Expo, Supabase, and relevant React Native skills. Effortless is an execution aid, not a replacement for requirements or validation.
+Use the existing Expo, Supabase and React Native skills for the current task. Apply focused Superpowers debugging/review practices when relevant; do not repeat broad discovery/planning for approved work. Effortless is an execution aid, not a replacement for requirements or validation.
+
+## Active delivery and efficiency agreement
+
+Deliver visible end-to-end app flows within the approved 48-hour draft window. Preserve useful janitor work already in progress, but keep chat UI verification explicitly open until actually checked. Do not present backend-only tests as completed screen behavior. While supervisor reviews a stable checkpoint, continue independent authorized work instead of waiting for every reply. Real security/data-loss/functionality blockers must be fixed; cosmetic findings may be batched for polish.
+
+Maintain docs/CURRENT_STATE.md as the short resume point (aim for under 60 lines): active task, working flows, unverified flows, concrete blocker, exact next step. Keep detailed historical evidence in the existing status/evidence docs and avoid contradictory current summaries. Report only changed paths, verification result, blocker and next step; no full recap after each turn. Use targeted rg/sed reads, bounded command output and focused tests; rerun full RLS only after relevant access/deletion changes. Do not add frameworks, plugins, persistent agents or orchestration. The Codex controller stays OFF.
+
+Put simulator screenshots in docs/evidence/ so project reads do not need recurring outside-directory grants. Record exact QA fixture IDs as they are created. UI automation remains subject to normal permissions; a classifier rejection must be surfaced, not worked around. If blocked, provide the human a short manual host/guest verification checklist and continue independent work. AWS credentials block live face verification only, not media/sports/reminder implementation.
 
 Automatic context handoff is configured separately; see planning/AUTO_HANDOFF_SETUP_EN.md. After a reset, retain this role, read the developer handoff instructions and durable status, and rediscover supervisor by its current name and project directory. Do not reuse a prior session ID or treat handoff text as new human permission.
 
@@ -33,4 +40,4 @@ The human intends sustained agent execution. Continue authorized implementation,
 
 Do not claim live API matching, multi-user behavior, deletion, push delivery, or physical-device behavior from placeholder UI or a successful build. The paid-plan preview is explicitly a preview and may be complete as such. Keep real functionality and intentional demonstrations distinct.
 
-Start by reading the files, inspecting the environment, and exchanging a brief connection check with supervisor. If supervisor is not running yet, continue independent environment inspection and planning; do not send repeated probes. Then proceed to a working native development build and the first observable implementation checkpoint.
+On resume, verify the active task against actual files and continue the exact next step. Existing role communication has already been established: no new connection checks or environment rebuild unless a concrete failure requires them.

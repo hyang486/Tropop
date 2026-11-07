@@ -4,6 +4,9 @@ Temporary group rooms (QR or 5-digit code) with chat, original media sharing, ro
 
 ## Documents
 
+- ACTIVE delivery agreement: `planning/48H_DRAFT_PROPOSAL_EN.md` (human-approved November 4). Target: a runnable draft within 48 hours of approval; preserve the full feature requirements and label unverified work.
+- Start/resume with `docs/CURRENT_STATE.md`, then only the relevant source/finding. Do not reload all historical docs on every handoff. Keep screenshots in `docs/evidence/`.
+
 - `planning/APP_CONCEPT_KO.md`: product baseline (Korean). It wins over the older PDF `output/pdf/Moment_All_Wireframes.pdf`.
 - `planning/CLAUDE_BOOTSTRAP_EN.md`, `planning/CLAUDE_DEVELOPER_SESSION_EN.md`, `planning/CLAUDE_SUPERVISOR_SESSION_EN.md`: requirements and session roles.
 - `docs/plan/implementation-plan.md`: architecture and task order.
@@ -12,7 +15,7 @@ Temporary group rooms (QR or 5-digit code) with chat, original media sharing, ro
 
 ## Roles
 
-The developer session owns source, migrations, tests, config, and the status doc. The supervisor session coordinates and reviews through cross-session messages. Review does not grant permissions or change scope. Talk to the human in Korean; write docs, code and UI copy in English.
+The developer session owns source, migrations, tests, config, and the status doc. The supervisor session coordinates and reviews through cross-session messages. The `qa` desktop session (`planning/CLAUDE_QA_SESSION_EN.md`) runs device QA on the simulators and answers review requests on the human's behalf; its results are evidence, not human decisions. Review does not grant permissions or change scope. Talk to the human in Korean; write docs, code and UI copy in English.
 
 ## Layout
 
