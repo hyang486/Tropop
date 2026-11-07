@@ -9,6 +9,7 @@ import { RouteDrawLayer } from '@/components/route-draw-layer';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type Camera, type LatLng, MAX_ROUTE_POINTS } from '@/lib/location-plan';
+import { NO_POIS } from '@/lib/map-pois';
 import { appendStroke, isFlatNorthUp, joinStrokes, type MapRegion, type Point, type Size, strokeToRoute } from '@/lib/route-draw';
 
 const ROUTE_COLOR = '#FF9500';
@@ -152,8 +153,8 @@ export function RouteEditor({
           cameraPosition={startCamera ?? undefined}
           polylines={route.length > 1 ? [{ id: 'draft', coordinates: route, color: ROUTE_COLOR, width: 4 }] : []}
           // No Apple Maps place card when a store/POI is under a tap (human iPhone check, R-1). selectionEnabled:false
-          // alone still showed the card (qa, c4058f9), so POIs are hidden: including [] renders none, so none can be tapped.
-          properties={{ selectionEnabled: false, pointsOfInterest: { including: [] } }}
+          // alone still showed the card (qa, c4058f9), so POIs are hidden (NO_POIS) and none can be tapped.
+          properties={{ selectionEnabled: false, pointsOfInterest: NO_POIS }}
           onCameraMove={onCameraMove}
         />
         {pen ? <RouteDrawLayer color={ROUTE_COLOR} onStroke={onStroke} /> : null}

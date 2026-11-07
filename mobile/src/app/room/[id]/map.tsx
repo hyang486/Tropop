@@ -10,6 +10,7 @@ import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
+import { NO_POIS } from '@/lib/map-pois';
 import {
   getMyPosition,
   hasForegroundPermission,
@@ -344,12 +345,12 @@ function RoomMap({
               ? [{ id: 'route', coordinates: shownRoute, color: ROUTE_COLOR, width: 4 }]
               : []
           }
-          // No Apple Maps place card for stores/POIs: POIs are hidden (including []) because selectionEnabled:false alone
+          // No Apple Maps place card for stores/POIs: POIs are hidden (NO_POIS) because selectionEnabled:false alone
           // still showed the card (qa, c4058f9). Our markers and annotations still report clicks.
           properties={{
             isMyLocationEnabled: granted === true && (my.share || showingMine),
             selectionEnabled: false,
-            pointsOfInterest: { including: [] },
+            pointsOfInterest: NO_POIS,
           }}
           onCameraMove={onCameraMove}
         />
