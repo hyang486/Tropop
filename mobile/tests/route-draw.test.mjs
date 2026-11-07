@@ -7,6 +7,7 @@ import {
   appendStroke,
   isFlatNorthUp,
   joinStrokes,
+  regionPoint,
   screenToLatLng,
   simplifyStroke,
   strokeToRoute,
@@ -107,6 +108,43 @@ test('a stroke becomes route coordinates; a tap is dropped', () => {
   close(route[1].longitude, SF.longitude + r.longitudeDelta / 2);
   assert.deepEqual(strokeToRoute([{ x: 10, y: 10 }], SIZE, r), []);
   assert.deepEqual(strokeToRoute([], SIZE, r), []);
+});
+
+// R1-D: numbers from the editor on an iPhone 17 Pro simulator (402 x 874 pt, safe area top 62 / bottom 34).
+// MapKit reported a region whose latitude span covers exactly 778 pt (874 - 62 - 34): the region is the
+// map's safe area, so its center is at y = 62 + 778 / 2 = 451, not at the view's middle (437).
+const PHONE = { width: 402, height: 874 };
+const PHONE_INSETS = { top: 62, right: 0, bottom: 34, left: 0 };
+const LA = {
+  center: { latitude: 34.03937068505354, longitude: -118.2567966179815 },
+  longitudeDelta: 0.01902186534117334,
+  zoom: 14.208050557965521,
+  bearing: 0,
+  tilt: 0,
+};
+const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+
+test('R1-D: a view point is moved into the safe-area frame MapKit reports its region for', () => {
+  const { point, size } = regionPoint({ x: 100, y: 300 }, PHONE, PHONE_INSETS);
+  assert.deepEqual(point, { x: 100, y: 238 });
+  assert.deepEqual(size, { width: 402, height: 778 });
+  // No insets: the view is the frame.
+  assert.deepEqual(regionPoint({ x: 5, y: 6 }, SIZE, { top: 0, right: 0, bottom: 0, left: 0 }), {
+    point: { x: 5, y: 6 },
+    size: SIZE,
+  });
+});
+
+test('R1-D: under the safe areas, the safe-area center (not the view middle) is the region center', () => {
+  const [a, b] = strokeToRoute([{ x: 201, y: 451 }, { x: 201, y: 300 }], PHONE, LA, PHONE_INSETS);
+  close(a.latitude, LA.center.latitude);
+  close(a.longitude, LA.center.longitude);
+  // The finger at y = 300 is 151 pt above the region center: the saved point must be exactly there.
+  const scale = PHONE.width / ((LA.longitudeDelta * Math.PI) / 180);
+  close((mercY(b.latitude) - mercY(LA.center.latitude)) * scale, 151, 1e-6);
+  // Without the insets the same finger lands 14 pt lower (the R1-D bug).
+  const [, wrong] = strokeToRoute([{ x: 201, y: 451 }, { x: 201, y: 300 }], PHONE, LA);
+  close((mercY(wrong.latitude) - mercY(LA.center.latitude)) * scale, 137, 1e-6);
 });
 
 test('strokes join in drawing order and stay within the point limit', () => {

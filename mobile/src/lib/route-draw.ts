@@ -4,6 +4,9 @@ import type { LatLng } from './location-plan';
 
 export type Point = { x: number; y: number };
 export type Size = { width: number; height: number };
+export type Insets = { top: number; right: number; bottom: number; left: number };
+
+const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
 
 /** The visible map region as expo-maps reports it in onCameraMove (after each camera move ends). */
 export type MapRegion = {
@@ -55,6 +58,19 @@ export function screenToLatLng(point: Point, size: Size, region: MapRegion): Lat
   return { latitude, longitude };
 }
 
+/**
+ * R1-D: MapKit (SwiftUI Map) reports its region for the map's safe area, not the whole view. A map that runs
+ * under the status bar and home indicator (the full-screen editor) reports a region 874 - 62 - 34 = 778 pt
+ * tall on a 402 x 874 pt iPhone, centered at y = 451 instead of 437. A view point is therefore moved into
+ * that safe-area frame before it is converted. A point outside the frame (under a bar) still converts.
+ */
+export function regionPoint(point: Point, size: Size, insets: Insets): { point: Point; size: Size } {
+  return {
+    point: { x: point.x - insets.left, y: point.y - insets.top },
+    size: { width: size.width - insets.left - insets.right, height: size.height - insets.top - insets.bottom },
+  };
+}
+
 /** Adds a finger position to the live stroke unless it is within MIN_STEP_PT of the last one. */
 export function addStrokePoint(stroke: Point[], next: Point, minStep = MIN_STEP_PT): Point[] {
   const last = stroke[stroke.length - 1];
@@ -93,9 +109,12 @@ export function simplifyStroke(points: Point[], tolerance = SIMPLIFY_TOLERANCE_P
  * are skipped. A tap (fewer than 2 points) gives nothing: kept, it would be an invisible point that the next
  * stroke joins with a straight jump.
  */
-export function strokeToRoute(stroke: Point[], size: Size, region: MapRegion): LatLng[] {
+export function strokeToRoute(stroke: Point[], size: Size, region: MapRegion, insets: Insets = NO_INSETS): LatLng[] {
   const points = simplifyStroke(stroke)
-    .map((p) => screenToLatLng(p, size, region))
+    .map((p) => {
+      const frame = regionPoint(p, size, insets);
+      return screenToLatLng(frame.point, frame.size, region);
+    })
     .filter((p): p is LatLng => p !== null);
   return points.length < 2 ? [] : points;
 }

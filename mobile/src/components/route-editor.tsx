@@ -123,7 +123,9 @@ export function RouteEditor({
   function onStroke(stroke: Point[], size: Size) {
     const current = region.current;
     if (!current) return;
-    const next = appendStroke(draft, strokeToRoute(stroke, size, current), MAX_ROUTE_POINTS);
+    // R1-D: the map fills the Modal under the status bar and home indicator, and MapKit reports its region for
+    // the safe area inside it, so the stroke is converted in that frame (the draw layer covers the whole Modal).
+    const next = appendStroke(draft, strokeToRoute(stroke, size, current, insets), MAX_ROUTE_POINTS);
     if (next.truncated) setNote('truncated');
     setDraft(next.strokes);
   }
