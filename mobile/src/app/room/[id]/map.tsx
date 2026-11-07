@@ -22,11 +22,13 @@ import {
   useSharingState,
 } from '@/lib/location';
 import {
-  centerOf,
+  type Camera,
+  cameraFor,
   formatAge,
   formatSpeedKmh,
   isStale,
   type LatLng,
+  MAX_CAMERA_ZOOM,
   MAX_ROUTE_POINTS,
   parseRoute,
   type PinInput,
@@ -166,22 +168,29 @@ function RoomMap({
   }, [granted]);
 
   // Center once on the first route or position (or, until there is one, on the user's own position);
-  // after that only the Recenter button moves the camera.
-  const pointsCenter = useMemo(
-    () => centerOf([...savedRoute, ...presence.rows.map((r) => ({ latitude: r.lat, longitude: r.lng }))]),
+  // after that only the Recenter button moves the camera. F5-3: the zoom fits the points' span.
+  // F5-4: the first centering goes through the cameraPosition prop, which expo-maps applies once the
+  // native view exists; an imperative call right after mount could reject ("Unable to find the view").
+  const pointsCamera = useMemo(
+    () => cameraFor([...savedRoute, ...presence.rows.map((r) => ({ latitude: r.lat, longitude: r.lng }))]),
     [savedRoute, presence.rows],
   );
-  const center = pointsCenter ?? myPosition;
+  const camera = useMemo<Camera | null>(
+    () => pointsCamera ?? (myPosition ? { coordinates: myPosition, zoom: MAX_CAMERA_ZOOM } : null),
+    [pointsCamera, myPosition],
+  );
+  const [initialCamera, setInitialCamera] = useState<Camera | null>(null);
   const centeredOn = useRef<'none' | 'mine' | 'points'>('none');
   useEffect(() => {
-    if (centeredOn.current === 'points' || !center) return;
-    if (!pointsCenter && centeredOn.current === 'mine') return;
-    centeredOn.current = pointsCenter ? 'points' : 'mine';
-    mapRef.current?.setCameraPosition({ coordinates: center, zoom: 15 });
-  }, [center, pointsCenter]);
+    if (centeredOn.current === 'points' || !camera) return;
+    if (!pointsCamera && centeredOn.current === 'mine') return;
+    centeredOn.current = pointsCamera ? 'points' : 'mine';
+    // A one-time snapshot: later moves of the points must not move the camera.
+    setInitialCamera(camera);
+  }, [camera, pointsCamera]);
 
   function recenter() {
-    if (center) mapRef.current?.setCameraPosition({ coordinates: center, zoom: 15 });
+    if (camera) mapRef.current?.setCameraPosition(camera).catch(() => {});
   }
 
   async function run(key: string, action: () => Promise<void>) {
@@ -292,6 +301,7 @@ function RoomMap({
         <AppleMaps.View
           ref={mapRef}
           style={styles.map}
+          cameraPosition={initialCamera ?? undefined}
           markers={markers}
           annotations={annotations}
           polylines={
@@ -302,7 +312,7 @@ function RoomMap({
           properties={{ isMyLocationEnabled: my.share && granted === true }}
           onMapClick={draft ? onMapClick : undefined}
         />
-        {center ? (
+        {camera ? (
           <Pressable accessibilityRole="button" onPress={recenter} style={styles.recenter}>
             <Text style={styles.link}>{en.map.recenter}</Text>
           </Pressable>

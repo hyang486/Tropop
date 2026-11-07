@@ -168,16 +168,41 @@ export function toRoutePayload(points: LatLng[]): { lat: number; lng: number }[]
   return points.filter(isValidLatLng).slice(0, MAX_ROUTE_POINTS).map((p) => ({ lat: p.latitude, lng: p.longitude }));
 }
 
-/** Camera center for a set of points (their bounding-box middle), or null when empty. */
-export function centerOf(points: LatLng[]): LatLng | null {
+export type Camera = { coordinates: LatLng; zoom: number };
+
+/** Street level: a single point, or points closer together than this. */
+export const MAX_CAMERA_ZOOM = 15;
+/** Whole-world view for points spread across the globe. */
+export const MIN_CAMERA_ZOOM = 1;
+/** Margin around the points, as a factor of their span. */
+const CAMERA_PADDING = 1.4;
+
+/**
+ * Camera that shows all points (F5-3): the middle of their bounding box, zoomed to fit their span
+ * instead of a fixed street-level zoom. expo-maps maps zoom to a longitude span of 360 / 2^zoom degrees.
+ * Longitudes are taken across the antimeridian when that span is shorter. Null when there are no points.
+ */
+export function cameraFor(points: LatLng[]): Camera | null {
   const valid = points.filter(isValidLatLng);
   if (valid.length === 0) return null;
   const lats = valid.map((p) => p.latitude);
+  const latSpan = Math.max(...lats) - Math.min(...lats);
+  const latitude = (Math.min(...lats) + Math.max(...lats)) / 2;
+
   const lngs = valid.map((p) => p.longitude);
-  return {
-    latitude: (Math.min(...lats) + Math.max(...lats)) / 2,
-    longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
-  };
+  const wrapped = lngs.map((l) => (l < 0 ? l + 360 : l));
+  const plainSpan = Math.max(...lngs) - Math.min(...lngs);
+  const wrappedSpan = Math.max(...wrapped) - Math.min(...wrapped);
+  const useWrapped = wrappedSpan < plainSpan;
+  const range = useWrapped ? wrapped : lngs;
+  let longitude = (Math.min(...range) + Math.max(...range)) / 2;
+  if (longitude > 180) longitude -= 360;
+  const lngSpan = useWrapped ? wrappedSpan : plainSpan;
+
+  const span = Math.max(latSpan, lngSpan) * CAMERA_PADDING;
+  const fit = span > 0 ? Math.log2(360 / span) : MAX_CAMERA_ZOOM;
+  const zoom = Math.min(MAX_CAMERA_ZOOM, Math.max(MIN_CAMERA_ZOOM, fit));
+  return { coordinates: { latitude, longitude }, zoom };
 }
 
 /**
