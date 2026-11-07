@@ -344,7 +344,8 @@ function RoomMap({
               ? [{ id: 'route', coordinates: shownRoute, color: ROUTE_COLOR, width: 4 }]
               : []
           }
-          properties={{ isMyLocationEnabled: granted === true && (my.share || showingMine) }}
+          // selectionEnabled false: no Apple Maps place card for stores/POIs; our markers still report clicks.
+          properties={{ isMyLocationEnabled: granted === true && (my.share || showingMine), selectionEnabled: false }}
           onCameraMove={onCameraMove}
         />
         <Pressable

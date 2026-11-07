@@ -151,6 +151,8 @@ export function RouteEditor({
           style={StyleSheet.absoluteFill}
           cameraPosition={startCamera ?? undefined}
           polylines={route.length > 1 ? [{ id: 'draft', coordinates: route, color: ROUTE_COLOR, width: 4 }] : []}
+          // No Apple Maps place card when a store/POI is under a tap (human iPhone check, R-1).
+          properties={{ selectionEnabled: false }}
           onCameraMove={onCameraMove}
         />
         {pen ? <RouteDrawLayer color={ROUTE_COLOR} onStroke={onStroke} /> : null}
