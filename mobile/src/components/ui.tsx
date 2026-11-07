@@ -22,6 +22,13 @@ export const colors = {
   warning: PlatformColor('systemOrange'),
 };
 
+/**
+ * J-1: under the translucent iOS 26 header the scroll view rests at a negative offset
+ * (-adjustedContentInset.top). On every keyboard frame change, RN 0.88's automaticallyAdjustKeyboardInsets
+ * calls scrollTo, which clamps y to >= -contentInset.top (the raw inset, 0) and ignores the automatic
+ * inset, so the content jumped up under the header and stayed there after the keyboard closed.
+ * scrollToOverflowEnabled skips that clamp; the keyboard handler still scrolls a hidden field into view.
+ */
 export function Screen({ children }: { children: ReactNode }) {
   return (
     <ScrollView
@@ -29,6 +36,7 @@ export function Screen({ children }: { children: ReactNode }) {
       contentContainerStyle={styles.screen}
       contentInsetAdjustmentBehavior="automatic"
       automaticallyAdjustKeyboardInsets
+      scrollToOverflowEnabled
       keyboardShouldPersistTaps="handled"
     >
       {children}
