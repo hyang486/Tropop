@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { en } from '@/i18n/en';
 
-import { classifyMatchRun, type MatchRun } from './face-plan';
+import { classifyMatchRun, faceRefResize, type MatchRun } from './face-plan';
 import { supabase } from './supabase';
 
 /**
@@ -18,8 +18,6 @@ import { supabase } from './supabase';
 export function faceRefPath(roomId: string, userId: string, id: string) {
   return `${roomId}/${userId}/ref-${id}.jpg`;
 }
-
-const REF_WIDTH = 1280;
 
 /**
  * Lets the member take or choose a reference photo. Returns a local JPEG (re-encoded on the device,
@@ -37,8 +35,10 @@ export async function pickFaceReference(source: 'camera' | 'library'): Promise<s
   }
   const asset = result.canceled ? undefined : result.assets[0];
   if (!asset) return null;
-  const resize = asset.width > REF_WIDTH ? { width: REF_WIDTH } : {};
-  const ref = await ImageManipulator.manipulate(asset.uri).resize(resize).renderAsync();
+  let context = ImageManipulator.manipulate(asset.uri);
+  const resize = faceRefResize(asset.width);
+  if (resize) context = context.resize(resize);
+  const ref = await context.renderAsync();
   const saved = await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.85 });
   return saved.uri;
 }

@@ -62,3 +62,15 @@ export function faceViewState(s: { enrolled: boolean; run: MatchRun | null; pend
   if (s.run?.kind === 'error') return 'error';
   return s.pending > 0 ? 'checking' : 'ready';
 }
+
+/** Longest side kept for a face reference; wider images are scaled down to this width. */
+export const FACE_REF_WIDTH = 1280;
+
+/**
+ * F7-1: the resize for a face reference, or null to keep the size. Never an empty `{}`: expo-image-manipulator
+ * 58 then renders a 0x0 image and saveAsync fails ("Cannot create image data"), which broke every reference
+ * not wider than FACE_REF_WIDTH. An unknown or invalid width also keeps the size.
+ */
+export function faceRefResize(width: number | null | undefined): { width: number } | null {
+  return typeof width === 'number' && Number.isFinite(width) && width > FACE_REF_WIDTH ? { width: FACE_REF_WIDTH } : null;
+}

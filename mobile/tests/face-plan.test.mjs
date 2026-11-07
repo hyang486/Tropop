@@ -2,7 +2,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { classifyMatchRun, faceJobCounts, faceViewState, photosOfMe, shouldRunMatch } from '../src/lib/face-plan.ts';
+import {
+  classifyMatchRun,
+  FACE_REF_WIDTH,
+  faceJobCounts,
+  faceRefResize,
+  faceViewState,
+  photosOfMe,
+  shouldRunMatch,
+} from '../src/lib/face-plan.ts';
 
 const NOW = Date.parse('2026-11-06T22:00:00Z');
 const ago = (min) => new Date(NOW - min * 60_000).toISOString();
@@ -77,4 +85,19 @@ test('shouldRunMatch (FG-2): only right after enrolling or while jobs are pendin
   assert.equal(shouldRunMatch(true, 0), true);
   assert.equal(shouldRunMatch(false, 2), true);
   assert.equal(shouldRunMatch(false, 0), false);
+});
+
+test('faceRefResize: references up to the limit keep their size, never an empty resize (F7-1)', () => {
+  assert.equal(faceRefResize(800), null); // QA-pattern.jpg
+  assert.equal(faceRefResize(FACE_REF_WIDTH), null);
+  assert.equal(faceRefResize(1), null);
+});
+
+test('faceRefResize: wider references are scaled down to the limit', () => {
+  assert.deepEqual(faceRefResize(4032), { width: FACE_REF_WIDTH }); // typical iPhone camera JPEG/HEIC
+  assert.deepEqual(faceRefResize(FACE_REF_WIDTH + 1), { width: FACE_REF_WIDTH });
+});
+
+test('faceRefResize: an unknown or invalid width keeps the size', () => {
+  for (const w of [0, -5, NaN, Infinity, null, undefined]) assert.equal(faceRefResize(w), null);
 });
