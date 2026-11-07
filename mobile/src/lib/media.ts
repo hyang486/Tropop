@@ -78,7 +78,7 @@ export function authHeaders(accessToken: string): Record<string, string> {
   return { Authorization: `Bearer ${accessToken}`, apikey: SUPABASE_PUBLISHABLE_KEY };
 }
 
-async function freshToken() {
+export async function freshToken() {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error(en.errors.notSignedIn);
