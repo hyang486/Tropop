@@ -4,7 +4,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { type FaceData, lastMatchRun, loadFaceData, runFaceMatch } from '@/lib/face';
+import { clearMatchRun, type FaceData, lastMatchRun, loadFaceData, runFaceMatch } from '@/lib/face';
 import { faceJobCounts, faceViewState, type MatchRun, photosOfMe, shouldRunMatch } from '@/lib/face-plan';
 import { errorMessage } from '@/lib/errors';
 import type { Media } from '@/lib/media';
@@ -44,6 +44,8 @@ export function PhotosOfMe({ roomId, userId, media, columns, gap, renderTile, on
   /** Loads my face data and, only while jobs are pending (FG-2), asks the service once to process them. */
   const refresh = useCallback(async () => {
     const next = await load();
+    // F7-2: pick up a run made elsewhere (the enrollment screen) while this view stayed mounted.
+    setRun(lastMatchRun(roomId));
     if (!next?.enrollment || runningRef.current) return;
     if (!shouldRunMatch(false, faceJobCounts(next.jobs, Date.now()).pending)) return;
     runningRef.current = true;
@@ -111,6 +113,7 @@ export function PhotosOfMe({ roomId, userId, media, columns, gap, renderTile, on
           variant="secondary"
           busy={running}
           onPress={() => {
+            clearMatchRun(roomId);
             setRun(null);
             refresh();
           }}

@@ -74,3 +74,21 @@ export const FACE_REF_WIDTH = 1280;
 export function faceRefResize(width: number | null | undefined): { width: number } | null {
   return typeof width === 'number' && Number.isFinite(width) && width > FACE_REF_WIDTH ? { width: FACE_REF_WIDTH } : null;
 }
+
+/**
+ * F7-2: the last face-match result per room. A run started on the enrollment screen must show in the
+ * gallery that is already open underneath, so the view re-reads this on focus. A newer run replaces the
+ * entry; rooms never share one; removing the enrollment or retrying clears it.
+ */
+export function createMatchRunCache() {
+  const runs = new Map<string, MatchRun>();
+  return {
+    get: (roomId: string): MatchRun | null => runs.get(roomId) ?? null,
+    set: (roomId: string, run: MatchRun) => {
+      runs.set(roomId, run);
+    },
+    clear: (roomId: string) => {
+      runs.delete(roomId);
+    },
+  };
+}

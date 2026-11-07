@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { en } from '@/i18n/en';
 
-import { classifyMatchRun, faceRefResize, type MatchRun } from './face-plan';
+import { classifyMatchRun, createMatchRunCache, faceRefResize, type MatchRun } from './face-plan';
 import { supabase } from './supabase';
 
 /**
@@ -66,7 +66,9 @@ export async function enrollFace(roomId: string, photoUri: string): Promise<{ en
 /** Removes the member's reference and match results for this room. The janitor deletes the stored object. */
 export async function removeFaceEnrollment(roomId: string) {
   const { error } = await supabase.rpc('remove_face_enrollment', { p_room_id: roomId });
-  return error ? { error: error.message } : { ok: true as const };
+  if (error) return { error: error.message };
+  clearMatchRun(roomId);
+  return { ok: true as const };
 }
 
 export type FaceEnrollment = { id: string; ref_path: string; created_at: string };
@@ -94,10 +96,15 @@ export async function loadFaceData(roomId: string, userId: string): Promise<Face
 }
 
 // The last face-match result per room, so the gallery knows about a run started by the enrollment screen.
-const lastRuns = new Map<string, MatchRun>();
+const lastRuns = createMatchRunCache();
 
 export function lastMatchRun(roomId: string): MatchRun | null {
-  return lastRuns.get(roomId) ?? null;
+  return lastRuns.get(roomId);
+}
+
+/** Forgets the room's last run (Retry, or the enrollment was removed). */
+export function clearMatchRun(roomId: string) {
+  lastRuns.clear(roomId);
 }
 
 /**

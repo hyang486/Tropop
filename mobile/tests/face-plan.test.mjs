@@ -4,6 +4,7 @@ import { test } from 'node:test';
 
 import {
   classifyMatchRun,
+  createMatchRunCache,
   FACE_REF_WIDTH,
   faceJobCounts,
   faceRefResize,
@@ -100,4 +101,37 @@ test('faceRefResize: wider references are scaled down to the limit', () => {
 
 test('faceRefResize: an unknown or invalid width keeps the size', () => {
   for (const w of [0, -5, NaN, Infinity, null, undefined]) assert.equal(faceRefResize(w), null);
+});
+
+test('match run cache: a run made elsewhere is readable for that room only (F7-2)', () => {
+  const cache = createMatchRunCache();
+  assert.equal(cache.get('r1'), null);
+  cache.set('r1', { kind: 'disabled' });
+  assert.deepEqual(cache.get('r1'), { kind: 'disabled' });
+  assert.equal(cache.get('r3'), null);
+});
+
+test('match run cache: a newer run replaces the old one', () => {
+  const cache = createMatchRunCache();
+  cache.set('r1', { kind: 'disabled' });
+  cache.set('r1', { kind: 'ok' });
+  assert.deepEqual(cache.get('r1'), { kind: 'ok' });
+  cache.set('r1', { kind: 'error', message: 'HTTP 500' });
+  assert.equal(cache.get('r1').kind, 'error');
+});
+
+test('match run cache: clear forgets one room and keeps the others', () => {
+  const cache = createMatchRunCache();
+  cache.set('r1', { kind: 'disabled' });
+  cache.set('r2', { kind: 'ok' });
+  cache.clear('r1');
+  assert.equal(cache.get('r1'), null);
+  assert.deepEqual(cache.get('r2'), { kind: 'ok' });
+});
+
+test('a cached disabled run shows the disabled notice once enrolled, even with nothing pending (F7-2)', () => {
+  const cache = createMatchRunCache();
+  cache.set('r1', { kind: 'disabled' });
+  assert.equal(faceViewState({ enrolled: true, run: cache.get('r1'), pending: 0 }), 'disabled');
+  assert.equal(faceViewState({ enrolled: false, run: cache.get('r1'), pending: 0 }), 'consent');
 });
