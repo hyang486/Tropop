@@ -543,7 +543,10 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   mapFeatureSelectionAccessory nil). tsc/lint clean, 116/116. Waiting for qa sim check, then the human's iPhone re-check.
   qa sim FAIL on c4058f9: the room-map City Hall POI still opened the place card, because accessory nil is not
   'off' (evidence 2026-11-07-r1-poi-card-still-shows-c4058f9.png). v2 a025558: pointsOfInterest { including: [] } on both maps
-  hides all POIs (mapStyle, iOS 17 and 18 views). Trade-off: no store/landmark labels. tsc/lint, 116/116. Waiting for qa
-  re-check and supervisor review.
+  was meant to hide all POIs, but qa sim FAIL: POIs still rendered (evidence 2026-11-07-r1-poi-still-visible-a025558.png).
+  v3 cf8af60: NO_POIS (src/lib/map-pois.ts) = excluding all 74 AppleMaps.PointOfInterestCategory values; supervisor code
+  ACK. Caveat: categories added in later SDKs are not covered. Option B (editor only) = 405c760 on r1c-poi-editor-only,
+  stale (based on a025558). If v3 fails: canary (mapType HYBRID, uncommitted) plus full reload to prove properties reach
+  native before any native patch. Trade-off for the human: no store/landmark labels.
 - Guest 4 user 49f93ead-65ae-468b-84be-a273edcec5e3: human ordered deletion directly; 2 execute_sql prompts expired
   unanswered. Not deleted yet.
