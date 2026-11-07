@@ -20,6 +20,41 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   end_room/expiry transition is still sent. Test dry run PASS. Supervisor accepted it.
 - Arrival/status/Emergency (0016, activity.ts, room-activity.tsx): server path live PASS through S1.
 
+## Open work, 2026-11-07 (branches not merged)
+- FM-Q A′-2 temporary detection copies (human GO 2026-11-07): commit 2a4249d on branch fmq-detect-copy (parent
+  d0ec958). Supervisor review ACK, no blockers; do not merge yet. functions 37/37, mobile 112/112, tsc/lint clean.
+  NOT applied/deployed: migration 20261104000022_face_detect_copies.sql, DB test supabase/tests/face_detect_test.sql,
+  face-match + room-janitor deploy. Order: migration → DB test → functions → client. Each step waits for the human's OK via qa.
+  - (0) EXIF/GPS check PASS (01:43 PST, spare sim, local only, no upload): GPS1.HEIC (consented; GPS 34.015,-118.291,
+    Make Apple / iPhone 16 Pro) → the same steps as uploadDetectCopy (manipulate → resize(detectResize) → JPEG 0.85)
+    → 1920x2560, 1,260,148 B. Byte-level JPEG walk: no GPS IFD (0x8825), no Make/Model/DateTime, no XMP; EXIF keeps
+    only Orientation=1, X/YResolution, ResolutionUnit, PixelX/YDimension; APP13 = empty IPTC + empty-MD5 digest.
+    Harness route, sim copies, the ImageManipulator cache file and the scratch copy were deleted. Note (not verified):
+    the harness passed raw 5712x4284, so the long edge became 2560; real uploads pass picker dimensions (expected
+    upright 4284x5712 → 1440x1920).
+  - Was: local EXIF/GPS check of the saved detection JPEG on the spare sim (uncommitted
+    keep-file flag, one human-consented GPS-tagged test image, exiftool/sips). Needs that image from the human.
+  - Re-check pass criteria: 0 detect_fallback for the 3 jobs, CompareFaces ≤ approved count (expected 3, worst
+    case 9), detect/ empty afterwards, DB test PASS right after the migration.
+  - Known: (1) a transient failure re-queues the job but the copy is already deleted, so a later run without a new
+    copy falls back to the preview (logged as detect_fallback); (2) an enrolled member can upload any image at their
+    own detect path and get a false match in their own Photos of me only (low risk); (3) open item: runFaceMatch
+    downloads each full original (up to 50 MB) on any network.
+- R1-C full-screen route editor: commit bd54600 on branch r1c-fullscreen-pen (based on r1-freehand-route 4fc75b5,
+  not on main). The repro (qa, spare sim 91F3BFB3) showed the stack back-swipe taking left-to-right strokes and the
+  locked page hiding the route controls. Fix: Modal editor (outside the stack) with its own map, top bar
+  Cancel/Done, bottom Pen/Undo/Clear, and strokes through an rngh v3 Pan (native module present in the installed
+  dev build). tsc/lint clean, npm test 114/114. Metro 8086 = wt-r1c; 8087 = repro tree. qa spare-sim (a)–(e) +
+  Undo PASS (evidence 2026-11-07-r1c-fix-*.png). Not on a real iPhone yet.
+- R1-D (strokes ~13 pt low in the editor): fixed in commit 7c5ade6 on r1c-fullscreen-pen. Measured cause: gesture
+  points were exact (touch 100,300 → e.x/y 100,300, layer at window 0,0, Modal insets top 62/bottom 34), but
+  MapKit's reported region spans exactly 778 pt (= 874 − 62 − 34), i.e. the safe area, centered at y 451 while
+  the conversion used 437 → 14 pt low. Fix: regionPoint() moves points into the safe-area frame; unit tests with
+  the sim numbers. npm test 116/116, tsc/lint clean. Spare sim: y=300 stroke now at 300.0 pt (was ~311.7)
+  (evidence 2026-11-07-r1d-before-offset.png / -after-fix.png). Supervisor ACK. qa re-check on 8086 PASS (touch y300 →
+  line y299.6, y650 → 649.7, x matches; evidence 2026-11-07-r1d-qa-recheck.png). Remaining: the human's iPhone check
+  (different insets = the real test). Not merged.
+
 ## Face matching live test, 2026-11-06 (PASS, supervisor-verified)
 - Run plan v2: docs/face-match-connection-test-plan.md. Details and exact IDs: docs/implementation-status.md.
 - One `face-match` request at 05:40:25Z made 3 AWS CompareFaces calls (attempts sum 3, no retries):
@@ -490,3 +525,16 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Focused checks for focused changes; full RLS after access/deletion changes.
 - Metro must not run with CI=1 (no file watching, stale bundle).
 - No new skills/frameworks/orchestration. The Codex controller and heartbeat are OFF.
+
+## Pause point, 2026-11-07 (Mac restart)
+- FM-Q ①: DONE 2026-11-07 ~19:29Z. Migration 0022 `face_detect_copies` applied (remote 20261107192806);
+  face_detect_test PASSED before (dry run) and after; leftovers 0; advisors unchanged. Test fix bfc76ac on branch
+  fmq-detect-copy (must be in the main merge). Worktree: session scratchpad `wt-fmq` (recreated after the restart).
+  FM-Q ②: face-match v8 + room-janitor v8 deployed 19:33–19:34Z (supervisor GO; verify_jwt=false kept). Smoke (a) probe 200,
+  (b) no JWT 401 PASS; (c) 19:45Z cron run detectRemoved 0, no detect_sweep_error PASS. Supervisor ② ACK + ③ GO.
+  FM-Q ③ (19:49–19:51Z, room 14479): server-side PASS. CompareFaces 3, A1 100 / A2 99.9986 matched, B1 not matched,
+  0 detect_fallback, 0 detect objects left; UI PASS (Me tab A1+A2 only). Supervisor ACK. MERGED: main = bfc76ac.
+  Caveat: detect size NOT VERIFIED; real-iPhone HEIC long edge open. Cleanup: test media/enrollment deleted, 4 cleanup jobs
+  queued. OPEN: sim photo copies (qa UI), room 14479 expiry 22:37Z → zero-count check, Guest 4 user 49f93ead delete
+  (classifier-blocked, human decides).
+- R1-C/R1-D: sim PASS (qa), awaiting the human's iPhone check. Not merged.
