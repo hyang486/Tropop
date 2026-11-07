@@ -560,5 +560,7 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   POSTs (Moment/1 CFNetwork) to room-media/<room>/<media>/detect/53d00236….jpg at 19:50:35.355/35.432/36.768Z. face-match
   GET each detect copy (19:50:39.9/43.8/47.1Z) and deleted all 3 (19:50:43–49Z). No detect_fallback in function_logs.
   So the wt-fmq symlink did not affect that run. Still NOT VERIFIED: detect copy size/dimensions; real-iPhone HEIC.
+- Room 14479 (e14cb754-f287-43ec-8fe5-3b9811228094) after expiry 22:37Z and the 22:45Z janitor: read 22:48:07Z → rooms 0,
+  members 0, media 0, messages 0, storage objects (room-media + face-refs prefix) 0. DONE.
 - Guest 4 user 49f93ead-65ae-468b-84be-a273edcec5e3: human ordered deletion directly; 2 execute_sql prompts expired
   unanswered. Not deleted yet.
