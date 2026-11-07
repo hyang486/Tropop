@@ -1,4 +1,5 @@
-// face-match Edge Function (deployed 2026-11-06, verify_jwt=false; FACE_MATCH_ENABLED unset, so no AWS calls).
+// face-match Edge Function (deployed 2026-11-06, verify_jwt=false). FACE_MATCH_ENABLED is OFF by default; AWS is called
+// only while it is exactly 'true'. Live test with rights-cleared photos: PASS 2026-11-06, switch OFF again afterwards.
 // A signed-in member calls it to process queued face_jobs for THEIR OWN enrollments.
 // Secrets (set by the human, never logged): AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION.
 // Order: 405 (not POST) -> 401 (no valid user JWT) -> 503 switch -> 503 AWS config.

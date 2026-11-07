@@ -20,6 +20,99 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   end_room/expiry transition is still sent. Test dry run PASS. Supervisor accepted it.
 - Arrival/status/Emergency (0016, activity.ts, room-activity.tsx): server path live PASS through S1.
 
+## Face matching live test, 2026-11-06 (PASS, supervisor-verified)
+- Run plan v2: docs/face-match-connection-test-plan.md. Details and exact IDs: docs/implementation-status.md.
+- One `face-match` request at 05:40:25Z made 3 AWS CompareFaces calls (attempts sum 3, no retries):
+  - A1↔A2 (same person): similarity 99.998, matched.
+  - A1↔B1 (different person): no match ≥ 80, not matched.
+  - The existing R2 QA photo (no face): `bad_image`.
+- Photos were sent as GPS/EXIF-stripped copies. All subjects consented. Nothing was committed.
+- Cleanup by exact ID: users, enrollment, jobs, matches and test media are 0. The 3 storage objects are 0 (janitor
+  verified 05:45:03Z). The state file and copies are deleted.
+- R5 log check: no keys, image data or tokens in the function logs (developer-run 05:47Z; the supervisor did not
+  re-query the logs).
+- FACE_MATCH_ENABLED is now OFF: set false by the human at 21:41:34 PST; probe 503 at 05:41:51Z.
+- AWS is on the Free plan, so the AI-services opt-out is deferred (Organizations needs a paid upgrade). Before launch:
+  upgrade + budget alert + opt-out (a separate human decision). Real participant photos stay BLOCKED until then.
+  AWS-side retention is not claimed.
+- R2 (016c49bf…) ended early by human decision (21:47 PST): expires_at = now() at 05:46:51.861Z (1 row); purged 06:00Z
+  (room-janitor cron run succeeded), supervisor zero-count PASS (read 06:00:04Z: rooms/members/messages/media/
+  reminders 0, R2 objects 0, face rows 0, room_deleted cleanup job verified_empty 06:00:03Z).
+- R1 3514615f… (code 03424) is still live until 2026-11-10T21:43Z (developer read 06:00Z).
+- Step 9 (D1 account deletion): PASS, supervisor-verified on the server (live log 20:17 PST), reported by qa.
+- F5-1b (iOS location permission string) goes into the next build.
+
+## Final draft QA setup (2026-11-06 ~13:40 PST)
+- Approval: planning/CODEX_QA_ADDITIONAL_APPROVAL_2026-11-06.md (at most 3 rooms, exactly 1 disposable account). Steps are in
+  docs/reviews/codex-final-qa-steps.md (supervisor-owned). Developer setup notes and generated fixtures:
+  docs/evidence/final-qa/SETUP.md. D1 sim: iPhone 17e 6E0F2097-…1773, booted, app installed.
+- The LAN IP changed to 172.16.227.159. Dev clients must use http://127.0.0.1:8081, because the old 192.168.1.131 entry is dead.
+  Host and guest are waiting on an "Open in Moment?" tap (Codex). The developer has created no rooms or accounts.
+
+## Final draft QA results so far (2026-11-06, sims host 17 / guest 17 Pro, room R1)
+- Step 1 status editor (d512dad): host edit/save, alert, guest picker and read-only list PASS on sim; the server matches.
+  SE-2 (rename = remove + add; clears holders, the alert says so) accepted as designed.
+- SE-1 fixed in 7092911 (Room info and status list refresh live on broadcast notices; host draft guard by code
+  review only). Codex re-check PASS: the open guest Info showed "On a break" without a reopen.
+- Step 2 Activity UI PASS on sim: Arrived, status, Emergency → host banner → ack → guest "I'm OK" clear; the supervisor
+  cross-checked the server rows.
+- Step 3a: two-way chat with the keyboard open PASS on the guest. Host FAILED (C-1): the chat was trapped in the Invite modal sheet,
+  so the composer was under the keyboard. Fix e5fd2e0 (Invite "Done" → dismiss; C-2 native clear() after Send),
+  on main 14:10 PST. C-1 PASS on sim (pushed screen, composer above the keyboard; Invite Done PASS).
+- C-2 root cause (trace, 14:21): ~1 ms after Send, iOS inserts the composed word into the input, refilling it after
+  any programmatic clear. Fix: remount the composer after Send (lib/composer.ts, key-tagged changes) in f93f7d2;
+  trace removed in 2aada21. PASS on sim (empty composer, keyboard stays up, autocorrect works).
+- Step 4 media PASS (video + file; server and saved copies sha256 = fixtures). M-1 (saved file named by uuid)
+  fixed in cb1d4df (lib/file-name.ts); device re-check pending. main = cb1d4df at 14:24 PST, npm test 87/87.
+- Step 3b: the guest app process was frozen 60 s (kill -STOP/-CONT pid 6156, 14:08:54–14:09:55). The app survived, and the host's
+  message sent during the freeze appeared on its own (gap-fill PASS). Lifecycle evidence only; failed-send Retry
+  is UNVERIFIED on sim (no guest-only network cut exists without admin rights or a Mac-wide change).
+- Step 5 map/route accepted. Step 6a: guest location cleared 16:20:35, host showed "Location stale" within ~32–70 s;
+  restored 16:22:09.
+- F5-3 (world-scale route centered on open water at fixed zoom 15) + F5-4 (setCameraPosition before the native
+  view existed): fixed in 57e5ce4 (branch f5-map-camera; cameraFor fit + cameraPosition prop), ACCEPTED on review,
+  merge waits for a gap after Steps 6 and 12a. N-3: the fit ignores Mercator/aspect (accepted).
+- F5-1 "Show my location" (human decision ADD, 18:16 PST): branch f5-1-show-my-location @ 80eb8b1, supervisor
+  ACCEPTED on code review (18:19 PST). Tap-only When-In-Use request, one-shot foreground position, no network
+  writes; works with Share off. qa device check PASS on host 17 (simctl location 37.7955,-122.3937); supervisor
+  read live_presence = 0 at 02:19:43Z / 02:19:48Z after the tap. main fast-forwarded to 80eb8b1 on supervisor GO.
+  Known gap F5-1b: the iOS location permission string in app.json does not mention local-only use ("show my
+  location"); unchanged pending a separate decision. N-6 (accepted): if Share was already ON and the permission had been revoked, granting it
+  through this button resumes that earlier opt-in.
+- Known gap F5-2: a Draw-route tap on a map label opens Apple's place card. Candidate: properties.selectionEnabled
+  = !draft (unverified whether the tap then adds a point).
+- F7-1 (face reference ≤1280 px failed: resize({}) gave a 0x0 image) fixed in cc97c7f, device PASS (guest enrolled
+  16:57:21). F7-2 (gallery missed the cached 'disabled' run; empty copy instead of "off in this draft") fixed in
+  5147847, on main 17:01 PST; device PASS in Step 10 (~18:00, final-10-f72-face-off.png), supervisor CLOSED
+  F7-2 18:02 PST. Face matching was OFF then (503). The later live test is in the section above.
+- Step 7 cleanup PASS (supervisor read: cleanup_jobs verified_empty 01:00:02Z, R1 guest face-refs 0, enrollments 0).
+  Step 12 R3 expiry PASS (all R3 rows/objects 0; cleanup jobs verified 01:00:03Z).
+- Step 8 Plus preview PASS (alert only, no payment). Step 11 PASS on both sims: R2 016c49bf… expires_at moved
+  to now+24h3m with expiry_version 2 (exact-ID, supervisor ACK, 17:49:32 PST); "Room ends in 24 hours" local
+  notification at ~17:53 on host and guest; server expiry_reminders = 2 rows v2 (no_token, in_app). Rooms used:
+  3 of 3 (R1, R2, R3; R3 purged, R2 purged 06:00Z, R1 live until 2026-11-10T21:43Z); no more rooms. Step 11
+  "tap → room opens" UNVERIFIED (sim lock-screen taps read as swipes); [SUPERSEDED: R2 was ended early 05:46:51Z
+  and purged 06:00Z, so this natural-expiry check will not run] "gone screen after end" DEFERRED to R2's natural
+  expiry 2026-11-08 01:52:32Z (no early end, supervisor).
+- Step 10 integrated walkthrough PASS on R2 (supervisor ACCEPTED 18:02 PST): create, code join, chat, arrival,
+  status, media save (original verified, 44 KB), map activity start/end, face disabled path (F7-2), leave.
+  QR-scan join NOT RUN (no simulator camera; code join used). After leave: R2 members = host only, enrollments 0;
+  1 R2/guest face-ref object + its cleanup job still pending at 02:05:37Z (janitor */15), supervisor re-reads.
+- FINAL QA REPORT (qa, 18:03 PST, main 5147847): Steps 4, 5, 6, 7, 8, 10, 12 PASS; 11 PASS for fire (sub-items
+  above); 9 DEFERRED (human). F7-1, F7-2 CLOSED. Still UNVERIFIED by design: physical-device GPS/background
+  stop, face positive match, APNs remote push, Android, host self-location on the sim. Minor findings: Recenter
+  clips route/pin edges slightly (5b); map-label tap opens Apple's place card (F5-2). Follow-ups: (1) Step 9 with
+  the human; (2) supervisor re-read of the R2 face-ref after a janitor run; [SUPERSEDED: R2 purged 06:00Z, supervisor
+  zero-count PASS] (3) post-expiry read of R2 after 2026-11-08 01:52:32Z. Nothing pushed or released.
+- Step 9 (D1 account deletion): was DEFERRED; now PASS, supervisor-verified on the server (see the live test section
+  above).
+  D1 account count 0 of 1.
+- D1 (Step 9): sign-up needs no email confirmation (mailer_autoconfirm true); test-only account d1-final-qa@example.com
+  (password not in the repo). 17e ready on 127.0.0.1:8081.
+- Known gap N-1 (minor, not tonight): the moment:/// deep link pushes Rooms on top of the stack instead of resetting to the root.
+- Known gap C-3 (out of scope tonight): a push while any modal is open (reminder notification tap, Upgrade) is
+  shown inside that modal.
+
 ## Not yet verified
 - Host status-list editor (Room info → Statuses; set_status_definitions, no server change): supervisor ACCEPTED
   2026-11-06; npm test 68/68, tsc and lint clean. NOT on a device: no render or edit/save yet, because room 94673 expired
@@ -27,7 +120,8 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Media on a device: photo upload → download → save is a byte-exact PASS (run 2); the remaining items are in Active task. DB tests and full RLS PASS.
 - Activity UI (Arrived, status sheet, Emergency banner/ack) on the simulator; chat keyboard-open layout
   and checklist steps 5–10.
-- Face matching: scaffolding plus F8–F10 committed; no live AWS CompareFaces result (needs rights-cleared photos).
+- Face matching: server pipeline live PASS on 2026-11-06 (section above). Not yet seen on a device: the in-app
+  positive match ("Photos of me" showing a match).
 - Face gallery UI (IMPLEMENTED-UNVERIFIED, supervisor ACCEPTED 2026-11-06, FG-1..4 + FG-R1): gallery "Me" segment →
   Photos of me; room/[id]/face.tsx consent (names the external service) → reference (camera/library, JPEG, EXIF dropped)
   → enroll_face; Replace; Stop and remove (remove_face_enrollment; the object is deleted by the next room-janitor run);

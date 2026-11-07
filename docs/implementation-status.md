@@ -1,8 +1,26 @@
 # Implementation status
 
-Updated: 2026-11-04 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
+Updated: 2026-11-06 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
 ## Current checkpoint
+
+Final draft QA, 2026-11-06 PST (simulators: host iPhone 17, guest iPhone 17 Pro; main 5147847; npm test 103/103, tsc and lint clean). Detail and evidence: `docs/CURRENT_STATE.md`, `docs/reviews/codex-final-qa-live-status.md`, `docs/evidence/2026-11-06-final-*`.
+
+| Step | Result |
+|---|---|
+| 4 media, M-1 file name | PASS |
+| 5 route + activity | PASS (item 6 not run per plan); F5-3/F5-4 fixed 57e5ce4 |
+| 6 location loss | PASS (stale, permission Never, stale pin identity F6-1 6e97015) |
+| 7 face gallery, disabled path | PASS; F7-1 fixed cc97c7f; server removal verified |
+| 8 Plus preview | PASS (alert only, no payment) |
+| 9 account deletion (D1) | DEFERRED: needs the human (17e access prompt, D1 password); accounts 0 of 1 |
+| 10 integrated walkthrough (R2) | PASS, supervisor accepted 18:02 PST; QR-scan join NOT RUN (no sim camera) |
+| 11 24 h reminder | PASS: local notification on both sims ~17:53, server 2 rows v2; tap → room opens UNVERIFIED (sim input); gone screen after end DEFERRED to 2026-11-08 01:52:32Z |
+| 12 expiry/cleanup (R3) | PASS (app denial + server 0 rows/objects) |
+
+Closed this session: F7-1, F7-2 (device-verified). Still UNVERIFIED: physical-device GPS/background stop, face positive match, APNs remote push, Android, host self-location on the sim. Minor open: Recenter clips route/pin edges (5b), map-label tap opens the Apple place card (F5-2). Follow-ups: Step 9 with the human; supervisor re-read of the R2/guest face-ref after a janitor run (pending at 02:05:37Z); post-expiry read of R2. Fixtures: rooms 3 of 3, accounts 0 of 1. Not pushed or released.
+
+Earlier checkpoints:
 
 Checkpoint 1, foundation: PASSED supervisor review (commit b1759ce; see `docs/reviews/current.md`).
 
@@ -90,6 +108,52 @@ Face matching scaffolding (2026-11-04, no AWS calls made, nothing deployed):
 - Janitor checkpoint (2026-11-05 UTC): migrations `20261104000012` and `20261104000013` and Edge Function `room-janitor` (v1) were applied/deployed by an earlier developer session before supervisor pre-review; supervisor accepted the applied state afterwards. Remote version ↔ local file (N14): `20261105034706 cleanup_reenroll_and_requeue` = `20261104000012_cleanup_reenroll_and_requeue.sql`; `20261105034837 janitor_invocation` = `20261104000013_janitor_invocation.sql` (the MCP apply assigns its own timestamp; earlier versions follow the same order by name). No cron schedule exists; it waits for supervisor review of J1/J2.
 - J1 (local, not deployed): cleanup claim order is `attempts`, then `created_at`, so failing jobs cannot starve newer ones; `jobsStuck` in the run summary counts jobs at 5+ failed attempts and logs `cleanup_stuck` (job id only). J2 (migration `20261104000014_janitor_health.sql`, applied 2026-11-05 as remote `janitor_health`, with the J2a fix: each invoke copies visible pg_net responses into `private.janitor_runs` because pg_net drops `net._http_response` after ~6 h; uncaptured runs older than 6 h show `unknown_expired`): `invoke_janitor` records each pg_net request id in `private.janitor_runs`; `private.janitor_health()` reports each run as `ok` (HTTP 200, no error), `failed` (other status or transport error), `missing_response` (none after 5 minutes) or `pending`, plus the stuck-job count. Test: `supabase/tests/janitor_health_test.sql`. `room-janitor` v2 (J1) deployed. Cron: `cron.schedule('room-janitor', '*/15 * * * *', 'select private.invoke_janitor()')` was approved by the supervisor but the call was denied by the Claude Code auto-mode classifier; NOT scheduled, waiting for the human.
 - N16: the live exact-path deletion (re-enroll job for the old ref) was not exercised live because the prefix job removed the file first; covered by the unit test only. Re-check when the face enrollment UI exists. N15: the orphan sweep lists the whole face-refs bucket each run (acceptable at current scale).
+
+## Face-match AWS connection test — SETUP READY (2026-11-06 20:53 PST), no AWS call yet
+
+Plan: docs/face-match-connection-test-plan.md (Run plan v2, supervisor ACCEPTED 21:00 PST entry). Human decisions
+20:55 PST (relayed by qa): reuse R2 19455 (3 calls OK), anonymous A and B allowed, switch set false by the human,
+GPS-stripped copies.
+- Stripped copies: new 0700 folder in the developer scratchpad (outside the repo). APP1/APP13 removed; re-parse shows
+  "GPS present: no" for A1, A2 and B1; each still decodes 2000×1500. Originals unchanged; nothing copied into the repo.
+- Script change (after the supervisor accepted sha 018ad87c): an EARLY switch probe as A right after sign-in, before any upload or
+  enroll (A has no enrollment then, so the call cannot reach AWS). New sha b53d20fa…, `node --check` OK.
+- `prepare 19455` 04:53:08–04:53:13Z: users A c8c0a435-ae17-4754-8406-52a8daaece0b, B 5c7d983a-381c-4792-a2de-a52b742bff52
+  (anonymous); EARLY probe 503 face_match_disabled; media A2 fcb02275-54ff-4f1a-9eba-ca2f0e82ab29, B1
+  0484b078-e9d3-4a40-a5f3-6afd4b0d1667 in room 016c49bf-17dc-4ab7-8a5c-3f4376f0c160; enrollment
+  3e4963fe-ee2a-4689-bb84-68df37b615e0 (1 face-refs object under A's folder); jobs queued 3, attempts 0; PRE-SWITCH
+  probe (T0) 04:53:13Z 503 face_match_disabled.
+- State file (A/B refresh tokens + IDs): OS temp dir, mode 0600. Deleted at R6.
+- T1: human set FACE_MATCH_ENABLED=true at 21:39:57 PST (relayed by qa); supervisor GO.
+- `match` (one request, 05:40:25Z): HTTP 200 {claimed 3, done 3, matched 1, retried 0, failed 0, stale 0,
+  providerCalls 3}. **A2 similarity 99.998, matched=true; B1 similarity null (no match ≥ AWS floor 80), matched=false;**
+  other (existing R2 QA photo 2df2d468…, no face) matched=false, job error `bad_image`. Calls = sum of attempts = 3, as
+  expected. face_matches rows 3. First live CompareFaces positive and negative result.
+- T2: human set FACE_MATCH_ENABLED=false at 21:41:34 PST (relayed by qa). `probe` 05:41:51Z → 503 face_match_disabled.
+- Cleanup (R6, exact IDs, one transaction, ~05:42Z): delete enrollment 3e4963fe… (trigger queued A's face-refs folder;
+  jobs/matches cascaded); queued room-media cleanup for the exact A2/B1 folders (media delete has no trigger); deleted
+  media A2/B1, R2 memberships of A/B, and auth users A/B (`is_anonymous and email is null`). Read after commit: users 0,
+  enrollments 0, jobs 0, matches 0, test media 0; R2 back to host only + its 1 original QA photo. 3 cleanup jobs
+  queued (verified_empty_at null); 3 storage objects remain until the next room-janitor run.
+- Local: state file and the stripped-copy folder deleted, `test ! -e` OK (05:42:58Z). No photo in the repo.
+- Janitor 05:45Z: the 3 cleanup jobs have verified_empty_at 05:45:03Z; read at 05:45:29Z shows 0 objects under A's face-refs
+  folder and the A2/B1 room-media folders. R6 complete.
+- AWS-side retention is not claimed (step 6 option (b): no opt-out tonight).
+- R5 log check (done 05:47Z, after the supervisor had already logged it as developer-reported): function_logs +
+  function_edge_logs 04:50–05:47Z, 23 lines. 0 lines match AKIA/secret/base64/JPEG-base64/token=/X-Amz-. The only
+  function event is `provider_error` {job c8a03c3c…, kind bad_image} (the no-face QA photo); edge logs show only
+  method/status/URL.
+- R2 early end (human 21:47 PST, supervisor ACK): `UPDATE public.rooms SET expires_at = now() WHERE id =
+  '016c49bf-17dc-4ab7-8a5c-3f4376f0c160'` ran at 05:46:51.861Z, 1 row (expiry_version 2). Purge by the scheduled
+  room-janitor run (06:00Z); supervisor reads R2 afterwards.
+- Docs follow-up (qa instruction, 22:00 PST): (1) `docs/CURRENT_STATE.md` updated with today's result; (2) the
+  "NOT DEPLOYED" header comment in `supabase/functions/face-match/index.ts` corrected (comment only, no redeploy).
+  (3) Proposed commit, NOT committed, waiting for human approval (`git status` at 06:00Z confirms):
+  `M docs/CURRENT_STATE.md`, `M docs/implementation-status.md`, `M supabase/functions/face-match/index.ts`,
+  `?? docs/face-match-connection-test-plan.md`, `?? scripts/face-match-check.mjs`. Not included: the scratch
+  GPS-strip script (scratchpad, outside the repo) and the other unrelated working-tree changes.
+- R2 purge: room-janitor cron run 766 at 06:00:00Z succeeded; supervisor zero-count read 06:00:04Z PASS. CURRENT_STATE
+  and the index.ts comment were ACCEPTED; doc fixes CS-1..CS-5 applied 06:01Z.
 
 ## Verification log
 
