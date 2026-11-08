@@ -30,6 +30,7 @@ import {
   pickFile,
   pickPhotosAndVideos,
   takePhoto,
+  CameraError,
   enqueueUploads,
   type PickedItem,
   splitBySize,
@@ -74,7 +75,8 @@ export default function GalleryScreen() {
         }
         if (ok.length > 0 && userId) enqueueUploads(id, userId, ok);
       } catch (e) {
-        Alert.alert(en.media.uploadFailed, errorMessage(e));
+        // G9 F2: nothing was uploaded when the camera could not be used.
+        Alert.alert(e instanceof CameraError ? en.media.cameraTitle : en.media.uploadFailed, errorMessage(e));
       }
     },
     [id, userId],

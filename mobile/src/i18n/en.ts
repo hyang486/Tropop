@@ -234,8 +234,9 @@ export const en = {
     addFile: 'File',
     cameraDenied: 'Camera access is off. Turn it on in Settings to take photos for this room.',
     cameraUnavailable: 'The camera is not available on this device.',
+    cameraTitle: "Can't take photo",
     cancel: 'Cancel',
-    // #7: one-time notice before the first photo/video add. PROPOSED wording, not yet confirmed by the human.
+    // #7: one-time notice before the first photo/video add. Wording approved by the human on 2026-11-07 (via qa).
     originalsNoticeTitle: 'Photos are shared as originals',
     originalsNoticeBody:
       'Photos and videos keep their full quality and any location saved in them. Everyone in this room can see and download them.',

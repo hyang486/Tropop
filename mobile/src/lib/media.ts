@@ -1,6 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import * as Device from 'expo-device';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import * as VideoThumbnails from 'expo-video-thumbnails';
@@ -10,6 +11,7 @@ import { Share } from 'react-native';
 import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
+import { cameraStep } from './camera-plan';
 import { errorMessage } from './errors';
 import { EXT_BY_MIME, exportFileName, extensionFor } from './file-name';
 import { clearImageDiskCache } from './image-cache';
@@ -114,18 +116,23 @@ export async function pickPhotosAndVideos(): Promise<PickedItem[]> {
   return result.assets.map(pickedFromAsset);
 }
 
+/** G9 F2: a camera problem (no camera, access off), shown under its own title rather than "Upload failed". */
+export class CameraError extends Error {}
+
 /**
  * #13: one photo from the camera, as the original capture (no editing). Asks for camera access
  * first; throws a readable error when access is off or the device has no camera (the Simulator).
  */
 export async function takePhoto(): Promise<PickedItem[]> {
+  // G9 F1: decide before any native camera call (the Simulator's missing camera is an uncatchable ObjC crash).
+  if (cameraStep(Device.isDevice) === 'unavailable') throw new CameraError(en.media.cameraUnavailable);
   const perm = await ImagePicker.requestCameraPermissionsAsync();
-  if (!perm.granted) throw new Error(en.media.cameraDenied);
+  if (!perm.granted) throw new CameraError(en.media.cameraDenied);
   let result: ImagePicker.ImagePickerResult;
   try {
     result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 1, exif: false });
   } catch {
-    throw new Error(en.media.cameraUnavailable);
+    throw new CameraError(en.media.cameraUnavailable);
   }
   if (result.canceled) return [];
   return result.assets.map(pickedFromAsset);
