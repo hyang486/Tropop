@@ -52,7 +52,11 @@ function gap(a, b) {
 // The map area a pill may use: under the Pen / compass band, above the Show my location / Recenter band.
 const FREE = { left: 0, right: SIZE.width, top: ROOM_MAP_PADDING.top, bottom: SIZE.height - 42 };
 const grow = (r, m) => ({ left: r.left - m, right: r.right + m, top: r.top - m, bottom: r.bottom + m });
-const inside = (r) => r.left >= FREE.left && r.right <= FREE.right && r.top >= FREE.top && r.bottom <= FREE.bottom;
+// F5 (qa v2, docs/evidence/2026-11-08-rc-g4-a-recenter-v2.png): MapKit's right control column (tracking
+// button, and the 3D button under it when pitch is offered) reaches ~114 pt down, x >= width - 64.
+const COLUMN = { left: SIZE.width - 64, right: SIZE.width, top: 0, bottom: 118 };
+const inside = (r) =>
+  r.left >= FREE.left && r.right <= FREE.right && r.top >= FREE.top && r.bottom <= FREE.bottom && !overlaps(r, COLUMN);
 
 function check(view, label) {
   const { groups, plans } = layoutLabels(PINS, view, SIZE, ROUTE);
@@ -106,4 +110,19 @@ test('G4 (supervisor n2): a lone wrapped pill near the bottom band goes beside o
   const plan = placePills([lone], SIZE)[0];
   assert.ok(inside(plan.rect), JSON.stringify(plan));
   assert.notEqual(plan.placement, 'below');
+});
+
+
+test('G4 F5: a pin near the top right never puts its pill under the map control column', () => {
+  for (const [x, y] of [[230, 125], [250, 110], [280, 140], [300, 120]]) {
+    const pin = { id: 'g1', x, y, shape: 'marker', text: 'Guest 1 (17)', stale: false, coordinates: { latitude: 0, longitude: 0 } };
+    const plan = placePills([[pin]], SIZE)[0];
+    assert.ok(!overlaps(plan.rect, COLUMN), `pin at ${x},${y}: ${plan.placement} ${JSON.stringify(plan.rect)}`);
+    assert.ok(inside(plan.rect), `pin at ${x},${y} pill leaves the free area`);
+  }
+});
+
+test('G4 F5: the qa Recenter geometry keeps every pill clear of the control column', () => {
+  const { plans } = layoutLabels(PINS, viewportFromCamera(camera, SIZE), SIZE, ROUTE);
+  for (const plan of plans) assert.ok(!overlaps(plan.rect, COLUMN), `${plan.pin.id}: ${JSON.stringify(plan.rect)}`);
 });

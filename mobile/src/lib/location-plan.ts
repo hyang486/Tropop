@@ -417,6 +417,13 @@ const BOTTOM_BUTTON_BAND = 42;
 /** The top overlay band: Pen (top left), the compass and the tracking button (top right); the fit's top padding. */
 const TOP_BUTTON_BAND = ROOM_MAP_PADDING.top;
 /**
+ * G4 F5: MapKit's control column at the top right: the tracking button and, when pitch is offered, the 3D button
+ * under it (qa 17 Pro: 44 pt buttons at x 310-354, the 3D button down to y ~114). It reaches below the top band,
+ * so a pill must keep out of it too. Always modelled, 3D button or not.
+ */
+const RIGHT_CONTROL_WIDTH = 64;
+const RIGHT_CONTROL_BOTTOM = 118;
+/**
  * P2: a pill hangs under its group's lowest pin, or, when that has less room on screen, over its highest pin.
  * G4: or beside a pin, to its right ('east') or left ('west'), centred on the pin body.
  */
@@ -690,11 +697,15 @@ function overlapArea(a: Rect, b: Rect, margin = 0) {
   return w > 0 && h > 0 ? w * h : 0;
 }
 
-/** The part of `rect` outside the map's free area: off the view, or under the top or bottom button band. */
+/**
+ * The part of `rect` outside the map's free area: off the view, under the top or bottom button band, or (F5)
+ * under the right control column where it reaches below the top band.
+ */
 function clippedArea(rect: Rect, size: ViewSize) {
   const area = (rect.right - rect.left) * (rect.bottom - rect.top);
   const free = { left: 0, right: size.width, top: TOP_BUTTON_BAND, bottom: size.height - BOTTOM_BUTTON_BAND };
-  return area - overlapArea(rect, free);
+  const column = { left: size.width - RIGHT_CONTROL_WIDTH, right: size.width, top: TOP_BUTTON_BAND, bottom: RIGHT_CONTROL_BOTTOM };
+  return area - overlapArea(rect, free) + overlapArea(rect, column);
 }
 
 /**
