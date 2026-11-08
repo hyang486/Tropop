@@ -112,6 +112,9 @@ export const en = {
     endsIn: (remaining: string) => `Ends in ${remaining}`,
     endsAt: (when: string) => `Ends ${when}`,
     reminderTitle: 'Room ends soon',
+    // #9: one compact line in chat; the full note is in Info.
+    endsSoonLine: 'Room ends soon · photos and files are deleted',
+    endsSoonInfo: "Photos, files and chat are deleted when the room ends. Download anything you'd like to keep.",
     reminderBody: (name: string, remaining: string) =>
       `${name} disappears in ${remaining}. Download any photos and files you'd like to keep.`,
     members: 'Members',

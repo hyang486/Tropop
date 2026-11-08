@@ -4,6 +4,25 @@
 export const REMINDER_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const REMINDER_ID_PREFIX = 'expiry-';
 
+/** Running-crew #9 (human decision 2026-11-07): rooms shorter than 24 h show the in-room banner only in the last hour. */
+export const SHORT_ROOM_BANNER_MS = 60 * 60 * 1000;
+// A "1 day" room is created with expires_at = client now + 24 h, and created_at is the later server time, so its
+// length can come out a little under 24 h. Rooms within this margin of 24 h still count as 24 h rooms.
+const SHORT_ROOM_MARGIN_MS = 10 * 60 * 1000;
+
+/** How long before the end the in-room "Room ends soon" banner shows: 1 h for rooms under 24 h, else 24 h. */
+export function endsSoonWindowMs(createdAt: string, expiresAt: string) {
+  const length = new Date(expiresAt).getTime() - new Date(createdAt).getTime();
+  if (Number.isFinite(length) && length < REMINDER_WINDOW_MS - SHORT_ROOM_MARGIN_MS) return SHORT_ROOM_BANNER_MS;
+  return REMINDER_WINDOW_MS;
+}
+
+/** Whether the in-room "Room ends soon" banner shows now (the room is still open and inside its window). */
+export function showEndsSoon(createdAt: string, expiresAt: string, nowMs: number) {
+  const remaining = new Date(expiresAt).getTime() - nowMs;
+  return remaining > 0 && remaining < endsSoonWindowMs(createdAt, expiresAt);
+}
+
 export type ReminderRoom = { id: string; name: string; expires_at: string; expiry_version: number };
 
 /** What the app stores in a scheduled reminder's `data`. */

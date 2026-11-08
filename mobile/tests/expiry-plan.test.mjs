@@ -68,3 +68,39 @@ test('one second before the 24h mark still schedules; at the mark it does not', 
   assert.equal(planReminders([room('a', REMINDER_WINDOW_MS + 1000)], [], NOW, true).schedule.length, 1);
   assert.equal(planReminders([room('a', REMINDER_WINDOW_MS)], [], NOW, true).schedule.length, 0);
 });
+
+// Running-crew #9: in-room "Room ends soon" banner window.
+import { endsSoonWindowMs, showEndsSoon, SHORT_ROOM_BANNER_MS } from '../src/lib/expiry-plan.ts';
+
+const iso = (ms) => new Date(ms).toISOString();
+
+test('a 3 h room shows the banner only in the last hour', () => {
+  const created = NOW;
+  const expires = NOW + 3 * HOUR;
+  assert.equal(endsSoonWindowMs(iso(created), iso(expires)), SHORT_ROOM_BANNER_MS);
+  assert.equal(showEndsSoon(iso(created), iso(expires), created + 1000), false);
+  assert.equal(showEndsSoon(iso(created), iso(expires), expires - HOUR - 1000), false);
+  assert.equal(showEndsSoon(iso(created), iso(expires), expires - HOUR + 1000), true);
+  assert.equal(showEndsSoon(iso(created), iso(expires), expires - 1000), true);
+});
+
+test('a 1 day room keeps the 24 h window, even when created_at is a little later than the client time', () => {
+  const expires = NOW + 24 * HOUR;
+  assert.equal(endsSoonWindowMs(iso(NOW), iso(expires)), REMINDER_WINDOW_MS);
+  assert.equal(endsSoonWindowMs(iso(NOW + 3000), iso(expires)), REMINDER_WINDOW_MS);
+  assert.equal(showEndsSoon(iso(NOW + 3000), iso(expires), NOW + 5000), true);
+});
+
+test('longer rooms show the banner in the last 24 h only', () => {
+  const expires = NOW + 96 * HOUR;
+  assert.equal(showEndsSoon(iso(NOW), iso(expires), expires - 25 * HOUR), false);
+  assert.equal(showEndsSoon(iso(NOW), iso(expires), expires - 23 * HOUR), true);
+});
+
+test('an ended room or bad dates show no banner', () => {
+  const expires = NOW + 3 * HOUR;
+  assert.equal(showEndsSoon(iso(NOW), iso(expires), expires), false);
+  assert.equal(showEndsSoon(iso(NOW), iso(expires), expires + HOUR), false);
+  assert.equal(showEndsSoon('not a date', iso(expires), expires - 1000), true);
+  assert.equal(showEndsSoon(iso(NOW), 'not a date', NOW), false);
+});
