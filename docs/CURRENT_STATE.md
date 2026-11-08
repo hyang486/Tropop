@@ -56,6 +56,11 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
     Harness route, sim copies, the ImageManipulator cache file and the scratch copy were deleted. Note (not verified):
     the harness passed raw 5712x4284, so the long edge became 2560; real uploads pass picker dimensions (expected
     upright 4284x5712 → 1440x1920).
+  - EXIF/A1 verdict (2026-11-07, source reading + macOS ImageIO emulation, no app change): the 2560 above is
+    harness-only; real detect copy is 1440x1920 (computed, not measured). The sideways A1 tile is a fixture fault:
+    A1.jpg stores sideways pixels with Orientation=1 at the source. Manipulator fixes orientation before resize, so
+    preview/detect copy/face reference come out upright. Open: face-match/index.ts:112 falls back to the original
+    (may be HEIC with EXIF) when no preview exists. Human iPhone check (portrait HEIC tile/viewer/reference) pending.
   - Was: local EXIF/GPS check of the saved detection JPEG on the spare sim (uncommitted
     keep-file flag, one human-consented GPS-tagged test image, exiftool/sips). Needs that image from the human.
   - Re-check pass criteria: 0 detect_fallback for the 3 jobs, CompareFaces ≤ approved count (expected 3, worst
