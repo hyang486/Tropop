@@ -25,8 +25,10 @@ import { errorMessage } from '@/lib/errors';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
 import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
-import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
+import { showEndsSoon } from '@/lib/expiry-plan';
+import { formatRemaining, getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
+import { useKeyboardOpen } from '@/lib/use-keyboard-open';
 import { useNow } from '@/lib/use-now';
 
 type State =
@@ -154,12 +156,20 @@ function ChatRoom({
   // #12: on narrow phones (17e) four text links leave no room for the room name; icons there instead.
   const compact = useWindowDimensions().width < COMPACT_HEADER_WIDTH;
   const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
+  const router = useRouter();
   const chat = useChat(room.id, userId, onNewSender);
   const uploadSummary = useRoomUploadSummary(room.id);
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
   const draft = composer.draft;
   const remaining = formatRemaining(remainingMs);
   const canSend = canSendDraft(draft);
+  // #9: the ends-soon line hides while the keyboard is open, so typing keeps the chat space.
+  const keyboardOpen = useKeyboardOpen();
+  const endsSoon = showEndsSoon(
+    room.created_at,
+    room.expires_at,
+    new Date(room.expires_at).getTime() - remainingMs,
+  );
 
   function submit() {
     if (!canSend) return;
@@ -173,6 +183,11 @@ function ChatRoom({
   useEffect(() => {
     if (failedCount > 0) onSendFailed();
   }, [failedCount, onSendFailed]);
+
+  // #8: a "shared 3 photos" line opens Photos.
+  function openPhotos() {
+    router.push({ pathname: '/room/[id]/gallery', params: { id: room.id } });
+  }
 
   function onFailedPress(item: ChatItem) {
     Alert.alert(en.chat.failed, undefined, [
@@ -239,11 +254,14 @@ function ChatRoom({
             </Text>
             {!chat.live && !chat.loading ? <Text style={styles.offline}>{en.chat.reconnecting}</Text> : null}
           </View>
-          {remainingMs < REMINDER_WINDOW_MS ? (
-            <View style={styles.banner} accessibilityRole="alert">
-              <Text style={styles.bannerTitle}>{en.room.reminderTitle}</Text>
-              <Text style={styles.bannerBody}>{en.room.reminderBody(room.name, remaining)}</Text>
-            </View>
+          {endsSoon && !keyboardOpen ? (
+            <Link href={{ pathname: '/room/[id]/info', params: { id: room.id } }} asChild>
+              <Pressable style={styles.banner} accessibilityRole="link" accessibilityHint={en.room.info}>
+                <Text style={styles.bannerText} numberOfLines={1}>
+                  {en.room.endsSoonLine}
+                </Text>
+              </Pressable>
+            </Link>
           ) : null}
           <RoomActivityBar roomId={room.id} activitySeq={room.activity_seq} userId={userId} names={names} />
 
@@ -277,6 +295,7 @@ function ChatRoom({
                   mine={item.sender_id === userId}
                   name={item.sender_id ? (names.get(item.sender_id) ?? en.chat.formerMember) : ''}
                   onFailedPress={onFailedPress}
+                  onMediaPress={openPhotos}
                 />
               )}
             />
@@ -312,7 +331,8 @@ function ChatRoom({
   );
 }
 
-const NOTICE_KINDS = new Set(['system', 'arrival', 'status', 'emergency']);
+// Centered lines rather than bubbles. #8: 'media' is the uploader's "shared 3 photos" line.
+const NOTICE_KINDS = new Set(['system', 'arrival', 'status', 'emergency', 'media']);
 
 /** Below this window width the header links are icons (iPhone 17e and other 390 pt phones). */
 const COMPACT_HEADER_WIDTH = 400;
@@ -355,17 +375,35 @@ function MessageRow({
   mine,
   name,
   onFailedPress,
+  onMediaPress,
 }: {
   item: ChatItem;
   older: ChatItem | undefined;
   mine: boolean;
   name: string;
   onFailedPress: (item: ChatItem) => void;
+  onMediaPress: () => void;
 }) {
   const time = useMemo(
     () => new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     [item.created_at],
   );
+
+  if (item.kind === 'media') {
+    const text = en.chat.shared(mine ? en.chat.you : name, item.body || en.chat.sharedFallback);
+    return (
+      <Pressable
+        style={styles.noticeRow}
+        accessibilityRole="button"
+        accessibilityHint={en.chat.openPhotosHint}
+        onPress={onMediaPress}
+      >
+        <Text style={[styles.notice, styles.mediaNotice]}>
+          {text} · {time}
+        </Text>
+      </Pressable>
+    );
+  }
 
   if (NOTICE_KINDS.has(item.kind)) {
     const emergency = item.kind === 'emergency';
@@ -378,8 +416,7 @@ function MessageRow({
     );
   }
 
-  // Media messages render in checkpoint 5; until then show a plain placeholder text.
-  const body = item.kind === 'media' ? '📎' : item.body;
+  const body = item.body;
   const showName = !mine && (older?.sender_id !== item.sender_id || NOTICE_KINDS.has(older?.kind ?? ''));
 
   const bubble = (
@@ -431,11 +468,10 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.warning,
     borderRadius: 12,
     borderCurve: 'continuous',
-    padding: 12,
-    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  bannerTitle: { fontSize: 15, fontWeight: '600', color: colors.label },
-  bannerBody: { fontSize: 14, color: colors.label },
+  bannerText: { fontSize: 14, fontWeight: '600', color: colors.label },
   list: { paddingHorizontal: 12, paddingVertical: 8, gap: 2, flexGrow: 1 },
   // The list is inverted, so the empty state is flipped back.
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scaleY: -1 }] },
@@ -454,6 +490,7 @@ const styles = StyleSheet.create({
   noticeRow: { alignSelf: 'center', marginVertical: 6, paddingHorizontal: 16 },
   notice: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' },
   emergency: { color: colors.danger, fontWeight: '700' },
+  mediaNotice: { color: colors.tint },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
