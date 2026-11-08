@@ -324,12 +324,13 @@ const storeListeners = new Set<() => void>();
 const controllers = new Map<string, AbortController>();
 let pumping = false;
 // #8: finished uploads per room not yet announced in chat; posted as one line when the room's batch ends.
-const unannounced = new Map<string, { uploaderId: string; mediaId: string; kind: MediaKind }[]>();
+const unannounced = new Map<string, { uploaderId: string; kind: MediaKind }[]>();
 
 /**
  * #8: once nothing is queued or uploading for the room, posts one kind='media' chat line for the uploads that
- * finished since the last line ("shared 3 photos", media_id = the last one). Best effort: a failed insert
- * never fails the uploads, which are already in Photos.
+ * finished since the last line ("shared 3 photos"). No media_id: messages.media_id cascades on delete, so
+ * deleting one photo would remove the whole line; the line opens Photos instead. Best effort: a failed
+ * insert never fails the uploads, which are already in Photos.
  */
 function announceIfIdle(roomId: string) {
   const done = unannounced.get(roomId);
@@ -340,7 +341,7 @@ function announceIfIdle(roomId: string) {
   if (!body) return;
   supabase
     .from('messages')
-    .insert({ room_id: roomId, sender_id: last.uploaderId, kind: 'media', body, media_id: last.mediaId })
+    .insert({ room_id: roomId, sender_id: last.uploaderId, kind: 'media', body })
     .then(
       () => {},
       () => {},
@@ -372,7 +373,7 @@ async function pump() {
         const done = { ...store.done, [current.roomId]: (store.done[current.roomId] ?? 0) + 1 };
         unannounced.set(current.roomId, [
           ...(unannounced.get(current.roomId) ?? []),
-          { uploaderId: current.uploaderId, mediaId: current.id, kind: current.item.kind },
+          { uploaderId: current.uploaderId, kind: current.item.kind },
         ]);
         setStore({ jobs: removeJob(store.jobs, current.id), done });
       } catch (e) {
