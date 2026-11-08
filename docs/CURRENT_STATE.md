@@ -22,9 +22,21 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   Rooms. The test used a simctl remote-push payload (data under "body") through the shared response handler; the
   real local-reminder tap is NOT VERIFIED. Evidence: docs/evidence/2026-11-07-gap-c3-*.png. Known remaining gap:
   a warm OS deep link while a modal is open is unchanged.
-- 4/6 f5b-recenter-padding → main 6fdd7a5. tsc/lint ok, mobile 136/136. qa pending (incl. a top/bottom clearance
-  screenshot).
-- Pending: fg-live-refresh 4924c54, fg-ref-cleanup 8884d40.
+- 4/6 f5b-recenter-padding → main 6fdd7a5. tsc/lint ok, mobile 136/136. Supervisor: unit-tested; on the sim the
+  camera stays put after a pan and Recenter with no points was verified (docs/evidence/2026-11-07-gap-f5b-*.png);
+  edge margins, single pin and the editor are NOT VERIFIED (no host session). Kept on main: local-only,
+  presentation-only, easy to revert.
+- 5/6 fg-live-refresh → main b25f1bf. tsc/lint ok, mobile 139/139. qa pending (Guest 1 only: pull on the face
+  screen and on Photos of me). The cross-account matching upload is deferred.
+- Deferred host-session checks (supervisor will ask the human to run them in one sitting, on iPhone or a sim the
+  human signs in as an existing host):
+  - F5-5b: Recenter edge margins (north-south and east-west routes), single pin, editor opens on the same view,
+    plus a top/bottom clearance screenshot.
+  - N-1: cold start with moment:/// and with a join link (preview/release build).
+  - C-3: a real local expiry-reminder tap with a modal open.
+  - Camera: the system permission prompt shows the new string.
+  - FG-L1: a matching upload from another account appears after a pull.
+- Pending: fg-ref-cleanup 8884d40.
 - FG-R1 (no migration): a face reference uploaded before a failed enroll_face stays up to about 75 minutes, until
   the room-janitor orphan sweep (1 h age, cron */15) removes it. Deployed room-janitor v8 contains that sweep
   (get_edge_function == repo core.ts:90-97).
