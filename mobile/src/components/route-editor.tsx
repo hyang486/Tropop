@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteDrawLayer } from '@/components/route-draw-layer';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { type Camera, type LatLng, MAX_ROUTE_POINTS } from '@/lib/location-plan';
+import { type Camera, formatRouteKm, type LatLng, MAX_ROUTE_POINTS } from '@/lib/location-plan';
 import { NO_POIS } from '@/lib/map-pois';
 import { appendStroke, isFlatNorthUp, joinStrokes, type MapRegion, type Point, type Size, strokeToRoute } from '@/lib/route-draw';
 
@@ -28,6 +28,9 @@ export function RouteEditor({
   savedRoute,
   startCamera,
   saving,
+  showsMyLocation,
+  memberMarkers,
+  memberPhotos,
   onCancel,
   onSave,
 }: {
@@ -35,6 +38,14 @@ export function RouteEditor({
   /** Where the editor's map opens: the room map's current view when known. */
   startCamera: Camera | null;
   saving: boolean;
+  /**
+   * #10: show the user's own position, exactly when the room map does (permission already granted and Share
+   * or Show my location on). Read-only: the editor never asks for the location permission.
+   */
+  showsMyLocation: boolean;
+  /** #10: the room map's live member pins (markers, and photo pins as annotations), read-only. */
+  memberMarkers: AppleMaps.Marker[];
+  memberPhotos: AppleMaps.Annotation[];
   onCancel: () => void;
   onSave: (route: LatLng[]) => void;
 }) {
@@ -47,6 +58,8 @@ export function RouteEditor({
   const [pen, setPen] = useState(false);
   const [note, setNote] = useState<PenNote>('none');
   const route = useMemo(() => joinStrokes(draft), [draft]);
+  // #10: the length of the line drawn so far, live as strokes are added; hidden with fewer than 2 points.
+  const routeKm = useMemo(() => formatRouteKm(route), [route]);
 
   // The visible region after the last camera move: needed to turn screen points into coordinates.
   const region = useRef<MapRegion | null>(null);
@@ -151,10 +164,12 @@ export function RouteEditor({
           ref={mapRef}
           style={StyleSheet.absoluteFill}
           cameraPosition={startCamera ?? undefined}
+          markers={memberMarkers}
+          annotations={memberPhotos}
           polylines={route.length > 1 ? [{ id: 'draft', coordinates: route, color: ROUTE_COLOR, width: 4 }] : []}
           // No Apple Maps place card when a store/POI is under a tap (human iPhone check, R-1). selectionEnabled:false
           // alone still showed the card (qa, c4058f9), so POIs are hidden (NO_POIS) and none can be tapped.
-          properties={{ selectionEnabled: false, pointsOfInterest: NO_POIS }}
+          properties={{ selectionEnabled: false, pointsOfInterest: NO_POIS, isMyLocationEnabled: showsMyLocation }}
           onCameraMove={onCameraMove}
         />
         {pen ? <RouteDrawLayer color={ROUTE_COLOR} onStroke={onStroke} /> : null}
@@ -177,6 +192,7 @@ export function RouteEditor({
         </View>
 
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
+          {routeKm ? <Text style={styles.distance}>{en.map.routeDistance(routeKm)}</Text> : null}
           <Text style={[styles.hint, note !== 'none' && styles.hintError]}>{hint}</Text>
           <View style={styles.tools}>
             <Pressable
@@ -244,6 +260,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: colors.field,
   },
+  distance: { fontSize: 17, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
   hint: { fontSize: 14, color: colors.secondaryLabel },
   hintError: { color: colors.danger },
   tools: { flexDirection: 'row', gap: 12 },

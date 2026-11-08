@@ -329,6 +329,8 @@ export const en = {
     stalePin: 'stale',
     updated: (age: string) => `Updated ${age}`,
     route: 'Route',
+    /** #10: the route length label, e.g. "Route 5.2 km". */
+    routeDistance: (km: string) => `Route ${km}`,
     drawRoute: 'Draw route',
     editRoute: 'Edit route',
     pen: 'Pen',

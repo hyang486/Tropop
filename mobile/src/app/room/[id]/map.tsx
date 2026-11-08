@@ -30,6 +30,7 @@ import {
   type Camera,
   fitRoomCamera,
   formatAge,
+  formatRouteKm,
   formatSpeedKmh,
   isStale,
   labelPins,
@@ -180,6 +181,8 @@ function RoomMap({
   // Holds where the editor's map opens, captured when it opens; null when not editing.
   const [editor, setEditor] = useState<{ start: Camera | null } | null>(null);
   const shownRoute = savedRoute;
+  // #10: the route length on the map (top left, after Pen); hidden with fewer than 2 points.
+  const routeKm = useMemo(() => formatRouteKm(shownRoute), [shownRoute]);
 
   // F5-5b: the map's real size once it is laid out (the fit and the label grouping measure against it).
   const [mapSize, setMapSize] = useState<ViewSize>(ROOM_MAP_SIZE);
@@ -372,8 +375,11 @@ function RoomMap({
   const labelView = viewport ?? (givenCamera ? viewportFromCamera(givenCamera, mapSize) : null);
   // G4 (#5): pills keep off the drawn route when a clear spot exists.
   const labels = planLabels(labelInputs, labelView, mapSize, shownRoute);
+  const photoPins = pins.flatMap((pin) =>
+    pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, icon: pin.icon }] : [],
+  );
   const annotations = [
-    ...pins.flatMap((pin) => (pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, icon: pin.icon }] : [])),
+    ...photoPins,
     ...labels.map((label) => {
       const emergency = label.members.some((m) => emergencyPinIds.has(m));
       return {
@@ -387,6 +393,10 @@ function RoomMap({
       };
     }),
   ];
+
+  // Own position on the map only when the permission is already granted and Share or Show my location is on.
+  // Nothing here asks for the permission (only the Share switch and Show my location do).
+  const showsMyLocation = granted === true && (my.share || showingMine);
 
   const reporterText = en.map.reporter[sharingState];
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission' || sharingState === 'refused';
@@ -420,7 +430,7 @@ function RoomMap({
               ? [{ id: 'route', coordinates: shownRoute, color: ROUTE_COLOR, width: ROUTE_LINE_WIDTH }]
               : []
           }
-          properties={{ isMyLocationEnabled: granted === true && (my.share || showingMine) }}
+          properties={{ isMyLocationEnabled: showsMyLocation }}
           onCameraMove={onCameraMove}
         />
         <Pressable
@@ -437,16 +447,26 @@ function RoomMap({
                 <Text style={styles.link}>{en.map.recenter}</Text>
               </Pressable>
             ) : null}
-        {isHost ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={en.map.pen}
-            onPress={openEditor}
-            style={[styles.overlayButton, styles.pen]}
-          >
-            <SymbolView name="pencil.tip" size={18} tintColor={colors.tint} />
-            <Text style={styles.link}>{en.map.pen}</Text>
-          </Pressable>
+        {isHost || routeKm ? (
+          // Top left: Pen (host), then the route length. A row, so the length never covers Pen.
+          <View style={styles.topLeft}>
+            {isHost ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={en.map.pen}
+                onPress={openEditor}
+                style={[styles.chip, styles.pen]}
+              >
+                <SymbolView name="pencil.tip" size={18} tintColor={colors.tint} />
+                <Text style={styles.link}>{en.map.pen}</Text>
+              </Pressable>
+            ) : null}
+            {routeKm ? (
+              <View style={[styles.chip, styles.distanceChip]}>
+                <Text style={styles.distance}>{en.map.routeDistance(routeKm)}</Text>
+              </View>
+            ) : null}
+          </View>
         ) : null}
       </View>
       {locate === 'denied' ? <Hint tone="error">{en.map.locateDenied}</Hint> : null}
@@ -545,6 +565,9 @@ function RoomMap({
           savedRoute={savedRoute}
           startCamera={editor.start}
           saving={busy === 'route'}
+          showsMyLocation={showsMyLocation}
+          memberMarkers={markers}
+          memberPhotos={photoPins}
           onCancel={() => setEditor(null)}
           onSave={saveEdited}
         />
@@ -617,8 +640,22 @@ const styles = StyleSheet.create({
   },
   showMine: { left: 8 },
   // Top left: MapKit's own controls (compass, pitch toggle, user location button) stack in the top right
-  // corner, and expo-maps 58 cannot move them. The scale bar (top left) is off by default.
-  pen: { top: 8, bottom: undefined, left: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // corner, and expo-maps 58 cannot move them. The scale bar (top left) is off by default. Pen and the
+  // route length sit in one row inside the top overlay band (ROOM_MAP_PADDING.top keeps the fit clear of it).
+  topLeft: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    pointerEvents: 'box-none',
+  },
+  chip: { backgroundColor: colors.field, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  pen: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  distanceChip: { flexShrink: 1, pointerEvents: 'none' },
+  distance: { fontSize: 15, lineHeight: 22, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
   recenter: { right: 8 },
   group: { gap: 8 },
   status: { fontSize: 17, fontWeight: '600', color: colors.label },
