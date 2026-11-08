@@ -7,8 +7,9 @@
 -- After: when the caller's Emergency ends, one 'status' message "<name> is OK (Emergency resolved)" is posted
 -- from the caller:
 --   clear_my_status: the cleared status was the room's Emergency status.
---   set_my_status:   the previous status was Emergency and the new one is not; the resolved line comes first,
---                    then the usual "<name>: <label>" line. Emergency → Emergency is unchanged (a new event).
+--   set_my_status:   the previous status was Emergency and the new one is not; its one status line reads
+--                    "<name> is OK (Emergency resolved) · <label>" instead of "<name>: <label>".
+--                    Emergency → Emergency is unchanged (a new event).
 -- Anything else behaves as before.
 --
 -- clear_my_status posts only while private.is_room_member (current member of a room that is open: not
@@ -80,17 +81,13 @@ begin
     insert into public.messages (room_id, sender_id, kind, body)
     values (p_room_id, auth.uid(), 'emergency', coalesce(v_name, 'Someone') || ' needs help (Emergency)');
   else
-    if coalesce(v_was_emergency, false) then
-      insert into public.messages (room_id, sender_id, kind, body)
-      values (p_room_id, auth.uid(), 'status', coalesce(v_name, 'Someone') || ' is OK (Emergency resolved)');
-      -- Chat orders by created_at, then id (random): one microsecond later keeps the label line after it.
-      insert into public.messages (room_id, sender_id, kind, body, created_at)
-      values (p_room_id, auth.uid(), 'status', coalesce(v_name, 'Someone') || ': ' || v_def.label,
-              now() + interval '1 microsecond');
-    else
-      insert into public.messages (room_id, sender_id, kind, body)
-      values (p_room_id, auth.uid(), 'status', coalesce(v_name, 'Someone') || ': ' || v_def.label);
-    end if;
+    -- One line either way: two rows in one transaction share created_at (the 0011 trigger sets now()), and
+    -- chat breaks that tie by random id, so a separate resolved line could show after the status line.
+    insert into public.messages (room_id, sender_id, kind, body)
+    values (p_room_id, auth.uid(), 'status',
+            case when coalesce(v_was_emergency, false)
+                 then coalesce(v_name, 'Someone') || ' is OK (Emergency resolved) · ' || v_def.label
+                 else coalesce(v_name, 'Someone') || ': ' || v_def.label end);
   end if;
   return v_event;
 end;

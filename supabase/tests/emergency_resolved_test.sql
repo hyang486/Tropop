@@ -56,7 +56,7 @@ reset role;
 
 create function tests.resolved_lines() returns bigint language sql as $$
   select count(*) from public.messages
-   where room_id = current_setting('t.r')::uuid and kind = 'status' and body like '% is OK (Emergency resolved)';
+   where room_id = current_setting('t.r')::uuid and kind = 'status' and body like '% is OK (Emergency resolved)%';
 $$;
 
 -- 1. Clearing with no status set posts nothing.
@@ -114,22 +114,17 @@ create function tests.my_lines() returns bigint language sql as $$
   select count(*) from public.messages
    where room_id = current_setting('t.r')::uuid and sender_id = 'c2300000-0000-4000-8000-000000000002';
 $$;
-create function tests.last_two() returns text language sql as $$
-  select string_agg(body, ' | ' order by created_at, id) from (
-    select body, created_at, id from public.messages
-     where room_id = current_setting('t.r')::uuid and sender_id = 'c2300000-0000-4000-8000-000000000002'
-     order by created_at desc, id desc limit 2) s;
-$$;
-
--- 6. Emergency → Resting: the resolved line, then the status line, in that order in chat order.
+-- 6. Emergency → Resting: one status line that says both.
 select set_config('t.n', tests.my_lines()::text, true);
 select tests.login('c2300000-0000-4000-8000-000000000002', true);
 set local role authenticated;
 select public.set_my_status(current_setting('t.r')::uuid, current_setting('t.rest')::uuid);
 reset role;
-select tests.expect(tests.my_lines() = current_setting('t.n')::bigint + 2, 'Emergency to Resting posts 2 lines');
-select tests.expect(tests.resolved_lines() = 2, 'Emergency to Resting posts the resolved line');
-select tests.expect(tests.last_two() like '% is OK (Emergency resolved) | %: Resting', 'resolved line comes first');
+select tests.expect(tests.my_lines() = current_setting('t.n')::bigint + 1, 'Emergency to Resting posts 1 line');
+select tests.expect(exists (select 1 from public.messages
+                             where room_id = current_setting('t.r')::uuid and kind = 'status'
+                               and body like '% is OK (Emergency resolved) · Resting'),
+                    'Emergency to Resting line says resolved and the new status');
 
 -- 7. Resting → Resting: one status line, no resolved line.
 select set_config('t.n', tests.my_lines()::text, true);
