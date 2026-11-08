@@ -1,9 +1,11 @@
-import { AppleMaps } from 'expo-maps';
+import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
+import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { RouteEditor } from '@/components/route-editor';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -30,7 +32,6 @@ import {
   isStale,
   type LatLng,
   MAX_CAMERA_ZOOM,
-  MAX_ROUTE_POINTS,
   parseRoute,
   type PinInput,
   planPins,
@@ -49,7 +50,6 @@ type State =
 
 const STALE_TINT = '#8E8E93';
 const ROUTE_COLOR = '#007AFF';
-const DRAFT_COLOR = '#FF9500';
 
 export default function RoomMapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -152,8 +152,18 @@ function RoomMap({
 
   const presence = useLivePresence(room.id, active);
   const savedRoute = useMemo(() => parseRoute(room.route), [room.route]);
-  const [draft, setDraft] = useState<LatLng[] | null>(null);
-  const shownRoute = draft ?? savedRoute;
+  // R1-C: the host edits the route in a full-screen editor (a Modal outside the stack, with its own map).
+  // Holds where the editor's map opens, captured when it opens; null when not editing.
+  const [editor, setEditor] = useState<{ start: Camera | null } | null>(null);
+  const shownRoute = savedRoute;
+
+  // The room map's view after its last camera move: the editor opens on the same view.
+  const lastView = useRef<Camera | null>(null);
+  function onCameraMove(event: CameraMoveEvent) {
+    const { latitude, longitude } = event.coordinates;
+    if (latitude == null || longitude == null) return;
+    lastView.current = { coordinates: { latitude, longitude }, zoom: event.zoom };
+  }
 
   // M6: with no route or positions yet, the map starts on the user's own position (no prompt).
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
@@ -268,17 +278,14 @@ function RoomMap({
     ]);
   }
 
-  function onMapClick(event: { coordinates: { latitude?: number; longitude?: number } }) {
-    const { latitude, longitude } = event.coordinates;
-    if (latitude == null || longitude == null) return;
-    setDraft((d) => (d && d.length < MAX_ROUTE_POINTS ? [...d, { latitude, longitude }] : d));
+  function openEditor() {
+    setEditor({ start: lastView.current ?? camera });
   }
 
-  function saveDraft() {
-    if (!draft) return;
+  function saveEdited(route: LatLng[]) {
     run('route', async () => {
-      await saveRoute(room.id, draft);
-      setDraft(null);
+      await saveRoute(room.id, route);
+      setEditor(null);
     });
   }
 
@@ -334,24 +341,35 @@ function RoomMap({
           annotations={annotations}
           polylines={
             shownRoute.length > 1
-              ? [{ id: 'route', coordinates: shownRoute, color: draft ? DRAFT_COLOR : ROUTE_COLOR, width: 4 }]
+              ? [{ id: 'route', coordinates: shownRoute, color: ROUTE_COLOR, width: 4 }]
               : []
           }
           properties={{ isMyLocationEnabled: granted === true && (my.share || showingMine) }}
-          onMapClick={draft ? onMapClick : undefined}
+          onCameraMove={onCameraMove}
         />
         <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={en.map.showMine}
-          accessibilityState={{ busy: locate === 'busy' }}
-          onPress={showMyLocation}
-          style={[styles.overlayButton, styles.showMine]}
-        >
-          <Text style={styles.link}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
-        </Pressable>
-        {camera ? (
-          <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
-            <Text style={styles.link}>{en.map.recenter}</Text>
+              accessibilityRole="button"
+              accessibilityLabel={en.map.showMine}
+              accessibilityState={{ busy: locate === 'busy' }}
+              onPress={showMyLocation}
+              style={[styles.overlayButton, styles.showMine]}
+            >
+              <Text style={styles.link}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
+            </Pressable>
+            {camera ? (
+              <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
+                <Text style={styles.link}>{en.map.recenter}</Text>
+              </Pressable>
+            ) : null}
+        {isHost ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={en.map.pen}
+            onPress={openEditor}
+            style={[styles.overlayButton, styles.pen]}
+          >
+            <SymbolView name="pencil.tip" size={18} tintColor={colors.tint} />
+            <Text style={styles.link}>{en.map.pen}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -436,27 +454,23 @@ function RoomMap({
 
       <View style={styles.group}>
         <Text style={styles.status}>{en.map.route}</Text>
-        {isHost && draft ? (
-          <>
-            <Hint>{en.map.drawHint}</Hint>
-            {draft.length >= MAX_ROUTE_POINTS ? <Hint tone="error">{en.map.routeTooLong(MAX_ROUTE_POINTS)}</Hint> : null}
-            <View style={styles.row}>
-              <Pressable accessibilityRole="button" onPress={() => setDraft((d) => (d ? d.slice(0, -1) : d))}>
-                <Text style={styles.link}>{en.map.undo}</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => setDraft([])}>
-                <Text style={styles.link}>{en.map.clear}</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => setDraft(null)}>
-                <Text style={styles.link}>{en.map.cancel}</Text>
-              </Pressable>
-            </View>
-            <Button title={en.map.save} busy={busy === 'route'} onPress={saveDraft} />
-          </>
-        ) : isHost ? (
-          <Button title={en.map.drawRoute} variant="secondary" onPress={() => setDraft(savedRoute)} />
+        {isHost ? (
+          <Button
+            title={savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}
+            variant="secondary"
+            onPress={openEditor}
+          />
         ) : null}
       </View>
+      {editor ? (
+        <RouteEditor
+          savedRoute={savedRoute}
+          startCamera={editor.start}
+          saving={busy === 'route'}
+          onCancel={() => setEditor(null)}
+          onSave={saveEdited}
+        />
+      ) : null}
     </ScrollView>
   );
 }
@@ -512,9 +526,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   showMine: { left: 8 },
+  pen: { top: 8, bottom: undefined, right: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
   recenter: { right: 8 },
   group: { gap: 8 },
-  row: { flexDirection: 'row', gap: 20 },
   status: { fontSize: 17, fontWeight: '600', color: colors.label },
   switchRow: {
     flexDirection: 'row',
