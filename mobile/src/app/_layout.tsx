@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useNavigationContainerRef, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
@@ -7,8 +7,8 @@ import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { reminderRoomFromResponse, setPendingReminderRoom } from '@/lib/expiry-reminders';
-import { setRootLinkHandler } from '@/lib/root-link';
-import { pushFromRoot } from '@/lib/root-nav';
+import { hasOpenModal, setRootLinkHandler } from '@/lib/root-link';
+import { pushFromRoot, resetToRoot } from '@/lib/root-nav';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,12 +35,19 @@ function RootNavigator() {
   }, [response, loading, signedIn, router]);
 
   // N-1: `moment:///` while signed in pops back to Rooms (or replaces the top screen with it when
-  // Rooms is not in the stack) instead of pushing another Rooms. Signed out: default handling.
+  // Rooms is not in the stack) instead of pushing another Rooms. P-3: with Invite or Upgrade open,
+  // the modal is closed first, and a join link opens from Rooms like a reminder tap (C-3).
+  // Signed out, cold start, or a join link with no modal open: default handling.
+  const navigationRef = useNavigationContainerRef();
   useEffect(() => {
     if (loading || !signedIn) return;
-    setRootLinkHandler(() => router.dismissTo('/'));
+    setRootLinkHandler({
+      isModalOpen: () => navigationRef.isReady() && hasOpenModal(navigationRef.getRootState()),
+      reset: (modalOpen) => resetToRoot(router, '/', modalOpen),
+      openFromRoot: (href) => pushFromRoot(router, href),
+    });
     return () => setRootLinkHandler(null);
-  }, [loading, signedIn, router]);
+  }, [loading, signedIn, router, navigationRef]);
 
   if (loading) return null;
 
@@ -51,6 +58,7 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn} redirectTo="/welcome">
         <Stack.Screen name="index" options={{ title: en.home.title, headerLargeTitle: true }} />
         <Stack.Screen name="profile" options={{ title: en.profile.title }} />
+        {/* Modal screens (upgrade, room/[id]/invite): keep MODAL_ROUTES in lib/root-link.ts in sync (P-3). */}
         <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, presentation: 'modal' }} />
         <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title }} />
         <Stack.Screen name="create-room" options={{ title: en.createRoom.title }} />
