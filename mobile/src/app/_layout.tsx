@@ -7,6 +7,7 @@ import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { reminderRoomFromResponse, setPendingReminderRoom } from '@/lib/expiry-reminders';
+import { setRootLinkHandler } from '@/lib/root-link';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,6 +31,14 @@ function RootNavigator() {
     if (signedIn) router.push({ pathname: '/room/[id]', params: { id: roomId, from: 'reminder' } });
     else setPendingReminderRoom(roomId);
   }, [response, loading, signedIn, router]);
+
+  // N-1: `moment:///` while signed in pops back to Rooms (or replaces the top screen with it when
+  // Rooms is not in the stack) instead of pushing another Rooms. Signed out: default handling.
+  useEffect(() => {
+    if (loading || !signedIn) return;
+    setRootLinkHandler(() => router.dismissTo('/'));
+    return () => setRootLinkHandler(null);
+  }, [loading, signedIn, router]);
 
   if (loading) return null;
 
