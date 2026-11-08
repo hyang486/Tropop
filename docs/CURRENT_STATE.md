@@ -5,6 +5,17 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-07 evening: gap fixes (human "fix the small gaps", via qa; supervisor GO, one merge at a time, local, no push)
+Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-checked on main, then qa checks from the main checkout.
+- 1/6 camera-plist-face → main b509d9f. tsc/lint ok, mobile 124/124. qa native rebuild (91F3BFB3): the string in the
+  build is verified (docs/evidence/2026-11-07-gap-camera-plist-installed.txt); app launches. The system prompt was
+  NOT seen (sim signed out after reinstall). Build note: pod install needs LANG/LC_ALL=en_US.UTF-8.
+- 2/6 n1-deeplink-root → main 28ef2f7. tsc/lint ok, mobile 128/128. qa (a)-(d) pending.
+- Pending: c3-modal-nav 0a6250f, f5b-recenter-padding 330d2fc, fg-live-refresh 4924c54, fg-ref-cleanup 8884d40.
+- FG-R1 (no migration): a face reference uploaded before a failed enroll_face stays up to about 75 minutes, until
+  the room-janitor orphan sweep (1 h age, cron */15) removes it. Deployed room-janitor v8 contains that sweep
+  (get_edge_function == repo core.ts:90-97).
+
 ## 2026-11-07: J-1 and R-1 (human request: each on its own branch, review, then main; no push)
 - J-1 (Join-room keyboard pushed the "5-DIGIT CODE" field under the translucent header on the 17 Pro): fixed in
   6f2a512 (components/ui.tsx Screen: no automatic keyboard inset adjustment on the ScrollView). Supervisor GO;
