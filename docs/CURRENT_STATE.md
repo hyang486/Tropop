@@ -17,8 +17,14 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   gap, signed out: a transient empty Rooms with Back, then the welcome screen; not proven pre-existing.
   Evidence: docs/evidence/2026-11-07-gap-n1-*.png.
 - 3/6 c3-modal-nav → main b65f9f9 (_layout.tsx import conflict resolved, both handlers kept). tsc/lint ok,
-  mobile 130/130. qa pending. Known remaining gap: a warm OS deep link while a modal is open is unchanged.
-- Pending: f5b-recenter-padding 330d2fc, fg-live-refresh 4924c54, fg-ref-cleanup 8884d40.
+  mobile 130/130. qa PASS, supervisor ACCEPTED (Guest 1, 17 F11BA960): with the Invite modal open, and again with the
+  "Become a host" upgrade modal open, a reminder tap closes the modal and opens the room full screen; Back goes to
+  Rooms. The test used a simctl remote-push payload (data under "body") through the shared response handler; the
+  real local-reminder tap is NOT VERIFIED. Evidence: docs/evidence/2026-11-07-gap-c3-*.png. Known remaining gap:
+  a warm OS deep link while a modal is open is unchanged.
+- 4/6 f5b-recenter-padding → main 6fdd7a5. tsc/lint ok, mobile 136/136. qa pending (incl. a top/bottom clearance
+  screenshot).
+- Pending: fg-live-refresh 4924c54, fg-ref-cleanup 8884d40.
 - FG-R1 (no migration): a face reference uploaded before a failed enroll_face stays up to about 75 minutes, until
   the room-janitor orphan sweep (1 h age, cron */15) removes it. Deployed room-janitor v8 contains that sweep
   (get_edge_function == repo core.ts:90-97).
