@@ -7,6 +7,7 @@ import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { reminderRoomFromResponse, setPendingReminderRoom } from '@/lib/expiry-reminders';
+import { pushFromRoot } from '@/lib/root-nav';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,7 +28,8 @@ function RootNavigator() {
     const roomId = reminderRoomFromResponse(response);
     if (!roomId) return;
     Notifications.clearLastNotificationResponse();
-    if (signedIn) router.push({ pathname: '/room/[id]', params: { id: roomId, from: 'reminder' } });
+    // C-3: from the root, so the room is never pushed inside an open Invite/Upgrade modal.
+    if (signedIn) pushFromRoot(router, { pathname: '/room/[id]', params: { id: roomId, from: 'reminder' } });
     else setPendingReminderRoom(roomId);
   }, [response, loading, signedIn, router]);
 
