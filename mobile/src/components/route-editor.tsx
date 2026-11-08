@@ -197,7 +197,12 @@ export function RouteEditor({
         </View>
 
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
-          {routeKm ? <Text style={styles.distance}>{en.map.routeDistance(routeKm)}</Text> : null}
+          {/* The heading's label already reads this length (n1), so VoiceOver skips the duplicate line. */}
+          {routeKm ? (
+            <Text style={styles.distance} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              {en.map.routeDistance(routeKm)}
+            </Text>
+          ) : null}
           <Text style={[styles.hint, note !== 'none' && styles.hintError]}>{hint}</Text>
           <View style={styles.tools}>
             <Pressable
