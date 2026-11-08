@@ -43,6 +43,14 @@ values
   ('00000000-0000-0000-0000-000000000000', 'c2400000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', null, true, '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'c2400000-0000-4000-8000-000000000003', 'authenticated', 'authenticated', null, true, '{}', now(), now());
 
+create function tests.expect(p_ok boolean, p_label text) returns void language plpgsql as $$
+begin
+  if p_ok is distinct from true then
+    raise exception 'FAIL: %', p_label;
+  end if;
+end;
+$$;
+
 -- Line counters, run as postgres (bypasses RLS). t.r is the room id.
 create function tests.started() returns text language sql as $$
   select $q$ select 1 from public.messages where room_id = current_setting('t.r')::uuid and kind = 'system'
@@ -86,8 +94,11 @@ select public.set_location_allowed(current_setting('t.r')::uuid, true);
 select public.set_activity_state(current_setting('t.r')::uuid, 'ended');
 select tests.expect_error($q$ select public.set_activity_state(current_setting('t.r')::uuid, 'paused') $q$,
   'unknown state refused');
+-- set_location_allowed(false) while idle: no ended line. Allow again for the rest of the test.
+select public.set_location_allowed(current_setting('t.r')::uuid, false);
+select public.set_location_allowed(current_setting('t.r')::uuid, true);
 reset role;
-select tests.expect_count(tests.ended(), 0, 'no ended line for ending an idle room');
+select tests.expect_count(tests.ended(), 0, 'no ended line for ending an idle room or turning location off while idle');
 
 select tests.login('c2400000-0000-4000-8000-000000000002', true);
 set local role authenticated;
@@ -146,6 +157,34 @@ select tests.expect_count(tests.ended(), 2, 'second active -> ended posts anothe
 select tests.expect_count($q$ select 1 from public.rooms where id = current_setting('t.r')::uuid
   and activity_state = 'ended' and activity_seq = 2 $q$, 1, 'state and activity_seq as in 0020');
 
+-- set_location_allowed(false): ended room -> no line; active room -> exactly one; already not allowed -> no line.
+select tests.login('c2400000-0000-4000-8000-000000000001', false);
+set local role authenticated;
+select public.set_location_allowed(current_setting('t.r')::uuid, false);
+reset role;
+select tests.expect_count(tests.ended(), 2, 'location off while ended posts no line');
+select tests.login('c2400000-0000-4000-8000-000000000001', false);
+set local role authenticated;
+select public.set_location_allowed(current_setting('t.r')::uuid, true);
+select public.set_activity_state(current_setting('t.r')::uuid, 'active');
+select public.set_location_allowed(current_setting('t.r')::uuid, false);
+reset role;
+select tests.expect_count(tests.started(), 3, 'third start posts a third started line');
+select tests.expect_count(tests.ended(), 3, 'location off while active posts exactly one ended line');
+select tests.expect((select activity_state = 'ended' and not location_allowed from public.rooms
+  where id = current_setting('t.r')::uuid), 'location off while active ends the activity (0020 behaviour)');
+select tests.login('c2400000-0000-4000-8000-000000000001', false);
+set local role authenticated;
+select public.set_location_allowed(current_setting('t.r')::uuid, false);
+reset role;
+select tests.expect_count(tests.ended(), 3, 'location off when already not allowed posts no line');
+select tests.login('c2400000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select tests.expect_error($q$ select public.set_location_allowed(current_setting('t.r')::uuid, false) $q$,
+  'member cannot change location sharing');
+reset role;
+select tests.expect_count(tests.ended(), 3, 'refused location change posts no line');
+
 -- Expired room: the host gate refuses and posts nothing.
 update public.rooms set created_at = now() - interval '2 days', expires_at = now() - interval '1 second'
  where id = current_setting('t.r')::uuid;
@@ -153,8 +192,11 @@ select tests.login('c2400000-0000-4000-8000-000000000001', false);
 set local role authenticated;
 select tests.expect_error($q$ select public.set_activity_state(current_setting('t.r')::uuid, 'active') $q$,
   'expired room: start refused');
+select tests.expect_error($q$ select public.set_location_allowed(current_setting('t.r')::uuid, false) $q$,
+  'expired room: location change refused');
 reset role;
-select tests.expect_count(tests.started(), 2, 'expired room: no new started line');
+select tests.expect_count(tests.started(), 3, 'expired room: no new started line');
+select tests.expect_count(tests.ended(), 3, 'expired room: no new ended line');
 
 select 'ACTIVITY CHAT LINES TESTS PASSED' as result;
 
