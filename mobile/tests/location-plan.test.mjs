@@ -17,6 +17,9 @@ import {
   MAX_ROUTE_POINTS,
   parseRoute,
   planHeartbeat,
+  MARKER_LABEL_ANCHOR,
+  PHOTO_LABEL_ANCHOR,
+  pinLabels,
   planPins,
   reconcileShare,
   REPORT_MIN_INTERVAL_MS,
@@ -287,4 +290,52 @@ test('planLocate: granted locates, undecided asks, denied for good goes to Setti
   assert.equal(planLocate({ granted: true, canAskAgain: false }), 'locate');
   assert.equal(planLocate({ granted: false, canAskAgain: true }), 'ask');
   assert.equal(planLocate({ granted: false, canAskAgain: false }), 'settings');
+});
+
+test('pinLabels: every pin gets its own label with the pin title, in pin order (P2)', () => {
+  const pins = planPins(
+    [
+      pin(),
+      pin({ userId: 'u2', avatarPath: null, label: 'Guest 1 (17)', coordinates: NEAR, speedMps: 12 }),
+      pin({ userId: 'u3', updatedAt: OLD }),
+    ],
+    NOW,
+    new Map([['u1/a.jpg', 'ICON']]),
+  );
+  const labels = pinLabels(pins);
+  assert.equal(labels.length, 3);
+  assert.deepEqual(
+    labels.map((l) => l.text),
+    pins.map((p) => p.title),
+  );
+  assert.deepEqual(labels[1], {
+    id: 'u2:label:marker',
+    coordinates: NEAR,
+    text: 'Guest 1 (17) · 43.2 km/h',
+    anchor: MARKER_LABEL_ANCHOR,
+    stale: false,
+  });
+  assert.equal(new Set(labels.map((l) => l.id)).size, 3);
+});
+
+test('pinLabels: a photo label sits below the photo, a balloon label just below the tip (P2)', () => {
+  const [photo] = pinLabels(planPins([pin()], NOW, new Map([['u1/a.jpg', 'ICON']])));
+  const [balloon] = pinLabels(planPins([pin({ avatarPath: null })], NOW, new Map()));
+  assert.equal(photo.anchor, PHOTO_LABEL_ANCHOR);
+  assert.equal(balloon.anchor, MARKER_LABEL_ANCHOR);
+  // Negative y: the point is above the pill. The photo's pill starts lower (past the 25 pt half photo).
+  assert.ok(MARKER_LABEL_ANCHOR.y < 0 && PHOTO_LABEL_ANCHOR.y < MARKER_LABEL_ANCHOR.y);
+  assert.equal(photo.anchor.x, 0.5);
+  assert.equal(balloon.anchor.x, 0.5);
+});
+
+test('pinLabels: label identity changes with the pin going stale or changing shape (P2, F6-1)', () => {
+  const icons = new Map([['u1/a.jpg', 'ICON']]);
+  const photo = pinLabels(planPins([pin()], NOW, icons))[0];
+  const monogram = pinLabels(planPins([pin()], NOW, new Map()))[0];
+  const stale = pinLabels(planPins([pin({ updatedAt: OLD })], NOW, icons))[0];
+  assert.equal(new Set([photo.id, monogram.id, stale.id]).size, 3);
+  assert.equal(stale.stale, true);
+  assert.equal(stale.text, 'Test joiner · stale');
+  assert.equal(photo.stale, false);
 });
