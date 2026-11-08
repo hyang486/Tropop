@@ -5,6 +5,14 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-08 04:03Z: R1-C QA host cleanup — room purged, account delete PENDING (human)
+- Room 82192 / host c2d629c2-cf2e-49b4-9598-5f6618d7b273: 0 room rows, 0 storage objects (04:03Z check).
+- The account delete (exact id + r1c-qa-host-11070111@example.com) stopped at the Supabase destructive-SQL
+  confirmation; qa declined it because the human is away. Do not retry; it waits for the human. auth user still exists.
+- Next: 13 running-crew fixes (human ~21:15 PST; docs/evidence/2026-11-07-running-crew-findings.md). Plan sent to
+  supervisor: G1 #1/#4/#12 … G9 #13. Migrations 000023 (Emergency resolved line) and 000024 (activity start/end lines)
+  are written on branches but NOT applied without explicit sign-off.
+
 ## 2026-11-07 late night: pushed e8b5d47 to QRew main (supervisor PUSH GO after qa main spot check A/C PASS)
 - `git push qrew qrew-push:main`: fast-forward 099c511..e8b5d47, no force. `git ls-remote qrew main` = e8b5d47.
 - e8b5d47 (parent 099c511, author Hyeonmin Yang, no co-author line): qrew's root .gitignore/README.md, plus mobile/ and
