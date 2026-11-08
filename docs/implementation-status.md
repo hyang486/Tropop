@@ -225,18 +225,18 @@ GPS-stripped copies.
 
 ## Feature status
 
-| Feature | Status |
+| Feature | Status (refreshed 2026-11-08; detail in docs/CURRENT_STATE.md) |
 |---|---|
-| Host accounts / guest entry | verified on simulator against live backend: guest start, host sign-up/log-in/log-out, guest→host upgrade (same user id), profile rename, session restore after relaunch. Open findings: (1) fixed in checkpoint 3: `profiles.updated_at` trigger; (2) stack back button on guest/sign-in/sign-up shows the route name "welcome" — set a proper back title; (3) dev-client floating gear button overlaps the Rooms "Profile" header button after a cold relaunch (dev build only; not in release). iOS "Use Strong Password?" sheet on new-password fields is expected system behavior |
-| Rooms, QR/code join | verified on simulator against live backend (code, deep link, pending invite, leave, end room, invalid/ended/throttle messages); two accounts used sequentially on one simulator (no second simulator running at once). NOT verified: camera QR scan (no camera in simulator; token path covered by deep link), full-room message in the UI (PT409 covered by RLS test only), share sheet contents, physical device. Open UX notes: Invite sheet has no Done button (swipe down only); end room only sets `deleted_at`, actual storage/data deletion belongs to the expiry cleanup checkpoint |
-| Chat | backend verified (RLS suite, three API clients). UI: two-way messages on two simulators PASS (human-confirmed); header/banner overlap fix PASS on 17 Pro with the keyboard closed; keyboard-open layout, checklist steps 5-10 NOT verified (docs/evidence/chat-ui-checklist.md). Stale-session restore: classifier unit tests 10/10 (`npm test`), valid sessions kept on device, deleted-account path live-unverified |
-| Media upload/download, filters | code + migration 15 written; DB tests pass; device flow NOT verified |
-| Expiry deletion, 24h reminder | expiry worker PASS on live test data (rooms deleted, room-media/face-refs objects removed and verified through the Storage API, orphan sweep); expired access denial covered by the RLS suite; cron schedule not created yet (waits for J1/J2 review). 24h reminder not started |
-| Arrival, statuses, Emergency | not started |
-| Notifications | in-app alerts + local notifications planned; real APNs remote push out of this milestone (human decision 2026-11-04, demonstration only) |
-| Location, route, speed | not started |
-| Face matching | AWS Rekognition selected; live results wait for the human's credentials and the AI-services opt-out/retention review before real participant images |
-| Plan preview | not started |
+| Host accounts / guest entry / account deletion | Simulator PASS against the live backend: guest start, host sign-up/log-in/log-out, guest→host upgrade (same user id), profile rename, session restore; in-app account deletion D1 PASS (server-verified). Plus plan preview: see the last row. NOT VERIFIED: Android |
+| Rooms, QR/code join | Simulator PASS: create, 5-digit code join, deep link, pending invite, leave, end room, error messages; J-1 keyboard fix merged. NOT VERIFIED: camera QR scan (no simulator camera), share sheet contents. Known gap N-1 (moment:/// deep link stacks Rooms) and C-3 (push target shown inside an open modal): fixes in progress 2026-11-08 |
+| Chat | Simulator PASS: two-way realtime chat, keyboard-open layout on both sims (C-1/C-2 fixed), gap-fill after a frozen app. NOT VERIFIED: failed-send Retry (no per-app network cut on the sim) |
+| Media upload/download, filters | Simulator PASS: photo/video/file upload, original download byte-exact (sha256), save to Photos; Mine/Others filter reload (G-1). NOT VERIFIED: saved file name fix M-1 on a device; real-iPhone HEIC upload/orientation |
+| Expiry deletion, 24h reminder | Live PASS: room-janitor cron (*/15) deletes rows and storage at expiry; repeated zero-count checks (latest room 14479, 2026-11-07 22:48Z); expired access denied at read time (RLS suite). 24h reminder: server live, local "Room ends in 24 hours" notification seen on both sims. NOT VERIFIED: reminder tap opening the room (sim lock-screen taps read as swipes), gone screen after natural expiry |
+| Arrival, statuses, Emergency | Simulator PASS (final QA Step 2): Arrived, status sheet, host status-list editor, Emergency banner → ack → "I'm OK" clear; server rows cross-checked |
+| Notifications | In-app alerts + local notifications only (human decision 2026-11-04). NOT VERIFIED: APNs remote push (out of this milestone) |
+| Location, route, speed | Simulator PASS: opt-in location sharing during an activity, member markers with speed, stale marker (grey clock, no speed), "Show my location", map camera fit (F5-3/F5-4). Freehand route Pen + full-screen editor (R-1, R1-C, R1-D) merged 52df5dd: simulator PASS and human iPhone check PASS (line under the finger, no place card in the editor; room map keeps POIs, option B). NOT VERIFIED: physical-device GPS movement and stop, background stop, MS1/MS2 speed findings (product), Recenter edge padding 5b (fix in progress), Pen chip overlapping the compass button (polish) |
+| Face matching | Live server PASS (AWS Rekognition CompareFaces; 2026-11-06 and 2026-11-07 FM-Q ③ with temporary detect copies: same-person matched, other person not, detect/ emptied, no fallback). Simulator UI PASS: consent → reference → enroll → "Photos of me" shows only the matching photos. FACE_MATCH_ENABLED is ON by the human's decision. NOT VERIFIED: real-iPhone HEIC/orientation and the detect copy's long edge; AI-services opt-out (AWS Free plan, deferred; real participant photos need that decision). Known gaps being fixed 2026-11-08: live refresh of face screens, reference left behind after a failed enroll, camera permission text |
+| Plan preview | Simulator PASS (final QA Step 8): Plus preview shows an alert only; no payment |
 
 ## Human-only blockers
 
