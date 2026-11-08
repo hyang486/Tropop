@@ -56,11 +56,17 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
     Harness route, sim copies, the ImageManipulator cache file and the scratch copy were deleted. Note (not verified):
     the harness passed raw 5712x4284, so the long edge became 2560; real uploads pass picker dimensions (expected
     upright 4284x5712 → 1440x1920).
-  - EXIF/A1 verdict (2026-11-07, source reading + macOS ImageIO emulation, no app change): the 2560 above is
-    harness-only; real detect copy is 1440x1920 (computed, not measured). The sideways A1 tile is a fixture fault:
-    A1.jpg stores sideways pixels with Orientation=1 at the source. Manipulator fixes orientation before resize, so
-    preview/detect copy/face reference come out upright. Open: face-match/index.ts:112 falls back to the original
-    (may be HEIC with EXIF) when no preview exists. Human iPhone check (portrait HEIC tile/viewer/reference) pending.
+  - EXIF verdict (2026-11-07; developer source reading + supervisor fixture/evidence check; no app change): the 2560
+    above is the harness input size only; a real detect copy is expected at 1440x1920 (computed, not measured).
+    The sideways tile in 2026-11-07-fmq3-guest1-me-tab.png is A2 (bench), not A1 (statue, upright landscape,
+    no tag). A2.jpg stores 2000x1500 pixels with Orientation=6; the full APP1 strip during fixture prep dropped that
+    tag. Fixture rule: strip GPS only, or rotate the pixels before removing APP1. App path (code reading, not device
+    evidence): the manipulator fixes orientation before resize; picker sizes are upright, so preview, detect copy
+    and face reference come out upright.
+    Known limitation (supervisor: no fix now): face-match/index.ts:112 falls back to the original when no preview
+    exists; that original may be HEIC/EXIF, so Rekognition fails that job instead of matching (fails closed, no
+    privacy impact). NOT VERIFIED until the human checks on iPhone: portrait HEIC upright as tile and in the viewer;
+    a portrait reference saved upright.
   - Was: local EXIF/GPS check of the saved detection JPEG on the spare sim (uncommitted
     keep-file flag, one human-consented GPS-tagged test image, exiftool/sips). Needs that image from the human.
   - Re-check pass criteria: 0 detect_fallback for the 3 jobs, CompareFaces ≤ approved count (expected 3, worst
