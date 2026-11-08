@@ -292,7 +292,23 @@ export type PinInput = {
   initialsOf: string;
   /** profiles.avatar_path of a current room member, or null. */
   avatarPath: string | null;
+  /** #2: the member's current status label ("Need water"), shown last in the title; null or absent: none. */
+  status?: string | null;
 };
+
+/** #2: each member's current status label, from member_status (user id → status id) and the room's statuses. */
+export function memberStatusLabels(
+  memberStatus: ReadonlyMap<string, string>,
+  statuses: readonly { id: string; label: string }[],
+): Map<string, string> {
+  const labels = new Map(statuses.map((s) => [s.id, s.label]));
+  const out = new Map<string, string>();
+  for (const [userId, statusId] of memberStatus) {
+    const label = labels.get(statusId);
+    if (label) out.set(userId, label);
+  }
+  return out;
+}
 
 /** M1: a photo pin, or a monogram / stale pin. `T` is the loaded icon (an expo-image ImageRef in the app). */
 export type PinPlan<T> =
@@ -308,7 +324,8 @@ export function stalePinId(userId: string) {
 
 /**
  * C4: a stale member never shows a speed and is drawn as a grey clock pin, photo or not, titled
- * "<name> · <staleWord>" (F6-1) so stale coordinates never look current.
+ * "<name> · <staleWord>" (F6-1) so stale coordinates never look current. #2: a member's current status, if
+ * any, comes last ("Mina · 10.1 km/h · Need water"); a status alone never changes the pin's identity.
  * A fresh member shows their photo once it has loaded; with no photo, while it loads, or when
  * it failed (pre-0021, no access, room ended) they show their initials instead.
  */
@@ -321,8 +338,15 @@ export function planPins<T>(
   return pins.map((pin) => {
     const stale = isStale(pin.updatedAt, nowMs);
     const speed = stale ? null : formatSpeedKmh(pin.speedMps);
-    const base = { id: pin.userId, coordinates: pin.coordinates, title: [pin.label, speed].filter(Boolean).join(' · ') };
-    if (stale) return { kind: 'stale', ...base, id: stalePinId(pin.userId), title: `${pin.label} · ${staleWord}` };
+    const status = pin.status || null;
+    const base = {
+      id: pin.userId,
+      coordinates: pin.coordinates,
+      title: [pin.label, speed, status].filter(Boolean).join(' · '),
+    };
+    if (stale) {
+      return { kind: 'stale', ...base, id: stalePinId(pin.userId), title: [pin.label, staleWord, status].filter(Boolean).join(' · ') };
+    }
     const icon = pin.avatarPath ? icons.get(pin.avatarPath) : undefined;
     if (icon !== undefined) return { kind: 'photo', ...base, icon };
     return { kind: 'monogram', ...base, monogram: initials(pin.initialsOf || pin.label) };

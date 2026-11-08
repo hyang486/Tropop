@@ -33,6 +33,7 @@ import {
   formatSpeedKmh,
   isStale,
   labelPins,
+  memberStatusLabels,
   type LatLng,
   MAX_CAMERA_ZOOM,
   parseRoute,
@@ -145,6 +146,8 @@ function RoomMap({
   // #1: open Emergencies show on Map too (banner above the map, red pin and pill for the sender).
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const emergencyPinIds = new Set(activity.emergencies.flatMap((e) => [e.userId, stalePinId(e.userId)]));
+  // #2: each member's current status, on their pill line and in their "Sharing now" row.
+  const statusOf = memberStatusLabels(activity.memberStatus, activity.statuses);
   const [busy, setBusy] = useState<string | null>(null);
   // M2: the app-level LocationReporters does the reporting; this screen only reads its state.
   const sharingState = useSharingState(room.id);
@@ -218,6 +221,7 @@ function RoomMap({
     label: displayName(row, userId, names),
     initialsOf: names.get(row.user_id) ?? '',
     avatarPath: avatars.get(row.user_id) ?? null,
+    status: statusOf.get(row.user_id) ?? null,
   }));
   const icons = useMarkerIcons(wantedIconPaths(pinInputs, now), session?.access_token);
   const pins = planPins(pinInputs, now, icons, en.map.stalePin);
@@ -518,6 +522,8 @@ function RoomMap({
               name={displayName(row, userId, names)}
               initialOf={names.get(row.user_id) ?? ''}
               avatarPath={avatars.get(row.user_id) ?? null}
+              status={statusOf.get(row.user_id) ?? null}
+              emergency={emergencyPinIds.has(row.user_id)}
               now={now}
             />
           ))}
@@ -562,12 +568,16 @@ function PresenceRow({
   name,
   initialOf,
   avatarPath,
+  status,
+  emergency,
   now,
 }: {
   row: Presence;
   name: string;
   initialOf: string;
   avatarPath: string | null;
+  status: string | null;
+  emergency: boolean;
   now: number;
 }) {
   const age = formatAge(row.updated_at, now);
@@ -577,7 +587,10 @@ function PresenceRow({
     <View style={styles.presence}>
       <Avatar path={avatarPath} name={initialOf || name} size={28} />
       <View style={styles.presenceText}>
-        <Text style={styles.presenceName}>{name}</Text>
+        <Text style={styles.presenceName}>
+          {name}
+          {status ? <Text style={[styles.presenceStatus, emergency && styles.emergencyText]}>{` · ${status}`}</Text> : null}
+        </Text>
         <Text style={[styles.presenceMeta, stale && styles.staleText]}>
           {stale ? en.map.stale(age) : [speed, en.map.updated(age)].filter(Boolean).join(' · ')}
         </Text>
@@ -635,4 +648,6 @@ const styles = StyleSheet.create({
   presenceName: { fontSize: 17, color: colors.label },
   presenceMeta: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
   staleText: { color: colors.warning },
+  presenceStatus: { color: colors.secondaryLabel },
+  emergencyText: { color: EMERGENCY_RED, fontWeight: '600' },
 });

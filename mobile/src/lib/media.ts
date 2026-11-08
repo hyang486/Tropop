@@ -25,8 +25,10 @@ import {
   type QueueJob,
   removeJob,
   requeue,
+  roomIdle,
   type RoomUploadSummary,
   roomSummary,
+  sharedBody,
 } from './upload-plan';
 
 /**
@@ -321,6 +323,30 @@ let store: UploadStore = { jobs: [], done: {} };
 const storeListeners = new Set<() => void>();
 const controllers = new Map<string, AbortController>();
 let pumping = false;
+// #8: finished uploads per room not yet announced in chat; posted as one line when the room's batch ends.
+const unannounced = new Map<string, { uploaderId: string; kind: MediaKind }[]>();
+
+/**
+ * #8: once nothing is queued or uploading for the room, posts one kind='media' chat line for the uploads that
+ * finished since the last line ("shared 3 photos"). No media_id: messages.media_id cascades on delete, so
+ * deleting one photo would remove the whole line; the line opens Photos instead. Best effort: a failed
+ * insert never fails the uploads, which are already in Photos.
+ */
+function announceIfIdle(roomId: string) {
+  const done = unannounced.get(roomId);
+  if (!done || done.length === 0 || !roomIdle(store.jobs, roomId)) return;
+  unannounced.delete(roomId);
+  const body = sharedBody(done.map((d) => d.kind));
+  const last = done[done.length - 1];
+  if (!body) return;
+  supabase
+    .from('messages')
+    .insert({ room_id: roomId, sender_id: last.uploaderId, kind: 'media', body })
+    .then(
+      () => {},
+      () => {},
+    );
+}
 
 function setStore(next: UploadStore) {
   if (next === store) return;
@@ -345,6 +371,10 @@ async function pump() {
       try {
         await runJob(current, (f) => setJobs((js) => applyProgress(js, current.id, f)), controller.signal);
         const done = { ...store.done, [current.roomId]: (store.done[current.roomId] ?? 0) + 1 };
+        unannounced.set(current.roomId, [
+          ...(unannounced.get(current.roomId) ?? []),
+          { uploaderId: current.uploaderId, kind: current.item.kind },
+        ]);
         setStore({ jobs: removeJob(store.jobs, current.id), done });
       } catch (e) {
         if (controller.signal.aborted || isAbortError(e)) {
@@ -359,6 +389,7 @@ async function pump() {
         }
       } finally {
         controllers.delete(current.id);
+        announceIfIdle(current.roomId);
       }
     }
   } finally {
@@ -382,7 +413,12 @@ export function retryUpload(id: string) {
 export function cancelUpload(id: string) {
   const controller = controllers.get(id);
   if (controller) controller.abort();
-  else setJobs((js) => removeJob(js, id));
+  else {
+    const roomId = store.jobs.find((j) => j.id === id)?.roomId;
+    setJobs((js) => removeJob(js, id));
+    // Cancelling the last waiting job ends the batch.
+    if (roomId) announceIfIdle(roomId);
+  }
 }
 
 export function dismissUpload(id: string) {
@@ -392,6 +428,7 @@ export function dismissUpload(id: string) {
 /** Sign-out / account gone: stop every upload and forget the queue. */
 export function cancelAllUploads() {
   for (const c of controllers.values()) c.abort();
+  unannounced.clear();
   setStore({ jobs: [], done: {} });
 }
 
