@@ -26,8 +26,13 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   camera stays put after a pan and Recenter with no points was verified (docs/evidence/2026-11-07-gap-f5b-*.png);
   edge margins, single pin and the editor are NOT VERIFIED (no host session). Kept on main: local-only,
   presentation-only, easy to revert.
-- 5/6 fg-live-refresh → main b25f1bf. tsc/lint ok, mobile 139/139. qa pending (Guest 1 only: pull on the face
-  screen and on Photos of me). The cross-account matching upload is deferred.
+- 5/6 fg-live-refresh → main b25f1bf. tsc/lint ok, mobile 139/139. qa (Guest 1, not enrolled): face consent view
+  pull PASS (spinner shows and stops, view unchanged). Photos of me in the not-enrolled state has no pull by design
+  (static "Set up" card; it reloads on focus) and nothing started. Enrolled-state pull and the offline pull NOT
+  VERIFIED. Evidence: docs/evidence/2026-11-07-gap-fgl1-*.png. The cross-account matching upload is deferred.
+- 6/6 fg-ref-cleanup → main 33bc98c (2 files: mobile/src/lib/face.ts, janitor.test.ts comment). tsc/lint ok,
+  mobile 139/139, functions 37/37. No device-visible change (it removes a no-op client remove()). Live evidence:
+  deployed room-janitor v8 has the orphan sweep.
 - Deferred host-session checks (supervisor will ask the human to run them in one sitting, on iPhone or a sim the
   human signs in as an existing host):
   - F5-5b: Recenter edge margins (north-south and east-west routes), single pin, editor opens on the same view,
@@ -36,7 +41,6 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   - C-3: a real local expiry-reminder tap with a modal open.
   - Camera: the system permission prompt shows the new string.
   - FG-L1: a matching upload from another account appears after a pull.
-- Pending: fg-ref-cleanup 8884d40.
 - FG-R1 (no migration): a face reference uploaded before a failed enroll_face stays up to about 75 minutes, until
   the room-janitor orphan sweep (1 h age, cron */15) removes it. Deployed room-janitor v8 contains that sweep
   (get_edge_function == repo core.ts:90-97).
@@ -233,9 +237,10 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   → enroll_face; Replace; Stop and remove (remove_face_enrollment; the object is deleted by the next room-janitor run);
   media viewer "Not me" (face_matches.excluded). face-match is invoked only after enroll or while jobs are pending.
   Switch OFF → the UI shows only the "off in this draft" notice. npm test 74/74, tsc/lint clean. NOT on a device.
-  Known gaps: face-refs has no owner delete policy, so a reference uploaded before a failed enroll_face stays until the
-  room is deleted (the janitor removes the room prefix); camera Info.plist string does not mention face photos; no
-  live refresh of face tables (focus/pull); Photos of me only covers the media list the gallery loaded.
+  Known gaps (updated 2026-11-07 gap fixes): a reference uploaded before a failed enroll_face stays up to about
+  75 minutes (room-janitor orphan sweep, FG-R1 33bc98c); camera string fixed (b509d9f); focus/pull refresh added
+  (FG-L1 b25f1bf; no pull on the not-enrolled "Set up" card, which refreshes on focus); Photos of me only covers
+  the media list the gallery loaded.
   AWS secrets are already in Supabase Secrets; do NOT ask for them again.
 - Expiry reminders (R3): server 0019 live (981398b, cron active); client committed fa7ff6d (supervisor accepted
   the design; npm test 22/22, tsc and lint clean; built on both sims). NOT verified on device: the local reminder
