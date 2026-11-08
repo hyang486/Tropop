@@ -5,6 +5,14 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-07 late night: pushed e8b5d47 to QRew main (supervisor PUSH GO after qa main spot check A/C PASS)
+- `git push qrew qrew-push:main`: fast-forward 099c511..e8b5d47, no force. `git ls-remote qrew main` = e8b5d47.
+- e8b5d47 (parent 099c511, author Hyeonmin Yang, no co-author line): qrew's root .gitignore/README.md, plus mobile/ and
+  supabase/ from main 835fb40 minus mobile/.claude/settings.json and mobile/AGENTS.md. 36 files, +3474/−214.
+  Supervisor reviewed the file list and the secret scan before the push.
+- Metro :8082 (P-2 worktree) stopped; :8081 still runs. Local branch qrew-push = e8b5d47. Next QRew push: build it the
+  same way (commit-tree on qrew/main, same two exclusions).
+
 ## 2026-11-07 late night: P-2 redone → main 3be4858 (supervisor GO after qa A–G PASS on :8082; local, no push)
 - 24037f0 reapplies db2e86d (reverts revert 7e71cf8), then --no-ff merge of 45cde50 (pill flip) + 03e8ee7.
 - Rule: complete-link groups (every two members within 48 pt on screen); pill contact solved by placement
