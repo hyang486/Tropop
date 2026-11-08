@@ -41,6 +41,7 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   - C-3: a real local expiry-reminder tap with a modal open.
   - Camera: the system permission prompt shows the new string.
   - FG-L1: a matching upload from another account appears after a pull.
+  - FG-L1: pull on the enrolled face view and enrolled Photos of me; an offline pull keeps the view with an error.
 - FG-R1 (no migration): a face reference uploaded before a failed enroll_face stays up to about 75 minutes, until
   the room-janitor orphan sweep (1 h age, cron */15) removes it. Deployed room-janitor v8 contains that sweep
   (get_edge_function == repo core.ts:90-97).
