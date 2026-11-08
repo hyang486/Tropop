@@ -112,6 +112,9 @@ export const en = {
     endsIn: (remaining: string) => `Ends in ${remaining}`,
     endsAt: (when: string) => `Ends ${when}`,
     reminderTitle: 'Room ends soon',
+    // #9: one compact line in chat; the full note is in Info.
+    endsSoonLine: 'Room ends soon · photos and files are deleted',
+    endsSoonInfo: "Photos, files and chat are deleted when the room ends. Download anything you'd like to keep.",
     reminderBody: (name: string, remaining: string) =>
       `${name} disappears in ${remaining}. Download any photos and files you'd like to keep.`,
     members: 'Members',
@@ -198,6 +201,9 @@ export const en = {
   reminder: {
     title: 'Room ends in 24 hours',
     body: (name: string) => `${name} disappears tomorrow. Download any photos and files you'd like to keep.`,
+    // G6b: rooms under 24 h are reminded in their last hour.
+    titleLastHour: 'Room ends in 1 hour',
+    bodyLastHour: (name: string) => `${name} disappears in 1 hour. Download any photos and files you'd like to keep.`,
   },
   chat: {
     placeholder: 'Message',
@@ -210,6 +216,11 @@ export const en = {
     retry: 'Retry',
     discard: 'Delete',
     formerMember: 'Former member',
+    you: 'You',
+    // #8: the uploader's line; `body` is the stored "shared 3 photos".
+    shared: (who: string, body: string) => `${who} ${body}`,
+    sharedFallback: 'shared a photo or file',
+    openPhotosHint: 'Opens Photos',
   },
   media: {
     title: 'Photos & files',
