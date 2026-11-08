@@ -4,14 +4,19 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  countOverlaps,
   groupPins,
+  LABEL_JOIN,
+  layoutLabels,
   labelAnchor,
   labelId,
   labelPins,
   placePill,
+  placePills,
   planLabels,
   planPins,
   projectPoint,
+  viewportFromRegion,
 } from '../src/lib/location-plan.ts';
 
 const at = (id, x, y, shape = 'marker', text = `${id} · 4.3 km/h`) => ({
@@ -30,33 +35,33 @@ test('groupPins: a lone pin is its own group', () => {
   assert.deepEqual(groupPins([]), []);
 });
 
-test('groupPins: pins far apart on screen stay separate', () => {
-  const groups = groupPins([at('a', 60, 80), at('b', 300, 80), at('c', 60, 300), at('d', 300, 300)]);
-  assert.deepEqual(ids(groups), [['a'], ['b'], ['c'], ['d']]);
+test('groupPins: pins farther apart than LABEL_JOIN stay separate, even when their pills would touch', () => {
+  assert.deepEqual(ids(groupPins([at('a', 60, 80), at('b', 300, 80), at('c', 60, 300), at('d', 300, 300)])), [
+    ['a'],
+    ['b'],
+    ['c'],
+    ['d'],
+  ]);
+  // 80 pt apart side by side: two ~130 pt pills under them would overlap, but that is for placement to solve.
+  assert.deepEqual(ids(groupPins([at('a', 100, 100), at('b', 180, 100)])), [['a'], ['b']]);
+  assert.deepEqual(ids(groupPins([at('a', 100, 100), at('b', 100, 100 + LABEL_JOIN)])), [['a', 'b']]);
+  assert.deepEqual(ids(groupPins([at('a', 100, 100), at('b', 100, 100 + LABEL_JOIN + 1)])), [['a'], ['b']]);
 });
 
-test('groupPins: pins side by side whose one-line pills would overlap are one group', () => {
-  // 80 pt apart at the same height: the pins do not touch, but two ~130 pt pills under them would.
-  assert.deepEqual(ids(groupPins([at('a', 100, 100), at('b', 180, 100)])), [['a', 'b']]);
+test('groupPins: complete link, a chain of close pins never stretches into one group', () => {
+  // a-b 40, b-c 40, a-c 80: no group may hold both a and c.
+  const groups = ids(groupPins([at('a', 40, 100), at('b', 80, 100), at('c', 120, 100)]));
+  assert.ok(!groups.some((g) => g.includes('a') && g.includes('c')), JSON.stringify(groups));
+  assert.equal(groups.flat().length, 3);
+  const chain = [at('a', 40, 100), at('b', 80, 100), at('c', 120, 100), at('d', 160, 100)];
+  assert.deepEqual(ids(groupPins(chain)), [['a', 'b'], ['c', 'd']]);
 });
 
-test('groupPins: a pin right under another (inside its pill) joins it', () => {
-  assert.deepEqual(ids(groupPins([at('a', 100, 100), at('b', 100, 150)])), [['a', 'b']]);
-  // Well below the pill and the balloon: separate.
-  assert.deepEqual(ids(groupPins([at('a', 100, 100), at('b', 100, 200)])), [['a'], ['b']]);
-});
-
-test('groupPins: single link chains close pins into one group', () => {
-  const chain = [at('a', 40, 100), at('b', 110, 100), at('c', 180, 100), at('d', 250, 100)];
-  assert.deepEqual(ids(groupPins(chain)), [['a', 'b', 'c', 'd']]);
-});
-
-test('groupPins: a grown pill can pull in a pin below it', () => {
-  // b alone is clear of a's one-line pill, but the 3-line pill of a, x, y reaches it.
-  const one = groupPins([at('a', 100, 100), at('b', 100, 190)]);
-  assert.deepEqual(ids(one), [['a'], ['b']]);
-  const three = groupPins([at('a', 100, 100), at('x', 90, 70), at('y', 110, 60), at('b', 100, 190)]);
-  assert.deepEqual(ids(three), [['y', 'x', 'a', 'b']]);
+test('groupPins: every two members of a group are within LABEL_JOIN', () => {
+  const pins = [at('a', 100, 100), at('b', 130, 110), at('c', 150, 140), at('d', 170, 100), at('e', 110, 150), at('f', 125, 125)];
+  for (const group of groupPins(pins)) {
+    for (const p of group) for (const q of group) assert.ok(Math.hypot(p.x - q.x, p.y - q.y) <= LABEL_JOIN);
+  }
 });
 
 test('groupPins: deterministic, whatever the input order; groups by smallest id, lines top to bottom', () => {
@@ -87,6 +92,8 @@ test('labelId: changes with the member set, a member going stale, a shape change
     labelId([{ id: 'u1', shape: 'marker' }, b], { id: 'u1', shape: 'marker' }),
     labelId([a, b], b),
     labelId([a, b], a, 'above'),
+    labelId([a, b], a, 'below', 'left'),
+    labelId([a, b], a, 'below', 'right'),
   ];
   assert.equal(new Set([base, ...variants]).size, variants.length + 1);
 });
@@ -104,6 +111,7 @@ test('planLabels: a lone member keeps a one-line pill under its own pin', () => 
       stale: false,
       members: ['u1'],
       placement: 'below',
+      align: 'center',
     },
   ]);
 });
@@ -178,44 +186,64 @@ test('labelAnchor: above puts the pill bottom 3 pt over the balloon top (44 pt) 
   assert.deepEqual(labelAnchor('photo', 2, 'below'), labelAnchor('photo', 2));
 });
 
-test('placePill: below when it ends above the bottom band', () => {
+test('labelAnchor: a reaching pill keeps its edge at the pin body edge', () => {
+  // 100 pt wide over a 40 pt balloon: reaching left, the pin point is 20 pt from the right edge.
+  assert.deepEqual(labelAnchor('marker', 1, 'below', 'left', 100), { x: 0.8, y: -3 / 30 });
+  assert.deepEqual(labelAnchor('marker', 1, 'below', 'right', 100), { x: 0.2, y: -3 / 30 });
+  // A pill narrower than the pin body stays centred.
+  assert.deepEqual(labelAnchor('photo', 1, 'above', 'left', 40), { x: 0.5, y: 1 + 28 / 30 });
+});
+
+test('placePill: below and centred when it fits', () => {
   const plan = placePill([at('a', 100, 200)], SIZE);
   assert.equal(plan.placement, 'below');
+  assert.equal(plan.align, 'center');
   assert.equal(plan.pin.id, 'a');
   assert.deepEqual(plan.rect, { left: 44, right: 156, top: 203, bottom: 235 });
 });
 
-test('placePill: above the highest pin when the bottom band leaves no room below and the top band leaves room', () => {
+test('placePill: above the highest pin when the bottom band leaves no room below', () => {
   const plan = placePill([at('a', 100, 280), at('b', 120, 250)], SIZE);
   assert.equal(plan.placement, 'above');
   assert.equal(plan.pin.id, 'b');
   assert.ok(plan.rect.top >= TOP_BAND && plan.rect.bottom === 250 - 44 - 3, JSON.stringify(plan.rect));
 });
 
-test('placePill: neither side fits: the side with more room between its pin and its band', () => {
-  // Below: from 303, 15 pt to the bottom band; above: ends at 83, 5 pt inside the top band. Below wins.
-  const low = placePill([at('a', 100, 300), at('b', 100, 250), at('c', 100, 130)], SIZE);
-  assert.equal(low.placement, 'below');
-  // Lowest pin higher: below gets 28 pt, above gets 49 pt. Above wins, though it starts inside the top band.
-  const high = placePill([at('a', 100, 287), at('b', 100, 184), at('c', 50, 210), at('d', 150, 239)], SIZE);
-  assert.equal(high.placement, 'above');
-  assert.equal(high.pin.id, 'b');
+test('placePill: near the right edge it reaches left instead of running off the map', () => {
+  const plan = placePill([at('a', 340, 200)], SIZE);
+  assert.equal(plan.placement, 'below');
+  assert.equal(plan.align, 'left');
+  assert.equal(plan.rect.right, 360);
 });
 
-test('placePill: with no size (no viewport) always below', () => {
-  assert.equal(placePill([at('a', 100, 350)]).placement, 'below');
+test('placePill: with no size (no viewport) always below and centred', () => {
+  const plan = placePill([at('a', 100, 350)]);
+  assert.equal(plan.placement, 'below');
+  assert.equal(plan.align, 'center');
 });
 
-test('groupPins: terminates and stays deterministic when a merge flips a pill to the other side', () => {
-  const pins = [at('a', 100, 250), at('b', 100, 300), at('c', 100, 130)];
-  // Without a screen: a and b group (b is inside a's pill); c is clear of both.
-  assert.deepEqual(ids(groupPins(pins)), [['a', 'b'], ['c']]);
-  // On the 360 pt map, a + b no longer fits below and flips above a, into c's pill: c joins. The
-  // three-line pill then fits neither side and goes back below (more room): the loop still ends.
-  const grouped = groupPins(pins, undefined, SIZE);
-  assert.deepEqual(ids(grouped), [['c', 'a', 'b']]);
-  assert.deepEqual(ids(groupPins([...pins].reverse(), undefined, SIZE)), ids(grouped));
-  assert.equal(placePill(grouped[0], SIZE).placement, 'below');
+test('placePills: two side-by-side pins 80 pt apart get two clear pills', () => {
+  const groups = groupPins([at('a', 150, 150), at('b', 230, 150)]);
+  const plans = placePills(groups, SIZE);
+  assert.equal(plans.length, 2);
+  assert.equal(countOverlaps(groups, plans), 0);
+});
+
+test('placePills: deterministic for the same pins in any input order', () => {
+  const pins = [at('a', 150, 150), at('b', 230, 150), at('c', 190, 200), at('d', 120, 230)];
+  const run = (list) => JSON.stringify(placePills(groupPins(list), SIZE).map((p) => [p.pin.id, p.placement, p.align]));
+  assert.equal(run(pins), run([...pins].reverse()));
+});
+
+test('placePills: worst case, a crowd with no clear spot overlaps and the overlap is counted', () => {
+  // Six pins 60 pt apart in a 3 x 2 grid, each its own group, in a map only 220 pt square.
+  const small = { width: 220, height: 220 };
+  const pins = [0, 1, 2].flatMap((c) => [0, 1].map((r) => at(`p${c}${r}`, 50 + 60 * c, 110 + 60 * r)));
+  const groups = groupPins(pins);
+  assert.equal(groups.length, 6);
+  const plans = placePills(groups, small);
+  assert.equal(plans.length, 6, 'every group keeps a pill');
+  assert.ok(countOverlaps(groups, plans) > 0);
 });
 
 // Replays of the room map logged during qa's (B) repro on 2026-11-07 (docs/evidence/2026-11-07-p2dbg-2-zoom-pan.png).
@@ -231,33 +259,81 @@ const B_VIEWS = {
   pan: { center: { latitude: 34.04937433978925, longitude: -118.2510292043691 }, scale: 131098.49169990513, bearing: 0 },
 };
 
-for (const [name, view] of Object.entries(B_VIEWS)) {
-  test(`planLabels replay (B, ${name}): one group; the pill goes to the side with more room, clipping reported`, () => {
-    const labels = planLabels(LOGGED, view, SIZE);
-    assert.equal(labels.length, 1);
-    const placed = LOGGED.map((pin) => ({ ...pin, ...projectPoint(pin.coordinates, view, SIZE) }));
-    const plan = placePill(placed, SIZE);
-    assert.equal(labels[0].placement, plan.placement);
-    assert.ok(labels[0].id.endsWith(`:${plan.placement}`));
-    // Four lines (98 pt) under G3 would cross the bottom band; over G1 they start inside the top band.
-    const lowY = Math.max(...placed.map((p) => p.y));
-    const highTop = Math.min(...placed.map((p) => p.y - 44));
-    const below = { top: lowY + 3, bottom: lowY + 3 + 98 };
-    const above = { top: highTop - 3 - 98, bottom: highTop - 3 };
-    assert.ok(below.bottom > BOTTOM_LIMIT && above.top < TOP_BAND, 'neither side fits at this view');
-    const roomBelow = BOTTOM_LIMIT - below.top;
-    const roomAbove = above.bottom - TOP_BAND;
-    assert.equal(plan.placement, roomAbove > roomBelow ? 'above' : 'below');
-    assert.equal(plan.placement, 'above');
-    assert.equal(plan.pin.id, 'g1');
-    assert.equal(plan.rect.bottom, above.bottom);
-    assert.ok(plan.rect.top < TOP_BAND, 'still clipped by the top band: reported, not hidden');
+/** Checks every label hangs from a pin of its own group, at most LABEL_JOIN from every member. */
+function assertHonest(groups, plans) {
+  groups.forEach((group, k) => {
+    assert.ok(group.includes(plans[k].pin));
+    for (const m of group) assert.ok(Math.hypot(m.x - plans[k].pin.x, m.y - plans[k].pin.y) <= LABEL_JOIN);
   });
 }
 
-test('planLabels replay (B, zoomed in): the group splits at a reachable zoom', () => {
-  // Same center, 4x the pinch scale (zoom ~19, within MapKit's range).
-  const view = { ...B_VIEWS.pan, scale: B_VIEWS.pan.scale * 4 };
-  const labels = planLabels(LOGGED, view, SIZE);
-  assert.ok(labels.length > 1, JSON.stringify(labels.map((l) => l.members)));
+for (const [name, view] of Object.entries(B_VIEWS)) {
+  test(`replay (B, ${name}): pins 73-82 pt apart are four pills, none overlapping`, () => {
+    const { groups, plans } = layoutLabels(LOGGED, view, SIZE);
+    assert.deepEqual(ids(groups), [['g1'], ['g3'], ['g4'], ['you']]);
+    assertHonest(groups, plans);
+    assert.equal(countOverlaps(groups, plans), 0);
+    // No pill reaches into the top band; at most ~4 pt into the bottom band (pan: G3's pill, whose other
+    // candidates would cover You's pin or another pill; reported, not hidden).
+    for (const plan of plans) {
+      assert.ok(plan.rect.top >= TOP_BAND && plan.rect.bottom <= BOTTOM_LIMIT + 4, `${plan.pin.id} ${JSON.stringify(plan.rect)}`);
+    }
+  });
+}
+
+// (C2) after Recenter with G4 ~5 km away (docs/evidence/2026-11-07-p2c-C2-lone-member-far.png), screen points
+// read off the screenshot (G1 is hidden under G3): the cluster's pill used to chain into G4's.
+const C2 = [
+  at('g1', 139, 128, 'marker', 'Guest 1 (17)'),
+  at('you', 141, 136, 'marker', 'You'),
+  at('g3', 142, 126, 'marker', 'Guest 3 (17e)'),
+  at('g4', 254, 192, 'marker', 'Guest 4 (ProMax)'),
+];
+
+test('replay (C2): the far member gets its own pill; the cluster pill never names G4', () => {
+  const groups = groupPins(C2);
+  assert.deepEqual(ids(groups), [['g3', 'g1', 'you'], ['g4']]);
+  const plans = placePills(groups, SIZE);
+  assertHonest(groups, plans);
+  assert.equal(plans[1].pin.id, 'g4');
+  assert.equal(countOverlaps(groups, plans), 0);
+  assert.deepEqual(ids(groupPins([...C2].reverse())), ids(groups));
+});
+
+// (E) rotated: the onCameraMove logged on :8082 at a 261° heading (docs/evidence/2026-11-07-p2dbg-5-rotated.png).
+const E_REGION = {
+  coordinates: { latitude: 34.04159543916342, longitude: -118.22971946790581 },
+  latitudeDelta: 0.11734404574193036,
+  longitudeDelta: 0.13882262382614385,
+  bearing: 260.9824469276233,
+};
+const E_PINS = [
+  ['g4', 34.028, -118.205, 'Guest 4 (ProMax)'],
+  ['you', 34.049, -118.251, 'You'],
+  ['g3', 34.0487, -118.2505, 'Guest 3 (17e)'],
+  ['g1', 34.04935, -118.2506, 'Guest 1 (17)'],
+].map(([id, latitude, longitude, text]) => ({ id, coordinates: { latitude, longitude }, shape: 'marker', text, stale: false }));
+
+test('viewportFromRegion (E, rotated 261°): pins land within 5 pt of the screenshot; the box height agrees', () => {
+  const view = viewportFromRegion(E_REGION, SIZE);
+  // Balloon tips read off p2dbg-5-rotated.png (map points): G1 (221, 123), G4 (124.5, 245).
+  const g1 = projectPoint(E_PINS[3].coordinates, view, SIZE);
+  const g4 = projectPoint(E_PINS[0].coordinates, view, SIZE);
+  assert.ok(Math.hypot(g1.x - 221, g1.y - 123) < 5, JSON.stringify(g1));
+  assert.ok(Math.hypot(g4.x - 124.5, g4.y - 245) < 5, JSON.stringify(g4));
+  // The region is the bounding box of the turned view: its latitude span, in points, is that box's height.
+  const t = (E_REGION.bearing * Math.PI) / 180;
+  const boxHeight = SIZE.width * Math.abs(Math.sin(t)) + SIZE.height * Math.abs(Math.cos(t));
+  const merc = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) * (180 / Math.PI);
+  const c = E_REGION.coordinates.latitude;
+  const spanPts = (merc(c + E_REGION.latitudeDelta / 2) - merc(c - E_REGION.latitudeDelta / 2)) * view.scale;
+  assert.ok(Math.abs(spanPts - boxHeight) < 2, `${spanPts} vs ${boxHeight}`);
+});
+
+test('replay (E, rotated): the cluster has one pill, G4 its own, no overlap', () => {
+  const view = viewportFromRegion(E_REGION, SIZE);
+  const { groups, plans } = layoutLabels(E_PINS, view, SIZE);
+  assert.deepEqual(ids(groups).map((g) => [...g].sort()), [['g1', 'g3', 'you'], ['g4']]);
+  assertHonest(groups, plans);
+  assert.equal(countOverlaps(groups, plans), 0);
 });
