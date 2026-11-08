@@ -218,8 +218,11 @@ export const en = {
     mine: 'Mine',
     others: 'Others',
     add: 'Add',
+    addTakePhoto: 'Take photo',
     addPhotos: 'Photos and videos',
     addFile: 'File',
+    cameraDenied: 'Camera access is off. Turn it on in Settings to take photos for this room.',
+    cameraUnavailable: 'The camera is not available on this device.',
     cancel: 'Cancel',
     // #7: one-time notice before the first photo/video add. PROPOSED wording, not yet confirmed by the human.
     originalsNoticeTitle: 'Photos are shared as originals',

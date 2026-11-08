@@ -29,6 +29,7 @@ import {
   objectUrl,
   pickFile,
   pickPhotosAndVideos,
+  takePhoto,
   enqueueUploads,
   type PickedItem,
   splitBySize,
@@ -80,15 +81,20 @@ export default function GalleryScreen() {
   );
 
   function openAddMenu() {
+    // #13: Take photo first, like Messages. Both photo options show the one-time originals notice.
     ActionSheetIOS.showActionSheetWithOptions(
-      { options: [en.media.addPhotos, en.media.addFile, en.media.cancel], cancelButtonIndex: 2 },
+      {
+        options: [en.media.addTakePhoto, en.media.addPhotos, en.media.addFile, en.media.cancel],
+        cancelButtonIndex: 3,
+      },
       (index) => {
-        if (index === 0) {
+        if (index === 0 || index === 1) {
+          const pick = index === 0 ? takePhoto : pickPhotosAndVideos;
           void confirmOriginalsNotice().then((ok) => {
-            if (ok) choose(pickPhotosAndVideos);
+            if (ok) choose(pick);
           });
         }
-        if (index === 1) choose(pickFile);
+        if (index === 2) choose(pickFile);
       },
     );
   }

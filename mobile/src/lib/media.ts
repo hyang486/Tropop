@@ -109,20 +109,39 @@ export async function pickPhotosAndVideos(): Promise<PickedItem[]> {
     videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
   });
   if (result.canceled) return [];
-  return result.assets.map((a) => {
-    const kind: MediaKind = a.type === 'video' ? 'video' : 'photo';
-    const mimeType = a.mimeType ?? (kind === 'video' ? 'video/quicktime' : 'image/jpeg');
-    const fallbackName = `${kind === 'video' ? 'video' : 'photo'}.${EXT_BY_MIME[mimeType] ?? 'bin'}`;
-    return {
-      uri: a.uri,
-      kind,
-      mimeType,
-      fileName: a.fileName ?? fallbackName,
-      width: a.width || undefined,
-      height: a.height || undefined,
-      durationMs: a.duration ?? undefined,
-    };
-  });
+  return result.assets.map(pickedFromAsset);
+}
+
+/**
+ * #13: one photo from the camera, as the original capture (no editing). Asks for camera access
+ * first; throws a readable error when access is off or the device has no camera (the Simulator).
+ */
+export async function takePhoto(): Promise<PickedItem[]> {
+  const perm = await ImagePicker.requestCameraPermissionsAsync();
+  if (!perm.granted) throw new Error(en.media.cameraDenied);
+  let result: ImagePicker.ImagePickerResult;
+  try {
+    result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 1, exif: false });
+  } catch {
+    throw new Error(en.media.cameraUnavailable);
+  }
+  if (result.canceled) return [];
+  return result.assets.map(pickedFromAsset);
+}
+
+function pickedFromAsset(a: ImagePicker.ImagePickerAsset): PickedItem {
+  const kind: MediaKind = a.type === 'video' ? 'video' : 'photo';
+  const mimeType = a.mimeType ?? (kind === 'video' ? 'video/quicktime' : 'image/jpeg');
+  const fallbackName = `${kind === 'video' ? 'video' : 'photo'}.${EXT_BY_MIME[mimeType] ?? 'bin'}`;
+  return {
+    uri: a.uri,
+    kind,
+    mimeType,
+    fileName: a.fileName ?? fallbackName,
+    width: a.width || undefined,
+    height: a.height || undefined,
+    durationMs: a.duration ?? undefined,
+  };
 }
 
 /** Any file from the system document picker. */
