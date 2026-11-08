@@ -213,6 +213,11 @@ export const en = {
     retry: 'Retry',
     discard: 'Delete',
     formerMember: 'Former member',
+    you: 'You',
+    // #8: the uploader's line; `body` is the stored "shared 3 photos".
+    shared: (who: string, body: string) => `${who} ${body}`,
+    sharedFallback: 'shared a photo or file',
+    openPhotosHint: 'Opens Photos',
   },
   media: {
     title: 'Photos & files',
