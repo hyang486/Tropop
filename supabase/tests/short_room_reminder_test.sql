@@ -28,8 +28,17 @@ create function tests.reminded(p_room uuid) returns bigint language sql as $$
   select count(*) from public.expiry_reminders where room_id = p_room;
 $$;
 
-create function tests.at(p_offset interval) returns timestamptz language sql as $$
-  select now() + p_offset;
+-- Runs the sender at T + p_offset and returns how many reminders it added for THIS test's rooms. Live rooms
+-- in the project may enter their own window at a simulated time (their rows are rolled back too), so the
+-- function's global return value is not asserted.
+create function tests.run(p_offset interval) returns bigint language plpgsql as $$
+declare before bigint; after bigint;
+begin
+  select count(*) into before from public.expiry_reminders where room_id::text like 'c2510000-%';
+  perform private.send_expiry_reminders(now() + p_offset);
+  select count(*) into after from public.expiry_reminders where room_id::text like 'c2510000-%';
+  return after - before;
+end;
 $$;
 
 insert into auth.users (instance_id, id, aud, role, email, is_anonymous, raw_user_meta_data, created_at, updated_at)
@@ -52,7 +61,7 @@ insert into public.room_members (room_id, user_id, role)
 
 -- 1. Right after creation (T+1s): only the 24-hour rooms that are already inside 24 h (D2350).
 --    The 3 h, 23 h and 23 h 49 min rooms are NOT reminded (0019 reminded all of them here).
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '1 second')), 1, 'T+1s: only the 23h50 room');
+select tests.expect_eq(tests.run(interval '1 second'), 1, 'T+1s: only the 23h50 room');
 select tests.expect_eq(tests.reminded('c2510000-0000-4000-8000-000000000004'), 1, 'D2350 reminded at creation (24 h window)');
 select tests.expect_eq(tests.reminded('c2510000-0000-4000-8000-000000000001'), 0, 'S3 not reminded at creation');
 select tests.expect_eq(tests.reminded('c2510000-0000-4000-8000-000000000002'), 0, 'S23 not reminded at creation');
@@ -65,29 +74,29 @@ update public.rooms set expires_at = now() + interval '3 days', expiry_version =
   where id = 'c2510000-0000-4000-8000-000000000006';
 
 -- 2. S3 edges: one minute before its last hour nothing; just inside, host and member once, one broadcast.
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '2 hours' - interval '1 minute')), 0, 'S3: 1 min before last hour');
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '2 hours' + interval '1 second')), 2, 'S3: last hour, H and G');
+select tests.expect_eq(tests.run(interval '2 hours' - interval '1 minute'), 0, 'S3: 1 min before last hour');
+select tests.expect_eq(tests.run(interval '2 hours' + interval '1 second'), 2, 'S3: last hour, H and G');
 select tests.expect_eq(
   (select count(*) from realtime.messages
     where topic = 'room:c2510000-0000-4000-8000-000000000001' and event = 'expiry_reminders'
       and payload - 'id' = '{"table":"expiry_reminders","op":"INSERT","expiry_version":1}'::jsonb),
   1, 'S3: one broadcast, same payload shape as 0019');
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '2 hours' + interval '1 second')), 0, 'S3: rerun deduplicated');
+select tests.expect_eq(tests.run(interval '2 hours' + interval '1 second'), 0, 'S3: rerun deduplicated');
 
 -- 3. X was extended before its old last hour (T+2h): nothing then, even though S3 was reminded at T+2h.
 select tests.expect_eq(tests.reminded('c2510000-0000-4000-8000-000000000006'), 0, 'X: nothing in its old last hour');
 
 -- 4. 23 h and 23 h 49 min rooms: last hour only.
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '22 hours' - interval '1 minute')), 1, 'T+22h-1m: only D30 (24 h window since T+6h)');
+select tests.expect_eq(tests.run(interval '22 hours' - interval '1 minute'), 1, 'T+22h-1m: only D30 (24 h window since T+6h)');
 select tests.expect_eq(tests.reminded('c2510000-0000-4000-8000-000000000005'), 1, 'D30 reminded inside its 24 h window');
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '22 hours' + interval '1 second')), 1, 'T+22h: S23 enters its last hour');
+select tests.expect_eq(tests.run(interval '22 hours' + interval '1 second'), 1, 'T+22h: S23 enters its last hour');
 select tests.expect_eq(tests.reminded('c2510000-0000-4000-8000-000000000002'), 1, 'S23 reminded in its last hour');
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '22 hours 48 minutes')), 0, 'T+22h48m: S2349 not yet');
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '22 hours 49 minutes' + interval '1 second')), 1, 'T+22h49m: S2349 enters its last hour');
+select tests.expect_eq(tests.run(interval '22 hours 48 minutes'), 0, 'T+22h48m: S2349 not yet');
+select tests.expect_eq(tests.run(interval '22 hours 49 minutes' + interval '1 second'), 1, 'T+22h49m: S2349 enters its last hour');
 
 -- 5. X after the extension: nothing until 24 h before its new end, then once.
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '2 days' - interval '1 minute')), 0, 'X: before its 24 h window');
-select tests.expect_eq(private.send_expiry_reminders(tests.at(interval '2 days' + interval '1 second')), 1, 'X: inside its 24 h window');
+select tests.expect_eq(tests.run(interval '2 days' - interval '1 minute'), 0, 'X: before its 24 h window');
+select tests.expect_eq(tests.run(interval '2 days' + interval '1 second'), 1, 'X: inside its 24 h window');
 select tests.expect_eq(
   (select count(*) from public.expiry_reminders where room_id = 'c2510000-0000-4000-8000-000000000006' and expiry_version = 2),
   1, 'X: reminder for version 2');
