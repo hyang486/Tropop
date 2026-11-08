@@ -33,15 +33,14 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
 - 6/6 fg-ref-cleanup → main 33bc98c (2 files: mobile/src/lib/face.ts, janitor.test.ts comment). tsc/lint ok,
   mobile 139/139, functions 37/37. No device-visible change (it removes a no-op client remove()). Live evidence:
   deployed room-janitor v8 has the orphan sweep.
-- Deferred host-session checks (supervisor will ask the human to run them in one sitting, on iPhone or a sim the
-  human signs in as an existing host):
-  - F5-5b: Recenter edge margins (north-south and east-west routes), single pin, editor opens on the same view,
-    plus a top/bottom clearance screenshot.
-  - N-1: cold start with moment:/// and with a join link (preview/release build).
-  - C-3: a real local expiry-reminder tap with a modal open.
-  - Camera: the system permission prompt shows the new string.
-  - FG-L1: a matching upload from another account appears after a pull.
-  - FG-L1: pull on the enrolled face view and enrolled Photos of me; an offline pull keeps the view with an error.
+- Host-session checks (qa, Simulator_host on 17 Pro + Guest 1/3, supervisor-accepted; live-status log ~1126-1136):
+  - Done (sim): F5-5b Recenter clearance with route and pins; camera system prompt shows the full new string
+    (docs/evidence/2026-11-07-host-camera-prompt.png); live location two-way and the 3-member movement/speed test
+    (simctl location, not a real-device walk).
+  - PARTIAL: FG-L1 enrolled pull (no error; spinner not captured).
+  - Still NOT VERIFIED: FG-L1 offline pull; cross-account matching upload; C-3 real local reminder tap; N-1 cold
+    start (needs a preview/release build); F5-5b single pin and editor map.
+  - Known polish: the Pen chip covers the compass.
 - Simulator_host (17 Pro 91F3BFB3, created by the human) is a standing test host (human FINAL ~17:50 PST): not in
   any delete or cleanup plan. Only the disposable R1-C host (c2d629c2…, r1c-qa-host-11070111@example.com, room
   82192) is still scheduled for deletion after the 04:03Z check.
