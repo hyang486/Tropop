@@ -69,8 +69,11 @@ test('one point: street level, nudged so its pin clears the uneven top and botto
   const cam = cameraFor([p(37.7793, -122.4193)]);
   assert.equal(cam.zoom, MAX_CAMERA_ZOOM);
   assert.ok(near(cam.coordinates.longitude, -122.4193));
-  // Top padding is larger, so the center sits a little north of the point and the point a little below middle.
-  assert.ok(cam.coordinates.latitude > 37.7793 && cam.coordinates.latitude < 37.7795, `lat ${cam.coordinates.latitude}`);
+  // Uneven padding: the center sits a little toward the larger edge (north when top is larger, south when
+  // bottom is), so the point sits in the middle of the padded rect rather than of the view.
+  const shift = cam.coordinates.latitude - 37.7793;
+  assert.equal(Math.sign(shift), Math.sign(ROOM_MAP_PADDING.top - ROOM_MAP_PADDING.bottom), `lat ${cam.coordinates.latitude}`);
+  assert.ok(Math.abs(shift) < 0.0005, `lat ${cam.coordinates.latitude}`);
   const { y } = project(p(37.7793, -122.4193), cam, ROOM_MAP_SIZE);
   const mid = (ROOM_MAP_PADDING.top + ROOM_MAP_SIZE.height - ROOM_MAP_PADDING.bottom) / 2;
   assert.ok(Math.abs(y - mid) < 0.5, `y ${y} vs ${mid}`);
