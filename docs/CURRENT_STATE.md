@@ -5,6 +5,15 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-07 late night: P-2 redone → main 3be4858 (supervisor GO after qa A–G PASS on :8082; local, no push)
+- 24037f0 reapplies db2e86d (reverts revert 7e71cf8), then --no-ff merge of 45cde50 (pill flip) + 03e8ee7.
+- Rule: complete-link groups (every two members within 48 pt on screen); pill contact solved by placement
+  (6 candidates: below/above x centred/reaching left/right; first clear, up to 2 bounded revision passes);
+  with no clear spot a pill may overlap (human decision (a), USER_DECISIONS). Replays (B) pinch/pan, C2, rotated
+  E: 0 overlaps; (B) pan G3 pill 3.7 pt into the bottom band. viewportFromRegion verified on a 261° log (~1 pt).
+- tsc/lint clean, mobile 182/182, no P2DBG/P3-DEBUG. Next: qa spot-check on main via :8081; push to QRew waits
+  for supervisor file-list/secret scan.
+
 ## 2026-11-07 night: polish P-1..P-3 (human request via qa ~18:00 PST; supervisor GO each, local, no push)
 - P-1 p1-pen-compass → main 063e0ba: host Pen chip moved top right → top left (expo-maps 58 cannot move MapKit's
   compass). tsc/lint ok, mobile 139/139. qa PASS, supervisor ACCEPTED (rotated-compass screenshot).
