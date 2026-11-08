@@ -35,6 +35,8 @@ import {
   parseRoute,
   type PinInput,
   planPins,
+  ROOM_MAP_SIZE,
+  type ViewSize,
   wantedIconPaths,
 } from '@/lib/location-plan';
 import { useMarkerIcons } from '@/lib/marker-icons';
@@ -182,9 +184,12 @@ function RoomMap({
   // after that only the Recenter button moves the camera. F5-3: the zoom fits the points' span.
   // F5-4: the first centering goes through the cameraPosition prop, which expo-maps applies once the
   // native view exists; an imperative call right after mount could reject ("Unable to find the view").
+  // F5-5b: the fit keeps the points clear of the overlay buttons and of the pins' own icons and labels,
+  // measured against the map's real size once it is laid out.
+  const [mapSize, setMapSize] = useState<ViewSize>(ROOM_MAP_SIZE);
   const pointsCamera = useMemo(
-    () => cameraFor([...savedRoute, ...presence.rows.map((r) => ({ latitude: r.lat, longitude: r.lng }))]),
-    [savedRoute, presence.rows],
+    () => cameraFor([...savedRoute, ...presence.rows.map((r) => ({ latitude: r.lat, longitude: r.lng }))], mapSize),
+    [savedRoute, presence.rows, mapSize],
   );
   const camera = useMemo<Camera | null>(
     () => pointsCamera ?? (myPosition ? { coordinates: myPosition, zoom: MAX_CAMERA_ZOOM } : null),
@@ -332,7 +337,15 @@ function RoomMap({
     >
       <Stack.Screen options={{ title: en.map.title }} />
 
-      <View style={styles.mapWrap}>
+      <View
+        style={styles.mapWrap}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          if (width > 0 && height > 0 && (width !== mapSize.width || height !== mapSize.height)) {
+            setMapSize({ width, height });
+          }
+        }}
+      >
         <AppleMaps.View
           ref={mapRef}
           style={styles.map}

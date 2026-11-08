@@ -174,20 +174,58 @@ export type Camera = { coordinates: LatLng; zoom: number };
 export const MAX_CAMERA_ZOOM = 15;
 /** Whole-world view for points spread across the globe. */
 export const MIN_CAMERA_ZOOM = 1;
-/** Margin around the points, as a factor of their span. */
-const CAMERA_PADDING = 1.4;
+/** Screen-space margins, in points, that the fitted points must stay clear of. */
+export type EdgePadding = { top: number; bottom: number; left: number; right: number };
+/** The map view's size, in points. */
+export type ViewSize = { width: number; height: number };
+export type CameraFrame = { size: ViewSize; padding: EdgePadding };
 
 /**
- * Camera that shows all points (F5-3): the middle of their bounding box, zoomed to fit their span
- * instead of a fixed street-level zoom. expo-maps maps zoom to a longitude span of 360 / 2^zoom degrees.
- * Longitudes are taken across the antimeridian when that span is shorter. Null when there are no points.
+ * F5-5b: the room map's fit margins. expo-maps 58 has no edge padding or content inset, so the margins are
+ * part of the fit itself. Each edge is the overlay band there plus how far a pin reaches past its point:
+ * - top 88: the Draw route button (8 + ~34 pt) plus a marker balloon, drawn 44 pt above its point.
+ * - bottom 80: the Show my location / Recenter buttons (8 + ~34 pt) plus a photo pin's lower half (25 pt)
+ *   and its name label (~14 pt) under the point.
+ * - left / right 48: half a pin's name label ("Name · 4 km/h"), which is centered on the point.
  */
-export function cameraFor(points: LatLng[]): Camera | null {
+export const ROOM_MAP_PADDING: EdgePadding = { top: 88, bottom: 80, left: 48, right: 48 };
+/** The room map until onLayout reports: 360 pt tall, full width of a 402 pt screen minus 16 pt gutters. */
+export const ROOM_MAP_SIZE: ViewSize = { width: 370, height: 360 };
+
+/** The points always get at least this share of each view dimension, even if the padding asks for more. */
+const MIN_CONTENT_SHARE = 0.25;
+const MAX_MERCATOR_LAT = 85.05112878;
+const RAD = Math.PI / 180;
+
+/** Web Mercator y, in degrees of longitude, so x and y share one screen scale. */
+function mercatorY(latitude: number): number {
+  const lat = Math.min(MAX_MERCATOR_LAT, Math.max(-MAX_MERCATOR_LAT, latitude)) * RAD;
+  return Math.log(Math.tan(Math.PI / 4 + lat / 2)) / RAD;
+}
+
+function latitudeOfY(y: number): number {
+  return (2 * Math.atan(Math.exp(y * RAD)) - Math.PI / 2) / RAD;
+}
+
+/**
+ * Camera that shows all points (F5-3) inside the frame's padding (F5-5b). expo-maps turns zoom into a region
+ * of 360 / 2^zoom degrees on both axes, and MapKit shows at least that region, scaled to fit the view: on
+ * screen that is min(width, height * cos(lat)) points across the span (Mercator stretches latitude by
+ * 1 / cos(lat)). So the fit picks the screen scale that puts the points' projected bounding box inside the
+ * padded rect, turns that scale back into a zoom, and moves the center so the box sits in the middle of the
+ * padded rect rather than of the whole view (the padding is uneven). Longitudes are taken across the
+ * antimeridian when that span is shorter. Null when there are no points.
+ */
+export function cameraFor(
+  points: LatLng[],
+  size: ViewSize = ROOM_MAP_SIZE,
+  padding: EdgePadding = ROOM_MAP_PADDING,
+): Camera | null {
   const valid = points.filter(isValidLatLng);
   if (valid.length === 0) return null;
-  const lats = valid.map((p) => p.latitude);
-  const latSpan = Math.max(...lats) - Math.min(...lats);
-  const latitude = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const ys = valid.map((p) => mercatorY(p.latitude));
+  const boxY = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const ySpan = Math.max(...ys) - Math.min(...ys);
 
   const lngs = valid.map((p) => p.longitude);
   const wrapped = lngs.map((l) => (l < 0 ? l + 360 : l));
@@ -195,13 +233,26 @@ export function cameraFor(points: LatLng[]): Camera | null {
   const wrappedSpan = Math.max(...wrapped) - Math.min(...wrapped);
   const useWrapped = wrappedSpan < plainSpan;
   const range = useWrapped ? wrapped : lngs;
-  let longitude = (Math.min(...range) + Math.max(...range)) / 2;
-  if (longitude > 180) longitude -= 360;
+  const boxX = (Math.min(...range) + Math.max(...range)) / 2;
   const lngSpan = useWrapped ? wrappedSpan : plainSpan;
 
-  const span = Math.max(latSpan, lngSpan) * CAMERA_PADDING;
-  const fit = span > 0 ? Math.log2(360 / span) : MAX_CAMERA_ZOOM;
+  const { width, height } = size;
+  const innerW = Math.max(width - padding.left - padding.right, width * MIN_CONTENT_SHARE);
+  const innerH = Math.max(height - padding.top - padding.bottom, height * MIN_CONTENT_SHARE);
+  // Points per degree that fit the box in the padded rect (Infinity for a single point).
+  const fitScale = Math.min(lngSpan > 0 ? innerW / lngSpan : Infinity, ySpan > 0 ? innerH / ySpan : Infinity);
+
+  // Points across the camera's span on screen: the width, or the height when latitude binds first.
+  const across = Math.min(width, height * Math.cos(latitudeOfY(boxY) * RAD));
+  const fit = Number.isFinite(fitScale) ? Math.log2((360 * fitScale) / across) : MAX_CAMERA_ZOOM;
   const zoom = Math.min(MAX_CAMERA_ZOOM, Math.max(MIN_CAMERA_ZOOM, fit));
+  const scale = across / (360 / 2 ** zoom); // the scale MapKit will draw at, after the clamp
+
+  // Screen y grows downward, Mercator y upward: more top padding puts the box lower, so the center goes up.
+  const latitude = latitudeOfY(boxY + (padding.top - padding.bottom) / 2 / scale);
+  let longitude = boxX - (padding.left - padding.right) / 2 / scale;
+  if (longitude > 180) longitude -= 360;
+  if (longitude < -180) longitude += 360;
   return { coordinates: { latitude, longitude }, zoom };
 }
 
