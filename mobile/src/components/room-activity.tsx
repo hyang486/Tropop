@@ -65,7 +65,7 @@ export function EmergencyAlerts({
     <View style={styles.alerts}>
       {activity.emergencies.map((e) => {
         const mine = e.userId === userId;
-        const { who, seen } = seenSummary(e.ackedBy, names, en.activity.aMember);
+        const { who, seen } = seenSummary(e.ackedBy, names);
         const iAcked = e.ackedBy.has(userId);
         return (
           <View key={e.id} style={styles.emergency} accessibilityRole="alert">

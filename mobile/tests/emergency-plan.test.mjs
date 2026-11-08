@@ -10,15 +10,15 @@ const names = new Map([
 ]);
 
 test('seenSummary names current members and counts only them', () => {
-  assert.deepEqual(seenSummary(new Set(['u1', 'u2']), names, 'a member'), { who: ['Mina', 'Joon'], seen: 2 });
+  assert.deepEqual(seenSummary(new Set(['u1', 'u2']), names), { who: ['Mina', 'Joon'], seen: 2 });
 });
 
-test('seenSummary names a member who left as the fallback, without counting them', () => {
-  assert.deepEqual(seenSummary(new Set(['u1', 'gone']), names, 'a member'), { who: ['Mina', 'a member'], seen: 1 });
+test('seenSummary leaves out a member who left, in the names and the count', () => {
+  assert.deepEqual(seenSummary(new Set(['u1', 'gone']), names), { who: ['Mina'], seen: 1 });
 });
 
 test('seenSummary with no acks', () => {
-  assert.deepEqual(seenSummary(new Set(), names, 'a member'), { who: [], seen: 0 });
+  assert.deepEqual(seenSummary(new Set(), names), { who: [], seen: 0 });
 });
 
 test('announcer: seeded ids are never announced', () => {

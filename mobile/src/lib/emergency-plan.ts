@@ -1,23 +1,19 @@
 // Pure helpers for open Emergencies (no React Native imports, so `npm test` can load them).
 
 /**
- * #12: who has seen an Emergency, for its card. `seen` counts current members only (the "of N" total is the
- * current members other than the sender); `who` also names acks from members who have since left, as
- * `formerName`, so the sender still sees that someone saw it.
+ * #12: who has seen an Emergency, for its card. Only current members are named and counted (the "of N" total
+ * is the current members other than the sender), so the names and the count always agree.
  */
 export function seenSummary(
   ackedBy: Iterable<string>,
   names: ReadonlyMap<string, string>,
-  formerName: string,
 ): { who: string[]; seen: number } {
   const who: string[] = [];
-  let seen = 0;
   for (const id of ackedBy) {
     const name = names.get(id);
-    if (name !== undefined) seen += 1;
-    who.push(name ?? formerName);
+    if (name !== undefined) who.push(name);
   }
-  return { who, seen };
+  return { who, seen: who.length };
 }
 
 /**
