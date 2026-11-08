@@ -21,3 +21,23 @@ export async function loadLatest<T>(
   apply(outcome);
   return 'applied';
 }
+
+/**
+ * FG-L1: the same guard for repeated loads of one screen (focus, pull to refresh, after an action).
+ * Each call gets a new key, so only the newest call's result is applied; an older response that
+ * settles later (for example a focus load overtaken by a pull) is dropped.
+ */
+export function createLatestLoader() {
+  let seq = 0;
+  let current = '';
+  return function run<T>(
+    scope: string,
+    fetch: () => Promise<T>,
+    apply: (outcome: LoadOutcome<T>) => void,
+  ): Promise<'applied' | 'stale'> {
+    seq += 1;
+    const key = `${scope}#${seq}`;
+    current = key;
+    return loadLatest(key, () => current, fetch, apply);
+  };
+}

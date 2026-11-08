@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import {
   ActivityIndicator,
   PlatformColor,
   Pressable,
+  type RefreshControlProps,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,9 +30,10 @@ export const colors = {
  * inset, so the content jumped up under the header and stayed there after the keyboard closed.
  * scrollToOverflowEnabled skips that clamp; the keyboard handler still scrolls a hidden field into view.
  */
-export function Screen({ children }: { children: ReactNode }) {
+export function Screen({ children, refreshControl }: { children: ReactNode; refreshControl?: ReactElement<RefreshControlProps> }) {
   return (
     <ScrollView
+      refreshControl={refreshControl}
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.screen}
       contentInsetAdjustmentBehavior="automatic"
