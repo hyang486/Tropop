@@ -25,8 +25,10 @@ import { errorMessage } from '@/lib/errors';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
 import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
-import { formatRemaining, getRoom, listMembers, REMINDER_WINDOW_MS, type Room } from '@/lib/rooms';
+import { showEndsSoon } from '@/lib/expiry-plan';
+import { formatRemaining, getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
+import { useKeyboardOpen } from '@/lib/use-keyboard-open';
 import { useNow } from '@/lib/use-now';
 
 type State =
@@ -161,6 +163,13 @@ function ChatRoom({
   const draft = composer.draft;
   const remaining = formatRemaining(remainingMs);
   const canSend = canSendDraft(draft);
+  // #9: the ends-soon line hides while the keyboard is open, so typing keeps the chat space.
+  const keyboardOpen = useKeyboardOpen();
+  const endsSoon = showEndsSoon(
+    room.created_at,
+    room.expires_at,
+    new Date(room.expires_at).getTime() - remainingMs,
+  );
 
   function submit() {
     if (!canSend) return;
@@ -245,11 +254,14 @@ function ChatRoom({
             </Text>
             {!chat.live && !chat.loading ? <Text style={styles.offline}>{en.chat.reconnecting}</Text> : null}
           </View>
-          {remainingMs < REMINDER_WINDOW_MS ? (
-            <View style={styles.banner} accessibilityRole="alert">
-              <Text style={styles.bannerTitle}>{en.room.reminderTitle}</Text>
-              <Text style={styles.bannerBody}>{en.room.reminderBody(room.name, remaining)}</Text>
-            </View>
+          {endsSoon && !keyboardOpen ? (
+            <Link href={{ pathname: '/room/[id]/info', params: { id: room.id } }} asChild>
+              <Pressable style={styles.banner} accessibilityRole="link" accessibilityHint={en.room.info}>
+                <Text style={styles.bannerText} numberOfLines={1}>
+                  {en.room.endsSoonLine}
+                </Text>
+              </Pressable>
+            </Link>
           ) : null}
           <RoomActivityBar roomId={room.id} activitySeq={room.activity_seq} userId={userId} names={names} />
 
@@ -456,11 +468,10 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.warning,
     borderRadius: 12,
     borderCurve: 'continuous',
-    padding: 12,
-    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  bannerTitle: { fontSize: 15, fontWeight: '600', color: colors.label },
-  bannerBody: { fontSize: 14, color: colors.label },
+  bannerText: { fontSize: 14, fontWeight: '600', color: colors.label },
   list: { paddingHorizontal: 12, paddingVertical: 8, gap: 2, flexGrow: 1 },
   // The list is inverted, so the empty state is flipped back.
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scaleY: -1 }] },
