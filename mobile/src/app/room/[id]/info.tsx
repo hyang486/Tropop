@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { RoomEmergencyBanner } from '@/components/room-activity';
 import { StatusEditor } from '@/components/status-editor';
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -122,6 +123,7 @@ export default function RoomInfoScreen() {
 
   return (
     <Screen>
+      <RoomEmergencyBanner roomId={room.id} />
       <View style={styles.header}>
         <Text style={styles.name} accessibilityRole="header">
           {room.name}

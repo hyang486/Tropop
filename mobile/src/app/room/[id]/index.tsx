@@ -1,4 +1,4 @@
-import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,8 +9,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RoomActivityBar } from '@/components/room-activity';
@@ -149,6 +151,8 @@ function ChatRoom({
   onSendFailed: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  // #12: on narrow phones (17e) four text links leave no room for the room name; icons there instead.
+  const compact = useWindowDimensions().width < COMPACT_HEADER_WIDTH;
   const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
   const chat = useChat(room.id, userId, onNewSender);
   const uploadSummary = useRoomUploadSummary(room.id);
@@ -185,41 +189,40 @@ function ChatRoom({
           title: room.name,
           headerRight: () => (
             <View style={styles.headerActions}>
-              <Link
+              <HeaderLink
+                compact={compact}
                 href={{ pathname: '/room/[id]/gallery', params: { id: room.id } }}
-                style={[styles.headerLink, uploadSummary.failed > 0 && { color: colors.danger }]}
-                accessibilityRole="button"
-                accessibilityLabel={en.media.headerLinkA11y(uploadSummary.pending, uploadSummary.failed)}
-              >
-                {uploadSummary.failed > 0
-                  ? en.media.headerLinkFailed
-                  : uploadSummary.pending > 0
-                    ? en.media.headerLinkUploading(uploadSummary.pending)
-                    : en.media.headerLink}
-              </Link>
+                label={
+                  uploadSummary.failed > 0
+                    ? en.media.headerLinkFailed
+                    : uploadSummary.pending > 0
+                      ? en.media.headerLinkUploading(uploadSummary.pending)
+                      : en.media.headerLink
+                }
+                symbol={uploadSummary.failed > 0 ? 'exclamationmark.circle' : uploadSummary.pending > 0 ? 'arrow.up.circle' : 'photo.on.rectangle'}
+                danger={uploadSummary.failed > 0}
+                a11y={en.media.headerLinkA11y(uploadSummary.pending, uploadSummary.failed)}
+              />
               {room.location_allowed || room.host_id === userId ? (
-                <Link
+                <HeaderLink
+                  compact={compact}
                   href={{ pathname: '/room/[id]/map', params: { id: room.id } }}
-                  style={styles.headerLink}
-                  accessibilityRole="button"
-                >
-                  {en.map.headerLink}
-                </Link>
+                  label={en.map.headerLink}
+                  symbol="map"
+                />
               ) : null}
-              <Link
+              <HeaderLink
+                compact={compact}
                 href={{ pathname: '/room/[id]/invite', params: { id: room.id } }}
-                style={styles.headerLink}
-                accessibilityRole="button"
-              >
-                {en.room.invite}
-              </Link>
-              <Link
+                label={en.room.invite}
+                symbol="person.badge.plus"
+              />
+              <HeaderLink
+                compact={compact}
                 href={{ pathname: '/room/[id]/info', params: { id: room.id } }}
-                style={styles.headerLink}
-                accessibilityRole="button"
-              >
-                {en.room.info}
-              </Link>
+                label={en.room.info}
+                symbol="info.circle"
+              />
             </View>
           ),
         }}
@@ -311,6 +314,41 @@ function ChatRoom({
 
 const NOTICE_KINDS = new Set(['system', 'arrival', 'status', 'emergency']);
 
+/** Below this window width the header links are icons (iPhone 17e and other 390 pt phones). */
+const COMPACT_HEADER_WIDTH = 400;
+
+function HeaderLink({
+  compact,
+  href,
+  label,
+  symbol,
+  danger,
+  a11y,
+}: {
+  compact: boolean;
+  href: Href;
+  label: string;
+  symbol: SFSymbol;
+  danger?: boolean;
+  a11y?: string;
+}) {
+  const color = danger ? colors.danger : colors.tint;
+  if (!compact) {
+    return (
+      <Link href={href} style={[styles.headerLink, { color }]} accessibilityRole="button" accessibilityLabel={a11y}>
+        {label}
+      </Link>
+    );
+  }
+  return (
+    <Link href={href} asChild>
+      <Pressable accessibilityRole="button" accessibilityLabel={a11y ?? label} hitSlop={6} style={styles.headerIcon}>
+        <SymbolView name={symbol} size={22} tintColor={color} />
+      </Pressable>
+    </Link>
+  );
+}
+
 function MessageRow({
   item,
   older,
@@ -375,6 +413,7 @@ const styles = StyleSheet.create({
   center: { padding: 20, gap: 12 },
   headerActions: { flexDirection: 'row', gap: 4 },
   headerLink: { fontSize: 17, color: colors.tint, paddingHorizontal: 6 },
+  headerIcon: { paddingHorizontal: 5 },
   strip: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -269,6 +269,10 @@ export const en = {
     emergencyFrom: (name: string) => `${name} needs help`,
     myEmergency: 'Your Emergency is active',
     seenBy: (n: number, total: number) => `Seen by ${n} of ${total}`,
+    /** #12: who has seen it, then the count ("Seen by Mina, Joon · 2 of 3"). */
+    seenByNames: (who: string[], n: number, total: number) =>
+      who.length > 0 ? `Seen by ${who.join(', ')} · ${n} of ${total}` : `Seen by ${n} of ${total}`,
+    aMember: 'a member',
     acknowledge: 'I see it',
     acknowledged: 'You saw this',
     imOk: "I'm OK",

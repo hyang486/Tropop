@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { PhotosOfMe } from '@/components/photos-of-me';
+import { RoomEmergencyBanner } from '@/components/room-activity';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -108,6 +109,7 @@ export default function GalleryScreen() {
           ),
         }}
       />
+      <RoomEmergencyBanner roomId={id} style={styles.emergency} />
       <View style={styles.segment} accessibilityRole="tablist">
         {FILTERS.map((f) => {
           const selected = f.key === filter;
@@ -282,6 +284,7 @@ function UploadRow({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
+  emergency: { paddingHorizontal: 16, paddingTop: 8 },
   loading: { marginTop: 40 },
   center: { padding: 24, gap: 12, alignItems: 'center' },
   emptyTitle: { fontSize: 17, fontWeight: '600', color: colors.label, textAlign: 'center' },

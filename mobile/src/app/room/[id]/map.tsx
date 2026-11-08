@@ -5,9 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { EmergencyAlerts } from '@/components/room-activity';
 import { RouteEditor } from '@/components/route-editor';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useRoomActivity } from '@/lib/activity';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import {
@@ -38,6 +40,7 @@ import {
   planLabels,
   planPins,
   ROOM_MAP_SIZE,
+  stalePinId,
   type Viewport,
   viewportFromCamera,
   viewportFromRegion,
@@ -61,6 +64,9 @@ const ROUTE_COLOR = '#007AFF';
 const LABEL_BACKGROUND = '#FFFFFF';
 const LABEL_TEXT = '#000000';
 const LABEL_STALE_TEXT = '#6C6C70';
+// #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
+const EMERGENCY_RED = '#FF3B30';
+const EMERGENCY_TEXT = '#FFFFFF';
 
 export default function RoomMapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -135,6 +141,9 @@ function RoomMap({
   const active = allowed && room.activity_state === 'active';
 
   const my = useMyShare(room.id, userId);
+  // #1: open Emergencies show on Map too (banner above the map, red pin and pill for the sender).
+  const activity = useRoomActivity(room.id, userId, room.activity_seq);
+  const emergencyPinIds = new Set(activity.emergencies.flatMap((e) => [e.userId, stalePinId(e.userId)]));
   const [busy, setBusy] = useState<string | null>(null);
   // M2: the app-level LocationReporters does the reporting; this screen only reads its state.
   const sharingState = useSharingState(room.id);
@@ -220,6 +229,7 @@ function RoomMap({
             id: pin.id,
             coordinates: pin.coordinates,
             ...(pin.kind === 'stale' ? { systemImage: 'clock', tintColor: STALE_TINT } : { monogram: pin.monogram }),
+            ...(emergencyPinIds.has(pin.id) ? { tintColor: EMERGENCY_RED } : {}),
           },
         ],
   );
@@ -357,14 +367,18 @@ function RoomMap({
   const labels = planLabels(labelInputs, labelView, mapSize);
   const annotations = [
     ...pins.flatMap((pin) => (pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, icon: pin.icon }] : [])),
-    ...labels.map((label) => ({
-      id: label.id,
-      coordinates: label.coordinates,
-      text: label.text,
-      anchor: label.anchor,
-      backgroundColor: LABEL_BACKGROUND,
-      textColor: label.stale ? LABEL_STALE_TEXT : LABEL_TEXT,
-    })),
+    ...labels.map((label) => {
+      const emergency = label.members.some((m) => emergencyPinIds.has(m));
+      return {
+        // A new id when the color changes, so the native annotation is redrawn rather than kept as it was.
+        id: emergency ? `${label.id}:emergency` : label.id,
+        coordinates: label.coordinates,
+        text: label.text,
+        anchor: label.anchor,
+        backgroundColor: emergency ? EMERGENCY_RED : LABEL_BACKGROUND,
+        textColor: emergency ? EMERGENCY_TEXT : label.stale ? LABEL_STALE_TEXT : LABEL_TEXT,
+      };
+    }),
   ];
 
   const reporterText = en.map.reporter[sharingState];
@@ -377,6 +391,7 @@ function RoomMap({
       contentInsetAdjustmentBehavior="automatic"
     >
       <Stack.Screen options={{ title: en.map.title }} />
+      <EmergencyAlerts activity={activity} userId={userId} names={names} />
 
       <View
         style={styles.mapWrap}
