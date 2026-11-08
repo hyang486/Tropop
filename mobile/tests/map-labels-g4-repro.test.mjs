@@ -10,6 +10,7 @@ import {
   layoutLabels,
   MAX_PILL_GAP,
   pillCandidates,
+  placePills,
   pinBodyRect,
   projectPoint,
   ROOM_MAP_PADDING,
@@ -97,4 +98,12 @@ test('G4 repro, pinch in on G4: pills of pins outside the map are not drawn; the
       );
     }
   }
+});
+
+test('G4 (supervisor n2): a lone wrapped pill near the bottom band goes beside or above its pin, never clipped', () => {
+  // A marker 20 pt above the Show my location / Recenter band: a 2-line pill below it would run into the band.
+  const lone = [{ id: 'a', x: 185, y: SIZE.height - 42 - 20, shape: 'marker', text: 'Guest 4 (ProMax) · Need water', stale: false, coordinates: { latitude: 0, longitude: 0 } }];
+  const plan = placePills([lone], SIZE)[0];
+  assert.ok(inside(plan.rect), JSON.stringify(plan));
+  assert.notEqual(plan.placement, 'below');
 });

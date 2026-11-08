@@ -754,6 +754,7 @@ export function routeCoster(route: ScreenPoint[]): RouteCost {
   if (route.length < 2) return () => 0;
   const pad = LABEL_GROUP_MARGIN + ROUTE_LINE_WIDTH / 2;
   const cells = new Map<string, number[]>();
+  const far: number[] = [];
   for (let i = 1; i < route.length; i++) {
     const a = route[i - 1];
     const b = route[i];
@@ -763,9 +764,8 @@ export function routeCoster(route: ScreenPoint[]): RouteCost {
     const y1 = Math.floor(Math.max(a.y, b.y) / ROUTE_CELL);
     // A segment far off the map (a zoomed-in view of a long route) would span thousands of cells: keep those
     // in one overflow list that every query measures.
-    const key = (x1 - x0 + 1) * (y1 - y0 + 1) > 64 ? 'far' : null;
-    if (key) {
-      cells.set(key, [...(cells.get(key) ?? []), i]);
+    if ((x1 - x0 + 1) * (y1 - y0 + 1) > 64) {
+      far.push(i);
       continue;
     }
     for (let cx = x0; cx <= x1; cx++) {
@@ -796,7 +796,7 @@ export function routeCoster(route: ScreenPoint[]): RouteCost {
         length += clippedLength(a, b, grown);
       }
     };
-    visit(cells.get('far'));
+    visit(far);
     for (let cx = Math.floor(grown.left / ROUTE_CELL); cx <= Math.floor(grown.right / ROUTE_CELL); cx++) {
       for (let cy = Math.floor(grown.top / ROUTE_CELL); cy <= Math.floor(grown.bottom / ROUTE_CELL); cy++) {
         visit(cells.get(`${cx},${cy}`));
