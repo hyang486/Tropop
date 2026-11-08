@@ -45,13 +45,19 @@ export function joinLinkHref(path: string): string | null {
   return match ? `/join/${match[1]}` : null;
 }
 
-type RouteState = { index?: number; routes: readonly { name: string }[] };
+type RouteState = { index?: number; routes: readonly { name: string; state?: RouteState }[] };
 
-/** True when an active route of the root stack is a modal (preloaded routes are ignored). */
-export function hasOpenModal(state: RouteState | null | undefined, modalRoutes: readonly string[] = MODAL_ROUTES) {
-  if (!state) return false;
-  const top = state.index ?? state.routes.length - 1;
-  return state.routes.slice(0, top + 1).some((route) => modalRoutes.includes(route.name));
+/**
+ * True when an active route of the root stack is a modal (preloaded routes are ignored). The
+ * container's root state wraps the app's root stack in a single `__root` route (expo-router), so
+ * the check follows the focused route's nested state down through every level (P-3 qa log).
+ */
+export function hasOpenModal(state: RouteState | null | undefined, modalRoutes: readonly string[] = MODAL_ROUTES): boolean {
+  if (!state || state.routes.length === 0) return false;
+  const top = Math.min(state.index ?? state.routes.length - 1, state.routes.length - 1);
+  const active = state.routes.slice(0, top + 1);
+  if (active.some((route) => modalRoutes.includes(route.name))) return true;
+  return hasOpenModal(state.routes[top].state, modalRoutes);
 }
 
 /**

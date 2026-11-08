@@ -77,6 +77,16 @@ test('hasOpenModal looks at the active root routes only', () => {
   assert.equal(hasOpenModal({ routes: [{ name: 'index' }, { name: 'upgrade' }] }), true);
 });
 
+test('hasOpenModal follows the nested __root state (shape from the P-3 qa log)', () => {
+  const wrap = (index, names) => ({ index: 0, routes: [{ name: '__root', state: { index, routes: names.map((name) => ({ name })) } }] });
+  assert.equal(hasOpenModal(wrap(2, ['index', 'room/[id]/index', 'room/[id]/invite'])), true);
+  assert.equal(hasOpenModal(wrap(2, ['index', 'profile', 'upgrade'])), true);
+  assert.equal(hasOpenModal(wrap(2, ['index', 'room/[id]/index', 'room/[id]/info'])), false);
+  assert.equal(hasOpenModal(wrap(0, ['index', 'upgrade'])), false);
+  assert.equal(hasOpenModal({ index: 0, routes: [{ name: '__root' }] }), false);
+  assert.equal(hasOpenModal({ index: 0, routes: [] }), false);
+});
+
 test('plan: root link resets, a join link is taken only with a modal open', () => {
   assert.equal(rootLinkPlan('moment:///', false, true), 'reset');
   assert.equal(rootLinkPlan('moment:///', false, true, true), 'reset');
