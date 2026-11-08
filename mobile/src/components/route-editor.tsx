@@ -178,7 +178,12 @@ export function RouteEditor({
           <Pressable accessibilityRole="button" onPress={onCancel} disabled={saving} style={styles.barButton}>
             <Text style={styles.link}>{en.map.cancel}</Text>
           </Pressable>
-          <Text style={styles.title} accessibilityRole="header">
+          {/* G8 n1: VoiceOver reads the same length the screen shows ("Route 5.2 km"), or "Route" without one. */}
+          <Text
+            style={styles.title}
+            accessibilityRole="header"
+            accessibilityLabel={routeKm ? en.map.routeDistance(routeKm) : en.map.route}
+          >
             {en.map.route}
           </Text>
           <Pressable
@@ -192,7 +197,12 @@ export function RouteEditor({
         </View>
 
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
-          {routeKm ? <Text style={styles.distance}>{en.map.routeDistance(routeKm)}</Text> : null}
+          {/* The heading's label already reads this length (n1), so VoiceOver skips the duplicate line. */}
+          {routeKm ? (
+            <Text style={styles.distance} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              {en.map.routeDistance(routeKm)}
+            </Text>
+          ) : null}
           <Text style={[styles.hint, note !== 'none' && styles.hintError]}>{hint}</Text>
           <View style={styles.tools}>
             <Pressable
