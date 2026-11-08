@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { Stack, useNavigationContainerRef, useRouter } from 'expo-router';
+import { type Href, Stack, useNavigationContainerRef, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
@@ -44,7 +44,8 @@ function RootNavigator() {
     setRootLinkHandler({
       isModalOpen: () => navigationRef.isReady() && hasOpenModal(navigationRef.getRootState()),
       reset: (modalOpen) => resetToRoot(router, '/', modalOpen),
-      openFromRoot: (href) => pushFromRoot(router, href),
+      // joinLinkHref only returns `/join/<token>`, a typed route.
+      openFromRoot: (href) => pushFromRoot(router, href as Href),
     });
     return () => setRootLinkHandler(null);
   }, [loading, signedIn, router, navigationRef]);
