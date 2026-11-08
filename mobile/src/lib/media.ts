@@ -11,7 +11,7 @@ import { Share } from 'react-native';
 import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
-import { cameraStep } from './camera-plan';
+import { CameraError, cameraStep } from './camera-plan';
 import { errorMessage } from './errors';
 import { EXT_BY_MIME, exportFileName, extensionFor } from './file-name';
 import { clearImageDiskCache } from './image-cache';
@@ -32,6 +32,9 @@ import {
   roomSummary,
   sharedBody,
 } from './upload-plan';
+
+// G9 F2: the gallery tells camera problems apart from upload failures.
+export { CameraError };
 
 /**
  * Room media: original photos, videos and files.
@@ -115,9 +118,6 @@ export async function pickPhotosAndVideos(): Promise<PickedItem[]> {
   if (result.canceled) return [];
   return result.assets.map(pickedFromAsset);
 }
-
-/** G9 F2: a camera problem (no camera, access off), shown under its own title rather than "Upload failed". */
-export class CameraError extends Error {}
 
 /**
  * #13: one photo from the camera, as the original capture (no editing). Asks for camera access

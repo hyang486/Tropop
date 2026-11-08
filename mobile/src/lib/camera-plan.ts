@@ -5,6 +5,9 @@
 // before asking for permission or launching. expo-device 58 documents Device.isDevice as "`true` if the app is
 // running on a real device and `false` if running in a simulator or emulator"; every iPhone has a camera.
 
+/** G9 F2: a camera problem (no camera, access off), shown as such rather than as an upload failure. */
+export class CameraError extends Error {}
+
 export type CameraStep = 'unavailable' | 'ask-permission';
 
 /** What "Take photo" does first: refuse on a simulator (no camera), otherwise ask for camera access. */
