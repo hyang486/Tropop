@@ -42,6 +42,9 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   - Camera: the system permission prompt shows the new string.
   - FG-L1: a matching upload from another account appears after a pull.
   - FG-L1: pull on the enrolled face view and enrolled Photos of me; an offline pull keeps the view with an error.
+- Simulator_host (17 Pro 91F3BFB3, created by the human) is a standing test host (human FINAL ~17:50 PST): not in
+  any delete or cleanup plan. Only the disposable R1-C host (c2d629c2…, r1c-qa-host-11070111@example.com, room
+  82192) is still scheduled for deletion after the 04:03Z check.
 - FG-R1 (no migration): a face reference uploaded before a failed enroll_face stays up to about 75 minutes, until
   the room-janitor orphan sweep (1 h age, cron */15) removes it. Deployed room-janitor v8 contains that sweep
   (get_edge_function == repo core.ts:90-97).
@@ -143,9 +146,8 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
 - R5 log check: no keys, image data or tokens in the function logs (developer-run 05:47Z; the supervisor did not
   re-query the logs).
 - FACE_MATCH_ENABLED is now OFF: set false by the human at 21:41:34 PST; probe 503 at 05:41:51Z.
-- AWS is on the Free plan, so the AI-services opt-out is deferred (Organizations needs a paid upgrade). Before launch:
-  upgrade + budget alert + opt-out (a separate human decision). Real participant photos stay BLOCKED until then.
-  AWS-side retention is not claimed.
+- AWS is on the Free plan; AI-services opt-out not done. AWS-side retention is not claimed.
+  SUPERSEDED 2026-11-07 ~17:50 PST: demo/presentation scope only, no real participant photos; the AWS paid plan + opt-out item is out of scope (planning/USER_DECISIONS_2026-11-04_OPERATIONS_EN.md).
 - R2 (016c49bf…) ended early by human decision (21:47 PST): expires_at = now() at 05:46:51.861Z (1 row); purged 06:00Z
   (room-janitor cron run succeeded), supervisor zero-count PASS (read 06:00:04Z: rooms/members/messages/media/
   reminders 0, R2 objects 0, face rows 0, room_deleted cleanup job verified_empty 06:00:03Z).
