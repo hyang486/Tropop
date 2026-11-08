@@ -201,6 +201,9 @@ export const en = {
   reminder: {
     title: 'Room ends in 24 hours',
     body: (name: string) => `${name} disappears tomorrow. Download any photos and files you'd like to keep.`,
+    // G6b: rooms under 24 h are reminded in their last hour.
+    titleLastHour: 'Room ends in 1 hour',
+    bodyLastHour: (name: string) => `${name} disappears in 1 hour. Download any photos and files you'd like to keep.`,
   },
   chat: {
     placeholder: 'Message',

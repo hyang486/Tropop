@@ -1,4 +1,4 @@
-// Pure planning for the local 24-hour expiry reminder (APP_CONCEPT_KO "방 만료 1일 전 알림").
+// Pure planning for the local expiry reminder (24 h before the end; G6b: 1 h for rooms under 24 h) (APP_CONCEPT_KO "방 만료 1일 전 알림").
 // No React Native imports, so `npm test` can run it under plain Node.
 
 export const REMINDER_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -23,10 +23,17 @@ export function showEndsSoon(createdAt: string, expiresAt: string, nowMs: number
   return remaining > 0 && remaining < endsSoonWindowMs(createdAt, expiresAt);
 }
 
-export type ReminderRoom = { id: string; name: string; expires_at: string; expiry_version: number };
+export type ReminderRoom = { id: string; name: string; created_at: string; expires_at: string; expiry_version: number };
 
 /** What the app stores in a scheduled reminder's `data`. */
-export type ReminderData = { kind: 'expiry'; roomId: string; expiryVersion: number; expiresAt: string };
+export type ReminderData = {
+  kind: 'expiry';
+  roomId: string;
+  expiryVersion: number;
+  expiresAt: string;
+  /** G6b: when it fires (ms). Reminders scheduled before G6b lack it and are rescheduled once. */
+  fireAt?: number;
+};
 
 export type ScheduledReminder = { identifier: string; data: Partial<ReminderData> | null | undefined };
 
@@ -46,10 +53,11 @@ export function isReminderData(data: unknown): data is ReminderData {
 
 /**
  * Decides which local reminders to (re)schedule or cancel.
- * - One reminder per room, at expires_at - 24h, identified by `reminderId(room.id)`.
+ * - One reminder per room, identified by `reminderId(room.id)`, when the in-room banner starts
+ *   (G6b: expires_at - endsSoonWindowMs, so 1 h before the end for rooms under 24 h, else 24 h).
  * - A reminder that already matches the room's expiry version and time is left alone.
  * - A changed expiry replaces the old reminder; one whose time has passed is cancelled
- *   (the in-room banner covers the last 24 hours).
+ *   (the in-room banner covers that last stretch).
  * - `complete`: `rooms` is every room the user can still open, so reminders for other rooms
  *   (left, ended, expired) are cancelled.
  */
@@ -69,7 +77,7 @@ export function planReminders(
     const identifier = reminderId(room.id);
     seen.add(identifier);
     const expiresMs = new Date(room.expires_at).getTime();
-    const fireAt = expiresMs - REMINDER_WINDOW_MS;
+    const fireAt = expiresMs - endsSoonWindowMs(room.created_at, room.expires_at);
     const current = existing.get(identifier);
 
     if (!Number.isFinite(expiresMs) || fireAt <= nowMs) {
@@ -79,7 +87,8 @@ export function planReminders(
     const same =
       current?.data?.expiryVersion === room.expiry_version &&
       current.data.expiresAt !== undefined &&
-      new Date(current.data.expiresAt).getTime() === expiresMs;
+      new Date(current.data.expiresAt).getTime() === expiresMs &&
+      current.data.fireAt === fireAt;
     if (!same) plan.schedule.push({ identifier, room, fireAt });
   }
 

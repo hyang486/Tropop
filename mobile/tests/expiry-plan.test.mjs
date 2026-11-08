@@ -6,15 +6,17 @@ import { planReminders, reminderId, REMINDER_WINDOW_MS } from '../src/lib/expiry
 
 const NOW = Date.parse('2026-11-05T12:00:00Z');
 const HOUR = 60 * 60 * 1000;
-const room = (id, expiresInMs, version = 1) => ({
+// Rooms created 3 days before NOW (24 h-window rooms) unless `createdAgoMs` says otherwise.
+const room = (id, expiresInMs, version = 1, createdAgoMs = 3 * 24 * HOUR) => ({
   id,
   name: `Room ${id}`,
+  created_at: new Date(NOW - createdAgoMs).toISOString(),
   expires_at: new Date(NOW + expiresInMs).toISOString(),
   expiry_version: version,
 });
-const scheduledFor = (r) => ({
+const scheduledFor = (r, fireAt = Date.parse(r.expires_at) - REMINDER_WINDOW_MS) => ({
   identifier: reminderId(r.id),
-  data: { kind: 'expiry', roomId: r.id, expiryVersion: r.expiry_version, expiresAt: r.expires_at },
+  data: { kind: 'expiry', roomId: r.id, expiryVersion: r.expiry_version, expiresAt: r.expires_at, fireAt },
 });
 
 test('schedules at expires_at - 24h for a room with more than 24h left', () => {
@@ -103,4 +105,44 @@ test('an ended room or bad dates show no banner', () => {
   assert.equal(showEndsSoon(iso(NOW), iso(expires), expires + HOUR), false);
   assert.equal(showEndsSoon('not a date', iso(expires), expires - 1000), true);
   assert.equal(showEndsSoon(iso(NOW), 'not a date', NOW), false);
+});
+
+// G6b: the reminder follows the banner window (human decision 2026-11-08).
+test('G6b: a 3 h room is reminded 1 h before its end, not 24 h before', () => {
+  const r = room('s', 3 * HOUR, 1, 0);
+  const plan = planReminders([r], [], NOW, true);
+  assert.equal(plan.schedule.length, 1);
+  assert.equal(plan.schedule[0].fireAt, NOW + 2 * HOUR);
+});
+
+test('G6b: a 1-day room created with clock lag (23 h 55 min long) keeps the 24 h reminder', () => {
+  // Created 10 min before NOW, 23 h 45 min left: 23 h 55 min long, inside the 10 min margin, so a 24 h room.
+  const lag = room('lag', 23 * HOUR + 45 * 60 * 1000, 1, 10 * 60 * 1000);
+  // Its 24 h reminder time (NOW - 15 min) has passed: nothing is scheduled. Were it treated as short, the
+  // reminder would be scheduled at NOW + 22 h 45 min.
+  assert.deepEqual(planReminders([lag], [], NOW, true).schedule, []);
+  // Two days long: the reminder is 24 h before the end.
+  const long = room('long', 2 * 24 * HOUR, 1, 0);
+  assert.equal(planReminders([long], [], NOW, true).schedule[0].fireAt, NOW + 24 * HOUR);
+});
+
+test('G6b: a 23 h room is short (last hour); one 1 min over the 10 min margin is short too', () => {
+  const r = room('a', 23 * HOUR, 1, 0);
+  assert.equal(planReminders([r], [], NOW, true).schedule[0].fireAt, NOW + 22 * HOUR);
+  const edge = room('b', 23 * HOUR + 49 * 60 * 1000, 1, 0);
+  assert.equal(planReminders([edge], [], NOW, true).schedule[0].fireAt, NOW + 22 * HOUR + 49 * 60 * 1000);
+});
+
+test('G6b: a reminder scheduled before G6b (no fireAt) is rescheduled to the new time', () => {
+  const r = room('s', 3 * HOUR, 1, 0);
+  const old = { identifier: reminderId(r.id), data: { kind: 'expiry', roomId: r.id, expiryVersion: 1, expiresAt: r.expires_at } };
+  const plan = planReminders([r], [old], NOW, true);
+  assert.equal(plan.schedule.length, 1);
+  assert.equal(plan.schedule[0].fireAt, NOW + 2 * HOUR);
+  // Once rescheduled (fireAt stored), it is left alone.
+  assert.deepEqual(planReminders([r], [scheduledFor(r, NOW + 2 * HOUR)], NOW, true), { schedule: [], cancel: [] });
+});
+
+test('G6b: inside its last hour a short room schedules nothing (the banner covers it)', () => {
+  assert.deepEqual(planReminders([room('s', 30 * 60 * 1000, 1, 2.5 * HOUR)], [], NOW, true), { schedule: [], cancel: [] });
 });
