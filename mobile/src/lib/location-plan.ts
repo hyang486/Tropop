@@ -352,28 +352,45 @@ export type MapLabel = {
   stale: boolean;
   /** The pin ids in this label, in line order. */
   members: string[];
+  /** Under the group's lowest pin, or over its highest pin. */
+  placement: LabelPlacement;
+  /** Centred on its pin, or reaching out to the left or right of it (P2 placement candidates). */
+  align: LabelAlign;
 };
 
 /**
  * expo-maps 58 draws a text-only annotation as Text in the 17 pt body font with 5 pt padding over a rounded
- * rect. Space is reserved with a 22 pt line (the body style's leading) and a 9 pt average character, both a
- * little more than SF Pro draws, so the estimate errs toward grouping and toward more padding.
+ * rect. Space is reserved with a 22 pt line (the body style's leading) and an 8.5 pt average character, both a
+ * little more than SF Pro draws (a 16-character name measured ~8.4 pt), so the estimate errs toward grouping
+ * and toward more padding.
  */
 export const LABEL_LINE_HEIGHT = 22;
-export const LABEL_CHAR_WIDTH = 9;
+export const LABEL_CHAR_WIDTH = 8.5;
 export const LABEL_TEXT_PADDING = 5;
 /** The anchor uses a slightly shorter line (SF Pro 17 draws ~20.3 pt), so the real gap is never smaller. */
 const LABEL_ANCHOR_LINE_HEIGHT = 20;
 /** Between a pin's bottom and its pill's top. */
 export const LABEL_GAP = 3;
-/** Two footprints closer than this (pt) are one group. */
+/** Two pills, or a pill and another group's pin, closer than this (pt) count as touching. */
 export const LABEL_GROUP_MARGIN = 4;
+/**
+ * P2 complete link: pins are one group only when every two of them are within this distance on screen (pt,
+ * point to point, about one balloon width plus a gap). A pill never names anyone farther than this from the
+ * pin it hangs from.
+ */
+export const LABEL_JOIN = 48;
 const PHOTO_HALF = 25;
 /** A Marker balloon: about 40 pt wide, drawn 44 pt above its point (the tip). */
 const MARKER_HALF_WIDTH = 20;
 const MARKER_HEIGHT = 44;
 /** The bottom overlay band: the Show my location / Recenter buttons (8 + ~34 pt). */
 const BOTTOM_BUTTON_BAND = 42;
+/** The top overlay band: Pen (top left), the compass and the tracking button (top right); the fit's top padding. */
+const TOP_BUTTON_BAND = ROOM_MAP_PADDING.top;
+/** P2: a pill hangs under its group's lowest pin, or, when that has less room on screen, over its highest pin. */
+export type LabelPlacement = 'below' | 'above';
+/** P2: centred on the pin, or reaching left (its right edge at the pin body's right edge) or right. */
+export type LabelAlign = 'center' | 'left' | 'right';
 
 /** The estimated pill size in points for these lines. */
 export function pillSize(lines: string[]): { width: number; height: number } {
@@ -384,18 +401,42 @@ export function pillSize(lines: string[]): { width: number; height: number } {
   };
 }
 
+/** Half a pin body's width. */
+function pinHalfWidth(shape: LabelShape) {
+  return shape === 'photo' ? PHOTO_HALF : MARKER_HALF_WIDTH;
+}
+
 /** How far below its point a pin's body ends. */
 function pinBottom(shape: LabelShape) {
   return shape === 'photo' ? PHOTO_HALF : 0;
 }
 
+/** How far above its point a pin's body starts. */
+function pinTop(shape: LabelShape) {
+  return shape === 'photo' ? PHOTO_HALF : MARKER_HEIGHT;
+}
+
 /**
- * The anchor that puts the top of a `lines`-line pill LABEL_GAP below the bottom of a pin of `shape`.
- * expo-maps passes the anchor to UnitPoint unclamped, so a negative y puts the point above the pill.
+ * Below: the anchor that puts the top of a `lines`-line pill LABEL_GAP below the bottom of a pin of `shape`.
+ * Above: the anchor that puts the pill's bottom LABEL_GAP above the top of the pin.
+ * Horizontally the pill is centred, or for `left` its right edge (for `right` its left edge) is at the edge
+ * of the pin body, given the estimated pill width.
+ * expo-maps passes the anchor to UnitPoint unclamped, so a negative y puts the point above the pill and a
+ * y over 1 below it. The anchor's shorter line height makes the real gap a little larger, never smaller.
  */
-export function labelAnchor(shape: LabelShape, lines: number): Anchor {
+export function labelAnchor(
+  shape: LabelShape,
+  lines: number,
+  placement: LabelPlacement = 'below',
+  align: LabelAlign = 'center',
+  width = 0,
+): Anchor {
   const height = Math.max(1, lines) * LABEL_ANCHOR_LINE_HEIGHT + 2 * LABEL_TEXT_PADDING;
-  return { x: 0.5, y: -(pinBottom(shape) + LABEL_GAP) / height };
+  const half = pinHalfWidth(shape);
+  const x = align === 'center' || !(width > 2 * half) ? 0.5 : align === 'left' ? 1 - half / width : half / width;
+  return placement === 'below'
+    ? { x, y: -(pinBottom(shape) + LABEL_GAP) / height }
+    : { x, y: 1 + (pinTop(shape) + LABEL_GAP) / height };
 }
 
 /** P2: the label input for each pin, in pin order. */
@@ -458,8 +499,8 @@ export function projectPoint(point: LatLng, view: Viewport, size: ViewSize): Scr
   };
 }
 
-type Rect = { left: number; top: number; right: number; bottom: number };
-type Placed = LabelPin & ScreenPoint;
+export type Rect = { left: number; top: number; right: number; bottom: number };
+export type Placed = LabelPin & ScreenPoint;
 
 function compareIds(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0;
@@ -484,45 +525,170 @@ function lowestPin<P extends Placed>(members: P[]): P {
   });
 }
 
-function pillRect(members: Placed[]): Rect {
-  const low = lowestPin(members);
+/** The pin a pill sits over: the one whose body reaches highest on screen (ties: the earlier in line order). */
+function highestPin<P extends Placed>(members: P[]): P {
+  return members.reduce((high, pin) => {
+    const d = pin.y - pinTop(pin.shape) - (high.y - pinTop(high.shape));
+    return d < 0 || (d === 0 && byScreen(pin, high) < 0) ? pin : high;
+  });
+}
+
+/** Where a group's pill goes, the pin it hangs from, and the pill's rect on screen. */
+export type PillPlan<P extends Placed = Placed> = { placement: LabelPlacement; align: LabelAlign; pin: P; rect: Rect };
+
+const ALIGNS: LabelAlign[] = ['center', 'left', 'right'];
+
+/**
+ * P2: a group's six candidate pills in their fixed order: under the lowest pin (centred, reaching left,
+ * reaching right), then over the highest pin (the same three). A reaching pill keeps one edge at the edge of
+ * its pin's body, so it always touches the pin it names.
+ */
+export function pillCandidates<P extends Placed>(members: P[]): PillPlan<P>[] {
   const { width, height } = pillSize(members.map((m) => m.text));
-  const top = low.y + pinBottom(low.shape) + LABEL_GAP;
-  return { left: low.x - width / 2, right: low.x + width / 2, top, bottom: top + height };
+  const low = lowestPin(members);
+  const high = highestPin(members);
+  const span = (pin: P, align: LabelAlign) => {
+    const half = pinHalfWidth(pin.shape);
+    if (align === 'center' || !(width > 2 * half)) return { left: pin.x - width / 2, right: pin.x + width / 2 };
+    return align === 'left' ? { left: pin.x + half - width, right: pin.x + half } : { left: pin.x - half, right: pin.x - half + width };
+  };
+  const belowTop = low.y + pinBottom(low.shape) + LABEL_GAP;
+  const aboveBottom = high.y - pinTop(high.shape) - LABEL_GAP;
+  return [
+    ...ALIGNS.map((align) => ({
+      placement: 'below' as const,
+      align,
+      pin: low,
+      rect: { ...span(low, align), top: belowTop, bottom: belowTop + height },
+    })),
+    ...ALIGNS.map((align) => ({
+      placement: 'above' as const,
+      align,
+      pin: high,
+      rect: { ...span(high, align), top: aboveBottom - height, bottom: aboveBottom },
+    })),
+  ];
 }
 
-function footprint(members: Placed[]): Rect[] {
-  return [...members.map(bodyRect), pillRect(members)];
+function overlapArea(a: Rect, b: Rect, margin = 0) {
+  const w = Math.min(a.right + margin, b.right) - Math.max(a.left - margin, b.left);
+  const h = Math.min(a.bottom + margin, b.bottom) - Math.max(a.top - margin, b.top);
+  return w > 0 && h > 0 ? w * h : 0;
 }
 
-function touches(a: Rect[], b: Rect[], margin: number) {
-  return a.some((r) =>
-    b.some(
-      (s) => r.left < s.right + margin && s.left < r.right + margin && r.top < s.bottom + margin && s.top < r.bottom + margin,
-    ),
-  );
+/** The part of `rect` outside the map's free area: off the view, or under the top or bottom button band. */
+function clippedArea(rect: Rect, size: ViewSize) {
+  const area = (rect.right - rect.left) * (rect.bottom - rect.top);
+  const free = { left: 0, right: size.width, top: TOP_BUTTON_BAND, bottom: size.height - BOTTOM_BUTTON_BAND };
+  return area - overlapArea(rect, free);
 }
 
 /**
- * P2: groups pins by where they are on screen (points). A group's footprint is its pins plus its pill under
- * its lowest pin; two groups whose footprints come within `margin` points are merged, until no two touch
- * (single link: a chain of close pins is one group). Pure and deterministic: the result does not depend on
- * the input order. Groups are in order of their smallest pin id; members in line order (top to bottom).
+ * P2: a group's pill alone (nothing else on the map): the first candidate that fits the free area, else the
+ * one least clipped (earliest on a tie). With no size (nothing known about the screen), under the lowest pin.
  */
-export function groupPins<P extends Placed>(pins: P[], margin = LABEL_GROUP_MARGIN): P[][] {
+export function placePill<P extends Placed>(members: P[], size?: ViewSize): PillPlan<P> {
+  return placePills([members], size)[0];
+}
+
+/** How bad a candidate is: its clipped area plus the area it covers (with the margin) of `obstacles`. */
+function pillCost(rect: Rect, obstacles: Rect[], size: ViewSize) {
+  return clippedArea(rect, size) + obstacles.reduce((sum, r) => sum + overlapArea(rect, r, LABEL_GROUP_MARGIN), 0);
+}
+
+/** The first candidate of the lowest cost (0: fits the free area and touches nothing). */
+function bestCandidate<P extends Placed>(candidates: PillPlan<P>[], obstacles: Rect[], size: ViewSize) {
+  let best = candidates[0];
+  let bestCost = Infinity;
+  for (const candidate of candidates) {
+    const cost = pillCost(candidate.rect, obstacles, size);
+    if (cost < bestCost) [best, bestCost] = [candidate, cost];
+    if (cost === 0) break;
+  }
+  return { plan: best, cost: bestCost };
+}
+
+/** At most this many passes over the groups: the first places them in order, the others revise them. */
+const PLACE_PASSES = 3;
+
+/**
+ * P2: every group's pill. Pass 1 goes over the groups in order: each takes the first of its six candidates
+ * that fits the free area and keeps LABEL_GROUP_MARGIN from the pills already placed and from every other
+ * group's pins, else the one with the least clipped plus covered area (earliest on a tie). Later passes (at
+ * most PLACE_PASSES in all) let each group whose pill now costs something (the pills placed after it count
+ * too) pick again against all the other pills,
+ * keeping a change only when it lowers that group's cost, and stop once a pass changes nothing. Whatever is
+ * left over is the worst case: that pill overlaps another pill or pin (countOverlaps). Deterministic for the
+ * same groups in the same order.
+ */
+export function placePills<P extends Placed>(groups: P[][], size?: ViewSize): PillPlan<P>[] {
+  const candidates = groups.map((g) => pillCandidates(g));
+  if (!size) return candidates.map((c) => c[0]);
+  const bodies = groups.map((g) => g.map(bodyRect));
+  const others = (k: number) => bodies.flatMap((b, m) => (m === k ? [] : b));
+  const plans: PillPlan<P>[] = [];
+  candidates.forEach((c, k) => {
+    plans.push(bestCandidate(c, [...plans.map((p) => p.rect), ...others(k)], size).plan);
+  });
+  for (let pass = 1; pass < PLACE_PASSES; pass++) {
+    let changed = false;
+    candidates.forEach((c, k) => {
+      const obstacles = [...plans.flatMap((p, m) => (m === k ? [] : [p.rect])), ...others(k)];
+      const now = pillCost(plans[k].rect, obstacles, size);
+      if (now === 0) return;
+      const { plan, cost } = bestCandidate(c, obstacles, size);
+      if (cost < now) {
+        plans[k] = plan;
+        changed = true;
+      }
+    });
+    if (!changed) break;
+  }
+  return plans;
+}
+
+/** P2: how many pills overlap another pill or another group's pin (the worst-case fallback, for reports). */
+export function countOverlaps(groups: Placed[][], plans: PillPlan[]): number {
+  return plans.filter((plan, k) =>
+    plans.some((other, m) => m !== k && overlapArea(plan.rect, other.rect) > 0) ||
+    groups.some((g, m) => m !== k && g.some((pin) => overlapArea(plan.rect, bodyRect(pin)) > 0)),
+  ).length;
+}
+
+function distance(a: ScreenPoint, b: ScreenPoint) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/** The largest distance between a pin of `a` and a pin of `b` (complete link). */
+function spread(a: Placed[], b: Placed[]) {
+  return Math.max(...a.flatMap((p) => b.map((q) => distance(p, q))));
+}
+
+/**
+ * P2: groups pins by where they are on screen (points), complete link: repeatedly merges the two groups whose
+ * farthest pins are closest, while that distance is at most `join`, so every two pins in a group are within
+ * `join` of each other and a chain of close pins never stretches a group. Pills play no part: contact between
+ * pills is resolved by placePills, never by merging. Pure and deterministic: the result does not depend on the
+ * input order. Groups are in order of their smallest pin id; members in line order (top to bottom).
+ */
+export function groupPins<P extends Placed>(pins: P[], join = LABEL_JOIN): P[][] {
   let groups: P[][] = [...pins].sort((a, b) => compareIds(a.id, b.id)).map((pin) => [pin]);
-  for (let merged = true; merged; ) {
-    merged = false;
-    const prints = groups.map(footprint);
-    for (let i = 0; i < groups.length && !merged; i++) {
-      for (let j = i + 1; j < groups.length && !merged; j++) {
-        if (touches(prints[i], prints[j], margin)) {
-          const joined = [...groups[i], ...groups[j]];
-          groups = groups.flatMap((g, k) => (k === i ? [joined] : k === j ? [] : [g]));
-          merged = true;
+  for (;;) {
+    let pick: [number, number] | null = null;
+    let pickSpread = Infinity;
+    for (let i = 0; i < groups.length; i++) {
+      for (let j = i + 1; j < groups.length; j++) {
+        const d = spread(groups[i], groups[j]);
+        if (d <= join && d < pickSpread) {
+          pick = [i, j];
+          pickSpread = d;
         }
       }
     }
+    if (!pick) break;
+    const [i, j] = pick;
+    const joined = [...groups[i], ...groups[j]];
+    groups = groups.flatMap((g, k) => (k === i ? [joined] : k === j ? [] : [g]));
   }
   // Each group's first member (before the line sort) is its smallest id, and the groups keep that order.
   return groups.map((g) => [...g].sort(byScreen));
@@ -530,31 +696,49 @@ export function groupPins<P extends Placed>(pins: P[], margin = LABEL_GROUP_MARG
 
 /**
  * P2 / F6-1: a label's identity. It changes when the member set, any member's fresh/stale id or photo/marker
- * shape, or the pin the pill hangs under changes, so a changed label is drawn as a new annotation rather
- * than restyled in place. Only the text (speeds, line order) and the position change under one id.
+ * shape, the pin the pill hangs from or its side (below / above) changes, so a changed label is drawn as a new
+ * annotation rather than restyled in place. Only the text (speeds, line order) and the position change under
+ * one id.
  */
-export function labelId(members: { id: string; shape: LabelShape }[], under: { id: string; shape: LabelShape }) {
+export function labelId(
+  members: { id: string; shape: LabelShape }[],
+  under: { id: string; shape: LabelShape },
+  placement: LabelPlacement = 'below',
+  align: LabelAlign = 'center',
+) {
   const tokens = members.map((m) => `${m.id}=${m.shape}`).sort();
-  return `label:${tokens.join(',')}@${under.id}=${under.shape}`;
+  return `label:${tokens.join(',')}@${under.id}=${under.shape}:${placement}${align === 'center' ? '' : `-${align}`}`;
 }
 
-/** P2: the labels to draw for the pins on this viewport: one pill per group, under its lowest pin. */
-export function planLabels(pins: LabelPin[], view: Viewport | null, size: ViewSize): MapLabel[] {
+/** P2: the groups on this viewport and their pills (planLabels before it becomes labels; also for tests). */
+export function layoutLabels(pins: LabelPin[], view: Viewport | null, size: ViewSize) {
   const valid = pins.filter((pin) => isValidLatLng(pin.coordinates));
-  // With no viewport, nothing is known about the screen: every pin keeps its own label.
+  // With no viewport, nothing is known about the screen: every pin keeps its own label, under its pin.
   const groups: Placed[][] = view
     ? groupPins(valid.map((pin) => ({ ...pin, ...projectPoint(pin.coordinates, view, size) })))
     : [...valid].sort((a, b) => compareIds(a.id, b.id)).map((pin) => [{ ...pin, x: 0, y: 0 }]);
-  return groups.map((members) => {
-    const low = lowestPin(members);
+  return { groups, plans: placePills(groups, view ? size : undefined) };
+}
+
+/**
+ * P2: the labels to draw for the pins on this viewport: one pill per group of pins within LABEL_JOIN of each
+ * other (groupPins), placed by placePills.
+ */
+export function planLabels(pins: LabelPin[], view: Viewport | null, size: ViewSize): MapLabel[] {
+  const { groups, plans } = layoutLabels(pins, view, size);
+  return groups.map((members, k) => {
+    const { placement, align, pin } = plans[k];
+    const width = pillSize(members.map((m) => m.text)).width;
     return {
-      id: labelId(members, low),
-      coordinates: low.coordinates,
+      id: labelId(members, pin, placement, align),
+      coordinates: pin.coordinates,
       text: members.map((m) => m.text).join('\n'),
-      anchor: labelAnchor(low.shape, members.length),
+      anchor: labelAnchor(pin.shape, members.length, placement, align, width),
       lines: members.length,
       stale: members.every((m) => m.stale),
       members: members.map((m) => m.id),
+      placement,
+      align,
     };
   });
 }
