@@ -178,7 +178,12 @@ export function RouteEditor({
           <Pressable accessibilityRole="button" onPress={onCancel} disabled={saving} style={styles.barButton}>
             <Text style={styles.link}>{en.map.cancel}</Text>
           </Pressable>
-          <Text style={styles.title} accessibilityRole="header">
+          {/* G8 n1: VoiceOver reads the same length the screen shows ("Route 5.2 km"), or "Route" without one. */}
+          <Text
+            style={styles.title}
+            accessibilityRole="header"
+            accessibilityLabel={routeKm ? en.map.routeDistance(routeKm) : en.map.route}
+          >
             {en.map.route}
           </Text>
           <Pressable
