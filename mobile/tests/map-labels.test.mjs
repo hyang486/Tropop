@@ -183,8 +183,9 @@ const SIZE = { width: 370, height: 360 };
 const TOP_BAND = 88;
 const BOTTOM_LIMIT = SIZE.height - 42;
 
-test('labelAnchor: above puts the pill bottom 3 pt over the balloon top (44 pt) or the photo top (25 pt)', () => {
-  assert.deepEqual(labelAnchor('marker', 1, 'above'), { x: 0.5, y: 1 + 47 / 30 });
+// G4 qa: the balloon measured ~33 pt on iOS 26.5, so it is modelled 36 pt tall (was 44).
+test('labelAnchor: above puts the pill bottom 3 pt over the balloon top (36 pt) or the photo top (25 pt)', () => {
+  assert.deepEqual(labelAnchor('marker', 1, 'above'), { x: 0.5, y: 1 + 39 / 30 });
   assert.deepEqual(labelAnchor('photo', 2, 'above'), { x: 0.5, y: 1 + 28 / 50 });
   assert.deepEqual(labelAnchor('photo', 2, 'below'), labelAnchor('photo', 2));
 });
@@ -209,7 +210,7 @@ test('placePill: above the highest pin when the bottom band leaves no room below
   const plan = placePill([at('a', 100, 280), at('b', 120, 250)], SIZE);
   assert.equal(plan.placement, 'above');
   assert.equal(plan.pin.id, 'b');
-  assert.ok(plan.rect.top >= TOP_BAND && plan.rect.bottom === 250 - 44 - 3, JSON.stringify(plan.rect));
+  assert.ok(plan.rect.top >= TOP_BAND && plan.rect.bottom === 250 - 36 - 3, JSON.stringify(plan.rect));
 });
 
 test('placePill: near the right edge it reaches left instead of running off the map', () => {
@@ -285,16 +286,24 @@ test('placePill: a route crossing only the centred pill picks a reaching one tha
   assert.equal(routeOverlap(plan.rect, route), 0);
 });
 
+test('placePills: a route through the bands below and above leaves the pill beside the pin, clear of it', () => {
+  const pins = [at('a', 100, 200)];
+  const route = [pt(0, 220), pt(370, 220), pt(370, 137), pt(80, 137)];
+  const plan = placePills([pins], SIZE, route)[0];
+  assert.equal(routeOverlap(plan.rect, route), 0);
+  assert.ok(plan.placement === 'east' || plan.placement === 'west', plan.placement);
+});
+
 test('placePills: when the route crosses every candidate, the pill still shows and hides the least line', () => {
   const pins = [at('a', 100, 200)];
-  // One line through the band below, a shorter stub through the band above.
-  const route = [pt(0, 220), pt(370, 220), pt(370, 137), pt(80, 137)];
+  // A box around the pin (below, above) with walls on both sides of it (beside).
+  const route = [pt(0, 137), pt(370, 137), pt(370, 220), pt(0, 220), pt(50, 220), pt(50, 137), pt(150, 137), pt(150, 220)];
   const plans = placePills([pins], SIZE, route);
   assert.equal(plans.length, 1);
   const cost = (r) => routeOverlap(r, route);
   const best = Math.min(...pillCandidates(pins).map((c) => cost(c.rect)));
   assert.ok(cost(plans[0].rect) > 0, 'nothing is clear');
-  assert.equal(cost(plans[0].rect), best);
+  assert.ok(Math.abs(cost(plans[0].rect) - best) < 1e-6, `${cost(plans[0].rect)} vs ${best}`);
 });
 
 test('placePills: a route away from the pills changes nothing', () => {

@@ -406,15 +406,27 @@ export const ROUTE_LINE_WIDTH = 4;
  */
 export const LABEL_JOIN = 48;
 const PHOTO_HALF = 25;
-/** A Marker balloon: about 40 pt wide, drawn 44 pt above its point (the tip). */
+/**
+ * A Marker balloon: about 40 pt wide, drawn above its point (the tip). G4 qa (17 Pro, iOS 26.5): the balloon
+ * measures ~30 x 33 pt, so 36 pt keeps a small margin; 44 left an "above" pill floating ~12 pt over its pin.
+ */
 const MARKER_HALF_WIDTH = 20;
-const MARKER_HEIGHT = 44;
+const MARKER_HEIGHT = 36;
 /** The bottom overlay band: the Show my location / Recenter buttons (8 + ~34 pt). */
 const BOTTOM_BUTTON_BAND = 42;
 /** The top overlay band: Pen (top left), the compass and the tracking button (top right); the fit's top padding. */
 const TOP_BUTTON_BAND = ROOM_MAP_PADDING.top;
-/** P2: a pill hangs under its group's lowest pin, or, when that has less room on screen, over its highest pin. */
-export type LabelPlacement = 'below' | 'above';
+/**
+ * P2: a pill hangs under its group's lowest pin, or, when that has less room on screen, over its highest pin.
+ * G4: or beside a pin, to its right ('east') or left ('west'), centred on the pin body.
+ */
+export type LabelPlacement = 'below' | 'above' | 'east' | 'west';
+/** G4: the most a pill may stand off its pin body (pt), so it still reads as that pin's label. */
+export const MAX_PILL_GAP = LABEL_GAP + 16;
+/** G4: the extra stand-off steps tried, nearest first, when no candidate touching the pin is clear. */
+const PILL_STEPS = [0, 8, 16];
+/** G4: covering a pin, a pill or a button band, or leaving the map, costs this much more than covering route. */
+const HARD_WEIGHT = 100;
 /** P2: centred on the pin, or reaching left (its right edge at the pin body's right edge) or right. */
 export type LabelAlign = 'center' | 'left' | 'right';
 
@@ -532,6 +544,11 @@ function compareIds(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+/** A pin's body on screen (photo or Marker balloon). */
+export function pinBodyRect(pin: Placed): Rect {
+  return bodyRect(pin);
+}
+
 function bodyRect(pin: Placed): Rect {
   return pin.shape === 'photo'
     ? { left: pin.x - PHOTO_HALF, right: pin.x + PHOTO_HALF, top: pin.y - PHOTO_HALF, bottom: pin.y + PHOTO_HALF }
@@ -560,7 +577,16 @@ function highestPin<P extends Placed>(members: P[]): P {
 }
 
 /** Where a group's pill goes, the pin it hangs from, and the pill's rect on screen. */
-export type PillPlan<P extends Placed = Placed> = { placement: LabelPlacement; align: LabelAlign; pin: P; rect: Rect };
+export type PillPlan<P extends Placed = Placed> = {
+  placement: LabelPlacement;
+  align: LabelAlign;
+  pin: P;
+  rect: Rect;
+  /** The pill's lines (one per member, or G4: a lone member's text wrapped after the name). */
+  lines: string[];
+  /** G4: a slid, stood-off or wrapped pill (part of the label id, so a moved pill is redrawn, not restyled). */
+  variant?: string;
+};
 
 const ALIGNS: LabelAlign[] = ['center', 'left', 'right'];
 
@@ -570,30 +596,92 @@ const ALIGNS: LabelAlign[] = ['center', 'left', 'right'];
  * its pin's body, so it always touches the pin it names.
  */
 export function pillCandidates<P extends Placed>(members: P[]): PillPlan<P>[] {
-  const { width, height } = pillSize(members.map((m) => m.text));
+  const oneLine = members.map((m) => m.text);
+  const wrapped = wrapLines(members);
   const low = lowestPin(members);
   const high = highestPin(members);
+  const out: PillPlan<P>[] = [];
+  for (const step of PILL_STEPS) {
+    pushCandidates(out, members, low, high, oneLine, step, false);
+    if (wrapped) pushCandidates(out, members, low, high, wrapped, step, true);
+  }
+  return out;
+}
+
+/**
+ * G4 qa: a lone member's "name · status · speed" pill may also be drawn wrapped, the name on the first line and
+ * the rest below, when that makes it narrower (a 231 pt "Guest 3 (17e) · Need water" pill had no clear spot in a
+ * tight cluster). Groups keep one line per member, so every line still names its member. Null when not narrower.
+ */
+export function wrapLines(members: { text: string }[]): string[] | null {
+  if (members.length !== 1) return null;
+  const [name, ...rest] = members[0].text.split(' · ');
+  if (rest.length === 0) return null;
+  const lines = [name, rest.join(' · ')];
+  return pillSize(lines).width < pillSize([members[0].text]).width ? lines : null;
+}
+
+function pushCandidates<P extends Placed>(
+  out: PillPlan<P>[],
+  members: P[],
+  low: P,
+  high: P,
+  lines: string[],
+  step: number,
+  wrap: boolean,
+) {
+  const { width, height } = pillSize(lines);
   const span = (pin: P, align: LabelAlign) => {
     const half = pinHalfWidth(pin.shape);
     if (align === 'center' || !(width > 2 * half)) return { left: pin.x - width / 2, right: pin.x + width / 2 };
     return align === 'left' ? { left: pin.x + half - width, right: pin.x + half } : { left: pin.x - half, right: pin.x - half + width };
   };
-  const belowTop = low.y + pinBottom(low.shape) + LABEL_GAP;
-  const aboveBottom = high.y - pinTop(high.shape) - LABEL_GAP;
-  return [
-    ...ALIGNS.map((align) => ({
-      placement: 'below' as const,
-      align,
-      pin: low,
-      rect: { ...span(low, align), top: belowTop, bottom: belowTop + height },
-    })),
-    ...ALIGNS.map((align) => ({
-      placement: 'above' as const,
-      align,
-      pin: high,
-      rect: { ...span(high, align), top: aboveBottom - height, bottom: aboveBottom },
-    })),
-  ];
+  // G4: extra horizontal positions between reaching left and reaching right (the pill still spans the pin).
+  const slides = (pin: P) => {
+    const half = pinHalfWidth(pin.shape);
+    if (!(width > 2 * half)) return [];
+    const from = pin.x + half - width;
+    const to = pin.x - half;
+    return [0.25, 0.75].map((t) => ({ t, left: from + (to - from) * t, right: from + (to - from) * t + width }));
+  };
+  const belowTop = low.y + pinBottom(low.shape) + LABEL_GAP + step;
+  const aboveBottom = high.y - pinTop(high.shape) - LABEL_GAP - step;
+  const below = ({ left, right }: { left: number; right: number }) => ({ left, right, top: belowTop, bottom: belowTop + height });
+  const above = ({ left, right }: { left: number; right: number }) => ({ left, right, top: aboveBottom - height, bottom: aboveBottom });
+  const extra = (slide?: number) => {
+    const tag = `${wrap ? 'w' : ''}${slide == null ? '' : `s${slide}`}${step ? `g${step}` : ''}`;
+    return { lines, ...(tag ? { variant: tag } : {}) };
+  };
+  // The six P2 candidates first (one line, step 0: their P2 order and positions).
+  for (const align of ALIGNS) out.push({ placement: 'below', align, pin: low, rect: below(span(low, align)), ...extra() });
+  for (const align of ALIGNS) out.push({ placement: 'above', align, pin: high, rect: above(span(high, align)), ...extra() });
+  for (const x of slides(low)) out.push({ placement: 'below', align: 'center', pin: low, rect: below(x), ...extra(x.t) });
+  for (const x of slides(high)) out.push({ placement: 'above', align: 'center', pin: high, rect: above(x), ...extra(x.t) });
+  // Beside each pin, centred on its body.
+  for (const pin of members) {
+    const half = pinHalfWidth(pin.shape);
+    const mid = pin.y + (pinBottom(pin.shape) - pinTop(pin.shape)) / 2;
+    const top = mid - height / 2;
+    const eastLeft = pin.x + half + LABEL_GAP + step;
+    const westRight = pin.x - half - LABEL_GAP - step;
+    out.push({ placement: 'east', align: 'center', pin, rect: { left: eastLeft, right: eastLeft + width, top, bottom: top + height }, ...extra() });
+    out.push({ placement: 'west', align: 'center', pin, rect: { left: westRight - width, right: westRight, top, bottom: top + height }, ...extra() });
+  }
+}
+
+/**
+ * G4: the annotation anchor that draws a pill where `plan` put it. The estimate (pillSize) is a little larger
+ * than the drawn pill, so the anchor keeps the edge facing the pin fixed (below / above: the pill's top /
+ * bottom edge, beside: its vertical centre), and the drawn gap is never smaller than planned.
+ */
+export function planAnchor(plan: PillPlan, lines: number): Anchor {
+  const { rect, pin, placement } = plan;
+  const width = rect.right - rect.left;
+  const drawn = Math.max(1, lines) * LABEL_ANCHOR_LINE_HEIGHT + 2 * LABEL_TEXT_PADDING;
+  const x = width > 0 ? (pin.x - rect.left) / width : 0.5;
+  if (placement === 'below') return { x, y: -(rect.top - pin.y) / drawn };
+  if (placement === 'above') return { x, y: 1 + (pin.y - rect.bottom) / drawn };
+  return { x, y: 0.5 + (pin.y - (rect.top + rect.bottom) / 2) / drawn };
 }
 
 function overlapArea(a: Rect, b: Rect, margin = 0) {
@@ -653,15 +741,84 @@ export function routeOverlap(rect: Rect, route: ScreenPoint[]) {
   return length * ROUTE_LINE_WIDTH;
 }
 
+/** G4 perf: the grid cell (pt) of the route index. */
+const ROUTE_CELL = 32;
+type RouteCost = (rect: Rect) => number;
+
+/**
+ * G4 perf: routeOverlap for many rects against one route. Segments are bucketed by the grid cells their
+ * bounding box spans, so a rect only measures the segments near it (a 2000-point route and ~70 candidates per
+ * pill made each layout ~8x slower). Gives the same result as routeOverlap.
+ */
+export function routeCoster(route: ScreenPoint[]): RouteCost {
+  if (route.length < 2) return () => 0;
+  const pad = LABEL_GROUP_MARGIN + ROUTE_LINE_WIDTH / 2;
+  const cells = new Map<string, number[]>();
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1];
+    const b = route[i];
+    const x0 = Math.floor(Math.min(a.x, b.x) / ROUTE_CELL);
+    const x1 = Math.floor(Math.max(a.x, b.x) / ROUTE_CELL);
+    const y0 = Math.floor(Math.min(a.y, b.y) / ROUTE_CELL);
+    const y1 = Math.floor(Math.max(a.y, b.y) / ROUTE_CELL);
+    // A segment far off the map (a zoomed-in view of a long route) would span thousands of cells: keep those
+    // in one overflow list that every query measures.
+    const key = (x1 - x0 + 1) * (y1 - y0 + 1) > 64 ? 'far' : null;
+    if (key) {
+      cells.set(key, [...(cells.get(key) ?? []), i]);
+      continue;
+    }
+    for (let cx = x0; cx <= x1; cx++) {
+      for (let cy = y0; cy <= y1; cy++) {
+        const k = `${cx},${cy}`;
+        const list = cells.get(k);
+        if (list) list.push(i);
+        else cells.set(k, [i]);
+      }
+    }
+  }
+  const seen = new Int32Array(route.length);
+  let stamp = 0;
+  return (rect) => {
+    stamp++;
+    const grown = { left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad };
+    let length = 0;
+    const visit = (list: number[] | undefined) => {
+      if (!list) return;
+      for (const i of list) {
+        if (seen[i] === stamp) continue;
+        seen[i] = stamp;
+        const a = route[i - 1];
+        const b = route[i];
+        // Cheap reject: the segment's box misses the rect.
+        if (Math.max(a.x, b.x) < grown.left || Math.min(a.x, b.x) > grown.right) continue;
+        if (Math.max(a.y, b.y) < grown.top || Math.min(a.y, b.y) > grown.bottom) continue;
+        length += clippedLength(a, b, grown);
+      }
+    };
+    visit(cells.get('far'));
+    for (let cx = Math.floor(grown.left / ROUTE_CELL); cx <= Math.floor(grown.right / ROUTE_CELL); cx++) {
+      for (let cy = Math.floor(grown.top / ROUTE_CELL); cy <= Math.floor(grown.bottom / ROUTE_CELL); cy++) {
+        visit(cells.get(`${cx},${cy}`));
+      }
+    }
+    return length * ROUTE_LINE_WIDTH;
+  };
+}
+
 /**
  * How bad a candidate is: its clipped area plus the area it covers (with the margin) of `obstacles` and of the
  * drawn route (G4: the route counts as an obstacle like a pin, by the area of line it would hide).
  */
-function pillCost(rect: Rect, obstacles: Rect[], size: ViewSize, route: ScreenPoint[] = []) {
+function pillCost(rect: Rect, obstacles: Rect[], size: ViewSize, route: RouteCost = () => 0, own: Rect[] = []) {
+  // G4 qa: pins, pills and the map's edges rank above the route, so a pill never hides a pin to clear the line.
+  // The group's own pins (`own`) only count when actually covered: its pill hangs LABEL_GAP off one of them.
   return (
-    clippedArea(rect, size) +
-    obstacles.reduce((sum, r) => sum + overlapArea(rect, r, LABEL_GROUP_MARGIN), 0) +
-    routeOverlap(rect, route)
+    HARD_WEIGHT *
+      (clippedArea(rect, size) +
+        obstacles.reduce((sum, r) => sum + overlapArea(rect, r, LABEL_GROUP_MARGIN), 0) +
+        own.reduce((sum, r) => sum + overlapArea(rect, r), 0)) +
+    route(rect)
   );
 }
 
@@ -670,12 +827,13 @@ function bestCandidate<P extends Placed>(
   candidates: PillPlan<P>[],
   obstacles: Rect[],
   size: ViewSize,
-  route: ScreenPoint[],
+  route: RouteCost,
+  own: Rect[] = [],
 ) {
   let best = candidates[0];
   let bestCost = Infinity;
   for (const candidate of candidates) {
-    const cost = pillCost(candidate.rect, obstacles, size, route);
+    const cost = pillCost(candidate.rect, obstacles, size, route, own);
     if (cost < bestCost) [best, bestCost] = [candidate, cost];
     if (cost === 0) break;
   }
@@ -697,22 +855,32 @@ const PLACE_PASSES = 3;
  * too, so a pill that would cover the line loses to one that doesn't; when no candidate is clear, the one
  * hiding the least (pins, pills and route together) wins.
  */
-export function placePills<P extends Placed>(groups: P[][], size?: ViewSize, route: ScreenPoint[] = []): PillPlan<P>[] {
+export function placePills<P extends Placed>(groups: P[][], size?: ViewSize, line: ScreenPoint[] = []): PillPlan<P>[] {
+  const route = routeCoster(line);
   const candidates = groups.map((g) => pillCandidates(g));
   if (!size) return candidates.map((c) => c[0]);
   const bodies = groups.map((g) => g.map(bodyRect));
   const others = (k: number) => bodies.flatMap((b, m) => (m === k ? [] : b));
-  const plans: PillPlan<P>[] = [];
-  candidates.forEach((c, k) => {
-    plans.push(bestCandidate(c, [...plans.map((p) => p.rect), ...others(k)], size, route).plan);
-  });
+  // G4 qa: the widest pills go first (they have the fewest clear spots); ties keep the group order.
+  const order = groups
+    .map((g, k) => ({ k, width: pillSize(g.map((m) => m.text)).width }))
+    .sort((a, b) => b.width - a.width || a.k - b.k)
+    .map((e) => e.k);
+  const plans: PillPlan<P>[] = candidates.map((c) => c[0]);
+  const placed: number[] = [];
+  for (const k of order) {
+    plans[k] = bestCandidate(candidates[k], [...placed.map((m) => plans[m].rect), ...others(k)], size, route, bodies[k]).plan;
+    placed.push(k);
+  }
   for (let pass = 1; pass < PLACE_PASSES; pass++) {
     let changed = false;
-    candidates.forEach((c, k) => {
+    order.forEach((k) => {
+      const c = candidates[k];
       const obstacles = [...plans.flatMap((p, m) => (m === k ? [] : [p.rect])), ...others(k)];
-      const now = pillCost(plans[k].rect, obstacles, size, route);
+      // The group's own pins count too (G4: a pill beside one member must not cover another).
+      const now = pillCost(plans[k].rect, obstacles, size, route, bodies[k]);
       if (now === 0) return;
-      const { plan, cost } = bestCandidate(c, obstacles, size, route);
+      const { plan, cost } = bestCandidate(c, obstacles, size, route, bodies[k]);
       if (cost < now) {
         plans[k] = plan;
         changed = true;
@@ -797,7 +965,11 @@ export function layoutLabels(pins: LabelPin[], view: Viewport | null, size: View
     ? groupPins(valid.map((pin) => ({ ...pin, ...projectPoint(pin.coordinates, view, size) })))
     : [...valid].sort((a, b) => compareIds(a.id, b.id)).map((pin) => [{ ...pin, x: 0, y: 0 }]);
   const line = view ? route.filter(isValidLatLng).map((point) => projectPoint(point, view, size)) : [];
-  return { groups, plans: placePills(groups, view ? size : undefined, line) };
+  // G4 qa: a group with no pin on the map gets no pill (MapKit would draw it cut off at the edge, unattached).
+  const shown = view
+    ? groups.filter((g) => g.some((m) => m.x >= 0 && m.x <= size.width && m.y >= 0 && m.y <= size.height))
+    : groups;
+  return { groups: shown, plans: placePills(shown, view ? size : undefined, line) };
 }
 
 /**
@@ -812,14 +984,13 @@ export function planLabels(
 ): MapLabel[] {
   const { groups, plans } = layoutLabels(pins, view, size, route);
   return groups.map((members, k) => {
-    const { placement, align, pin } = plans[k];
-    const width = pillSize(members.map((m) => m.text)).width;
+    const { placement, align, pin, variant, lines } = plans[k];
     return {
-      id: labelId(members, pin, placement, align),
+      id: labelId(members, pin, placement, align) + (variant ? `~${variant}` : ''),
       coordinates: pin.coordinates,
-      text: members.map((m) => m.text).join('\n'),
-      anchor: labelAnchor(pin.shape, members.length, placement, align, width),
-      lines: members.length,
+      text: lines.join('\n'),
+      anchor: planAnchor(plans[k], lines.length),
+      lines: lines.length,
       stale: members.every((m) => m.stale),
       members: members.map((m) => m.id),
       placement,
@@ -829,13 +1000,14 @@ export function planLabels(
 }
 
 /**
- * The room map's padding (see ROOM_MAP_PADDING) for labels of up to `lines` lines and a widest pill of
- * `pillWidth` points: the bottom grows by a line height for each line beyond the first.
+ * The room map's padding (see ROOM_MAP_PADDING) for labels of up to `lines` lines: the bottom grows by a line
+ * height for each line beyond the first. G4 qa (F4): the sides no longer grow to half the widest pill (130 pt
+ * each for "Guest 4 (ProMax) · Need water" squeezed four pins into the middle 100 pt); a pin near a side edge
+ * takes a pill reaching inward or beside it instead.
  */
-export function roomMapPadding(lines = 1, pillWidth = 0): EdgePadding {
+export function roomMapPadding(lines = 1): EdgePadding {
   const pill = Math.max(1, lines) * LABEL_LINE_HEIGHT + 2 * LABEL_TEXT_PADDING;
-  const side = Math.max(ROOM_MAP_PADDING.left, Math.ceil(pillWidth / 2));
-  return { top: ROOM_MAP_PADDING.top, bottom: BOTTOM_BUTTON_BAND + PHOTO_HALF + LABEL_GAP + pill, left: side, right: side };
+  return { ...ROOM_MAP_PADDING, bottom: BOTTOM_BUTTON_BAND + PHOTO_HALF + LABEL_GAP + pill };
 }
 
 /**
@@ -851,17 +1023,15 @@ export function fitRoomCamera(
   route: LatLng[] = [],
 ): Camera | null {
   let lines = 1;
-  let width = Math.max(0, ...pins.map((pin) => pillSize([pin.text]).width));
   let camera: Camera | null = null;
   for (let round = 0; round < 6; round++) {
-    camera = cameraFor(points, size, roomMapPadding(lines, width));
+    camera = cameraFor(points, size, roomMapPadding(lines));
     if (!camera) return null;
     const labels = planLabels(pins, viewportFromCamera(camera, size), size, route);
-    const needLines = Math.max(1, ...labels.map((l) => l.lines));
-    const needWidth = Math.max(0, ...labels.map((l) => pillSize(l.text.split('\n')).width));
-    if (needLines <= lines && needWidth <= width) return camera;
-    lines = Math.max(lines, needLines);
-    width = Math.max(width, needWidth);
+    // Members per group, not drawn lines: a wrapped lone pill (G4) can go beside or above its pin instead.
+    const needLines = Math.max(1, ...labels.map((l) => l.members.length));
+    if (needLines <= lines) return camera;
+    lines = needLines;
   }
   return camera;
 }
