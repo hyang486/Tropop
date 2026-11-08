@@ -5,6 +5,17 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-07 night: polish P-1..P-3 (human request via qa ~18:00 PST; supervisor GO each, local, no push)
+- P-1 p1-pen-compass → main 063e0ba: host Pen chip moved top right → top left (expo-maps 58 cannot move MapKit's
+  compass). tsc/lint ok, mobile 139/139. qa PASS, supervisor ACCEPTED (rotated-compass screenshot).
+- P-2 p2-member-labels (text-annotation labels) merged as ad61dfd, FAILED qa check (b): with 4 members ~40-90 pt
+  apart the 17 pt pills overlap and are drawn under neighbouring pins (docs/evidence/2026-11-07-p2-cluster-*.png).
+  Reverted on main: c3f34a0. Redesign proposed to supervisor (recommended: one grouped label per tight cluster,
+  recomputed after each camera stop); it changes what the human sees, so it waits for the human's choice. No code yet.
+- P-3 p3-deeplink-modal → main 1b311e9: a warm moment:/// or join link while Invite/Upgrade is open closes the
+  modal first (C-3 path). Typed-route tsc fix 57ef2cc on the branch before the merge. tsc/lint ok, mobile 148/148.
+  NOT VERIFIED on a sim yet (qa checks 1-5 plus a C-3 reminder-tap regression).
+
 ## 2026-11-07 evening: gap fixes (human "fix the small gaps", via qa; supervisor GO, one merge at a time, local, no push)
 Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-checked on main, then qa checks from the main checkout.
 - 1/6 camera-plist-face → main b509d9f. tsc/lint ok, mobile 124/124. qa native rebuild (91F3BFB3): the string in the
