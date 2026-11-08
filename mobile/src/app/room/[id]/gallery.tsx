@@ -29,6 +29,8 @@ import {
   objectUrl,
   pickFile,
   pickPhotosAndVideos,
+  takePhoto,
+  CameraError,
   enqueueUploads,
   type PickedItem,
   splitBySize,
@@ -36,6 +38,7 @@ import {
   useRoomMedia,
   useUploads,
 } from '@/lib/media';
+import { confirmOriginalsNotice } from '@/lib/originals-notice';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 /** 'me' = Photos of me (face matching); it lists from the 'all' media query. */
@@ -72,18 +75,28 @@ export default function GalleryScreen() {
         }
         if (ok.length > 0 && userId) enqueueUploads(id, userId, ok);
       } catch (e) {
-        Alert.alert(en.media.uploadFailed, errorMessage(e));
+        // G9 F2: nothing was uploaded when the camera could not be used.
+        Alert.alert(e instanceof CameraError ? en.media.cameraTitle : en.media.uploadFailed, errorMessage(e));
       }
     },
     [id, userId],
   );
 
   function openAddMenu() {
+    // #13: Take photo first, like Messages. Both photo options show the one-time originals notice.
     ActionSheetIOS.showActionSheetWithOptions(
-      { options: [en.media.addPhotos, en.media.addFile, en.media.cancel], cancelButtonIndex: 2 },
+      {
+        options: [en.media.addTakePhoto, en.media.addPhotos, en.media.addFile, en.media.cancel],
+        cancelButtonIndex: 3,
+      },
       (index) => {
-        if (index === 0) choose(pickPhotosAndVideos);
-        if (index === 1) choose(pickFile);
+        if (index === 0 || index === 1) {
+          const pick = index === 0 ? takePhoto : pickPhotosAndVideos;
+          void confirmOriginalsNotice().then((ok) => {
+            if (ok) choose(pick);
+          });
+        }
+        if (index === 2) choose(pickFile);
       },
     );
   }
