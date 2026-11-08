@@ -185,12 +185,11 @@ export type CameraFrame = { size: ViewSize; padding: EdgePadding };
  * part of the fit itself. Each edge is the overlay band there plus how far a pin reaches past its point:
  * - top 88: the host's Pen button, top left (8 + ~34 pt; MapKit's compass and other controls sit top right,
  *   inside the same band), plus a marker balloon, drawn 44 pt above its point.
- * - bottom 104: the Show my location / Recenter buttons (8 + ~34 pt) plus a photo pin's lower half (25 pt)
- *   and its name label (P2: a ~3 pt gap and a ~32 pt pill, see pinLabels) under the point.
- * - left / right 64: half a pin's name label ("Name · 4 km/h" in the 17 pt body font, ~125 pt), which is
- *   centered on the point.
+ * - bottom 80: the Show my location / Recenter buttons (8 + ~34 pt) plus a photo pin's lower half (25 pt)
+ *   and its name label (~14 pt) under the point.
+ * - left / right 48: half a pin's name label ("Name · 4 km/h"), which is centered on the point.
  */
-export const ROOM_MAP_PADDING: EdgePadding = { top: 88, bottom: 104, left: 64, right: 64 };
+export const ROOM_MAP_PADDING: EdgePadding = { top: 88, bottom: 80, left: 48, right: 48 };
 /** The room map until onLayout reports: 360 pt tall, full width of a 402 pt screen minus 16 pt gutters. */
 export const ROOM_MAP_SIZE: ViewSize = { width: 370, height: 360 };
 
@@ -326,41 +325,6 @@ export function planPins<T>(
     const icon = pin.avatarPath ? icons.get(pin.avatarPath) : undefined;
     if (icon !== undefined) return { kind: 'photo', ...base, icon };
     return { kind: 'monogram', ...base, monogram: initials(pin.initialsOf || pin.label) };
-  });
-}
-
-/**
- * P2: a member's "name · speed" label, drawn as its own annotation under the pin. MapKit hides a Marker's
- * or an Annotation's title when it collides with another (two close members lost one), but it never hides
- * an annotation's content view. So the pins get no title and the label is that content view.
- *
- * expo-maps 58 draws a text-only annotation as the text (body font, 5 pt padding: a ~32 pt pill) over a
- * rounded rect, and places the whole pill by `anchor`. A negative anchor y puts the point above the pill,
- * |y| pill heights above its top edge:
- * - photo: the 50 pt photo is centered on the point, so the pill starts 25 + 3 pt below the point.
- * - monogram / stale: the Marker balloon hangs above the point, so the pill starts 3 pt below its tip.
- */
-export const LABEL_PILL_HEIGHT = 32;
-export type Anchor = { x: number; y: number };
-export const PHOTO_LABEL_ANCHOR: Anchor = { x: 0.5, y: -(25 + 3) / LABEL_PILL_HEIGHT };
-export const MARKER_LABEL_ANCHOR: Anchor = { x: 0.5, y: -3 / LABEL_PILL_HEIGHT };
-
-export type PinLabel = { id: string; coordinates: LatLng; text: string; anchor: Anchor; stale: boolean };
-
-/**
- * P2: one label per pin, in pin order. The id follows the pin's id (fresh or stale) and its shape (photo
- * or balloon), so a change of either draws a new label instead of restyling or moving one in place (F6-1).
- */
-export function pinLabels<T>(pins: PinPlan<T>[]): PinLabel[] {
-  return pins.map((pin) => {
-    const photo = pin.kind === 'photo';
-    return {
-      id: `${pin.id}:label:${photo ? 'photo' : 'marker'}`,
-      coordinates: pin.coordinates,
-      text: pin.title,
-      anchor: photo ? PHOTO_LABEL_ANCHOR : MARKER_LABEL_ANCHOR,
-      stale: pin.kind === 'stale',
-    };
   });
 }
 

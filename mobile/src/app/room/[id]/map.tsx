@@ -34,7 +34,6 @@ import {
   MAX_CAMERA_ZOOM,
   parseRoute,
   type PinInput,
-  pinLabels,
   planPins,
   ROOM_MAP_SIZE,
   type ViewSize,
@@ -53,10 +52,6 @@ type State =
 
 const STALE_TINT = '#8E8E93';
 const ROUTE_COLOR = '#007AFF';
-// P2: the member label pill. Fixed light colors (not the app theme) so it reads the same on light and dark maps.
-const LABEL_BACKGROUND = '#FFFFFF';
-const LABEL_TEXT = '#000000';
-const LABEL_STALE_TEXT = '#6C6C70';
 
 export default function RoomMapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -302,10 +297,8 @@ function RoomMap({
   // M1: a fresh member with a profile photo is an annotation with the photo as its icon (square: expo-maps
   // draws the icon as a plain 50 pt image and cannot round it). No photo, still loading or a failed load:
   // an initials marker. Stale: a grey clock marker with no speed (C4), photo or not. Only current members
-  // (`avatars` comes from listMembers) get a photo. P2: the pins have no title, since MapKit hid one of two
-  // close titles; the name · speed label is its own text annotation under the pin (pinLabels), which MapKit
-  // never collision-hides, listed after every pin so a label is drawn over a neighbouring pin rather than
-  // under it. expo-maps' SwiftUI Map has no tap callout, and pins and labels have no tap action.
+  // (`avatars` comes from listMembers) get a photo. The title (name · speed) is the label always drawn under the pin;
+  // expo-maps' SwiftUI Map has no tap callout, and pins have no tap action.
   const pinInputs: PinInput[] = presence.rows.map((row) => ({
     userId: row.user_id,
     coordinates: { latitude: row.lat, longitude: row.lng },
@@ -324,23 +317,14 @@ function RoomMap({
           {
             id: pin.id,
             coordinates: pin.coordinates,
+            title: pin.title,
             ...(pin.kind === 'stale' ? { systemImage: 'clock', tintColor: STALE_TINT } : { monogram: pin.monogram }),
           },
         ],
   );
-  const annotations = [
-    ...pins.flatMap((pin) =>
-      pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, icon: pin.icon }] : [],
-    ),
-    ...pinLabels(pins).map((label) => ({
-      id: label.id,
-      coordinates: label.coordinates,
-      text: label.text,
-      anchor: label.anchor,
-      backgroundColor: LABEL_BACKGROUND,
-      textColor: label.stale ? LABEL_STALE_TEXT : LABEL_TEXT,
-    })),
-  ];
+  const annotations = pins.flatMap((pin) =>
+    pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, title: pin.title, icon: pin.icon }] : [],
+  );
 
   const reporterText = en.map.reporter[sharingState];
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission' || sharingState === 'refused';
