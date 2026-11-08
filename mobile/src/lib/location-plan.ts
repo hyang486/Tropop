@@ -373,6 +373,8 @@ const LABEL_ANCHOR_LINE_HEIGHT = 20;
 export const LABEL_GAP = 3;
 /** Two pills, or a pill and another group's pin, closer than this (pt) count as touching. */
 export const LABEL_GROUP_MARGIN = 4;
+/** The drawn route's line width in points (the map's polyline width). */
+export const ROUTE_LINE_WIDTH = 4;
 /**
  * P2 complete link: pins are one group only when every two of them are within this distance on screen (pt,
  * point to point, about one balloon width plus a gap). A pill never names anyone farther than this from the
@@ -591,17 +593,65 @@ export function placePill<P extends Placed>(members: P[], size?: ViewSize): Pill
   return placePills([members], size)[0];
 }
 
-/** How bad a candidate is: its clipped area plus the area it covers (with the margin) of `obstacles`. */
-function pillCost(rect: Rect, obstacles: Rect[], size: ViewSize) {
-  return clippedArea(rect, size) + obstacles.reduce((sum, r) => sum + overlapArea(rect, r, LABEL_GROUP_MARGIN), 0);
+/** Length of the segment a-b inside `rect` (Liang-Barsky clipping); 0 when it misses. */
+function clippedLength(a: ScreenPoint, b: ScreenPoint, rect: Rect) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  let t0 = 0;
+  let t1 = 1;
+  for (const [p, q] of [
+    [-dx, a.x - rect.left],
+    [dx, rect.right - a.x],
+    [-dy, a.y - rect.top],
+    [dy, rect.bottom - a.y],
+  ]) {
+    if (p === 0) {
+      if (q < 0) return 0;
+      continue;
+    }
+    const t = q / p;
+    if (p < 0) t0 = Math.max(t0, t);
+    else t1 = Math.min(t1, t);
+    if (t0 >= t1) return 0;
+  }
+  return (t1 - t0) * Math.hypot(dx, dy);
+}
+
+/**
+ * G4 (#5): the area of the drawn route (ROUTE_LINE_WIDTH wide) a pill at `rect` covers, keeping
+ * LABEL_GROUP_MARGIN from the line's edge. `route` is the route projected to the screen, in drawing order.
+ */
+export function routeOverlap(rect: Rect, route: ScreenPoint[]) {
+  const pad = LABEL_GROUP_MARGIN + ROUTE_LINE_WIDTH / 2;
+  const grown = { left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad };
+  let length = 0;
+  for (let i = 1; i < route.length; i++) length += clippedLength(route[i - 1], route[i], grown);
+  return length * ROUTE_LINE_WIDTH;
+}
+
+/**
+ * How bad a candidate is: its clipped area plus the area it covers (with the margin) of `obstacles` and of the
+ * drawn route (G4: the route counts as an obstacle like a pin, by the area of line it would hide).
+ */
+function pillCost(rect: Rect, obstacles: Rect[], size: ViewSize, route: ScreenPoint[] = []) {
+  return (
+    clippedArea(rect, size) +
+    obstacles.reduce((sum, r) => sum + overlapArea(rect, r, LABEL_GROUP_MARGIN), 0) +
+    routeOverlap(rect, route)
+  );
 }
 
 /** The first candidate of the lowest cost (0: fits the free area and touches nothing). */
-function bestCandidate<P extends Placed>(candidates: PillPlan<P>[], obstacles: Rect[], size: ViewSize) {
+function bestCandidate<P extends Placed>(
+  candidates: PillPlan<P>[],
+  obstacles: Rect[],
+  size: ViewSize,
+  route: ScreenPoint[],
+) {
   let best = candidates[0];
   let bestCost = Infinity;
   for (const candidate of candidates) {
-    const cost = pillCost(candidate.rect, obstacles, size);
+    const cost = pillCost(candidate.rect, obstacles, size, route);
     if (cost < bestCost) [best, bestCost] = [candidate, cost];
     if (cost === 0) break;
   }
@@ -619,24 +669,26 @@ const PLACE_PASSES = 3;
  * too) pick again against all the other pills,
  * keeping a change only when it lowers that group's cost, and stop once a pass changes nothing. Whatever is
  * left over is the worst case: that pill overlaps another pill or pin (countOverlaps). Deterministic for the
- * same groups in the same order.
+ * same groups in the same order. G4 (#5): the drawn route (`route`, projected to the screen) is an obstacle
+ * too, so a pill that would cover the line loses to one that doesn't; when no candidate is clear, the one
+ * hiding the least (pins, pills and route together) wins.
  */
-export function placePills<P extends Placed>(groups: P[][], size?: ViewSize): PillPlan<P>[] {
+export function placePills<P extends Placed>(groups: P[][], size?: ViewSize, route: ScreenPoint[] = []): PillPlan<P>[] {
   const candidates = groups.map((g) => pillCandidates(g));
   if (!size) return candidates.map((c) => c[0]);
   const bodies = groups.map((g) => g.map(bodyRect));
   const others = (k: number) => bodies.flatMap((b, m) => (m === k ? [] : b));
   const plans: PillPlan<P>[] = [];
   candidates.forEach((c, k) => {
-    plans.push(bestCandidate(c, [...plans.map((p) => p.rect), ...others(k)], size).plan);
+    plans.push(bestCandidate(c, [...plans.map((p) => p.rect), ...others(k)], size, route).plan);
   });
   for (let pass = 1; pass < PLACE_PASSES; pass++) {
     let changed = false;
     candidates.forEach((c, k) => {
       const obstacles = [...plans.flatMap((p, m) => (m === k ? [] : [p.rect])), ...others(k)];
-      const now = pillCost(plans[k].rect, obstacles, size);
+      const now = pillCost(plans[k].rect, obstacles, size, route);
       if (now === 0) return;
-      const { plan, cost } = bestCandidate(c, obstacles, size);
+      const { plan, cost } = bestCandidate(c, obstacles, size, route);
       if (cost < now) {
         plans[k] = plan;
         changed = true;
@@ -710,22 +762,31 @@ export function labelId(
   return `label:${tokens.join(',')}@${under.id}=${under.shape}:${placement}${align === 'center' ? '' : `-${align}`}`;
 }
 
-/** P2: the groups on this viewport and their pills (planLabels before it becomes labels; also for tests). */
-export function layoutLabels(pins: LabelPin[], view: Viewport | null, size: ViewSize) {
+/**
+ * P2: the groups on this viewport and their pills (planLabels before it becomes labels; also for tests).
+ * `route` is the drawn route (G4: pills keep off it when they can).
+ */
+export function layoutLabels(pins: LabelPin[], view: Viewport | null, size: ViewSize, route: LatLng[] = []) {
   const valid = pins.filter((pin) => isValidLatLng(pin.coordinates));
   // With no viewport, nothing is known about the screen: every pin keeps its own label, under its pin.
   const groups: Placed[][] = view
     ? groupPins(valid.map((pin) => ({ ...pin, ...projectPoint(pin.coordinates, view, size) })))
     : [...valid].sort((a, b) => compareIds(a.id, b.id)).map((pin) => [{ ...pin, x: 0, y: 0 }]);
-  return { groups, plans: placePills(groups, view ? size : undefined) };
+  const line = view ? route.filter(isValidLatLng).map((point) => projectPoint(point, view, size)) : [];
+  return { groups, plans: placePills(groups, view ? size : undefined, line) };
 }
 
 /**
  * P2: the labels to draw for the pins on this viewport: one pill per group of pins within LABEL_JOIN of each
  * other (groupPins), placed by placePills.
  */
-export function planLabels(pins: LabelPin[], view: Viewport | null, size: ViewSize): MapLabel[] {
-  const { groups, plans } = layoutLabels(pins, view, size);
+export function planLabels(
+  pins: LabelPin[],
+  view: Viewport | null,
+  size: ViewSize,
+  route: LatLng[] = [],
+): MapLabel[] {
+  const { groups, plans } = layoutLabels(pins, view, size, route);
   return groups.map((members, k) => {
     const { placement, align, pin } = plans[k];
     const width = pillSize(members.map((m) => m.text)).width;
@@ -759,14 +820,19 @@ export function roomMapPadding(lines = 1, pillWidth = 0): EdgePadding {
  * padding of the labels at the last fit until they fit in it. Zooming out only brings pins closer together,
  * so groups only grow and this settles in a few rounds. Null when there are no points.
  */
-export function fitRoomCamera(points: LatLng[], pins: LabelPin[], size: ViewSize = ROOM_MAP_SIZE): Camera | null {
+export function fitRoomCamera(
+  points: LatLng[],
+  pins: LabelPin[],
+  size: ViewSize = ROOM_MAP_SIZE,
+  route: LatLng[] = [],
+): Camera | null {
   let lines = 1;
   let width = Math.max(0, ...pins.map((pin) => pillSize([pin.text]).width));
   let camera: Camera | null = null;
   for (let round = 0; round < 6; round++) {
     camera = cameraFor(points, size, roomMapPadding(lines, width));
     if (!camera) return null;
-    const labels = planLabels(pins, viewportFromCamera(camera, size), size);
+    const labels = planLabels(pins, viewportFromCamera(camera, size), size, route);
     const needLines = Math.max(1, ...labels.map((l) => l.lines));
     const needWidth = Math.max(0, ...labels.map((l) => pillSize(l.text.split('\n')).width));
     if (needLines <= lines && needWidth <= width) return camera;
