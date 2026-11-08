@@ -6,6 +6,7 @@ import { Button, colors, Field, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { createRoom, ROOM_TYPES, type RoomType } from '@/lib/rooms';
+import { defaultRoomHours, formatDeletedAt } from '@/lib/create-defaults';
 import { useNow } from '@/lib/use-now';
 
 function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
@@ -25,13 +26,16 @@ export default function CreateRoom() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [type, setType] = useState<RoomType>('sports');
-  const [hours, setHours] = useState(96);
+  // #11: the length follows the type's default until the host picks one by hand.
+  const [pickedHours, setPickedHours] = useState<number | null>(null);
+  const hours = pickedHours ?? defaultRoomHours(type);
   const [locationAllowed, setLocationAllowed] = useState(true);
   const [statuses, setStatuses] = useState<string>(en.createRoom.statusesDefault);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const now = useNow();
+  // #11: refreshed every 5 s and shown without seconds, so the time stays current while the screen is open.
+  const now = useNow(5_000);
   const expiresPreview = new Date(now + hours * 3_600_000);
 
   async function submit() {
@@ -86,10 +90,10 @@ export default function CreateRoom() {
         <Text style={styles.label}>{en.createRoom.expiryLabel}</Text>
         <View style={styles.chips} accessibilityRole="radiogroup">
           {en.createRoom.expiryOptions.map((o) => (
-            <Choice key={o.hours} label={o.label} selected={hours === o.hours} onPress={() => setHours(o.hours)} />
+            <Choice key={o.hours} label={o.label} selected={hours === o.hours} onPress={() => setPickedHours(o.hours)} />
           ))}
         </View>
-        <Hint>{en.createRoom.expiryHint(expiresPreview.toLocaleString())}</Hint>
+        <Hint>{en.createRoom.expiryHint(formatDeletedAt(expiresPreview.getTime()))}</Hint>
         <Pressable accessibilityRole="link" onPress={() => router.push('/plan-preview')} hitSlop={8}>
           <Text style={styles.planLink}>{en.planPreview.createRoomLink}</Text>
         </Pressable>

@@ -129,6 +129,7 @@ export default function RoomInfoScreen() {
           {room.name}
         </Text>
         <Hint>{en.room.endsAt(new Date(room.expires_at).toLocaleString())}</Hint>
+        <Hint>{en.room.endsSoonInfo}</Hint>
       </View>
 
       <View style={styles.section}>

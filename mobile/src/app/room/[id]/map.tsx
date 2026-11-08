@@ -42,6 +42,7 @@ import {
   planLabels,
   planPins,
   ROOM_MAP_SIZE,
+  ROUTE_LINE_WIDTH,
   stalePinId,
   type Viewport,
   viewportFromCamera,
@@ -266,6 +267,7 @@ function RoomMap({
     [...savedRoute, ...presence.rows.map((r) => ({ latitude: r.lat, longitude: r.lng }))],
     labelInputs,
     mapSize,
+    shownRoute,
   );
   const camera = roomCamera(pointsCamera, myPosition);
   const [initialCamera, setInitialCamera] = useState<Camera | null>(null);
@@ -371,7 +373,8 @@ function RoomMap({
   // given (or will be given by Recenter), so the first frame already groups.
   const givenCamera = initialCamera ?? camera;
   const labelView = viewport ?? (givenCamera ? viewportFromCamera(givenCamera, mapSize) : null);
-  const labels = planLabels(labelInputs, labelView, mapSize);
+  // G4 (#5): pills keep off the drawn route when a clear spot exists.
+  const labels = planLabels(labelInputs, labelView, mapSize, shownRoute);
   const photoPins = pins.flatMap((pin) =>
     pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, icon: pin.icon }] : [],
   );
@@ -424,7 +427,7 @@ function RoomMap({
           annotations={annotations}
           polylines={
             shownRoute.length > 1
-              ? [{ id: 'route', coordinates: shownRoute, color: ROUTE_COLOR, width: 4 }]
+              ? [{ id: 'route', coordinates: shownRoute, color: ROUTE_COLOR, width: ROUTE_LINE_WIDTH }]
               : []
           }
           properties={{ isMyLocationEnabled: showsMyLocation }}
