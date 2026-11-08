@@ -68,9 +68,12 @@ export async function enrollFace(roomId: string, photoUri: string): Promise<{ en
   if (upErr) return { error: upErr.message };
   const { data, error } = await supabase.rpc('enroll_face', { p_room_id: roomId, p_ref_path: path });
   if (error) {
-    // FG-R1: best effort; face-refs has no owner delete policy today, so this may remove nothing.
-    // The room's whole face-refs prefix is still deleted by the janitor when the room is deleted.
-    await supabase.storage.from('face-refs').remove([path]).catch(() => undefined);
+    // FG-R1: enroll_face is one transaction, so on failure no enrollment points at `path` (and a failed
+    // Replace keeps the previous enrollment). room-janitor's orphan sweep (every 15 min) deletes face-refs
+    // objects that no enrollment references once they are older than 1 hour (ORPHAN_AGE_MS), so this upload
+    // is removed within about 75 minutes, or earlier with the room. No client delete here on purpose:
+    // face-refs has no DELETE policy, and an error can also mean the call committed but the response was
+    // lost, in which case deleting `path` would break a live enrollment.
     return { error: error.message };
   }
   return { enrollmentId: data };

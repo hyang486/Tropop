@@ -71,6 +71,8 @@ test('storage failure keeps the job unverified and logs no error text', async ()
   assert.ok(lines.every((l) => !l.includes('secret')));
 });
 
+// FG-R1: this sweep is also the cleanup for a reference uploaded before a failed enroll_face
+// (the client does not delete it; see enrollFace in mobile/src/lib/face.ts).
 test('orphan sweep: unreferenced face-refs older than 1h are removed, fresh uploads and active refs are kept', async () => {
   const store = makeStore({
     objects: { 'face-refs': [o('r/u/orphan-old.jpg', 90), o('r/u/fresh-upload.jpg', 10), o('r/u/active.jpg', 500)] },
