@@ -36,6 +36,7 @@ import {
   useRoomMedia,
   useUploads,
 } from '@/lib/media';
+import { confirmOriginalsNotice } from '@/lib/originals-notice';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 /** 'me' = Photos of me (face matching); it lists from the 'all' media query. */
@@ -82,7 +83,11 @@ export default function GalleryScreen() {
     ActionSheetIOS.showActionSheetWithOptions(
       { options: [en.media.addPhotos, en.media.addFile, en.media.cancel], cancelButtonIndex: 2 },
       (index) => {
-        if (index === 0) choose(pickPhotosAndVideos);
+        if (index === 0) {
+          void confirmOriginalsNotice().then((ok) => {
+            if (ok) choose(pickPhotosAndVideos);
+          });
+        }
         if (index === 1) choose(pickFile);
       },
     );

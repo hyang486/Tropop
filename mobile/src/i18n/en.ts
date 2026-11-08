@@ -221,6 +221,11 @@ export const en = {
     addPhotos: 'Photos and videos',
     addFile: 'File',
     cancel: 'Cancel',
+    // #7: one-time notice before the first photo/video add. PROPOSED wording, not yet confirmed by the human.
+    originalsNoticeTitle: 'Photos are shared as originals',
+    originalsNoticeBody:
+      'Photos and videos keep their full quality and any location saved in them. Everyone in this room can see and download them.',
+    originalsNoticeContinue: 'Continue',
     empty: 'Nothing shared yet.',
     emptyMine: 'You have not shared anything yet.',
     emptyOthers: 'Nobody else has shared anything yet.',

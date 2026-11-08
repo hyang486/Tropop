@@ -96,9 +96,8 @@ export function formatBytes(n: number | null | undefined) {
 
 /** Photos and videos from the system picker, as originals (no recompression, no editing). */
 export async function pickPhotosAndVideos(): Promise<PickedItem[]> {
-  // iOS needs library access to hand over passthrough (original) videos; ask before the picker
-  // so the dialog does not appear after a selection. Denial still allows picking photos.
-  await ImagePicker.requestMediaLibraryPermissionsAsync().catch(() => undefined);
+  // #6/#7: no photo library permission request. The system picker (PHPicker) needs none, and asking first
+  // showed iOS's Limited Access sheet, which swallowed the first pick. Only the picked items are shared.
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images', 'videos'],
     allowsMultipleSelection: true,
