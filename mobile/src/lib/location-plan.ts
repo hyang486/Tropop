@@ -163,6 +163,32 @@ export function parseRoute(route: unknown): LatLng[] {
   return out;
 }
 
+/**
+ * #10: the route length in meters, as the route is drawn and saved: one line through the points in order
+ * (the editor joins its strokes end to start, joinStrokes, and both maps draw that one polyline, jumps
+ * included), so the editor and the Map screen show the same length. Invalid points are skipped.
+ */
+export function routeLengthMeters(points: LatLng[]): number {
+  let total = 0;
+  let previous: LatLng | null = null;
+  for (const point of points) {
+    if (!isValidLatLng(point)) continue;
+    if (previous) total += distanceMeters(previous, point);
+    previous = point;
+  }
+  return total;
+}
+
+/**
+ * #10: the route length in km with one decimal ("5.2 km"; "< 0.1 km" when shorter), or null when there is no
+ * line to measure (fewer than 2 valid points) and the label is hidden.
+ */
+export function formatRouteKm(points: LatLng[]): string | null {
+  if (points.filter((p) => isValidLatLng(p)).length < 2) return null;
+  const km = routeLengthMeters(points) / 1000;
+  return km < 0.05 ? '< 0.1 km' : `${km.toFixed(1)} km`;
+}
+
 /** Map coordinates as the set_route payload. */
 export function toRoutePayload(points: LatLng[]): { lat: number; lng: number }[] {
   return points.filter(isValidLatLng).slice(0, MAX_ROUTE_POINTS).map((p) => ({ lat: p.latitude, lng: p.longitude }));
