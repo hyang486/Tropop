@@ -539,7 +539,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   showMine: { left: 8 },
-  pen: { top: 8, bottom: undefined, right: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Top left: MapKit's own controls (compass, pitch toggle, user location button) stack in the top right
+  // corner, and expo-maps 58 cannot move them. The scale bar (top left) is off by default.
+  pen: { top: 8, bottom: undefined, left: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
   recenter: { right: 8 },
   group: { gap: 8 },
   status: { fontSize: 17, fontWeight: '600', color: colors.label },

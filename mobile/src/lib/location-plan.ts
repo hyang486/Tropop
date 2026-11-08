@@ -183,7 +183,8 @@ export type CameraFrame = { size: ViewSize; padding: EdgePadding };
 /**
  * F5-5b: the room map's fit margins. expo-maps 58 has no edge padding or content inset, so the margins are
  * part of the fit itself. Each edge is the overlay band there plus how far a pin reaches past its point:
- * - top 88: the Draw route button (8 + ~34 pt) plus a marker balloon, drawn 44 pt above its point.
+ * - top 88: the host's Pen button, top left (8 + ~34 pt; MapKit's compass and other controls sit top right,
+ *   inside the same band), plus a marker balloon, drawn 44 pt above its point.
  * - bottom 80: the Show my location / Recenter buttons (8 + ~34 pt) plus a photo pin's lower half (25 pt)
  *   and its name label (~14 pt) under the point.
  * - left / right 48: half a pin's name label ("Name · 4 km/h"), which is centered on the point.
