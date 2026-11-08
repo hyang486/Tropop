@@ -26,16 +26,21 @@ import {
 } from '@/lib/location';
 import {
   type Camera,
-  cameraFor,
+  fitRoomCamera,
   formatAge,
   formatSpeedKmh,
   isStale,
+  labelPins,
   type LatLng,
   MAX_CAMERA_ZOOM,
   parseRoute,
   type PinInput,
+  planLabels,
   planPins,
   ROOM_MAP_SIZE,
+  type Viewport,
+  viewportFromCamera,
+  viewportFromRegion,
   type ViewSize,
   wantedIconPaths,
 } from '@/lib/location-plan';
@@ -52,6 +57,10 @@ type State =
 
 const STALE_TINT = '#8E8E93';
 const ROUTE_COLOR = '#007AFF';
+// P2: the member label pill. Fixed light colors (not the app theme) so it reads the same on light and dark maps.
+const LABEL_BACKGROUND = '#FFFFFF';
+const LABEL_TEXT = '#000000';
+const LABEL_STALE_TEXT = '#6C6C70';
 
 export default function RoomMapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -159,13 +168,61 @@ function RoomMap({
   const [editor, setEditor] = useState<{ start: Camera | null } | null>(null);
   const shownRoute = savedRoute;
 
+  // F5-5b: the map's real size once it is laid out (the fit and the label grouping measure against it).
+  const [mapSize, setMapSize] = useState<ViewSize>(ROOM_MAP_SIZE);
   // The room map's view after its last camera move: the editor opens on the same view.
   const lastView = useRef<Camera | null>(null);
+  // P2: what the map showed when its camera last stopped (expo-maps reports a move only at its end), used to
+  // group the member labels on screen. Null until the first move ends.
+  const [viewport, setViewport] = useState<Viewport | null>(null);
   function onCameraMove(event: CameraMoveEvent) {
     const { latitude, longitude } = event.coordinates;
     if (latitude == null || longitude == null) return;
     lastView.current = { coordinates: { latitude, longitude }, zoom: event.zoom };
+    const next = viewportFromRegion(event, mapSize);
+    // Only a real change re-renders (an equal event must not loop through a new pin layout).
+    setViewport((prev) =>
+      next &&
+      (!prev ||
+        prev.scale !== next.scale ||
+        prev.bearing !== next.bearing ||
+        prev.center.latitude !== next.center.latitude ||
+        prev.center.longitude !== next.center.longitude)
+        ? next
+        : prev,
+    );
   }
+
+  // M1: a fresh member with a profile photo is an annotation with the photo as its icon (square: expo-maps
+  // draws the icon as a plain 50 pt image and cannot round it). No photo, still loading or a failed load:
+  // an initials marker. Stale: a grey clock marker with no speed (C4), photo or not. Only current members
+  // (`avatars` comes from listMembers) get a photo. P2: the pins have no title (MapKit hid one of two close
+  // titles); the name · speed labels are text annotations, one pill per group of pins that are close on
+  // screen, under the group's lowest pin (planLabels). expo-maps' SwiftUI Map has no tap callout, and pins
+  // and labels have no tap action.
+  const pinInputs: PinInput[] = presence.rows.map((row) => ({
+    userId: row.user_id,
+    coordinates: { latitude: row.lat, longitude: row.lng },
+    updatedAt: row.updated_at,
+    speedMps: row.speed_mps,
+    label: displayName(row, userId, names),
+    initialsOf: names.get(row.user_id) ?? '',
+    avatarPath: avatars.get(row.user_id) ?? null,
+  }));
+  const icons = useMarkerIcons(wantedIconPaths(pinInputs, now), session?.access_token);
+  const pins = planPins(pinInputs, now, icons, en.map.stalePin);
+  const labelInputs = labelPins(pins);
+  const markers = pins.flatMap((pin) =>
+    pin.kind === 'photo'
+      ? []
+      : [
+          {
+            id: pin.id,
+            coordinates: pin.coordinates,
+            ...(pin.kind === 'stale' ? { systemImage: 'clock', tintColor: STALE_TINT } : { monogram: pin.monogram }),
+          },
+        ],
+  );
 
   // M6: with no route or positions yet, the map starts on the user's own position (no prompt).
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
@@ -186,15 +243,14 @@ function RoomMap({
   // native view exists; an imperative call right after mount could reject ("Unable to find the view").
   // F5-5b: the fit keeps the points clear of the overlay buttons and of the pins' own icons and labels,
   // measured against the map's real size once it is laid out.
-  const [mapSize, setMapSize] = useState<ViewSize>(ROOM_MAP_SIZE);
-  const pointsCamera = useMemo(
-    () => cameraFor([...savedRoute, ...presence.rows.map((r) => ({ latitude: r.lat, longitude: r.lng }))], mapSize),
-    [savedRoute, presence.rows, mapSize],
+  // P2: the fit also leaves room for the member labels it will draw (grouped pills grow downward).
+  // Cheap (a few pins), so it is recomputed on each render rather than memoized on the per-render pin list.
+  const pointsCamera = fitRoomCamera(
+    [...savedRoute, ...presence.rows.map((r) => ({ latitude: r.lat, longitude: r.lng }))],
+    labelInputs,
+    mapSize,
   );
-  const camera = useMemo<Camera | null>(
-    () => pointsCamera ?? (myPosition ? { coordinates: myPosition, zoom: MAX_CAMERA_ZOOM } : null),
-    [pointsCamera, myPosition],
-  );
+  const camera = roomCamera(pointsCamera, myPosition);
   const [initialCamera, setInitialCamera] = useState<Camera | null>(null);
   const centeredOn = useRef<'none' | 'mine' | 'points'>('none');
   useEffect(() => {
@@ -294,37 +350,22 @@ function RoomMap({
     });
   }
 
-  // M1: a fresh member with a profile photo is an annotation with the photo as its icon (square: expo-maps
-  // draws the icon as a plain 50 pt image and cannot round it). No photo, still loading or a failed load:
-  // an initials marker. Stale: a grey clock marker with no speed (C4), photo or not. Only current members
-  // (`avatars` comes from listMembers) get a photo. The title (name · speed) is the label always drawn under the pin;
-  // expo-maps' SwiftUI Map has no tap callout, and pins have no tap action.
-  const pinInputs: PinInput[] = presence.rows.map((row) => ({
-    userId: row.user_id,
-    coordinates: { latitude: row.lat, longitude: row.lng },
-    updatedAt: row.updated_at,
-    speedMps: row.speed_mps,
-    label: displayName(row, userId, names),
-    initialsOf: names.get(row.user_id) ?? '',
-    avatarPath: avatars.get(row.user_id) ?? null,
-  }));
-  const icons = useMarkerIcons(wantedIconPaths(pinInputs, now), session?.access_token);
-  const pins = planPins(pinInputs, now, icons, en.map.stalePin);
-  const markers = pins.flatMap((pin) =>
-    pin.kind === 'photo'
-      ? []
-      : [
-          {
-            id: pin.id,
-            coordinates: pin.coordinates,
-            title: pin.title,
-            ...(pin.kind === 'stale' ? { systemImage: 'clock', tintColor: STALE_TINT } : { monogram: pin.monogram }),
-          },
-        ],
-  );
-  const annotations = pins.flatMap((pin) =>
-    pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, title: pin.title, icon: pin.icon }] : [],
-  );
+  // P2: grouped on the last camera the map stopped at; before the first camera event, on the camera it was
+  // given (or will be given by Recenter), so the first frame already groups.
+  const givenCamera = initialCamera ?? camera;
+  const labelView = viewport ?? (givenCamera ? viewportFromCamera(givenCamera, mapSize) : null);
+  const labels = planLabels(labelInputs, labelView, mapSize);
+  const annotations = [
+    ...pins.flatMap((pin) => (pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, icon: pin.icon }] : [])),
+    ...labels.map((label) => ({
+      id: label.id,
+      coordinates: label.coordinates,
+      text: label.text,
+      anchor: label.anchor,
+      backgroundColor: LABEL_BACKGROUND,
+      textColor: label.stale ? LABEL_STALE_TEXT : LABEL_TEXT,
+    })),
+  ];
 
   const reporterText = en.map.reporter[sharingState];
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission' || sharingState === 'refused';
@@ -486,6 +527,11 @@ function RoomMap({
       ) : null}
     </ScrollView>
   );
+}
+
+/** The fitted camera, or until there are points, street level on the user's own position. */
+function roomCamera(pointsCamera: Camera | null, myPosition: LatLng | null): Camera | null {
+  return pointsCamera ?? (myPosition ? { coordinates: myPosition, zoom: MAX_CAMERA_ZOOM } : null);
 }
 
 function displayName(row: Presence, userId: string | undefined, names: Map<string, string>) {
