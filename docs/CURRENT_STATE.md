@@ -583,6 +583,10 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   no place card. Human chose option B. 85b413c on r1c-fullscreen-pen: room map.tsx restored to c4058f9~1 (diff empty),
   route editor keeps selectionEnabled:false + NO_POIS. tsc/lint clean, 116/116. Waiting: qa sim check on 8086, human
   iPhone look, supervisor merge GO. Local only. 405c760 (r1c-poi-editor-only) is obsolete.
+  qa sim PASS of B; human iPhone "B 확인했어" (via qa). Supervisor merge GO → MERGED: main 52df5dd (merge commit of
+  r1c-fullscreen-pen @85b413c; base 6f2a512; no conflicts; not pushed). On main: tsc clean, lint clean, mobile 124/124,
+  functions 37/37. qa to verify main.
+  Polish (non-blocking, supervisor): on the room map the Pen chip overlaps the map compass/location button (top right).
 - FM-Q ③ caveat resolved (21:0xZ, from logs, no re-run): the ③ sim client DID run the detect-copy code. API logs show the
   app's detect query (media select id,room_id,original_path,width,height for the 3 jobs, 19:50:34Z), then 3 client
   POSTs (Moment/1 CFNetwork) to room-media/<room>/<media>/detect/53d00236….jpg at 19:50:35.355/35.432/36.768Z. face-match
