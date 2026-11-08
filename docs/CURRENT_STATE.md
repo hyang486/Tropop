@@ -555,6 +555,10 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   (room map, editor pen off); pen on: tap does nothing. Evidence 2026-11-07-r1-canary-*.png, -r1-cf8af60-*.png.
   Canary reverted (never committed). Member marker tap not tested. Next: supervisor review, then the human's iPhone
   re-check (their earlier check also ran main). Not merged.
+  Human iPhone check on 8086 = cf8af60 (relayed by qa, 2026-11-07 ~23Z): line lands right under the finger (R1-D PASS),
+  no place card. Human chose option B. 85b413c on r1c-fullscreen-pen: room map.tsx restored to c4058f9~1 (diff empty),
+  route editor keeps selectionEnabled:false + NO_POIS. tsc/lint clean, 116/116. Waiting: qa sim check on 8086, human
+  iPhone look, supervisor merge GO. Local only. 405c760 (r1c-poi-editor-only) is obsolete.
 - FM-Q ③ caveat resolved (21:0xZ, from logs, no re-run): the ③ sim client DID run the detect-copy code. API logs show the
   app's detect query (media select id,room_id,original_path,width,height for the 3 jobs, 19:50:34Z), then 3 client
   POSTs (Moment/1 CFNetwork) to room-media/<room>/<media>/detect/53d00236….jpg at 19:50:35.355/35.432/36.768Z. face-match
@@ -563,4 +567,5 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Room 14479 (e14cb754-f287-43ec-8fe5-3b9811228094) after expiry 22:37Z and the 22:45Z janitor: read 22:48:07Z → rooms 0,
   members 0, media 0, messages 0, storage objects (room-media + face-refs prefix) 0. DONE.
 - Guest 4 user 49f93ead-65ae-468b-84be-a273edcec5e3: human ordered deletion directly; 2 execute_sql prompts expired
-  unanswered. Not deleted yet.
+  unanswered. DELETED 2026-11-07 ~23Z on the human's go (relayed by qa; the human had ordered it directly earlier):
+  pre-check anonymous, no email, 0 memberships, 0 objects; delete by exact id; after: users/identities/sessions 0.
