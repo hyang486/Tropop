@@ -475,11 +475,11 @@ function RoomMap({
               onPress={showMyLocation}
               style={[styles.overlayButton, styles.showMine]}
             >
-              <Text style={styles.link}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
+              <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
             </Pressable>
             {camera ? (
               <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
-                <Text style={styles.link}>{en.map.recenter}</Text>
+                <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{en.map.recenter}</Text>
               </Pressable>
             ) : null}
         {isHost || routeKm ? (
@@ -493,12 +493,12 @@ function RoomMap({
                 style={[styles.chip, styles.pen]}
               >
                 <SymbolView name="pencil.tip" size={18} tintColor={colors.tint} />
-                <Text style={styles.link}>{en.map.pen}</Text>
+                <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{en.map.pen}</Text>
               </Pressable>
             ) : null}
             {routeKm ? (
               <View style={[styles.chip, styles.distanceChip]}>
-                <Text style={styles.distance}>{en.map.routeDistance(routeKm)}</Text>
+                <Text style={styles.distance} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{en.map.routeDistance(routeKm)}</Text>
               </View>
             ) : null}
           </View>
@@ -657,6 +657,9 @@ function PresenceRow({
   );
 }
 
+// The buttons and chips on the 360 pt map stay on one line at the largest text sizes, so "Show my location" and
+// "Recenter" never overlap (qa, largest Dynamic Type). The screen text around the map still scales fully.
+const MAP_OVERLAY_MAX_SCALE = 1.3;
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background },
   content: { padding: 16, gap: 16 },
