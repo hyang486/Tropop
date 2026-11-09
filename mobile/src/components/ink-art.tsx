@@ -11,6 +11,9 @@ const IMAGES = {
   gathering: require('@/assets/art/gathering.png'),
   gate: require('@/assets/art/gate.png'),
   paper: require('@/assets/art/paper.png'),
+  reference: require('@/assets/art/reference.png'),
+  ended: require('@/assets/art/ended.png'),
+  camera: require('@/assets/art/camera.png'),
 };
 
 /** Stroke width in drawing units (300-unit-wide drawings), close to the PDF art's line at the same width. */
