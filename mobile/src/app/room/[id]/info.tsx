@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { RoomEmergencyBanner } from '@/components/room-activity';
+import { RoomEnded } from '@/components/room-ended';
 import { StatusEditor } from '@/components/status-editor';
 import { QLink, QScreen } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
@@ -89,13 +90,7 @@ export default function RoomInfoScreen() {
   }
 
   if (state.status === 'gone') {
-    return (
-      <QScreen
-        title={en.room.gone}
-        subtitle={en.room.goneHint}
-        actions={<Button title={en.room.backToRooms} onPress={() => router.dismissTo('/')} />}
-      />
-    );
+    return <RoomEnded />;
   }
 
   if (state.status === 'error') {

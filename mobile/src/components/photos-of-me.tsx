@@ -105,7 +105,7 @@ export function PhotosOfMe({ roomId, userId, media, columns, gap, renderTile, on
           <Text style={styles.introLine}>{en.face.intro}</Text>
           <Text style={styles.introMeta}>{en.face.introMeta}</Text>
         </View>
-        <InkArt art="paper" width={180} />
+        <InkArt art="reference" width={180} />
         <Button title={en.face.setUp} onPress={openSetup} />
       </ScrollView>
     );

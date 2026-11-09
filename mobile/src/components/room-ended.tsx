@@ -37,7 +37,7 @@ export function RoomEnded({
     <QScreen
       title={en.room.endedTitle}
       subtitle={closedLine}
-      bottom={<InkArt art="gate" width={200} />}
+      bottom={<InkArt art="ended" width={200} />}
       bottomAlign="center"
       actions={<Button title={en.room.backToRooms} onPress={() => router.dismissTo('/')} />}
     >
