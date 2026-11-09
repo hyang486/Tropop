@@ -72,7 +72,8 @@ const EMERGENCY_RED = '#FF3B30';
 const EMERGENCY_TEXT = '#FFFFFF';
 
 export default function RoomMapScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // focus: an Emergency sender to center on (Q 04.04 "Open last shared location" from chat, Photos or Info).
+  const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
   const [state, setState] = useState<State>({ status: 'loading' });
 
   const load = useCallback(async () => {
@@ -122,14 +123,16 @@ export default function RoomMapScreen() {
       </View>
     );
   }
-  return <RoomMap room={state.room} names={state.names} avatars={state.avatars} />;
+  return <RoomMap room={state.room} names={state.names} avatars={state.avatars} focus={focus} />;
 }
 
 function RoomMap({
   room,
   names,
   avatars,
+  focus,
 }: {
+  focus?: string;
   room: Room;
   names: Map<string, string>;
   avatars: Map<string, string | null>;
@@ -284,6 +287,24 @@ function RoomMap({
     if (camera) mapRef.current?.setCameraPosition(camera).catch(() => {});
   }
 
+  // Q 04.04: "Open last shared location" centers on the Emergency sender's last position. Opened from another
+  // screen (focus param), it centers once when that row arrives (an imperative move right after mount can be
+  // rejected, F5-4, so the camera prop is set too).
+  function focusOn(coordinates: LatLng) {
+    mapRef.current?.setCameraPosition({ coordinates, zoom: MAX_CAMERA_ZOOM }).catch(() => {});
+  }
+  const focusRow = focus ? presence.rows.find((r) => r.user_id === focus) : undefined;
+  const focused = useRef(false);
+  useEffect(() => {
+    if (focused.current || !focusRow) return;
+    focused.current = true;
+    const coordinates = { latitude: focusRow.lat, longitude: focusRow.lng };
+    // Both: the prop covers a map that is not ready yet, the call a map that already applied its first camera.
+    centeredOn.current = 'points';
+    setInitialCamera({ coordinates, zoom: MAX_CAMERA_ZOOM });
+    focusOn(coordinates);
+  }, [focusRow]);
+
   // F5-1: "Show my location" works with Share off. The permission prompt comes only from this tap;
   // the position is read once, kept on this screen, and never sent (no RPC, no sharing-store change).
   const [locate, setLocate] = useState<'idle' | 'busy' | 'denied' | 'settings' | 'unavailable'>('idle');
@@ -408,7 +429,14 @@ function RoomMap({
       contentInsetAdjustmentBehavior="automatic"
     >
       <Stack.Screen options={{ title: en.map.title }} />
-      <EmergencyAlerts activity={activity} userId={userId} names={names} />
+      <EmergencyAlerts
+        roomId={room.id}
+        activity={activity}
+        userId={userId}
+        names={names}
+        presence={presence.rows}
+        onOpenLocation={(_sender, coordinates) => focusOn(coordinates)}
+      />
 
       <View
         style={styles.mapWrap}

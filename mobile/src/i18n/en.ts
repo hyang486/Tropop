@@ -128,6 +128,9 @@ export const en = {
     invite: 'Invite',
     endsIn: (remaining: string) => `Ends in ${remaining}`,
     endsAt: (when: string) => `Ends ${when}`,
+    // Qrew unit 3 (Q 03.01): "Ends today at 10:00 PM" under the room name in chat.
+    endsOn: (day: 'today' | 'tomorrow' | 'later', date: string, time: string) =>
+      day === 'today' ? `Ends today at ${time}` : day === 'tomorrow' ? `Ends tomorrow at ${time}` : `Ends ${date} at ${time}`,
     reminderTitle: 'Room ends soon',
     // #9: one compact line in chat; the full note is in Info.
     endsSoonLine: 'Room ends soon · photos and files are deleted',
@@ -223,7 +226,11 @@ export const en = {
     bodyLastHour: (name: string) => `${name} disappears in 1 hour. Download any photos and files you'd like to keep.`,
   },
   chat: {
-    placeholder: 'Message',
+    // Qrew unit 3 (Q 03.01): nav title and the room's tab row.
+    title: 'Chat',
+    tabs: 'Room sections',
+    tabChat: 'Chat',
+    placeholder: 'Message the room',
     send: 'Send',
     empty: 'No messages yet. Say hello.',
     loadError: 'Messages could not be loaded.',
@@ -298,6 +305,14 @@ export const en = {
     status: 'Status',
     statusValue: (label: string) => `Status: ${label}`,
     chooseStatus: 'Set your status',
+    // Qrew unit 3 (Q 03.01, 04.03)
+    setStatus: 'Set status',
+    helpRequested: 'Help requested',
+    waitingSeen: 'Waiting for someone to see it.',
+    lastLocation: (age: string) => `Last location shared · ${age}`,
+    noLocation: 'No location shared',
+    openLastLocation: 'Open last shared location',
+    imOkNow: "I'm OK now",
     clearStatus: 'Clear status',
     emergencyConfirmTitle: 'Send Emergency?',
     emergencyConfirmBody:
