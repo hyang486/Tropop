@@ -21,8 +21,9 @@ import {
  * inverts ink and ground (the ink art and title already use the light ink #EDEDE8 there).
  */
 export const palette = {
-  light: { ink: '#181817', paper: '#FFFFFF', card: '#F6F6F2' },
-  dark: { ink: '#EDEDE8', paper: '#000000', card: '#1C1C1E' },
+  // cardStrong: own chat bubbles (Q 03.01 "On my way!"); dangerCard: the Emergency card and status (Q 03.02, 04.03).
+  light: { ink: '#181817', paper: '#FFFFFF', card: '#F6F6F2', cardStrong: '#EAEAE5', dangerCard: '#FDECEC' },
+  dark: { ink: '#EDEDE8', paper: '#000000', card: '#1C1C1E', cardStrong: '#2C2C2E', dangerCard: '#3A1A1A' },
 } as const;
 
 function themed(key: keyof typeof palette.light) {
@@ -39,6 +40,8 @@ export const colors = {
   secondaryLabel: PlatformColor('secondaryLabel'),
   background: themed('paper'),
   field: themed('card'),
+  fieldStrong: themed('cardStrong'),
+  dangerField: themed('dangerCard'),
   separator: PlatformColor('separator'),
   /** The accent is ink: primary buttons, links, selected chips and segments, own chat bubbles. */
   tint: themed('ink'),
