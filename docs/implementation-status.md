@@ -8,7 +8,14 @@ Updated: 2026-11-06 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.
   ending in ROLLBACK) returned "ROOM PLACE TIME TESTS PASSED".
 - Read-only check after it: 0 test users, no tests schema, 0 new rooms columns, one create_room with 5 args,
   preview_room with 7 output columns, 0 test rooms. The live database is unchanged.
-- NOT applied: 0026 on the live database needs a separate human approval. App UI for the fields: not started.
+- APPLIED live 2026-11-09 after a separate human go-ahead ("0026 적용"): apply_migration room_place_and_time,
+  remote version 20261109230223 (file 20261104000026; remote versions are apply timestamps, as before).
+  Read-only checks after it: rooms has the 4 nullable columns and the 5 rooms_place_* constraints; create_room
+  has one signature with 9 args; preview_room returns 11 columns; anon cannot execute either RPC and
+  authenticated can; 2 existing rooms, 0 with any new field set. Security advisors: no new lint type; the
+  new create_room and preview_room show under the existing "authenticated SECURITY DEFINER" WARN like every
+  other public RPC.
+- App UI for the fields: not started. Branch qrew-pt is not merged into main.
 
 ## 2026-11-07: J-1 and R-1 (human request: each on its own branch, review, then main; no push)
 - J-1 (Join-room keyboard pushed the "5-DIGIT CODE" field under the translucent header on the 17 Pro): fixed in
