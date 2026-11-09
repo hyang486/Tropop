@@ -75,7 +75,8 @@ export default function Preview() {
         bottomAlign="center"
         actions={
           <>
-            <Button title={en.preview.enterCode} onPress={() => router.replace('/join')} />
+            {/* N1: back to the code screen already in the stack (no join → join), or replace this with it. */}
+            <Button title={en.preview.enterCode} onPress={() => router.dismissTo('/join')} />
             <Button title={en.room.backToRooms} variant="secondary" onPress={() => router.dismissTo('/')} />
           </>
         }

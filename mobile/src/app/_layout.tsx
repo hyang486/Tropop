@@ -87,6 +87,9 @@ function RootNavigator() {
 
       <Stack.Protected guard={!signedIn} redirectTo="/">
         <Stack.Screen name="welcome" options={{ title: en.appName, headerShown: false }} />
+        {/* Item 10: signed-out Join → code / QR → name; the invite opens from Rooms after sign-in. */}
+        <Stack.Screen name="start/code" options={{ title: en.join.title, headerTitle: '' }} />
+        <Stack.Screen name="start/scan" options={{ title: en.scan.title, headerTitle: '' }} />
         <Stack.Screen name="guest" options={{ title: en.guest.title, headerTitle: '' }} />
         <Stack.Screen name="sign-in" options={{ title: en.signIn.title, headerTitle: '' }} />
         <Stack.Screen name="sign-up" options={{ title: en.signUp.title, headerTitle: '' }} />

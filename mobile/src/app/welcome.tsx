@@ -6,11 +6,12 @@ import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 
-// Qrew Q 01.01: title, one line, gathering art, then Join a room / Create a room. Join starts the guest path;
+// Qrew Q 01.01: title, one line, gathering art, then Join a room / Create a room. Join opens the code screen
+// (item 10: code / QR → name → invite);
 // Create goes to host login, which links to host sign-up ("New here? Create an account").
 export default function Welcome() {
   const { notice, clearNotice } = useAuth();
-  function go(path: '/guest' | '/sign-in') {
+  function go(path: '/start/code' | '/sign-in') {
     clearNotice();
     router.push(path);
   }
@@ -23,7 +24,7 @@ export default function Welcome() {
       actions={
         <>
           {notice ? <Hint tone="error">{notice}</Hint> : null}
-          <Button title={en.welcome.join} onPress={() => go('/guest')} />
+          <Button title={en.welcome.join} onPress={() => go('/start/code')} />
           <Button variant="secondary" title={en.welcome.create} onPress={() => go('/sign-in')} />
         </>
       }

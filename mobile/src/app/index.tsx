@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
-import { takePendingInvite } from '@/lib/pending-invite';
+import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 
@@ -37,12 +37,8 @@ export default function Rooms() {
 
   useFocusEffect(
     useCallback(() => {
-      // An invite opened before sign-in resumes here once the user has a session.
-      const token = takePendingInvite();
-      if (token) {
-        router.push({ pathname: '/preview', params: { token } });
-        return;
-      }
+      // An invite chosen before sign-in (code, QR or link; item 10) opens here once, right after sign-in.
+      if (resumePendingInvite((invite) => router.push({ pathname: '/preview', params: invite }))) return;
       // An expiry reminder tapped before sign-in: open its room (access is checked there).
       const reminderRoom = takePendingReminderRoom();
       if (reminderRoom) {

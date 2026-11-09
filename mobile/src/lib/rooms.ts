@@ -3,6 +3,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { en } from '@/i18n/en';
 
 import type { Database, Tables } from './database.types';
+import type { Invite } from './invite';
 import { verifyAccount } from './auth';
 import { supabase } from './supabase';
 
@@ -17,32 +18,7 @@ export const ROOM_TYPES: RoomType[] = ['sports', 'event', 'waiting', 'general'];
 export const MAX_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 export { REMINDER_WINDOW_MS } from './expiry-plan';
 
-export type Invite = { code: string } | { token: string };
-
-const CODE_RE = /^[0-9]{5}$/;
-const TOKEN_RE = /^[0-9a-f]{36}$/;
-
-export function isValidCode(code: string) {
-  return CODE_RE.test(code);
-}
-
-export function isValidToken(token: string) {
-  return TOKEN_RE.test(token);
-}
-
-/** The URL encoded in the invite QR. Expo Router maps it to `src/app/join/[token].tsx`. */
-export function inviteUrl(token: string) {
-  return `moment://join/${token}`;
-}
-
-/** Reads an invite from a scanned QR payload. Returns null for anything that is not our invite. */
-export function parseInvite(data: string): Invite | null {
-  const text = data.trim();
-  const match = /^moment:\/\/join\/([0-9a-f]+)$/i.exec(text);
-  if (match && isValidToken(match[1].toLowerCase())) return { token: match[1].toLowerCase() };
-  if (isValidCode(text)) return { code: text };
-  return null;
-}
+export { inviteUrl, isValidCode, isValidToken, parseInvite, type Invite } from './invite';
 
 function inviteArgs(invite: Invite) {
   return 'code' in invite ? { p_code: invite.code } : { p_token: invite.token };
