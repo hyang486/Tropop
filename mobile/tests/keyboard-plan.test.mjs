@@ -5,19 +5,24 @@ import { test } from 'node:test';
 
 import { keyboardOverlap, revealScrollY } from '../src/lib/keyboard-plan.ts';
 
-// iPhone 17 Pro-ish: window 874 pt, keyboard top at 538 pt.
-test('full-screen root: pad by the keyboard height above the root bottom', () => {
-  assert.equal(keyboardOverlap({ y: 0, height: 874 }, 538), 336);
+// iPhone 17 Pro-ish: window 874 pt, keyboard 336 pt tall with its top at 538 pt (screen coordinates).
+const kb = { screenY: 538, height: 336 };
+
+test('full-screen root: pad by the part of the keyboard on screen', () => {
+  assert.equal(keyboardOverlap(874, kb), 336);
 });
 
-test('pageSheet root (K2): starts lower and is shorter, still padded to the keyboard top', () => {
-  // Sheet from y 62 to 874: the covered part is the same 336 pt, not 336 + an offset measured mid-animation.
-  assert.equal(keyboardOverlap({ y: 62, height: 812 }, 538), 336);
+test('pageSheet root (K2, qa e8db927): the same pad, whatever the sheet measures in its own space', () => {
+  // On the 17e the sheet's root measured y 0, height 797 (sheet space) while the keyboard top was 536 on a
+  // 844 pt screen: mixing the two gave 261, 47 pt short, so the submit button stayed under the keyboard.
+  assert.equal(keyboardOverlap(844, { screenY: 536, height: 308 }), 308);
 });
 
-test('keyboard hidden or below the root: no padding', () => {
-  assert.equal(keyboardOverlap({ y: 0, height: 874 }, null), 0);
-  assert.equal(keyboardOverlap({ y: 0, height: 500 }, 538), 0);
+test('keyboard hidden, off screen or partly dragged down: only the visible part counts', () => {
+  assert.equal(keyboardOverlap(874, null), 0);
+  assert.equal(keyboardOverlap(874, { screenY: 874, height: 336 }), 0);
+  assert.equal(keyboardOverlap(874, { screenY: 774, height: 336 }), 100);
+  assert.equal(keyboardOverlap(874, { screenY: 400, height: 336 }), 336); // never more than the keyboard
 });
 
 const visible = { top: 100, bottom: 450 }; // the scroll body between the header and the pinned actions

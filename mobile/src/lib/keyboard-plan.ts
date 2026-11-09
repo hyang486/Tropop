@@ -1,16 +1,21 @@
 // QScreen keyboard rules (qa K1/K2 at 595f1cf). Pure (no React Native imports) so node --test can load them.
-// All rects are window coordinates (measureInWindow), the same space as the keyboard's screenY on iOS.
+// revealScrollY compares rects from measureInWindow only with each other (one space, also inside a sheet).
 
 export type Span = { top: number; bottom: number };
 
 /**
- * How much of a screen's root the keyboard covers: the bottom padding that keeps the pinned actions above it.
- * Measured when the keyboard moves, so a sheet (pageSheet modal, K2) that is still animating when it first lays
- * out does not leave a stale offset. `keyboardTop` null = keyboard hidden.
+ * How much the keyboard covers a Q screen: the bottom padding that keeps the pinned actions above it. It is the
+ * part of the keyboard on screen (window height - keyboard top), never more than the keyboard itself.
+ *
+ * It does not use the root's measureInWindow: in a pageSheet (K2) Fabric reports that in the sheet's own space
+ * (root y 0, height 797 on the 17e while the sheet sat 47 pt down), but the keyboard comes in screen coordinates,
+ * so comparing the two left the pad 47 pt short. A Q screen always reaches the bottom of the window (pushed
+ * screens and iPhone sheets are bottom-anchored), so the covered part is the keyboard's visible height.
+ * `keyboard` null = hidden.
  */
-export function keyboardOverlap(root: { y: number; height: number }, keyboardTop: number | null): number {
-  if (keyboardTop === null) return 0;
-  return Math.max(0, Math.round(root.y + root.height - keyboardTop));
+export function keyboardOverlap(windowHeight: number, keyboard: { screenY: number; height: number } | null): number {
+  if (!keyboard || keyboard.height <= 0) return 0;
+  return Math.round(Math.min(keyboard.height, Math.max(0, windowHeight - keyboard.screenY)));
 }
 
 /**

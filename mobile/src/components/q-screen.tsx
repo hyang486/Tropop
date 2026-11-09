@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import {
+  Dimensions,
   Keyboard,
   type KeyboardEvent,
   LayoutAnimation,
@@ -39,8 +40,9 @@ import { useHeaderOverlap } from '@/lib/use-header-overlap';
  * ride above it (Q 02.01 "Join as guest") and the body scrolls a focused field into view.
  *
  * Keyboard (qa K1/K2): no KeyboardAvoidingView. Its offset came from a layout-time measure, which was wrong in a
- * sheet that was still animating (K2), and it never scrolled the focused field into view (K1). Instead, at each
- * keyboard move the root is measured in the window and padded by the part the keyboard covers (keyboardOverlap);
+ * sheet (K2), and it never scrolled the focused field into view (K1). Instead, at each keyboard move the root is
+ * padded by the part of the keyboard on screen (keyboardOverlap: the screen reaches the window bottom, also in a
+ * sheet, whose own measures are in sheet space and are never compared with the keyboard's screen coordinates);
  * once the body has its new size, the focused field (plus `keepVisible`, when both fit) is scrolled into view
  * (revealScrollY). One mechanism, so no padding and inset stack up.
  */
@@ -78,9 +80,9 @@ export function QScreen({
   // is the keyboard avoider's offset, so an opaque header also lays out right. A screen without a header
   // (Welcome) still clears the status bar.
   const { rootRef, onLayout, overlap } = useHeaderOverlap();
-  const { outerRef, scrollRef, keyboardPad, scrollProps } = useKeyboardReveal(overlap, keepVisible);
+  const { scrollRef, keyboardPad, scrollProps } = useKeyboardReveal(overlap, keepVisible);
   return (
-    <View ref={outerRef} style={[styles.root, { paddingBottom: keyboardPad }]}>
+    <View style={[styles.root, { paddingBottom: keyboardPad }]}>
       <View ref={rootRef} onLayout={onLayout} style={styles.flex}>
         <ScrollView
           ref={scrollRef}
@@ -116,9 +118,8 @@ export function QScreen({
 
 /** QScreen's keyboard handling (see the QScreen comment). iOS events; Android adds did-show/hide later. */
 function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef<typeof View> | null>) {
-  const outerRef = useRef<ComponentRef<typeof View>>(null);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
-  const keyboardTop = useRef<number | null>(null);
+  const keyboardUp = useRef(false);
   const scrollY = useRef(0);
   const maxY = useRef(0);
   const sizes = useRef({ content: 0, view: 0 });
@@ -138,7 +139,7 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
   const reveal = useCallback(() => {
     const scroll = scrollRef.current;
     const field = TextInput.State.currentlyFocusedInput();
-    if (!focusedRef.current || keyboardTop.current === null || !scroll || !field) return;
+    if (!focusedRef.current || !keyboardUp.current || !scroll || !field) return;
     scroll.measureInWindow((_sx, sy, _sw, sh) => {
       field.measureInWindow((_fx, fy, _fw, fh) => {
         const visible: Span = { top: sy + overlapRef.current, bottom: sy + sh };
@@ -158,21 +159,18 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
   useEffect(() => {
     const move = (e: KeyboardEvent) => {
       if (!focusedRef.current) return;
-      const top = e.endCoordinates.screenY;
-      keyboardTop.current = e.endCoordinates.height > 0 ? top : null;
-      outerRef.current?.measureInWindow((_x, y, _w, height) => {
-        const pad = keyboardOverlap({ y, height }, keyboardTop.current);
-        if (e.duration) {
-          LayoutAnimation.configureNext({
-            duration: e.duration,
-            update: { duration: e.duration, type: LayoutAnimation.Types.keyboard },
-          });
-        }
-        setKeyboardPad(pad);
-      });
+      const pad = keyboardOverlap(Dimensions.get('window').height, e.endCoordinates);
+      keyboardUp.current = pad > 0;
+      if (e.duration) {
+        LayoutAnimation.configureNext({
+          duration: e.duration,
+          update: { duration: e.duration, type: LayoutAnimation.Types.keyboard },
+        });
+      }
+      setKeyboardPad(pad);
     };
     const hide = (e: KeyboardEvent) => {
-      keyboardTop.current = null;
+      keyboardUp.current = false;
       if (e.duration) LayoutAnimation.configureNext({ duration: e.duration, update: { duration: e.duration, type: LayoutAnimation.Types.keyboard } });
       setKeyboardPad(0);
     };
@@ -206,7 +204,7 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
     },
   };
 
-  return { outerRef, scrollRef, keyboardPad, scrollProps };
+  return { scrollRef, keyboardPad, scrollProps };
 }
 
 /** The small centered gray line under the pinned actions (Q 01.04 "Guest name comes next."). */
