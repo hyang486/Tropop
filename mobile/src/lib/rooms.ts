@@ -4,6 +4,7 @@ import { en } from '@/i18n/en';
 
 import type { Database, Tables } from './database.types';
 import type { Invite } from './invite';
+import { placeTimeArgs, type LatLng } from './place-time';
 import { verifyAccount } from './auth';
 import { supabase } from './supabase';
 
@@ -68,6 +69,10 @@ export async function createRoom(input: {
   expiresAt: Date;
   locationAllowed: boolean;
   statuses: string[];
+  /** Optional (0026). Empty name, no pin and no start time → the same call as before. */
+  placeName?: string;
+  pin?: LatLng | null;
+  startsAt?: Date | null;
 }): Promise<Room> {
   const { data, error } = await supabase.rpc('create_room', {
     p_name: input.name,
@@ -75,6 +80,7 @@ export async function createRoom(input: {
     p_expires_at: input.expiresAt.toISOString(),
     p_location_allowed: input.locationAllowed,
     p_statuses: input.statuses,
+    ...placeTimeArgs({ placeName: input.placeName ?? '', pin: input.pin ?? null, startsAt: input.startsAt ?? null }),
   });
   if (error) throw error;
   return data;

@@ -15,7 +15,16 @@ Updated: 2026-11-06 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.
   authenticated can; 2 existing rooms, 0 with any new field set. Security advisors: no new lint type; the
   new create_room and preview_room show under the existing "authenticated SECURITY DEFINER" WARN like every
   other public RPC.
-- App UI for the fields: not started. Branch qrew-pt is not merged into main.
+- App UI (2026-11-09, uncommitted → see commit "Place and time UI"): optional fields on Create room (place name,
+  Find on map via expo-location geocodeAsync = Apple CLGeocoder with no permission, tap the map to move the pin,
+  Remove pin, Add start time with the @expo/ui SwiftUI DatePicker limited to now..close−1 min); Invite preview
+  (Q 01.04: map only with a pin → place card with Open in Maps sheet (Apple/Google) → date and time card; nothing
+  added when unset); Room info (same cards under the Ends card); Rooms row (one extra line "place · start" when
+  set; type and ends-in kept). Pure helper src/lib/place-time.ts with tests/place-time.test.mjs (10 tests).
+  database.types.ts compared with generate_typescript_types (live): same fields; preview_room place fields kept
+  `| null` (the generator cannot see nullability of a returns-table); update_room_expiry Returns gained the 4 fields.
+  Checks: tsc 0, expo lint 0, mobile 300/300. NOT VERIFIED on a simulator (map card, DatePicker, Maps sheet,
+  geocoding, create with/without place/time). Branch qrew-pt is not merged into main.
 
 ## 2026-11-07: J-1 and R-1 (human request: each on its own branch, review, then main; no push)
 - J-1 (Join-room keyboard pushed the "5-DIGIT CODE" field under the translucent header on the 17 Pro): fixed in

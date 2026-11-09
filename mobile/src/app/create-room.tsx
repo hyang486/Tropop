@@ -1,13 +1,23 @@
+import { DatePicker, Host } from '@expo/ui/swift-ui';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { QCard, QField, QLabel, QScreen } from '@/components/q-screen';
+import { PlacePinMap } from '@/components/place-time-cards';
+import { QCard, QField, QLabel, QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { createRoom, ROOM_TYPES, type RoomType } from '@/lib/rooms';
 import { defaultRoomHours, formatDeletedAt } from '@/lib/create-defaults';
+import {
+  MAX_PLACE_NAME,
+  normalizePlaceName,
+  startTimeError,
+  startTimeRange,
+  type LatLng,
+} from '@/lib/place-time';
 import { useNow } from '@/lib/use-now';
 
 function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
@@ -34,15 +44,61 @@ export default function CreateRoom() {
   const [statuses, setStatuses] = useState<string>(en.createRoom.statusesDefault);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Place and time (0026), all optional: a place name, a pin found from the name (tap the map to move it) and a
+  // start time. A pin is kept only while there is a place name (create_room rule).
+  const [placeName, setPlaceName] = useState('');
+  const [pin, setPin] = useState<LatLng | null>(null);
+  const [finding, setFinding] = useState(false);
+  const [placeNote, setPlaceNote] = useState<string | null>(null);
+  const [startsAt, setStartsAt] = useState<Date | null>(null);
 
   // #11: refreshed every 5 s and shown without seconds, so the time stays current while the screen is open.
   const now = useNow(5_000);
   const expiresPreview = new Date(now + hours * 3_600_000);
+  const startRange = startTimeRange(expiresPreview.getTime(), now);
+  const hasPlace = normalizePlaceName(placeName) !== null;
+
+  function changePlaceName(text: string) {
+    setPlaceName(text);
+    setPlaceNote(null);
+    if (normalizePlaceName(text) === null) setPin(null);
+  }
+
+  async function findOnMap() {
+    const query = normalizePlaceName(placeName);
+    if (!query) return;
+    setFinding(true);
+    setPlaceNote(null);
+    try {
+      // iOS geocodes with Apple (CLGeocoder); no location permission needed.
+      const [hit] = await Location.geocodeAsync(query);
+      if (hit) setPin({ latitude: hit.latitude, longitude: hit.longitude });
+      else setPlaceNote(en.createRoom.notFound);
+    } catch {
+      setPlaceNote(en.createRoom.findFailed);
+    } finally {
+      setFinding(false);
+    }
+  }
+
+  function addStartTime() {
+    // Default: the next full hour, kept inside the picker's range.
+    const next = new Date(now);
+    next.setMinutes(0, 0, 0);
+    next.setHours(next.getHours() + 1);
+    setStartsAt(new Date(Math.min(next.getTime(), startRange.end.getTime())));
+  }
 
   async function submit() {
     const trimmed = name.trim();
     if (!trimmed) {
       setError(en.createRoom.nameRequired);
+      return;
+    }
+    const expiresAt = new Date(Date.now() + hours * 3_600_000);
+    const startProblem = startTimeError(startsAt, expiresAt.getTime(), Date.now());
+    if (startProblem) {
+      setError(startProblem === 'afterClose' ? en.createRoom.startAfterClose : en.createRoom.startTooEarly);
       return;
     }
     setBusy(true);
@@ -51,8 +107,11 @@ export default function CreateRoom() {
       const room = await createRoom({
         name: trimmed,
         type,
-        expiresAt: new Date(Date.now() + hours * 3_600_000),
+        expiresAt,
         locationAllowed,
+        placeName,
+        pin,
+        startsAt,
         statuses: statuses
           .split(',')
           .map((s) => s.trim())
@@ -68,8 +127,8 @@ export default function CreateRoom() {
 
   // Qrew Q 02.02 (human placement B): name, Room type chips, Room closes after chips (4 and 7 days as extra
   // chips, no Custom), the deletion line, the Plus preview link under it, the location card with its switch
-  // and hint, the Status options card (editable), Create room pinned at the bottom. The optional meeting place
-  // and time row comes with its own gated unit.
+  // and hint, the Status options card (editable), Create room pinned at the bottom. Place and time unit (0026):
+  // the optional meeting place and time card sits under the Plus link, before the location card.
   return (
     <QScreen
       title={en.createRoom.title}
@@ -106,6 +165,44 @@ export default function CreateRoom() {
       <Pressable accessibilityRole="link" onPress={() => router.push('/plan-preview')} hitSlop={8}>
         <Text style={styles.planLink}>{en.planPreview.createRoomLink}</Text>
       </Pressable>
+
+      <QLabel>{en.createRoom.placeTimeLabel}</QLabel>
+      <QField
+        label={en.createRoom.placeLabel}
+        placeholder={en.createRoom.placePlaceholder}
+        value={placeName}
+        onChangeText={changePlaceName}
+        maxLength={MAX_PLACE_NAME}
+        returnKeyType="search"
+        onSubmitEditing={findOnMap}
+      />
+      {hasPlace && !pin ? (
+        <QLink title={finding ? en.createRoom.finding : en.createRoom.findOnMap} onPress={findOnMap} disabled={finding} />
+      ) : null}
+      {placeNote ? <Hint>{placeNote}</Hint> : null}
+      {hasPlace && pin ? (
+        <>
+          <PlacePinMap pin={pin} title={normalizePlaceName(placeName) ?? undefined} onMapClick={setPin} />
+          <Text style={styles.cardNote}>{en.createRoom.pinHint}</Text>
+          <QLink title={en.createRoom.removePin} onPress={() => setPin(null)} />
+        </>
+      ) : null}
+      {startsAt ? (
+        <QCard>
+          <Host matchContents>
+            <DatePicker
+              title={en.createRoom.startTimeLabel}
+              selection={startsAt}
+              range={startRange}
+              displayedComponents={['date', 'hourAndMinute']}
+              onDateChange={setStartsAt}
+            />
+          </Host>
+          <QLink title={en.createRoom.removeStartTime} onPress={() => setStartsAt(null)} />
+        </QCard>
+      ) : (
+        <QLink title={en.createRoom.addStartTime} onPress={addStartTime} />
+      )}
 
       <QCard row>
         <Text style={styles.cardTitle}>{en.createRoom.locationLabel}</Text>

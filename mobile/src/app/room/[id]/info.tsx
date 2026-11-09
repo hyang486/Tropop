@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { RoomEmergencyBanner } from '@/components/room-activity';
+import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RoomEnded } from '@/components/room-ended';
 import { StatusEditor } from '@/components/status-editor';
 import { QLink, QScreen } from '@/components/q-screen';
@@ -17,6 +18,7 @@ import { clearRoomCache } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { cancelExpiryReminder } from '@/lib/expiry-reminders';
 import { arrivedMemberCount } from '@/lib/info-plan';
+import { placeTimeOf } from '@/lib/place-time';
 import { getRoom, leaveRoom, listArrivedIds, listMembers, type Room, type RoomMember } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 
@@ -103,6 +105,7 @@ export default function RoomInfoScreen() {
 
   const { room, members, arrived } = state;
   const isHost = room.host_id === userId;
+  const placeTime = placeTimeOf(room);
 
   function confirmLeave() {
     // Qrew unit 4: the host's End room is a confirm screen that states the effects; guests keep the Leave alert.
@@ -193,6 +196,8 @@ export default function RoomInfoScreen() {
         </View>
       ) : null}
       <QRowCard icon="clock" title={endsLine} subtitle={en.room.endsSoonInfo} />
+      {/* Place and time (0026), only when the host set them: map, place + Open in Maps, start time. */}
+      {placeTime ? <PlaceTimeCards placeTime={placeTime} /> : null}
 
       <View style={styles.statuses}>
         <StatusEditor roomId={room.id} isHost={isHost} editing={editingStatus} />
