@@ -243,10 +243,28 @@ export function QField({ label, style, ...props }: ComponentProps<typeof TextInp
 }
 
 /** Centered text link (Q 01.02 "New here? Create an account"). */
-export function QLink({ title, onPress }: { title: string; onPress: () => void }) {
+export function QLink({
+  title,
+  onPress,
+  tone,
+  disabled,
+}: {
+  title: string;
+  onPress: () => void;
+  /** 'danger': red text button (Q 03.03 "End room for everyone"), read as a button, not a link. */
+  tone?: 'danger';
+  disabled?: boolean;
+}) {
   return (
-    <Pressable accessibilityRole="link" onPress={onPress} hitSlop={8} style={({ pressed }) => [styles.link, pressed && { opacity: 0.5 }]}>
-      <Text style={styles.linkText}>{title}</Text>
+    <Pressable
+      accessibilityRole={tone === 'danger' ? 'button' : 'link'}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [styles.link, (pressed || disabled) && { opacity: 0.5 }]}
+    >
+      <Text style={[styles.linkText, tone === 'danger' && { color: colors.danger }]}>{title}</Text>
     </Pressable>
   );
 }

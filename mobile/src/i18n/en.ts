@@ -146,6 +146,15 @@ export const en = {
     leaveConfirmTitle: 'Leave this room?',
     leaveConfirmBody: 'You will lose access to its chat and photos. You can rejoin with the invite while the room is open.',
     end: 'End room for everyone',
+    // Qrew unit 5 (Q 03.03): Room info cards.
+    infoSubtitle: (isHost: boolean) => (isHost ? 'Room info · Host' : 'Room info'),
+    people: (n: number) => (n === 1 ? '1 person' : `${n} people`),
+    arrived: (n: number) => `${n} arrived`,
+    viewParticipants: 'View participants',
+    hideParticipants: 'Hide participants',
+    statusOptions: 'Status options',
+    editStatusOptions: 'Edit status options',
+    doneEditingStatus: 'Done editing statuses',
     cancel: 'Cancel',
     gone: 'This room has ended.',
     goneHint: 'It expired, was ended by the host, or you left it.',
@@ -426,6 +435,9 @@ export const en = {
     shareMessage: (name: string, code: string, url: string) =>
       `Join "${name}" on Qrew. Code: ${code}\n${url}`,
     qrLabel: 'Room invite QR code',
+    // Qrew unit 5 (Q 02.04).
+    heading: 'Invite your group',
+    inviteCode: 'Invite code',
   },
   profile: {
     title: 'Profile',
@@ -454,6 +466,14 @@ export const en = {
     deleteConfirmAction: 'Delete',
     deleteCancel: 'Cancel',
     deleteFailed: 'Your account was not deleted. Check your connection and try again.',
+    // Qrew unit 5 (Q 07.01).
+    guestAccount: 'Guest account',
+    hostAccount: 'Host account',
+    guestAccess: 'Guest access',
+    guestAccessBody: 'Join a room using an invitation.',
+    hostAccessBody: 'Create rooms and invite your group.',
+    editProfile: 'Edit profile',
+    editProfileHint: 'Your photo and name are shown to people in your rooms.',
   },
   planPreview: {
     title: 'Plus preview',
