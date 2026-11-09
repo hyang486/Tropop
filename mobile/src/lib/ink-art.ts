@@ -166,7 +166,8 @@ export const INK_DRAWINGS = {
 } satisfies Record<string, InkDrawing>;
 
 /** Extracted from the design PDF with a transparent background (scripts/ink-art-extract.mjs). */
-export type ArtImageKey = 'run' | 'gathering';
+export type ArtImageKey = 'run' | 'gathering' | 'gate' | 'paper';
+const IMAGE_KEYS: readonly ArtImageKey[] = ['run', 'gathering', 'gate', 'paper'];
 /** Drawn by dev in the same pen style (lib/ink-drawings). */
 export type ArtDrawingKey = keyof typeof INK_DRAWINGS;
 export type ArtKey = ArtImageKey | ArtDrawingKey;
@@ -174,7 +175,8 @@ export type ArtKey = ArtImageKey | ArtDrawingKey;
 export type ArtEntry = { kind: 'image'; key: ArtImageKey; aspect: number } | { kind: 'drawing'; key: ArtDrawingKey; aspect: number };
 
 /** Pixel sizes of the extracted PNGs (width / height = aspect). */
-const IMAGE_ASPECT: Record<ArtImageKey, number> = { run: 305 / 281, gathering: 646 / 442 };
+// gate: guest greeting at a gate (Q 02.01, 07.02); paper: two people reading a paper (Q 02.03, 07.03).
+const IMAGE_ASPECT: Record<ArtImageKey, number> = { run: 305 / 281, gathering: 646 / 442, gate: 483 / 303, paper: 393 / 262 };
 
 /** Theme → art. Every theme has an entry; a key missing from the map falls back to the gathering art. */
 const THEME_ART: Partial<Record<RoomTheme, ArtKey>> = {
@@ -186,9 +188,12 @@ const THEME_ART: Partial<Record<RoomTheme, ArtKey>> = {
 };
 
 export function artEntry(key: ArtKey): ArtEntry {
-  if (key === 'run' || key === 'gathering') return { kind: 'image', key, aspect: IMAGE_ASPECT[key] };
-  const d = INK_DRAWINGS[key];
-  return { kind: 'drawing', key, aspect: d.width / d.height };
+  if ((IMAGE_KEYS as readonly string[]).includes(key)) {
+    const k = key as ArtImageKey;
+    return { kind: 'image', key: k, aspect: IMAGE_ASPECT[k] };
+  }
+  const d = INK_DRAWINGS[key as ArtDrawingKey];
+  return { kind: 'drawing', key: key as ArtDrawingKey, aspect: d.width / d.height };
 }
 
 /** The art for a room theme, or the gathering art when the theme has none. */

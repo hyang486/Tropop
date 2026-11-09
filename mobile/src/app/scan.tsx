@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
-import { Button, Hint, Screen } from '@/components/ui';
+import { QScreen } from '@/components/q-screen';
+import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { parseInvite } from '@/lib/rooms';
 
@@ -25,45 +26,52 @@ export default function Scan() {
     router.replace({ pathname: '/preview', params: invite });
   }
 
-  if (!permission?.granted) {
-    return (
-      <Screen>
-        <Hint>{en.scan.permissionHint}</Hint>
-        {permission && !permission.canAskAgain ? (
-          <Button title={en.scan.openSettings} onPress={() => Linking.openSettings()} />
-        ) : (
-          <Button title={en.scan.allow} onPress={requestPermission} />
-        )}
-      </Screen>
-    );
-  }
-
+  // Qrew Q 08.01: "Scan an invite", one line, the camera in a rounded square with corner marks, and Enter code
+  // instead pinned at the bottom (back to the code screen, the only place that opens Scan). The permission
+  // request and the Settings path are unchanged; they show in the camera's place until it is allowed.
   return (
-    <View style={styles.container}>
-      <CameraView
-        style={StyleSheet.absoluteFill}
-        facing="back"
-        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-        onBarcodeScanned={onScanned}
-      />
-      {error ? (
-        <View style={styles.banner}>
-          <Hint tone="error">{error}</Hint>
+    <QScreen
+      title={en.scan.title}
+      subtitle={en.scan.subtitle}
+      actions={<Button title={en.scan.enterCode} variant="secondary" onPress={() => router.back()} />}
+    >
+      {permission?.granted ? (
+        <View style={styles.camera}>
+          <CameraView
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={onScanned}
+          />
+          <View style={styles.marks} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <View style={[styles.mark, styles.tl]} />
+            <View style={[styles.mark, styles.tr]} />
+            <View style={[styles.mark, styles.bl]} />
+            <View style={[styles.mark, styles.br]} />
+          </View>
         </View>
-      ) : null}
-    </View>
+      ) : (
+        <>
+          <Hint>{en.scan.permissionHint}</Hint>
+          {permission && !permission.canAskAgain ? (
+            <Button title={en.scan.openSettings} onPress={() => Linking.openSettings()} />
+          ) : (
+            <Button title={en.scan.allow} onPress={requestPermission} />
+          )}
+        </>
+      )}
+      {error ? <Hint tone="error">{error}</Hint> : null}
+    </QScreen>
   );
 }
 
+const MARK = 26;
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'black' },
-  banner: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 48,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-  },
+  camera: { aspectRatio: 0.93, borderRadius: 14, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: '#22231F' },
+  marks: { position: 'absolute', top: '22%', bottom: '22%', left: '20%', right: '20%' },
+  mark: { position: 'absolute', width: MARK, height: MARK, borderColor: 'white' },
+  tl: { top: 0, left: 0, borderTopWidth: 2.5, borderLeftWidth: 2.5 },
+  tr: { top: 0, right: 0, borderTopWidth: 2.5, borderRightWidth: 2.5 },
+  bl: { bottom: 0, left: 0, borderBottomWidth: 2.5, borderLeftWidth: 2.5 },
+  br: { bottom: 0, right: 0, borderBottomWidth: 2.5, borderRightWidth: 2.5 },
 });

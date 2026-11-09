@@ -2,17 +2,16 @@
 export const en = {
   appName: 'Qrew',
   welcome: {
-    tagline: 'Temporary rooms for the people you are with right now.',
-    joinAsGuest: 'Continue as guest',
-    guestHint: 'Join a room with a QR or code. No sign-up needed.',
-    hostSignIn: 'Host: Log in',
-    hostSignUp: 'Host: Sign up',
+    // Q 01.01
+    tagline: "A room for the people you're with.",
+    join: 'Join a room',
+    create: 'Create a room',
   },
+  // Q 02.01
   guest: {
-    title: 'Continue as guest',
-    nameLabel: 'Your name',
-    namePlaceholder: 'How others in the room see you',
-    submit: 'Continue',
+    title: "What's your name?",
+    who: 'Only the people in your rooms can see it.\nYou can join without creating an account.',
+    submit: 'Join as guest',
   },
   signIn: {
     title: 'Host log in',
@@ -29,8 +28,16 @@ export const en = {
     hint: 'Add an email and password to this guest profile. Your rooms stay as they are.',
     submit: 'Create host account',
   },
+  // Q 01.02 (log in) and 07.02 (sign up, guest upgrade).
+  hostAccount: {
+    loginTitle: 'Host login',
+    loginSubtitle: 'Pick up where you left off.',
+    newTitle: 'Become a host',
+    newSubtitle: 'Create rooms and invite your group.',
+    createAccount: 'New here? Create an account',
+  },
   fields: {
-    email: 'Email',
+    email: 'Email address',
     password: 'Password',
     passwordHint: 'At least 6 characters',
     name: 'Display name',
@@ -40,9 +47,10 @@ export const en = {
     empty: 'No rooms yet.',
     emptyHintHost: 'Create a room, or join one with a QR or 5-digit code.',
     emptyHintGuest: 'Join a room with a QR or 5-digit code.',
-    signedInAs: (name: string, kind: string) => `Signed in as ${name} (${kind})`,
+    signedInAs: (name: string, kind: string) => `Signed in as ${name} · ${kind}`,
+    yourRooms: 'Your rooms',
     profile: 'Profile',
-    create: 'Create room',
+    create: 'Create a room',
     join: 'Join a room',
     guestCreateHint: 'Only hosts can create rooms.',
     loading: 'Loading rooms',
@@ -65,8 +73,8 @@ export const en = {
     title: 'New room',
     nameLabel: 'Room name',
     namePlaceholder: 'Sunset Run',
-    typeLabel: 'Type',
-    expiryLabel: 'Room ends after',
+    typeLabel: 'Room type',
+    expiryLabel: 'Room closes after',
     expiryHint: (when: string) => `Everything in the room is deleted at ${when}.`,
     expiryOptions: [
       { label: '3 hours', hours: 3 },
@@ -77,22 +85,28 @@ export const en = {
     ],
     locationLabel: 'Allow location sharing',
     locationHint: 'Members still choose for themselves. Sharing starts only after you start the activity.',
-    statusesLabel: 'Statuses (comma separated)',
+    statusesLabel: 'Status options',
     statusesDefault: 'Resting, Giving up, Need water, Need help',
-    statusesHint: 'Emergency is always included.',
+    statusesHint: 'Separate with commas. Emergency is always included.',
     submit: 'Create room',
     nameRequired: 'Enter a room name.',
   },
+  // Q 02.03
   join: {
-    title: 'Join a room',
-    codeLabel: '5-digit code',
-    codePlaceholder: '12345',
-    submit: 'Continue',
+    title: 'Find your room',
+    subtitle: 'Enter the five-digit code from your host.',
+    codeLabel: '5-digit room code',
+    submit: 'See room',
     scan: 'Scan QR code',
+    qrNoteTitle: 'At the meetup already?',
+    qrNoteBody: 'Ask your host for the QR code.',
     codeInvalid: 'Enter the 5 digits from the host.',
   },
+  // Q 08.01
   scan: {
-    title: 'Scan QR code',
+    title: 'Scan an invite',
+    subtitle: "Point the camera at your host's QR code.",
+    enterCode: 'Enter code instead',
     permissionHint: 'Qrew uses the camera only to read the room QR code.',
     allow: 'Allow camera',
     openSettings: 'Open Settings',
@@ -106,6 +120,9 @@ export const en = {
     join: 'Join the room',
     open: 'Open room',
     alreadyMember: 'You are already in this room.',
+    // Q 07.03
+    unavailableTitle: 'Invite unavailable',
+    enterCode: 'Enter a room code',
   },
   room: {
     invite: 'Invite',

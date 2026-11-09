@@ -4,7 +4,7 @@
 //
 // Usage: node scripts/ink-art-extract.mjs <in.png> <out.png>
 // Source images: `pdfimages -png -p Qrew_heytea_UI.pdf <prefix>` (Q 01.04 runner = page 1 image 1,
-// Q 01.01 gathering = page 1 image 0).
+// Q 01.01 gathering = page 1 image 0, Q 02.01 gate = page 2 image 2, Q 02.03 paper = page 2 image 3).
 import { readFileSync, writeFileSync } from 'node:fs';
 
 import { PNG } from 'pngjs';

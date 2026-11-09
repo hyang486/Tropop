@@ -63,15 +63,15 @@ function RootNavigator() {
     <LocationReporters />
     <Stack screenOptions={{ headerLargeTitle: false, headerBackButtonDisplayMode: 'minimal' }}>
       <Stack.Protected guard={signedIn} redirectTo="/welcome">
-        <Stack.Screen name="index" options={{ title: en.home.title, headerLargeTitle: true }} />
+        <Stack.Screen name="index" options={{ title: en.home.title, headerTitle: '' }} />
         <Stack.Screen name="profile" options={{ title: en.profile.title }} />
         {/* Modal screens (upgrade, room/[id]/invite): keep MODAL_ROUTES in lib/root-link.ts in sync (P-3). */}
-        <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, presentation: 'modal' }} />
+        <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, headerTitle: '', presentation: 'modal' }} />
         <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title }} />
-        <Stack.Screen name="create-room" options={{ title: en.createRoom.title }} />
-        <Stack.Screen name="join/index" options={{ title: en.join.title }} />
-        <Stack.Screen name="scan" options={{ title: en.scan.title }} />
-        {/* Qrew: the room name is the handwritten title in the content; the nav bar keeps only Back. */}
+        <Stack.Screen name="create-room" options={{ title: en.createRoom.title, headerTitle: '' }} />
+        <Stack.Screen name="join/index" options={{ title: en.join.title, headerTitle: '' }} />
+        <Stack.Screen name="scan" options={{ title: en.scan.title, headerTitle: '' }} />
+        {/* Qrew: the handwritten title is in the content (QScreen); the nav bar keeps only Back. */}
         <Stack.Screen name="preview" options={{ title: en.preview.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/info" options={{ title: en.room.info }} />
@@ -87,9 +87,9 @@ function RootNavigator() {
 
       <Stack.Protected guard={!signedIn} redirectTo="/">
         <Stack.Screen name="welcome" options={{ title: en.appName, headerShown: false }} />
-        <Stack.Screen name="guest" options={{ title: en.guest.title }} />
-        <Stack.Screen name="sign-in" options={{ title: en.signIn.title }} />
-        <Stack.Screen name="sign-up" options={{ title: en.signUp.title }} />
+        <Stack.Screen name="guest" options={{ title: en.guest.title, headerTitle: '' }} />
+        <Stack.Screen name="sign-in" options={{ title: en.signIn.title, headerTitle: '' }} />
+        <Stack.Screen name="sign-up" options={{ title: en.signUp.title, headerTitle: '' }} />
       </Stack.Protected>
     </Stack>
     </>
