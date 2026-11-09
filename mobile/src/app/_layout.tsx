@@ -76,7 +76,9 @@ function RootNavigator() {
         <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/info" options={{ title: en.room.info }} />
         <Stack.Screen name="room/[id]/gallery" options={{ title: en.media.title }} />
-        <Stack.Screen name="room/[id]/map" options={{ title: en.map.title }} />
+        <Stack.Screen name="room/[id]/map" options={{ title: en.map.title, headerTitle: '' }} />
+        <Stack.Screen name="room/[id]/end-activity" options={{ title: en.endActivity.title, headerTitle: '' }} />
+        <Stack.Screen name="room/[id]/end-room" options={{ title: en.endRoom.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/face" options={{ title: en.face.title }} />
         <Stack.Screen name="room/[id]/media/[mediaId]" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/invite" options={{ title: en.invite.title, presentation: 'modal' }} />

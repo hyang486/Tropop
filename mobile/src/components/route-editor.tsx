@@ -1,12 +1,14 @@
 import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RouteDrawLayer } from '@/components/route-draw-layer';
-import { colors } from '@/components/ui';
+import { HandTitle } from '@/components/hand-title';
+import { qSpacing } from '@/components/q-screen';
+import { Button, colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type Camera, formatRouteKm, type LatLng, MAX_ROUTE_POINTS } from '@/lib/location-plan';
 import { NO_POIS } from '@/lib/map-pois';
@@ -20,11 +22,13 @@ type PenNote = 'none' | 'wait' | 'northUp' | 'truncated';
 
 /**
  * R1-C: the full-screen route editor. A Modal sits outside the navigation stack, so the iOS back-swipe cannot
- * take a stroke (the repro lost every left-to-right stroke to it), and the map fills the screen with Cancel,
- * Done, Pen, Undo and Clear always in reach instead of below a locked, unscrollable page. It has its own map
- * and region; the room map screen behind it is not touched until Done saves.
+ * take a stroke (the repro lost every left-to-right stroke to it). Laid out as Q 04.01 (unit 4 F2): back arrow
+ * (= Cancel), title and room name, the map card, Draw / Undo / Clear, the hint, and Save route (= Done) pinned
+ * at the bottom, all in reach without scrolling. It has its own map and region; the room map screen behind it
+ * is not touched until Save route saves. Draw on locks the map (no pinch while drawing, work list A8).
  */
 export function RouteEditor({
+  roomName,
   savedRoute,
   startCamera,
   saving,
@@ -34,6 +38,8 @@ export function RouteEditor({
   onCancel,
   onSave,
 }: {
+  /** Shown under the title (Q 04.01). */
+  roomName: string;
   savedRoute: LatLng[];
   /** Where the editor's map opens: the room map's current view when known. */
   startCamera: Camera | null;
@@ -137,9 +143,9 @@ export function RouteEditor({
   function onStroke(stroke: Point[], size: Size) {
     const current = region.current;
     if (!current) return;
-    // R1-D: the map fills the Modal under the status bar and home indicator, and MapKit reports its region for
-    // the safe area inside it, so the stroke is converted in that frame (the draw layer covers the whole Modal).
-    const next = appendStroke(draft, strokeToRoute(stroke, size, current, insets), MAX_ROUTE_POINTS);
+    // R1-D / U4 F2: the map is a card inside the safe area (no status bar or home indicator over it), so MapKit's
+    // region is the whole card, and the draw layer covers exactly the card: no inset correction.
+    const next = appendStroke(draft, strokeToRoute(stroke, size, current), MAX_ROUTE_POINTS);
     if (next.truncated) setNote('truncated');
     setDraft(next.strokes);
   }
@@ -160,63 +166,65 @@ export function RouteEditor({
     <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onCancel}>
       {/* A Modal is its own native root: gesture-handler needs a root view inside it. */}
       <GestureHandlerRootView style={styles.root}>
-        <AppleMaps.View
-          ref={mapRef}
-          style={StyleSheet.absoluteFill}
-          cameraPosition={startCamera ?? undefined}
-          markers={memberMarkers}
-          annotations={memberPhotos}
-          polylines={route.length > 1 ? [{ id: 'draft', coordinates: route, color: ROUTE_COLOR, width: 4 }] : []}
-          // No Apple Maps place card when a store/POI is under a tap (human iPhone check, R-1). selectionEnabled:false
-          // alone still showed the card (qa, c4058f9), so POIs are hidden (NO_POIS) and none can be tapped.
-          properties={{ selectionEnabled: false, pointsOfInterest: NO_POIS, isMyLocationEnabled: showsMyLocation }}
-          onCameraMove={onCameraMove}
-        />
-        {pen ? <RouteDrawLayer color={ROUTE_COLOR} onStroke={onStroke} /> : null}
-
-        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-          <Pressable accessibilityRole="button" onPress={onCancel} disabled={saving} style={styles.barButton}>
-            <Text style={styles.link}>{en.map.cancel}</Text>
-          </Pressable>
-          {/* G8 n1: VoiceOver reads the same length the screen shows ("Route 5.2 km"), or "Route" without one. */}
-          <Text
-            style={styles.title}
-            accessibilityRole="header"
-            accessibilityLabel={routeKm ? en.map.routeDistance(routeKm) : en.map.route}
-          >
-            {en.map.route}
-          </Text>
+        {/* Qrew unit 4 F2 (Q 04.01): back arrow (= Cancel), handwritten title and room name, the map as a card,
+            Draw / Undo / Clear pills, the hint line, and Save route (= Done) pinned at the bottom. */}
+        <View style={[styles.page, { paddingTop: insets.top + 8 }]}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => onSave(route)}
+            accessibilityLabel={en.map.cancel}
+            onPress={onCancel}
             disabled={saving}
-            style={[styles.barButton, styles.barButtonEnd]}
+            hitSlop={8}
+            style={({ pressed }) => [styles.back, (pressed || saving) && styles.dimmed]}
           >
-            {saving ? <ActivityIndicator /> : <Text style={[styles.link, styles.bold]}>{en.map.done}</Text>}
+            <SymbolView name="chevron.left" size={20} weight="semibold" tintColor={colors.label} />
           </Pressable>
-        </View>
-
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
-          {/* The heading's label already reads this length (n1), so VoiceOver skips the duplicate line. */}
-          {routeKm ? (
-            <Text style={styles.distance} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              {en.map.routeDistance(routeKm)}
+          <View style={styles.head}>
+            <HandTitle>{en.map.editRoute}</HandTitle>
+            <Text style={styles.roomName} numberOfLines={2}>
+              {roomName}
             </Text>
-          ) : null}
-          <Text style={[styles.hint, note !== 'none' && styles.hintError]}>{hint}</Text>
+          </View>
+
+          <View style={styles.mapCard}>
+            <AppleMaps.View
+              ref={mapRef}
+              style={StyleSheet.absoluteFill}
+              cameraPosition={startCamera ?? undefined}
+              markers={memberMarkers}
+              annotations={memberPhotos}
+              polylines={route.length > 1 ? [{ id: 'draft', coordinates: route, color: ROUTE_COLOR, width: 4 }] : []}
+              // No Apple Maps place card when a store/POI is under a tap (human iPhone check, R-1). selectionEnabled:false
+              // alone still showed the card (qa, c4058f9), so POIs are hidden (NO_POIS) and none can be tapped.
+              properties={{ selectionEnabled: false, pointsOfInterest: NO_POIS, isMyLocationEnabled: showsMyLocation }}
+              onCameraMove={onCameraMove}
+            />
+            {pen ? <RouteDrawLayer color={ROUTE_COLOR} onStroke={onStroke} /> : null}
+            {/* Q 04.01 "5.2 km loop": the length only (the app does not know loops); read as "Route 5.2 km". */}
+            {routeKm ? (
+              <View style={styles.distanceChip} pointerEvents="none" accessible accessibilityLabel={en.map.routeDistance(routeKm)}>
+                <Text style={styles.distance} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+                  {routeKm}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
           <View style={styles.tools}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={en.map.pen}
+              accessibilityLabel={en.map.draw}
               accessibilityState={{ selected: pen }}
               onPress={() => (pen ? penOff() : penOn())}
               style={[styles.tool, pen && styles.toolOn]}
             >
-              <SymbolView name="pencil.tip" size={18} tintColor={pen ? colors.onTint : colors.tint} />
-              <Text style={[styles.link, pen && styles.toolOnText]}>{en.map.pen}</Text>
+              <Text style={[styles.toolText, pen && styles.toolOnText]} numberOfLines={1}>
+                {en.map.draw}
+              </Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ disabled: !canUndo }}
               disabled={!canUndo}
               onPress={() => {
                 setNote('none');
@@ -224,7 +232,9 @@ export function RouteEditor({
               }}
               style={styles.tool}
             >
-              <Text style={[styles.link, !canUndo && styles.disabledLink]}>{en.map.undo}</Text>
+              <Text style={[styles.toolText, !canUndo && styles.disabledText]} numberOfLines={1}>
+                {en.map.undo}
+              </Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -235,9 +245,16 @@ export function RouteEditor({
               }}
               style={styles.tool}
             >
-              <Text style={styles.link}>{en.map.clear}</Text>
+              <Text style={styles.toolText} numberOfLines={1}>
+                {en.map.clear}
+              </Text>
             </Pressable>
           </View>
+          <Text style={[styles.hint, note !== 'none' && styles.hintError]}>{hint}</Text>
+        </View>
+
+        <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+          <Button title={en.map.saveRoute} busy={saving} onPress={() => onSave(route)} />
         </View>
       </GestureHandlerRootView>
     </Modal>
@@ -246,47 +263,46 @@ export function RouteEditor({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
+  page: { flex: 1, paddingHorizontal: qSpacing.side, gap: qSpacing.gap },
+  back: {
+    width: 44,
+    height: 44,
+    marginLeft: -8,
+    borderRadius: 22,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dimmed: { opacity: 0.5 },
+  head: { gap: 4 },
+  roomName: { fontSize: 15, color: colors.secondaryLabel },
+  // The map takes the space left between the head and the pills, never less than a usable drawing area.
+  mapCard: { flex: 1, minHeight: 220, borderRadius: 12, borderCurve: 'continuous', overflow: 'hidden' },
+  distanceChip: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: colors.tint,
+    borderRadius: radius.pill,
     paddingHorizontal: 12,
-    paddingBottom: 8,
-    backgroundColor: colors.field,
+    paddingVertical: 6,
   },
-  barButton: { minWidth: 72, minHeight: 44, justifyContent: 'center' },
-  barButtonEnd: { alignItems: 'flex-end' },
-  title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: colors.label },
-  bottomBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    gap: 10,
-    backgroundColor: colors.field,
-  },
-  distance: { fontSize: 17, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
-  hint: { fontSize: 14, color: colors.secondaryLabel },
-  hintError: { color: colors.danger },
-  tools: { flexDirection: 'row', gap: 12 },
+  distance: { fontSize: 15, fontWeight: '600', color: colors.onTint, fontVariant: ['tabular-nums'] },
+  // Three equal pills (Q 04.01); Draw is filled while it is on.
+  tools: { flexDirection: 'row', gap: 8 },
   tool: {
+    flex: 1,
     minHeight: 44,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderCurve: 'continuous',
-    flexDirection: 'row',
+    paddingHorizontal: 8,
+    borderRadius: radius.pill,
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.background,
+    justifyContent: 'center',
+    backgroundColor: colors.field,
   },
   toolOn: { backgroundColor: colors.tint },
+  toolText: { fontSize: 15, fontWeight: '500', color: colors.label },
   toolOnText: { color: colors.onTint },
-  link: { fontSize: 17, color: colors.tint },
-  bold: { fontWeight: '600' },
-  disabledLink: { color: colors.secondaryLabel },
+  disabledText: { color: colors.secondaryLabel },
+  hint: { fontSize: 14, color: colors.secondaryLabel },
+  hintError: { color: colors.danger },
+  actions: { paddingHorizontal: qSpacing.side, paddingTop: 12, backgroundColor: colors.background },
 });

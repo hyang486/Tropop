@@ -146,8 +146,6 @@ export const en = {
     leaveConfirmTitle: 'Leave this room?',
     leaveConfirmBody: 'You will lose access to its chat and photos. You can rejoin with the invite while the room is open.',
     end: 'End room for everyone',
-    endConfirmTitle: 'End this room now?',
-    endConfirmBody: 'Everyone loses access immediately, and the room’s messages, photos, and files are deleted.',
     cancel: 'Cancel',
     gone: 'This room has ended.',
     goneHint: 'It expired, was ended by the host, or you left it.',
@@ -338,7 +336,6 @@ export const en = {
     startActivity: 'Start activity',
     endActivity: 'End activity',
     endConfirmTitle: 'End the activity?',
-    endConfirmBody: 'Everyone stops sharing and all positions are removed.',
     activityActive: 'Activity running',
     activityIdle: 'No activity running',
     activityIdleHint: 'Positions appear only while the host runs an activity.',
@@ -365,11 +362,13 @@ export const en = {
     routeDistance: (km: string) => `Route ${km}`,
     drawRoute: 'Draw route',
     editRoute: 'Edit route',
-    pen: 'Pen',
-    penOnHint: 'The map is locked. Draw the route with your finger. Turn the pen off to move the map.',
-    penOffHint: 'Move the map, then tap Pen to keep drawing.',
-    penWait: 'Move the map a little, then tap Pen again.',
-    penNorthUp: 'Turn the map flat with north up, then tap Pen again.',
+    /** Unit 4 F2 (Q 04.01): the editor's pen toggle. */
+    draw: 'Draw',
+    saveRoute: 'Save route',
+    penOnHint: 'The map is locked. Draw the route with your finger. Turn Draw off to move the map.',
+    penOffHint: 'Move the map, then tap Draw to keep drawing.',
+    penWait: 'Move the map a little, then tap Draw again.',
+    penNorthUp: 'Turn the map flat with north up, then tap Draw again.',
     undo: 'Undo',
     clear: 'Clear',
     done: 'Done',
@@ -382,6 +381,37 @@ export const en = {
     locateDenied: 'Location access is off for Qrew.',
     locateDeniedSettings: 'Location access is off for Qrew. Turn it on in Settings to see yourself on the map.',
     locateUnavailable: 'Could not find your position. Try again.',
+  },
+  // Qrew unit 4 (Q 03.04): confirm screens. Each line states only what the server does (see lib/end-plan.ts
+  // callers): set_activity_state('ended') removes all live positions and turns sharing off for every member and
+  // touches no photos or the room's end time; end_room sets deleted_at, which closes access at once, and the
+  // room-janitor deletes the room's rows and storage later (no time promised: the schedule is not in code).
+  endActivity: {
+    title: 'End the activity?',
+    body: 'Live location sharing stops for everyone.',
+    roomOpenUntil: (day: 'today' | 'tomorrow' | 'later', date: string, time: string) =>
+      day === 'today'
+        ? `The room stays open until ${time}.`
+        : day === 'tomorrow'
+          ? `The room stays open until tomorrow at ${time}.`
+          : `The room stays open until ${date} at ${time}.`,
+    effects: 'Location off · Photos stay',
+    effectsLabel: 'Location sharing turns off. Photos stay in the room.',
+    confirm: 'End activity',
+    keep: 'Keep activity running',
+    notRunning: 'The activity is not running.',
+    notHost: 'Only the host can end the activity.',
+    back: 'Back to map',
+  },
+  endRoom: {
+    title: 'End the room?',
+    body: 'The room closes now for everyone.',
+    deleted: 'Its messages, photos, and files are deleted from the server. Anything already saved to a phone stays there.',
+    effects: 'Closes now · Messages, photos, files deleted',
+    effectsLabel: 'The room closes now. Messages, photos and files are deleted.',
+    confirm: 'End room for everyone',
+    keep: 'Keep room open',
+    notHost: 'Only the host can end the room.',
   },
   invite: {
     title: 'Invite',
