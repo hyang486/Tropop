@@ -483,17 +483,19 @@ function RoomMap({
               </Pressable>
             ) : null}
         {isHost || routeKm ? (
-          // Top left: Pen (host), then the route length. A row, so the length never covers Pen.
+          // Top left: Edit / Draw route (host, the plan's Pen), then the route length. A row, so the length never covers Pen.
           <View style={styles.topLeft}>
             {isHost ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={en.map.pen}
+                accessibilityLabel={savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}
                 onPress={openEditor}
                 style={[styles.chip, styles.pen]}
               >
                 <SymbolView name="pencil.tip" size={18} tintColor={colors.tint} />
-                <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{en.map.pen}</Text>
+                <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>
+                  {savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}
+                </Text>
               </Pressable>
             ) : null}
             {routeKm ? (
@@ -527,12 +529,21 @@ function RoomMap({
           </View>
           <Hint>{en.map.allowLocationHint}</Hint>
           {allowed ? (
-            <Button
-              title={active ? en.map.endActivity : en.map.startActivity}
-              variant={active ? 'secondary' : 'primary'}
-              busy={busy === 'activity'}
+            // Unit 4 F2 (work list B, Map host): Start / End activity is a card under the map, like Allow sharing.
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ busy: busy === 'activity', disabled: busy === 'activity' }}
+              disabled={busy === 'activity'}
               onPress={toggleActivity}
-            />
+              style={({ pressed }) => [styles.switchRow, styles.cardRow, pressed && styles.pressed]}
+            >
+              <Text style={styles.switchLabel}>{active ? en.map.endActivity : en.map.startActivity}</Text>
+              {busy === 'activity' ? (
+                <ActivityIndicator />
+              ) : (
+                <SymbolView name="chevron.right" size={14} weight="semibold" tintColor={colors.secondaryLabel} />
+              )}
+            </Pressable>
           ) : null}
         </View>
       ) : null}
@@ -597,6 +608,7 @@ function RoomMap({
       </View>
       {editor ? (
         <RouteEditor
+          roomName={room.name}
           savedRoute={savedRoute}
           startCamera={editor.start}
           saving={busy === 'route'}
@@ -711,6 +723,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   switchLabel: { fontSize: 17, color: colors.label, flexShrink: 1 },
+  cardRow: { minHeight: 52, gap: 12 },
+  pressed: { opacity: 0.6 },
   link: { fontSize: 17, color: colors.tint },
   presence: {
     backgroundColor: colors.field,
