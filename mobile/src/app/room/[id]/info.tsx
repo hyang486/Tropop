@@ -13,7 +13,7 @@ import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { cancelExpiryReminder } from '@/lib/expiry-reminders';
-import { endRoom, getRoom, leaveRoom, listMembers, type Room, type RoomMember } from '@/lib/rooms';
+import { getRoom, leaveRoom, listMembers, type Room, type RoomMember } from '@/lib/rooms';
 
 type State =
   | { status: 'loading' }
@@ -97,29 +97,30 @@ export default function RoomInfoScreen() {
   const isHost = room.host_id === userId;
 
   function confirmLeave() {
-    Alert.alert(
-      isHost ? en.room.endConfirmTitle : en.room.leaveConfirmTitle,
-      isHost ? en.room.endConfirmBody : en.room.leaveConfirmBody,
-      [
-        { text: en.room.cancel, style: 'cancel' },
-        {
-          text: isHost ? en.room.end : en.room.leave,
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true);
-            try {
-              await (isHost ? endRoom(room.id) : leaveRoom(room.id));
-              cancelExpiryReminder(room.id);
-              clearRoomCache(room.id);
-              router.dismissTo('/');
-            } catch (e) {
-              setBusy(false);
-              Alert.alert(errorMessage(e));
-            }
-          },
+    // Qrew unit 4: the host's End room is a confirm screen that states the effects; guests keep the Leave alert.
+    if (isHost) {
+      router.push({ pathname: '/room/[id]/end-room', params: { id: room.id } });
+      return;
+    }
+    Alert.alert(en.room.leaveConfirmTitle, en.room.leaveConfirmBody, [
+      { text: en.room.cancel, style: 'cancel' },
+      {
+        text: en.room.leave,
+        style: 'destructive',
+        onPress: async () => {
+          setBusy(true);
+          try {
+            await leaveRoom(room.id);
+            cancelExpiryReminder(room.id);
+            clearRoomCache(room.id);
+            router.dismissTo('/');
+          } catch (e) {
+            setBusy(false);
+            Alert.alert(errorMessage(e));
+          }
         },
-      ],
-    );
+      },
+    ]);
   }
 
   return (

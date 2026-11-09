@@ -1,10 +1,11 @@
 import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { HandTitle } from '@/components/hand-title';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RouteEditor } from '@/components/route-editor';
 import { Button, colors, Hint, radius } from '@/components/ui';
@@ -138,6 +139,7 @@ function RoomMap({
   avatars: Map<string, string | null>;
 }) {
   const { session } = useAuth();
+  const router = useRouter();
   const userId = session?.user.id;
   const isHost = room.host_id === userId;
   const now = useNow(15_000);
@@ -373,10 +375,8 @@ function RoomMap({
       run('activity', () => setActivityState(room.id, 'active'));
       return;
     }
-    Alert.alert(en.map.endConfirmTitle, en.map.endConfirmBody, [
-      { text: en.map.cancel, style: 'cancel' },
-      { text: en.map.endActivity, style: 'destructive', onPress: () => run('activity', () => setActivityState(room.id, 'ended')) },
-    ]);
+    // Qrew unit 4 (Q 03.04): a confirm screen that states the effects, instead of an alert.
+    router.push({ pathname: '/room/[id]/end-activity', params: { id: room.id } });
   }
 
   function openEditor() {
@@ -428,7 +428,14 @@ function RoomMap({
       contentContainerStyle={styles.content}
       contentInsetAdjustmentBehavior="automatic"
     >
-      <Stack.Screen options={{ title: en.map.title }} />
+      <Stack.Screen options={{ title: en.map.title, headerTitle: '' }} />
+      {/* Qrew unit 4 (Q 04.02, 08.03): handwritten title and the room name; no art on the map. */}
+      <View style={styles.head}>
+        <HandTitle>{en.map.title}</HandTitle>
+        <Text style={styles.roomName} numberOfLines={2}>
+          {room.name}
+        </Text>
+      </View>
       <EmergencyAlerts
         roomId={room.id}
         activity={activity}
@@ -653,6 +660,9 @@ function PresenceRow({
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background },
   content: { padding: 16, gap: 16 },
+  // Qrew unit 4: the QScreen head (title, gray room name under it) inside the map's own scroll view.
+  head: { gap: 4, marginBottom: -4 },
+  roomName: { fontSize: 15, color: colors.secondaryLabel },
   loading: { marginTop: 48 },
   center: { padding: 20, gap: 12, alignItems: 'center' },
   goneTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
