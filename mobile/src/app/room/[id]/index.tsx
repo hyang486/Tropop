@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
 import { RoomActivityBar } from '@/components/room-activity';
+import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint, radius, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -40,7 +41,6 @@ type State =
 
 export default function RoomScreen() {
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
-  const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
   const now = useNow(15_000);
@@ -104,16 +104,13 @@ export default function RoomScreen() {
   const remainingMs = state.status === 'ready' ? new Date(state.room.expires_at).getTime() - now : 0;
 
   // RLS hides the room once it expires, ends or the user leaves; the clock covers the gap until a reload.
+  // Q 06.04: the shared ended screen; the closed-at time only when this row shows it (expires_at passed).
   if (state.status === 'gone' || (state.status === 'ready' && remainingMs <= 0)) {
     return (
-      <Screen>
-        <Stack.Screen options={{ title: '' }} />
-        <View style={styles.gone}>
-          <Text style={styles.goneTitle}>{en.room.gone}</Text>
-          <Hint>{from === 'reminder' ? en.room.reminderGoneHint : en.room.goneHint}</Hint>
-        </View>
-        <Button title={en.room.backToRooms} onPress={() => router.dismissTo('/')} />
-      </Screen>
+      <>
+        <Stack.Screen options={{ title: '', headerTitle: '' }} />
+        <RoomEnded room={state.status === 'ready' ? state.room : null} nowMs={now} reminder={from === 'reminder'} />
+      </>
     );
   }
 
@@ -531,6 +528,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sendButton: { width: 36, height: 42, alignItems: 'center', justifyContent: 'center' },
-  gone: { paddingVertical: 48, alignItems: 'center', gap: 8 },
-  goneTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
 });

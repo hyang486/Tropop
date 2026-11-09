@@ -1,7 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { HandTitle } from '@/components/hand-title';
+import { InkArt } from '@/components/ink-art';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { clearMatchRun, type FaceData, lastMatchRun, loadFaceData, runFaceMatch } from '@/lib/face';
@@ -94,13 +96,18 @@ export function PhotosOfMe({ roomId, userId, media, columns, gap, renderTile, on
   const view = faceViewState({ enrolled: !!data.enrollment, run, pending: counts.pending });
   const openSetup = () => router.push({ pathname: '/room/[id]/face', params: { id: roomId } });
 
+  // Q 06.01: handwritten title, two short lines, art, and the black setup button.
   if (view === 'consent') {
     return (
-      <View style={styles.center}>
-        <Text style={styles.title}>{en.face.title}</Text>
-        <Hint>{en.face.intro}</Hint>
+      <ScrollView contentContainerStyle={styles.intro} contentInsetAdjustmentBehavior="never">
+        <View style={styles.introHead}>
+          <HandTitle style={styles.centerText}>{en.face.title}</HandTitle>
+          <Text style={styles.introLine}>{en.face.intro}</Text>
+          <Text style={styles.introMeta}>{en.face.introMeta}</Text>
+        </View>
+        <InkArt art="paper" width={180} />
         <Button title={en.face.setUp} onPress={openSetup} />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -189,6 +196,11 @@ export function PhotosOfMe({ roomId, userId, media, columns, gap, renderTile, on
 const styles = StyleSheet.create({
   loading: { marginTop: 40 },
   center: { padding: 24, gap: 12, alignItems: 'center' },
+  intro: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 28, gap: 28, justifyContent: 'space-between' },
+  introHead: { alignItems: 'center', gap: 6 },
+  centerText: { textAlign: 'center' },
+  introLine: { fontSize: 15, color: colors.secondaryLabel, textAlign: 'center' },
+  introMeta: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' },
   title: { fontSize: 17, fontWeight: '600', color: colors.label, textAlign: 'center' },
   link: { fontSize: 15, fontWeight: '500', color: colors.tint },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingBottom: 8 },
