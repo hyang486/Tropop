@@ -1,8 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { type Href, Stack, useNavigationContainerRef, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 
+import { HAND_FONTS } from '@/components/hand-title';
 import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -15,10 +17,14 @@ SplashScreen.preventAutoHideAsync();
 function RootNavigator() {
   const { session, loading } = useAuth();
   const signedIn = !!session;
+  // Qrew: the bundled title fonts load from assets at runtime (no rebuild). The splash waits for them so the
+  // first title is not drawn in the system font; a failed load just keeps the system font.
+  const [fontsLoaded, fontError] = useFonts(HAND_FONTS);
+  const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
-    if (!loading) SplashScreen.hideAsync();
-  }, [loading]);
+    if (!loading && fontsReady) SplashScreen.hideAsync();
+  }, [loading, fontsReady]);
 
   // A tapped expiry reminder (also one that cold-started the app) opens its room. The room screen
   // checks access and shows the ended notice if the room is gone. Signed out: held until sign-in.
@@ -65,7 +71,8 @@ function RootNavigator() {
         <Stack.Screen name="create-room" options={{ title: en.createRoom.title }} />
         <Stack.Screen name="join/index" options={{ title: en.join.title }} />
         <Stack.Screen name="scan" options={{ title: en.scan.title }} />
-        <Stack.Screen name="preview" options={{ title: en.preview.title }} />
+        {/* Qrew: the room name is the handwritten title in the content; the nav bar keeps only Back. */}
+        <Stack.Screen name="preview" options={{ title: en.preview.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/info" options={{ title: en.room.info }} />
         <Stack.Screen name="room/[id]/gallery" options={{ title: en.media.title }} />
