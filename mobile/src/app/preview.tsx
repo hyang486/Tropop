@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { HandTitle } from '@/components/hand-title';
 import { InkArt } from '@/components/ink-art';
-import { Button, colors, Hint, Screen } from '@/components/ui';
+import { QCaption, QScreen } from '@/components/q-screen';
+import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { formatDeletedAt } from '@/lib/create-defaults';
 import { errorMessage } from '@/lib/errors';
@@ -58,53 +58,53 @@ export default function Preview() {
 
   if (!preview) {
     return (
-      <Screen>
-        {error ? (
-          <>
-            <Hint tone="error">{error}</Hint>
-            <Button title={en.room.backToRooms} variant="secondary" onPress={() => router.dismissTo('/')} />
-          </>
-        ) : (
-          <ActivityIndicator style={styles.loading} />
-        )}
-      </Screen>
+      <QScreen
+        actions={
+          error ? <Button title={en.room.backToRooms} variant="secondary" onPress={() => router.dismissTo('/')} /> : null
+        }
+      >
+        {error ? <Hint tone="error">{error}</Hint> : <ActivityIndicator style={styles.loading} />}
+      </QScreen>
     );
   }
 
   const expiresAt = new Date(preview.expires_at);
   const endsSoon = expiresAt.getTime() - now < REMINDER_WINDOW_MS;
+  const facts = `${en.preview.members(preview.member_count, preview.max_members)} · ${en.preview.endsAt(
+    formatDeletedAt(expiresAt.getTime()),
+  )}`;
 
-  // Qrew redesign (Q 01.04, ruling R6): name → map → place + Open in Maps → date and time → art → Join, with no
-  // summary line under the title. Map, place and time come with the optional place/time fields (a separate
-  // unit with its own migration); until preview_room returns them those slots render nothing, so there are no
-  // empty cards. Member count and limit and the end time stay reachable under Join.
+  // Q 01.04 (rule USER_DECISIONS:168, R6): title → map → place + Open in Maps → date and time → art, with Join
+  // pinned at the bottom and one caption under it. Map, place and time come with the optional place/time fields
+  // (a separate gated unit); until preview_room returns them those slots render nothing. Q's caption is "Guest
+  // name comes next."; here it carries the member count and end time so they stay reachable.
   return (
-    <Screen>
-      <HandTitle>{preview.name}</HandTitle>
+    <QScreen
+      title={preview.name}
+      actions={
+        <>
+          {error ? <Hint tone="error">{error}</Hint> : null}
+          {preview.already_member ? (
+            <>
+              <Hint>{en.preview.alreadyMember}</Hint>
+              <Button title={en.preview.open} onPress={() => openRoom(preview.room_id)} />
+            </>
+          ) : (
+            <Button title={en.preview.join} onPress={join} busy={busy} />
+          )}
+          <QCaption>{facts}</QCaption>
+        </>
+      }
+    >
       <View style={styles.art}>
         <InkArt roomName={preview.name} />
       </View>
       {endsSoon ? <Hint>{en.preview.endsSoon}</Hint> : null}
-      {error ? <Hint tone="error">{error}</Hint> : null}
-      {preview.already_member ? (
-        <>
-          <Hint>{en.preview.alreadyMember}</Hint>
-          <Button title={en.preview.open} onPress={() => openRoom(preview.room_id)} />
-        </>
-      ) : (
-        <Button title={en.preview.join} onPress={join} busy={busy} />
-      )}
-      <View style={styles.footnote}>
-        <Text style={styles.meta}>{en.preview.members(preview.member_count, preview.max_members)}</Text>
-        <Text style={styles.meta}>{en.preview.endsAt(formatDeletedAt(expiresAt.getTime()))}</Text>
-      </View>
-    </Screen>
+    </QScreen>
   );
 }
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
   art: { paddingVertical: 12 },
-  footnote: { alignItems: 'center', gap: 2 },
-  meta: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'], textAlign: 'center' },
 });

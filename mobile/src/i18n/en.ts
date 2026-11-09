@@ -103,7 +103,7 @@ export const en = {
     members: (count: number, max: number) => `${count} of ${max} members`,
     endsAt: (when: string) => `Ends ${when}`,
     endsSoon: 'This room ends within 24 hours. Photos and files are deleted when it ends.',
-    join: 'Join room',
+    join: 'Join the room',
     open: 'Open room',
     alreadyMember: 'You are already in this room.',
   },

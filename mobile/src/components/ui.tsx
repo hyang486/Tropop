@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   button: {
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: 12,
     borderCurve: 'continuous',
     alignItems: 'center',
@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   outlined: { borderWidth: 1.5, backgroundColor: 'transparent' },
-  buttonText: { fontSize: 17, fontWeight: '600' },
+  // Q 01.04: regular-weight label ("Join the room").
+  buttonText: { fontSize: 17, fontWeight: '400' },
   hint: { fontSize: 15, color: colors.secondaryLabel },
 });
