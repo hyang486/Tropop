@@ -1,6 +1,6 @@
 // UI copy is kept here so it can be translated later. English is the default.
 export const en = {
-  appName: 'Moment',
+  appName: 'Qrew',
   welcome: {
     tagline: 'Temporary rooms for the people you are with right now.',
     joinAsGuest: 'Continue as guest',
@@ -93,10 +93,10 @@ export const en = {
   },
   scan: {
     title: 'Scan QR code',
-    permissionHint: 'Moment uses the camera only to read the room QR code.',
+    permissionHint: 'Qrew uses the camera only to read the room QR code.',
     allow: 'Allow camera',
     openSettings: 'Open Settings',
-    notInvite: 'That QR code is not a Moment invite.',
+    notInvite: 'That QR code is not a Qrew invite.',
   },
   preview: {
     title: 'Join room',
@@ -312,7 +312,7 @@ export const en = {
     activityIdleHint: 'Positions appear only while the host runs an activity.',
     shareMine: 'Share my live location',
     shareMineHint: 'Only while the app is open. Nobody can turn this on for you.',
-    permissionDenied: 'Location access is off for Moment. Turn it on in Settings to share.',
+    permissionDenied: 'Location access is off for Qrew. Turn it on in Settings to share.',
     openSettings: 'Open Settings',
     reporter: {
       off: '',
@@ -347,14 +347,14 @@ export const en = {
     showMine: 'Show my location',
     showMineHint: 'Only on your phone. This does not share your location.',
     locating: 'Finding you…',
-    locateDenied: 'Location access is off for Moment.',
-    locateDeniedSettings: 'Location access is off for Moment. Turn it on in Settings to see yourself on the map.',
+    locateDenied: 'Location access is off for Qrew.',
+    locateDeniedSettings: 'Location access is off for Qrew. Turn it on in Settings to see yourself on the map.',
     locateUnavailable: 'Could not find your position. Try again.',
   },
   invite: {
     title: 'Invite',
     done: 'Done',
-    hint: 'Scan with the Moment app, or enter the code.',
+    hint: 'Scan with the Qrew app, or enter the code.',
     code: 'Code',
     share: 'Share invite',
     reissue: 'Reissue invite',
@@ -362,7 +362,7 @@ export const en = {
     reissueConfirmBody: 'The current QR code, link, and code stop working. People already in the room stay.',
     reissued: 'New invite created.',
     shareMessage: (name: string, code: string, url: string) =>
-      `Join "${name}" on Moment. Code: ${code}\n${url}`,
+      `Join "${name}" on Qrew. Code: ${code}\n${url}`,
     qrLabel: 'Room invite QR code',
   },
   profile: {
@@ -396,7 +396,7 @@ export const en = {
   planPreview: {
     title: 'Plus preview',
     badge: 'Preview — no payment',
-    heading: 'Moment Plus',
+    heading: 'Qrew Plus',
     intro: 'A look at planned Plus benefits. Nothing can be bought yet, and nothing changes in your account.',
     benefit: 'Benefit',
     free: 'Free',
@@ -426,6 +426,6 @@ export const en = {
     fileGone: 'The selected file is no longer available. Choose it again.',
     downloadIncomplete: 'The download did not finish.',
     downloadMismatch: 'The downloaded file does not match the original. Try again.',
-    photosPermission: 'Allow Moment to add to Photos in Settings to save originals.',
+    photosPermission: 'Allow Qrew to add to Photos in Settings to save originals.',
   },
 } as const;

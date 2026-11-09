@@ -2,6 +2,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { HandTitle } from '@/components/hand-title';
+import { InkArt } from '@/components/ink-art';
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
@@ -71,15 +73,15 @@ export default function Preview() {
   const expiresAt = new Date(preview.expires_at);
   const endsSoon = expiresAt.getTime() - now < REMINDER_WINDOW_MS;
 
+  // Qrew redesign (Q 01.04, ruling R6): name → map → place + Open in Maps → date and time → art → Join, with no
+  // summary line under the title. Map, place and time come with the optional place/time fields (a separate
+  // unit with its own migration); until preview_room returns them those slots render nothing, so there are no
+  // empty cards. Member count and limit and the end time stay reachable under Join.
   return (
     <Screen>
-      <View style={styles.card}>
-        <Text style={styles.name}>{preview.name}</Text>
-        <Text style={styles.meta}>
-          {en.rooms.types[preview.type as keyof typeof en.rooms.types] ?? preview.type}
-        </Text>
-        <Text style={styles.meta}>{en.preview.members(preview.member_count, preview.max_members)}</Text>
-        <Text style={styles.meta}>{en.preview.endsAt(expiresAt.toLocaleString())}</Text>
+      <HandTitle>{preview.name}</HandTitle>
+      <View style={styles.art}>
+        <InkArt roomName={preview.name} />
       </View>
       {endsSoon ? <Hint>{en.preview.endsSoon}</Hint> : null}
       {error ? <Hint tone="error">{error}</Hint> : null}
@@ -91,19 +93,17 @@ export default function Preview() {
       ) : (
         <Button title={en.preview.join} onPress={join} busy={busy} />
       )}
+      <View style={styles.footnote}>
+        <Text style={styles.meta}>{en.preview.members(preview.member_count, preview.max_members)}</Text>
+        <Text style={styles.meta}>{en.preview.endsAt(expiresAt.toLocaleString())}</Text>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  card: {
-    backgroundColor: colors.field,
-    borderRadius: 14,
-    borderCurve: 'continuous',
-    padding: 20,
-    gap: 6,
-  },
-  name: { fontSize: 24, fontWeight: '700', color: colors.label },
-  meta: { fontSize: 16, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
+  art: { paddingVertical: 12 },
+  footnote: { alignItems: 'center', gap: 2 },
+  meta: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'], textAlign: 'center' },
 });
