@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
 import { colors } from '@/components/ui';
+import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 /**
  * Qrew screen scaffold (human rule USER_DECISIONS:168: match Qrew_heytea_UI.pdf). As in Q 01.04:
@@ -31,13 +32,17 @@ export function QScreen({
   refreshControl?: ReactElement<RefreshControlProps>;
 }) {
   const insets = useSafeAreaInsets();
+  // Pad the top by the header overlap ourselves instead of contentInsetAdjustmentBehavior "automatic": that
+  // inset is added on top of a body that already fills the frame (flexGrow), so the `bottom` block was pushed
+  // under the actions by the header height (qa c-nonmember at 1ab2fd1).
+  const { rootRef, onLayout, overlap } = useHeaderOverlap();
   return (
-    <View style={styles.root}>
+    <View ref={rootRef} onLayout={onLayout} style={styles.root}>
       <ScrollView
         style={styles.flex}
         refreshControl={refreshControl}
-        contentContainerStyle={styles.body}
-        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.body, { paddingTop: overlap + 8 }]}
+        contentInsetAdjustmentBehavior="never"
         scrollToOverflowEnabled
         keyboardShouldPersistTaps="handled"
       >
@@ -65,7 +70,7 @@ export const qSpacing = { side: 24, gap: 12 } as const;
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  body: { flexGrow: 1, paddingHorizontal: qSpacing.side, paddingTop: 8, paddingBottom: 24, gap: qSpacing.gap },
+  body: { flexGrow: 1, paddingHorizontal: qSpacing.side, paddingBottom: 24, gap: qSpacing.gap },
   title: { marginBottom: 6 },
   spacer: { flexGrow: 1 },
   caption: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center', fontVariant: ['tabular-nums'] },
