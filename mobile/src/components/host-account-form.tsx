@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { type ComponentRef, useRef, useState } from 'react';
-import type { TextInput } from 'react-native';
+import { type TextInput, View } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
 import { QField, QLink, QScreen } from '@/components/q-screen';
@@ -32,6 +32,8 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
   const [notice, setNotice] = useState<string | null>(null);
   const emailRef = useRef<ComponentRef<typeof TextInput>>(null);
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
+  // K2: the submit button stays in view with the focused field while typing (QScreen keepVisible).
+  const submitRef = useRef<ComponentRef<typeof View>>(null);
   const isNew = mode !== 'sign-in';
 
   async function submit() {
@@ -55,6 +57,7 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
     <QScreen
       title={isNew ? en.hostAccount.newTitle : en.hostAccount.loginTitle}
       subtitle={isNew ? en.hostAccount.newSubtitle : en.hostAccount.loginSubtitle}
+      keepVisible={submitRef}
     >
       {isNew ? <InkArt art="gate" width={150} /> : null}
       {isNew && (
@@ -95,7 +98,9 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
       />
       {error && <Hint tone="error">{error}</Hint>}
       {notice && <Hint>{notice}</Hint>}
-      <Button title={submitTitle} onPress={submit} busy={busy} />
+      <View ref={submitRef} collapsable={false}>
+        <Button title={submitTitle} onPress={submit} busy={busy} />
+      </View>
       {hint && <Hint>{hint}</Hint>}
       {mode === 'sign-in' ? <QLink title={en.hostAccount.createAccount} onPress={() => router.push('/sign-up')} /> : null}
     </QScreen>

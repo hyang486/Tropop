@@ -1,6 +1,19 @@
-import type { ComponentProps, ReactElement, ReactNode } from 'react';
 import {
-  KeyboardAvoidingView,
+  type ComponentProps,
+  type ComponentRef,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
+  Keyboard,
+  type KeyboardEvent,
+  LayoutAnimation,
   Pressable,
   type RefreshControlProps,
   ScrollView,
@@ -9,10 +22,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
 import { colors } from '@/components/ui';
+import { keyboardOverlap, revealScrollY, type Span } from '@/lib/keyboard-plan';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 /**
@@ -22,6 +37,12 @@ import { useHeaderOverlap } from '@/lib/use-header-overlap';
  * screen's actions pinned to the bottom above the home indicator, with an optional caption under them. The nav
  * header keeps only the back button (screens set headerTitle ''). With the keyboard open the pinned actions
  * ride above it (Q 02.01 "Join as guest") and the body scrolls a focused field into view.
+ *
+ * Keyboard (qa K1/K2): no KeyboardAvoidingView. Its offset came from a layout-time measure, which was wrong in a
+ * sheet that was still animating (K2), and it never scrolled the focused field into view (K1). Instead, at each
+ * keyboard move the root is measured in the window and padded by the part the keyboard covers (keyboardOverlap);
+ * once the body has its new size, the focused field (plus `keepVisible`, when both fit) is scrolled into view
+ * (revealScrollY). One mechanism, so no padding and inset stack up.
  */
 export function QScreen({
   title,
@@ -31,6 +52,7 @@ export function QScreen({
   bottom,
   bottomAlign = 'end',
   refreshControl,
+  keepVisible,
 }: {
   title?: string;
   /** Small gray line right under the title. */
@@ -46,6 +68,8 @@ export function QScreen({
   /** 'center' puts the `bottom` block in the middle of the free space instead (Q 01.01, 02.01, 07.03 art). */
   bottomAlign?: 'end' | 'center';
   refreshControl?: ReactElement<RefreshControlProps>;
+  /** Kept in view together with the focused field when both fit (K2: a form's submit button under the fields). */
+  keepVisible?: RefObject<ComponentRef<typeof View> | null>;
 }) {
   const insets = useSafeAreaInsets();
   // Pad the top by the header overlap ourselves instead of contentInsetAdjustmentBehavior "automatic": that
@@ -53,11 +77,14 @@ export function QScreen({
   // under the actions by the header height (qa c-nonmember at 1ab2fd1). `top` (where the root really starts)
   // is the keyboard avoider's offset, so an opaque header also lays out right. A screen without a header
   // (Welcome) still clears the status bar.
-  const { rootRef, onLayout, overlap, top } = useHeaderOverlap();
+  const { rootRef, onLayout, overlap } = useHeaderOverlap();
+  const { outerRef, scrollRef, keyboardPad, scrollProps } = useKeyboardReveal(overlap, keepVisible);
   return (
-    <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={top} style={styles.root}>
+    <View ref={outerRef} style={[styles.root, { paddingBottom: keyboardPad }]}>
       <View ref={rootRef} onLayout={onLayout} style={styles.flex}>
         <ScrollView
+          ref={scrollRef}
+          {...scrollProps}
           style={styles.flex}
           refreshControl={refreshControl}
           contentContainerStyle={[styles.body, { paddingTop: Math.max(overlap, insets.top) + 8 }]}
@@ -83,8 +110,103 @@ export function QScreen({
         </ScrollView>
         {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>{actions}</View> : null}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
+}
+
+/** QScreen's keyboard handling (see the QScreen comment). iOS events; Android adds did-show/hide later. */
+function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef<typeof View> | null>) {
+  const outerRef = useRef<ComponentRef<typeof View>>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const keyboardTop = useRef<number | null>(null);
+  const scrollY = useRef(0);
+  const maxY = useRef(0);
+  const sizes = useRef({ content: 0, view: 0 });
+  const [keyboardPad, setKeyboardPad] = useState(0);
+  const overlapRef = useRef(overlap);
+  // Only the screen on top reacts: a screen below in the stack keeps its layout while another one types.
+  const focused = useIsFocused();
+  const focusedRef = useRef(focused);
+  const keepRef = useRef(keepVisible);
+  // Latest values for the keyboard callbacks, synced after commit (refs are not written during render).
+  useLayoutEffect(() => {
+    overlapRef.current = overlap;
+    focusedRef.current = focused;
+    keepRef.current = keepVisible;
+  }, [overlap, focused, keepVisible]);
+
+  const reveal = useCallback(() => {
+    const scroll = scrollRef.current;
+    const field = TextInput.State.currentlyFocusedInput();
+    if (!focusedRef.current || keyboardTop.current === null || !scroll || !field) return;
+    scroll.measureInWindow((_sx, sy, _sw, sh) => {
+      field.measureInWindow((_fx, fy, _fw, fh) => {
+        const visible: Span = { top: sy + overlapRef.current, bottom: sy + sh };
+        const fieldSpan: Span = { top: fy, bottom: fy + fh };
+        if (fh === 0) return;
+        const go = (extra: Span | null) => {
+          const y = revealScrollY(scrollY.current, fieldSpan, visible, maxY.current, extra);
+          if (y !== null) scroll.scrollTo({ y, animated: true });
+        };
+        const keep = keepRef.current?.current;
+        if (keep) keep.measureInWindow((_kx, ky, _kw, kh) => go(kh > 0 ? { top: ky, bottom: ky + kh } : null));
+        else go(null);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    const move = (e: KeyboardEvent) => {
+      if (!focusedRef.current) return;
+      const top = e.endCoordinates.screenY;
+      keyboardTop.current = e.endCoordinates.height > 0 ? top : null;
+      outerRef.current?.measureInWindow((_x, y, _w, height) => {
+        const pad = keyboardOverlap({ y, height }, keyboardTop.current);
+        if (e.duration) {
+          LayoutAnimation.configureNext({
+            duration: e.duration,
+            update: { duration: e.duration, type: LayoutAnimation.Types.keyboard },
+          });
+        }
+        setKeyboardPad(pad);
+      });
+    };
+    const hide = (e: KeyboardEvent) => {
+      keyboardTop.current = null;
+      if (e.duration) LayoutAnimation.configureNext({ duration: e.duration, update: { duration: e.duration, type: LayoutAnimation.Types.keyboard } });
+      setKeyboardPad(0);
+    };
+    const subs = [
+      Keyboard.addListener('keyboardWillChangeFrame', move),
+      Keyboard.addListener('keyboardWillHide', hide),
+      // Moving focus between fields with the keyboard already up sends did-show again: reveal the new field.
+      Keyboard.addListener('keyboardDidShow', reveal),
+    ];
+    return () => subs.forEach((s) => s.remove());
+  }, [reveal]);
+
+  const updateMax = () => {
+    maxY.current = Math.max(0, sizes.current.content - sizes.current.view);
+  };
+  const scrollProps = {
+    scrollEventThrottle: 16,
+    onScroll: (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+      scrollY.current = e.nativeEvent.contentOffset.y;
+    },
+    // The body shrinks once the padding lands (and a multiline field grows while typing): reveal again then.
+    onLayout: (e: { nativeEvent: { layout: { height: number } } }) => {
+      sizes.current.view = e.nativeEvent.layout.height;
+      updateMax();
+      reveal();
+    },
+    onContentSizeChange: (_w: number, h: number) => {
+      sizes.current.content = h;
+      updateMax();
+      reveal();
+    },
+  };
+
+  return { outerRef, scrollRef, keyboardPad, scrollProps };
 }
 
 /** The small centered gray line under the pinned actions (Q 01.04 "Guest name comes next."). */
