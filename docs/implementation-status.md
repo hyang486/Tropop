@@ -2,6 +2,14 @@
 
 Updated: 2026-11-06 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-09: Place and time unit (migration 0026), pre-apply test
+- Branch qrew-pt (c40ccd5, 68abdec). Human go-ahead typed in the developer session; the rollback run of
+  0026 + supabase/tests/room_place_time_test.sql on project wuhkyjksiiqzoxvonfuy (execute_sql, one transaction
+  ending in ROLLBACK) returned "ROOM PLACE TIME TESTS PASSED".
+- Read-only check after it: 0 test users, no tests schema, 0 new rooms columns, one create_room with 5 args,
+  preview_room with 7 output columns, 0 test rooms. The live database is unchanged.
+- NOT applied: 0026 on the live database needs a separate human approval. App UI for the fields: not started.
+
 ## 2026-11-07: J-1 and R-1 (human request: each on its own branch, review, then main; no push)
 - J-1 (Join-room keyboard pushed the "5-DIGIT CODE" field under the translucent header on the 17 Pro): fixed in
   6f2a512 (components/ui.tsx Screen: no automatic keyboard inset adjustment on the ScrollView). Supervisor GO;
