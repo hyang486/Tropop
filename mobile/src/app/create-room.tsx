@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { Button, colors, Field, Hint, radius, Screen } from '@/components/ui';
+import { QCard, QField, QLabel, QScreen } from '@/components/q-screen';
+import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { createRoom, ROOM_TYPES, type RoomType } from '@/lib/rooms';
@@ -65,11 +66,22 @@ export default function CreateRoom() {
     }
   }
 
+  // Qrew Q 02.02 (human placement B): name, Room type chips, Room closes after chips (4 and 7 days as extra
+  // chips, no Custom), the deletion line, the Plus preview link under it, the location card with its switch
+  // and hint, the Status options card (editable), Create room pinned at the bottom. The optional meeting place
+  // and time row comes with its own gated unit.
   return (
-    <Screen>
-      <Field
+    <QScreen
+      title={en.createRoom.title}
+      actions={
+        <>
+          {error ? <Hint tone="error">{error}</Hint> : null}
+          <Button title={en.createRoom.submit} onPress={submit} busy={busy} />
+        </>
+      }
+    >
+      <QField
         label={en.createRoom.nameLabel}
-        placeholder={en.createRoom.namePlaceholder}
         value={name}
         onChangeText={setName}
         maxLength={60}
@@ -77,72 +89,65 @@ export default function CreateRoom() {
         returnKeyType="done"
       />
 
-      <View style={styles.group}>
-        <Text style={styles.label}>{en.createRoom.typeLabel}</Text>
-        <View style={styles.chips} accessibilityRole="radiogroup">
-          {ROOM_TYPES.map((t) => (
-            <Choice key={t} label={en.rooms.types[t]} selected={type === t} onPress={() => setType(t)} />
-          ))}
-        </View>
+      <QLabel>{en.createRoom.typeLabel}</QLabel>
+      <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.typeLabel}>
+        {ROOM_TYPES.map((t) => (
+          <Choice key={t} label={en.rooms.types[t]} selected={type === t} onPress={() => setType(t)} />
+        ))}
       </View>
 
-      <View style={styles.group}>
-        <Text style={styles.label}>{en.createRoom.expiryLabel}</Text>
-        <View style={styles.chips} accessibilityRole="radiogroup">
-          {en.createRoom.expiryOptions.map((o) => (
-            <Choice key={o.hours} label={o.label} selected={hours === o.hours} onPress={() => setPickedHours(o.hours)} />
-          ))}
-        </View>
-        <Hint>{en.createRoom.expiryHint(formatDeletedAt(expiresPreview.getTime()))}</Hint>
-        <Pressable accessibilityRole="link" onPress={() => router.push('/plan-preview')} hitSlop={8}>
-          <Text style={styles.planLink}>{en.planPreview.createRoomLink}</Text>
-        </Pressable>
+      <QLabel>{en.createRoom.expiryLabel}</QLabel>
+      <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.expiryLabel}>
+        {en.createRoom.expiryOptions.map((o) => (
+          <Choice key={o.hours} label={o.label} selected={hours === o.hours} onPress={() => setPickedHours(o.hours)} />
+        ))}
       </View>
+      <Text style={styles.deletes}>{en.createRoom.expiryHint(formatDeletedAt(expiresPreview.getTime()))}</Text>
+      <Pressable accessibilityRole="link" onPress={() => router.push('/plan-preview')} hitSlop={8}>
+        <Text style={styles.planLink}>{en.planPreview.createRoomLink}</Text>
+      </Pressable>
 
-      <View style={styles.group}>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>{en.createRoom.locationLabel}</Text>
-          <Switch
-            value={locationAllowed}
-            onValueChange={setLocationAllowed}
-            accessibilityLabel={en.createRoom.locationLabel}
-          />
-        </View>
-        <Hint>{en.createRoom.locationHint}</Hint>
-      </View>
+      <QCard row>
+        <Text style={styles.cardTitle}>{en.createRoom.locationLabel}</Text>
+        <Switch
+          value={locationAllowed}
+          onValueChange={setLocationAllowed}
+          accessibilityLabel={en.createRoom.locationLabel}
+        />
+      </QCard>
+      <Hint>{en.createRoom.locationHint}</Hint>
 
-      <View style={styles.group}>
-        <Field label={en.createRoom.statusesLabel} value={statuses} onChangeText={setStatuses} />
-        <Hint>{en.createRoom.statusesHint}</Hint>
-      </View>
-
-      {error ? <Hint tone="error">{error}</Hint> : null}
-      <Button title={en.createRoom.submit} onPress={submit} busy={busy} />
-    </Screen>
+      <QCard>
+        <Text style={styles.cardTitle}>{en.createRoom.statusesLabel}</Text>
+        <TextInput
+          value={statuses}
+          onChangeText={setStatuses}
+          accessibilityLabel={en.createRoom.statusesLabel}
+          accessibilityHint={en.createRoom.statusesHint}
+          style={styles.statuses}
+          multiline
+          submitBehavior="blurAndSubmit"
+          returnKeyType="done"
+        />
+        <Text style={styles.cardNote}>{en.createRoom.statusesHint}</Text>
+      </QCard>
+    </QScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  group: { gap: 8 },
-  planLink: { fontSize: 15, color: colors.tint },
-  label: { fontSize: 13, color: colors.secondaryLabel, textTransform: 'uppercase' },
+  planLink: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
+  deletes: { fontSize: 14, color: colors.label, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     backgroundColor: colors.field,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
   },
   chipText: { fontSize: 15, color: colors.label },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.field,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  switchLabel: { fontSize: 17, color: colors.label },
+  cardTitle: { flex: 1, fontSize: 16, color: colors.label },
+  statuses: { fontSize: 14, color: colors.secondaryLabel, paddingVertical: 2 },
+  cardNote: { fontSize: 12, color: colors.secondaryLabel },
 });

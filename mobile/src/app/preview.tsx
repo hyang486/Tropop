@@ -56,15 +56,31 @@ export default function Preview() {
     }
   }
 
+  // Qrew Q 07.03: an invite that can't be previewed (invalid, ended, rotated, full, throttled) gets its own
+  // screen: "Invite unavailable", the same cause message as before, the paper art, then Enter a room code /
+  // Back to rooms. While loading, only a spinner.
   if (!preview) {
+    if (!error) {
+      return (
+        <QScreen>
+          <ActivityIndicator style={styles.loading} />
+        </QScreen>
+      );
+    }
     return (
       <QScreen
+        title={en.preview.unavailableTitle}
+        subtitle={error}
+        bottom={<InkArt art="paper" width={190} />}
+        bottomAlign="center"
         actions={
-          error ? <Button title={en.room.backToRooms} variant="secondary" onPress={() => router.dismissTo('/')} /> : null
+          <>
+            {/* N1: back to the code screen already in the stack (no join → join), or replace this with it. */}
+            <Button title={en.preview.enterCode} onPress={() => router.dismissTo('/join')} />
+            <Button title={en.room.backToRooms} variant="secondary" onPress={() => router.dismissTo('/')} />
+          </>
         }
-      >
-        {error ? <Hint tone="error">{error}</Hint> : <ActivityIndicator style={styles.loading} />}
-      </QScreen>
+      />
     );
   }
 

@@ -9,6 +9,8 @@ import { roomTheme } from '@/lib/room-theme';
 const IMAGES = {
   run: require('@/assets/art/run.png'),
   gathering: require('@/assets/art/gathering.png'),
+  gate: require('@/assets/art/gate.png'),
+  paper: require('@/assets/art/paper.png'),
 };
 
 /** Stroke width in drawing units (300-unit-wide drawings), close to the PDF art's line at the same width. */
