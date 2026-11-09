@@ -1,9 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { Button, colors, Hint, Screen } from '@/components/ui';
+import { InkArt } from '@/components/ink-art';
+import { QCaption, QScreen } from '@/components/q-screen';
+import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { formatDeletedAt } from '@/lib/create-defaults';
 import { errorMessage } from '@/lib/errors';
 import {
   joinRoom,
@@ -55,55 +58,57 @@ export default function Preview() {
 
   if (!preview) {
     return (
-      <Screen>
-        {error ? (
-          <>
-            <Hint tone="error">{error}</Hint>
-            <Button title={en.room.backToRooms} variant="secondary" onPress={() => router.dismissTo('/')} />
-          </>
-        ) : (
-          <ActivityIndicator style={styles.loading} />
-        )}
-      </Screen>
+      <QScreen
+        actions={
+          error ? <Button title={en.room.backToRooms} variant="secondary" onPress={() => router.dismissTo('/')} /> : null
+        }
+      >
+        {error ? <Hint tone="error">{error}</Hint> : <ActivityIndicator style={styles.loading} />}
+      </QScreen>
     );
   }
 
   const expiresAt = new Date(preview.expires_at);
   const endsSoon = expiresAt.getTime() - now < REMINDER_WINDOW_MS;
+  const facts = `${en.preview.members(preview.member_count, preview.max_members)} · ${en.preview.endsAt(
+    formatDeletedAt(expiresAt.getTime()),
+  )}`;
 
+  // Q 01.04 (rule USER_DECISIONS:168, R6): title → map → place + Open in Maps → date and time → art, with Join
+  // pinned at the bottom and one caption under it. The art and note sit at the bottom of the body, directly
+  // above Join (qa b-run: under the title they left a large gap above Join). Map, place and time come with the optional place/time fields
+  // (a separate gated unit); until preview_room returns them those slots render nothing. Q's caption is "Guest
+  // name comes next."; here it carries the member count and end time so they stay reachable.
   return (
-    <Screen>
-      <View style={styles.card}>
-        <Text style={styles.name}>{preview.name}</Text>
-        <Text style={styles.meta}>
-          {en.rooms.types[preview.type as keyof typeof en.rooms.types] ?? preview.type}
-        </Text>
-        <Text style={styles.meta}>{en.preview.members(preview.member_count, preview.max_members)}</Text>
-        <Text style={styles.meta}>{en.preview.endsAt(expiresAt.toLocaleString())}</Text>
-      </View>
-      {endsSoon ? <Hint>{en.preview.endsSoon}</Hint> : null}
-      {error ? <Hint tone="error">{error}</Hint> : null}
-      {preview.already_member ? (
+    <QScreen
+      title={preview.name}
+      actions={
         <>
-          <Hint>{en.preview.alreadyMember}</Hint>
-          <Button title={en.preview.open} onPress={() => openRoom(preview.room_id)} />
+          {error ? <Hint tone="error">{error}</Hint> : null}
+          {preview.already_member ? (
+            <>
+              <Hint>{en.preview.alreadyMember}</Hint>
+              <Button title={en.preview.open} onPress={() => openRoom(preview.room_id)} />
+            </>
+          ) : (
+            <Button title={en.preview.join} onPress={join} busy={busy} />
+          )}
+          <QCaption>{facts}</QCaption>
         </>
-      ) : (
-        <Button title={en.preview.join} onPress={join} busy={busy} />
-      )}
-    </Screen>
+      }
+      bottom={
+        <>
+          <View style={styles.art}>
+            <InkArt roomName={preview.name} />
+          </View>
+          {endsSoon ? <Hint>{en.preview.endsSoon}</Hint> : null}
+        </>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  card: {
-    backgroundColor: colors.field,
-    borderRadius: 14,
-    borderCurve: 'continuous',
-    padding: 20,
-    gap: 6,
-  },
-  name: { fontSize: 24, fontWeight: '700', color: colors.label },
-  meta: { fontSize: 16, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
+  art: { paddingVertical: 12 },
 });

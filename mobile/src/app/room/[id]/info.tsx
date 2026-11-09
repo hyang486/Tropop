@@ -8,6 +8,7 @@ import { StatusEditor } from '@/components/status-editor';
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { formatDeletedAt } from '@/lib/create-defaults';
 import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
@@ -128,7 +129,7 @@ export default function RoomInfoScreen() {
         <Text style={styles.name} accessibilityRole="header">
           {room.name}
         </Text>
-        <Hint>{en.room.endsAt(new Date(room.expires_at).toLocaleString())}</Hint>
+        <Hint>{en.room.endsAt(formatDeletedAt(new Date(room.expires_at).getTime()))}</Hint>
         <Hint>{en.room.endsSoonInfo}</Hint>
       </View>
 

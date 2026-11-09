@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   theirs: { backgroundColor: colors.field },
   failedBubble: { opacity: 0.6 },
   body: { fontSize: 17, color: colors.label },
-  mineText: { color: 'white' },
+  mineText: { color: colors.onTint },
   meta: { fontSize: 11, color: colors.secondaryLabel, marginTop: 2, marginHorizontal: 8 },
   failedMeta: { color: colors.danger },
   noticeRow: { alignSelf: 'center', marginVertical: 6, paddingHorizontal: 16 },
