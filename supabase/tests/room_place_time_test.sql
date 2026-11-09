@@ -9,6 +9,8 @@
 -- Join-gate attempts use a documentation IP (198.51.100.226), so no live IP budget is touched.
 
 begin;
+-- A busy rooms table makes the run fail fast instead of holding up live traffic.
+set local lock_timeout = '3s';
 
 create schema tests;
 grant usage on schema tests to authenticated, anon;
