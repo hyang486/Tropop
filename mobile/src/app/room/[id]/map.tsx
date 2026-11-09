@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, Sty
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmergencyAlerts } from '@/components/room-activity';
+import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -108,14 +109,8 @@ export default function RoomMapScreen() {
   });
 
   if (state.status === 'loading') return <ActivityIndicator style={styles.loading} />;
-  if (state.status === 'gone') {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.goneTitle}>{en.room.gone}</Text>
-        <Hint>{en.room.goneHint}</Hint>
-      </View>
-    );
-  }
+  // Q 06.04: the row is gone, so no closed-at time is known.
+  if (state.status === 'gone') return <RoomEnded />;
   if (state.status === 'error') {
     return (
       <View style={styles.center}>
@@ -680,7 +675,6 @@ const styles = StyleSheet.create({
   roomName: { fontSize: 15, color: colors.secondaryLabel },
   loading: { marginTop: 48 },
   center: { padding: 20, gap: 12, alignItems: 'center' },
-  goneTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
   mapWrap: { height: 360, borderRadius: 12, borderCurve: 'continuous', overflow: 'hidden' },
   map: { flex: 1 },
   overlayButton: {

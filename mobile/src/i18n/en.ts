@@ -152,6 +152,10 @@ export const en = {
     reminderGoneHint:
       'The room from your reminder has ended. Its messages, photos, and files were deleted from the server. Anything you already saved to your device is still there.',
     backToRooms: 'Back to rooms',
+    // Qrew unit 5 (Q 06.04): the shared ended screen. closedAt only when the client knows the time (lib/room-ended).
+    endedTitle: 'This room has ended',
+    closedAt: (name: string, when: string) => `${name} closed at ${when}.`,
+    savedStay: 'Saved originals stay on your device.',
   },
   statusEditor: {
     title: 'Statuses',
@@ -200,9 +204,18 @@ export const en = {
     stopBody: 'Your reference photo and all results for this room are deleted from the server.',
     stopConfirm: 'Stop and remove',
     cancel: 'Cancel',
-    setUp: 'Set up',
+    setUp: 'Set up photos of me',
     manage: 'Manage',
-    intro: 'Find the photos you appear in. Optional, and only for this room.',
+    // Qrew unit 5 (Q 06.01): the Me filter before setup.
+    intro: 'Find your photos in this room.',
+    introMeta: 'Optional · One reference photo',
+    // Qrew unit 5 (Q 06.02): the review screen. The consent points above stay in full on it (not Q's short text).
+    reviewTitle: 'Review your reference',
+    reviewSubtitle: 'Check that your face is clearly visible.',
+    pickPhoto: 'Choose a photo',
+    chooseAnother: 'Choose another',
+    pickPhotoHint: 'Takes or chooses a photo of your face',
+    noPhotoYet: 'No photo chosen yet',
     disabled:
       'Face matching is off in this draft. Your reference is saved; photos are sorted when face matching is turned on.',
     runError: (message: string) => `Photos could not be checked: ${message}`,

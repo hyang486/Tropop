@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
+import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -80,26 +81,26 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
   const gate = endGate(kind, room, userId, now);
   // After a successful End the room is not reloaded (useFocusEffect skips it), so the screen does not flash
   // "not running" while it leaves.
-  if (gate !== 'ready' || !room) {
-    const gone = gate === 'gone' || !room;
-    const message = gone
-      ? en.room.gone
-      : gate === 'not-host'
-        ? copy.notHost
-        : en.endActivity.notRunning;
+  if (gate === 'gone' || !room) {
+    // Q 06.04: the shared ended screen (closed-at time only when the loaded row shows it).
+    return (
+      <>
+        {header}
+        <RoomEnded room={room} nowMs={now} />
+      </>
+    );
+  }
+  if (gate !== 'ready') {
+    const message = gate === 'not-host' ? copy.notHost : en.endActivity.notRunning;
     return (
       <QScreen
         title={copy.title}
         actions={
-          gone ? (
-            <Button title={en.room.backToRooms} onPress={() => router.dismissTo('/')} />
-          ) : (
-            <Button
-              title={kind === 'activity' ? en.endActivity.back : en.room.cancel}
-              variant="secondary"
-              onPress={() => router.back()}
-            />
-          )
+          <Button
+            title={kind === 'activity' ? en.endActivity.back : en.room.cancel}
+            variant="secondary"
+            onPress={() => router.back()}
+          />
         }
       >
         {header}
