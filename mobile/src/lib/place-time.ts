@@ -85,3 +85,41 @@ export function mapsUrl(app: 'apple' | 'google', placeName: string, pin: LatLng 
   const query = pin ? `${pin.latitude},${pin.longitude}` : placeName;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
+
+/** qa 4: any edit of the place name text drops the pin, so "Find on map" shows again for the new name. */
+export function pinAfterNameChange(pin: LatLng | null, oldName: string, newName: string): LatLng | null {
+  return newName === oldName ? pin : null;
+}
+
+/**
+ * qa 3: when the room length changes, the start time must stay inside the picker's range, so that what the
+ * picker shows is what is sent. A start past the new end moves to the end (moved: true); one before the start
+ * of the range moves to its start.
+ */
+export function clampStart(startsAt: Date | null, range: { start: Date; end: Date }) {
+  if (!startsAt) return { startsAt: null, moved: false };
+  const t = startsAt.getTime();
+  if (t > range.end.getTime()) return { startsAt: new Date(range.end.getTime()), moved: true };
+  if (t < range.start.getTime()) return { startsAt: new Date(range.start.getTime()), moved: true };
+  return { startsAt, moved: false };
+}
+
+/**
+ * qa 5: where the pin is, from a reverse geocode: "Los Angeles, CA". City (or subregion) and region; the
+ * country only when neither is known. Null when nothing useful came back (then nothing is shown).
+ */
+export function pinAreaLabel(
+  address: {
+    city?: string | null;
+    subregion?: string | null;
+    region?: string | null;
+    country?: string | null;
+  } | null | undefined,
+): string | null {
+  if (!address) return null;
+  const local = address.city || address.subregion || null;
+  const parts = [local, address.region || null].filter((p): p is string => !!p);
+  const unique = parts.filter((p, i) => parts.indexOf(p) === i);
+  if (unique.length) return unique.join(', ');
+  return address.country || null;
+}

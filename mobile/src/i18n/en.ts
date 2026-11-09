@@ -105,6 +105,7 @@ export const en = {
     removeStartTime: 'Remove start time',
     startAfterClose: 'The start time must be before the room closes.',
     startTooEarly: 'The start time is too far in the past.',
+    startMoved: 'The start time moved to fit the new room length.',
   },
   // Q 02.03
   join: {
@@ -143,8 +144,10 @@ export const en = {
   placeTime: {
     mapCaption: 'Meeting point preview',
     openInMaps: 'Open in Maps',
-    appleMaps: 'Apple Maps',
-    googleMaps: 'Google Maps',
+    // Q 08.02
+    sheetTitle: 'Open meeting location',
+    openApple: 'Open in Apple Maps',
+    openGoogle: 'Open in Google Maps',
     cancel: 'Cancel',
     localTime: 'Local time',
     starts: (when: string) => `Starts ${when}`,

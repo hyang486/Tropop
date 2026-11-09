@@ -1,7 +1,8 @@
 import { DatePicker, Host } from '@expo/ui/swift-ui';
+import { dynamicTypeSize, labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { PlacePinMap } from '@/components/place-time-cards';
@@ -12,8 +13,11 @@ import { errorMessage } from '@/lib/errors';
 import { createRoom, ROOM_TYPES, type RoomType } from '@/lib/rooms';
 import { defaultRoomHours, formatDeletedAt } from '@/lib/create-defaults';
 import {
+  clampStart,
   MAX_PLACE_NAME,
   normalizePlaceName,
+  pinAfterNameChange,
+  pinAreaLabel,
   startTimeError,
   startTimeRange,
   type LatLng,
@@ -51,18 +55,58 @@ export default function CreateRoom() {
   const [finding, setFinding] = useState(false);
   const [placeNote, setPlaceNote] = useState<string | null>(null);
   const [startsAt, setStartsAt] = useState<Date | null>(null);
+  const [startNote, setStartNote] = useState<string | null>(null);
+  // qa 5: where the pin is ("Los Angeles, CA"), so a first geocoder hit in the wrong city is easy to spot.
+  // Kept with the pin it was looked up for, so a moved or dropped pin never shows an old area.
+  const [pinLookup, setPinLookup] = useState<{ pin: LatLng; area: string | null } | null>(null);
+  const pinArea = pin && pinLookup?.pin === pin ? pinLookup.area : null;
+  // The picker's range starts when the screen opens, so a chosen start never falls below it as time passes
+  // (the picker would then show a clamped time that differs from what is sent).
+  const [openedAt] = useState(() => Date.now());
 
   // #11: refreshed every 5 s and shown without seconds, so the time stays current while the screen is open.
   const now = useNow(5_000);
   const expiresPreview = new Date(now + hours * 3_600_000);
-  const startRange = startTimeRange(expiresPreview.getTime(), now);
+  const startRange = { ...startTimeRange(expiresPreview.getTime(), now), start: new Date(openedAt) };
   const hasPlace = normalizePlaceName(placeName) !== null;
 
+  // qa 3: a new room length moves a start time that no longer fits, and says so, so what the picker shows is
+  // what is sent.
+  function changeHours(nextHours: number) {
+    const range = { ...startTimeRange(now + nextHours * 3_600_000, now), start: new Date(openedAt) };
+    const { startsAt: clamped, moved } = clampStart(startsAt, range);
+    setStartsAt(clamped);
+    setStartNote(moved ? en.createRoom.startMoved : null);
+  }
+
+  function pickType(t: RoomType) {
+    setType(t);
+    if (pickedHours === null) changeHours(defaultRoomHours(t));
+  }
+
+  function pickHours(h: number) {
+    setPickedHours(h);
+    changeHours(h);
+  }
+
+  // qa 4: any edit of the name drops the pin, so Find on map shows again for the new name.
   function changePlaceName(text: string) {
+    setPin((current) => pinAfterNameChange(current, placeName, text));
     setPlaceName(text);
     setPlaceNote(null);
-    if (normalizePlaceName(text) === null) setPin(null);
   }
+
+  useEffect(() => {
+    if (!pin) return;
+    let live = true;
+    // Apple reverse geocoding (no location permission). On failure nothing is shown.
+    Location.reverseGeocodeAsync(pin)
+      .then(([address]) => live && setPinLookup({ pin, area: pinAreaLabel(address) }))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [pin]);
 
   async function findOnMap() {
     const query = normalizePlaceName(placeName);
@@ -86,7 +130,8 @@ export default function CreateRoom() {
     const next = new Date(now);
     next.setMinutes(0, 0, 0);
     next.setHours(next.getHours() + 1);
-    setStartsAt(new Date(Math.min(next.getTime(), startRange.end.getTime())));
+    setStartsAt(clampStart(next, startRange).startsAt);
+    setStartNote(null);
   }
 
   async function submit() {
@@ -151,14 +196,14 @@ export default function CreateRoom() {
       <QLabel>{en.createRoom.typeLabel}</QLabel>
       <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.typeLabel}>
         {ROOM_TYPES.map((t) => (
-          <Choice key={t} label={en.rooms.types[t]} selected={type === t} onPress={() => setType(t)} />
+          <Choice key={t} label={en.rooms.types[t]} selected={type === t} onPress={() => pickType(t)} />
         ))}
       </View>
 
       <QLabel>{en.createRoom.expiryLabel}</QLabel>
       <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.expiryLabel}>
         {en.createRoom.expiryOptions.map((o) => (
-          <Choice key={o.hours} label={o.label} selected={hours === o.hours} onPress={() => setPickedHours(o.hours)} />
+          <Choice key={o.hours} label={o.label} selected={hours === o.hours} onPress={() => pickHours(o.hours)} />
         ))}
       </View>
       <Text style={styles.deletes}>{en.createRoom.expiryHint(formatDeletedAt(expiresPreview.getTime()))}</Text>
@@ -183,26 +228,48 @@ export default function CreateRoom() {
       {hasPlace && pin ? (
         <>
           <PlacePinMap pin={pin} title={normalizePlaceName(placeName) ?? undefined} onMapClick={setPin} />
+          {pinArea ? <Text style={styles.pinArea}>{pinArea}</Text> : null}
           <Text style={styles.cardNote}>{en.createRoom.pinHint}</Text>
           <QLink title={en.createRoom.removePin} onPress={() => setPin(null)} />
         </>
       ) : null}
       {startsAt ? (
         <QCard>
-          <Host matchContents>
-            <DatePicker
-              title={en.createRoom.startTimeLabel}
-              selection={startsAt}
-              range={startRange}
-              displayedComponents={['date', 'hourAndMinute']}
-              onDateChange={setStartsAt}
-            />
-          </Host>
-          <QLink title={en.createRoom.removeStartTime} onPress={() => setStartsAt(null)} />
+          {/* qa 1: the label sits above, and date and time are two compact pickers that wrap onto two rows when
+              they do not fit side by side. Their Dynamic Type is capped at xxxLarge so each stays inside the card
+              on a 390 pt screen at the largest text size. */}
+          <Text style={styles.cardTitle} maxFontSizeMultiplier={1.5}>
+            {en.createRoom.startTimeLabel}
+          </Text>
+          <View style={styles.pickers}>
+            {(['date', 'hourAndMinute'] as const).map((part) => (
+              <Host key={part} matchContents>
+                <DatePicker
+                  title={en.createRoom.startTimeLabel}
+                  selection={startsAt}
+                  range={startRange}
+                  displayedComponents={[part]}
+                  onDateChange={(d) => {
+                    setStartsAt(d);
+                    setStartNote(null);
+                  }}
+                  modifiers={[labelsHidden(), dynamicTypeSize({ max: 'xxxLarge' })]}
+                />
+              </Host>
+            ))}
+          </View>
+          <QLink
+            title={en.createRoom.removeStartTime}
+            onPress={() => {
+              setStartsAt(null);
+              setStartNote(null);
+            }}
+          />
         </QCard>
       ) : (
         <QLink title={en.createRoom.addStartTime} onPress={addStartTime} />
       )}
+      {startNote ? <Hint>{startNote}</Hint> : null}
 
       <QCard row>
         <Text style={styles.cardTitle}>{en.createRoom.locationLabel}</Text>
@@ -247,4 +314,6 @@ const styles = StyleSheet.create({
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
   statuses: { fontSize: 14, color: colors.secondaryLabel, paddingVertical: 2 },
   cardNote: { fontSize: 12, color: colors.secondaryLabel },
+  pinArea: { fontSize: 14, color: colors.label },
+  pickers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

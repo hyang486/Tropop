@@ -6,6 +6,9 @@ import {
   MAX_PLACE_NAME,
   mapsUrl,
   normalizePlaceName,
+  clampStart,
+  pinAfterNameChange,
+  pinAreaLabel,
   placeTimeArgs,
   placeTimeOf,
   startTimeError,
@@ -105,4 +108,39 @@ test('Maps links search by name and drop the pin when there is one', () => {
     mapsUrl('google', 'North Gate', { latitude: 37.77, longitude: -122.45 }),
     'https://www.google.com/maps/search/?api=1&query=37.77%2C-122.45',
   );
+});
+
+test('qa 4: any change of the place name drops the pin', () => {
+  const pin = { latitude: 37.788, longitude: -122.407 };
+  assert.equal(pinAfterNameChange(pin, 'Union Square', 'Union Hall'), null);
+  assert.equal(pinAfterNameChange(pin, 'Union Square', 'Union Square '), null);
+  assert.equal(pinAfterNameChange(pin, 'Union Square', ''), null);
+  assert.equal(pinAfterNameChange(pin, 'Union Square', 'Union Square'), pin);
+  assert.equal(pinAfterNameChange(null, 'a', 'b'), null);
+});
+
+test('qa 3: a shorter room length moves the start time to the new end, and says so', () => {
+  const now = Date.parse('2026-11-09T12:00:00Z');
+  const longRange = startTimeRange(now + 96 * HOUR, now);
+  const shortRange = startTimeRange(now + 3 * HOUR, now);
+  const start = new Date(now + 24 * HOUR);
+  assert.deepEqual(clampStart(start, longRange), { startsAt: start, moved: false });
+  const moved = clampStart(start, shortRange);
+  assert.equal(moved.moved, true);
+  assert.equal(moved.startsAt.getTime(), shortRange.end.getTime());
+  // What is shown (clamped) is what is sent: it passes the create_room rule.
+  assert.equal(startTimeError(moved.startsAt, now + 3 * HOUR, now), null);
+  assert.deepEqual(clampStart(null, shortRange), { startsAt: null, moved: false });
+  const early = clampStart(new Date(now - HOUR), shortRange);
+  assert.equal(early.moved, true);
+  assert.equal(early.startsAt.getTime(), now);
+});
+
+test('qa 5: the pin area reads city and region, else the country, else nothing', () => {
+  assert.equal(pinAreaLabel({ city: 'Los Angeles', region: 'CA', country: 'United States' }), 'Los Angeles, CA');
+  assert.equal(pinAreaLabel({ city: null, subregion: 'Marin County', region: 'CA' }), 'Marin County, CA');
+  assert.equal(pinAreaLabel({ city: 'Singapore', region: 'Singapore' }), 'Singapore');
+  assert.equal(pinAreaLabel({ country: 'Iceland' }), 'Iceland');
+  assert.equal(pinAreaLabel({}), null);
+  assert.equal(pinAreaLabel(null), null);
 });

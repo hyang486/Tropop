@@ -1,27 +1,14 @@
 import { AppleMaps } from 'expo-maps';
-import { ActionSheetIOS, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { MapsSheet } from '@/components/maps-sheet';
 import { QRowCard } from '@/components/q-row-card';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { mapsUrl, type LatLng, type PlaceTime } from '@/lib/place-time';
+import type { LatLng, PlaceTime } from '@/lib/place-time';
 
 const PIN_ZOOM = 15;
-
-/** Open in Maps: a sheet with Apple Maps and Google Maps (worklist: "Apple/Google Maps sheet"). */
-export function openInMaps(placeName: string, pin: LatLng | null) {
-  ActionSheetIOS.showActionSheetWithOptions(
-    {
-      title: placeName,
-      options: [en.placeTime.appleMaps, en.placeTime.googleMaps, en.placeTime.cancel],
-      cancelButtonIndex: 2,
-    },
-    (index) => {
-      if (index === 0) Linking.openURL(mapsUrl('apple', placeName, pin)).catch(() => {});
-      if (index === 1) Linking.openURL(mapsUrl('google', placeName, pin)).catch(() => {});
-    },
-  );
-}
 
 /**
  * A map centred on the meeting pin. Read-only (no pan or zoom: it sits inside a scrolling screen) unless
@@ -88,14 +75,17 @@ export function placeTimeLine(pt: PlaceTime) {
  */
 export function PlaceTimeCards({ placeTime }: { placeTime: PlaceTime }) {
   const { placeName, pin, startsAt } = placeTime;
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const openInMaps = () => setSheetOpen(true);
   return (
     <>
+      <MapsSheet target={sheetOpen && placeName ? { placeName, pin } : null} onClose={() => setSheetOpen(false)} />
       {placeName && pin ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${placeName}, ${en.placeTime.mapCaption}`}
           accessibilityHint={en.placeTime.openInMaps}
-          onPress={() => openInMaps(placeName, pin)}
+          onPress={openInMaps}
         >
           <PlacePinMap pin={pin} title={placeName} caption={en.placeTime.mapCaption} />
         </Pressable>
@@ -107,7 +97,7 @@ export function PlaceTimeCards({ placeTime }: { placeTime: PlaceTime }) {
           subtitle={en.placeTime.openInMaps}
           accessibilityLabel={placeName}
           accessibilityHint={en.placeTime.openInMaps}
-          onPress={() => openInMaps(placeName, pin)}
+          onPress={openInMaps}
         />
       ) : null}
       {startsAt ? (
