@@ -1,12 +1,13 @@
 import { Image } from 'expo-image';
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -55,6 +56,8 @@ const FILTERS: { key: GalleryFilter; label: string }[] = [
 ];
 const COLUMNS = 3;
 const GAP = 2;
+/** F1 (U5): Dynamic Type cap for the pinned footer (Originals line and Add photos or files). */
+const FOOTER_FONT_CAP = 1.5;
 
 const timeOf = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
@@ -136,6 +139,35 @@ export default function GalleryScreen() {
         )
       : null;
 
+  // F1 (U5): upload rows and the Room closes / Original saved cards scroll with the content,
+  // so at the largest text sizes they cannot squeeze the grid or the pinned footer off screen.
+  const notices =
+    uploads.jobs.length > 0 || saved || (closesIn != null && room) ? (
+      <View style={styles.notices}>
+        {uploads.jobs.length > 0 ? (
+          <View style={styles.jobs}>
+            {uploads.jobs.map((job) => (
+              <UploadRow
+                key={job.id}
+                job={job}
+                onRetry={() => uploads.retry(job.id)}
+                onDismiss={() => uploads.dismiss(job.id)}
+                onCancel={() => confirmCancel(job)}
+              />
+            ))}
+          </View>
+        ) : null}
+        {saved ? <SavedCard onDismiss={() => setSaved(false)} /> : null}
+        {closesIn != null && room ? <ClosesSoonCard minutes={closesIn} time={timeOf(expiresMs)} /> : null}
+      </View>
+    ) : null;
+  const scroll = (children: ReactNode) => (
+    <ScrollView contentInsetAdjustmentBehavior="never">
+      {notices}
+      {children}
+    </ScrollView>
+  );
+
   return (
     <View ref={rootRef} onLayout={measureRoot} style={[styles.flex, { paddingTop: headerOverlap }]}>
       <Stack.Screen
@@ -184,36 +216,10 @@ export default function GalleryScreen() {
       </View>
       <RoomEmergencyBanner roomId={id} style={styles.emergency} />
 
-      {/* Work list B: upload progress under the filters. */}
-      {uploads.jobs.length > 0 ? (
-        <View style={styles.jobs}>
-          {uploads.jobs.map((job) => (
-            <UploadRow
-              key={job.id}
-              job={job}
-              onRetry={() => uploads.retry(job.id)}
-              onDismiss={() => uploads.dismiss(job.id)}
-              onCancel={() => confirmCancel(job)}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      {saved ? (
-        <View style={styles.cards}>
-          <SavedCard onDismiss={() => setSaved(false)} />
-        </View>
-      ) : null}
-      {closesIn != null && room ? (
-        <View style={styles.cards}>
-          <ClosesSoonCard minutes={closesIn} time={timeOf(expiresMs)} />
-        </View>
-      ) : null}
-
       <View style={styles.body}>
         {filter === 'me' && userId ? (
           media.loading ? (
-            <ActivityIndicator style={styles.loading} />
+            scroll(<ActivityIndicator style={styles.loading} />)
           ) : (
             <PhotosOfMe
               roomId={id}
@@ -223,15 +229,18 @@ export default function GalleryScreen() {
               gap={GAP}
               renderTile={(item) => <Tile media={item} size={tile} token={token} />}
               onRefreshMedia={media.reload}
+              header={notices}
             />
           )
         ) : media.loading ? (
-          <ActivityIndicator style={styles.loading} />
+          scroll(<ActivityIndicator style={styles.loading} />)
         ) : media.error && media.items.length === 0 ? (
-          <View style={styles.center}>
-            <Hint tone="error">{en.media.loadError}</Hint>
-            <Button title={en.home.retry} variant="secondary" onPress={media.reload} />
-          </View>
+          scroll(
+            <View style={styles.center}>
+              <Hint tone="error">{en.media.loadError}</Hint>
+              <Button title={en.home.retry} variant="secondary" onPress={media.reload} />
+            </View>,
+          )
         ) : (
           <FlatList
             data={media.items}
@@ -242,6 +251,7 @@ export default function GalleryScreen() {
             contentContainerStyle={{ gap: GAP }}
             onRefresh={media.reload}
             refreshing={false}
+            ListHeaderComponent={notices ?? undefined}
             ListEmptyComponent={
               <View style={styles.center}>
                 <Text style={styles.emptyTitle}>{emptyText}</Text>
@@ -254,8 +264,18 @@ export default function GalleryScreen() {
       </View>
 
       <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
-        {originalsLine ? <Text style={styles.originals}>{originalsLine}</Text> : null}
-        <Button title={en.media.addButton} variant="secondary" onPress={() => setSheetOpen(true)} />
+        {/* The pinned footer stays on screen at every text size: its line and button scale only so far. */}
+        {originalsLine ? (
+          <Text style={styles.originals} numberOfLines={2} maxFontSizeMultiplier={FOOTER_FONT_CAP}>
+            {originalsLine}
+          </Text>
+        ) : null}
+        <Button
+          title={en.media.addButton}
+          variant="secondary"
+          onPress={() => setSheetOpen(true)}
+          maxFontSizeMultiplier={FOOTER_FONT_CAP}
+        />
       </View>
 
       <AddMediaSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} onChoose={onChoose} />
@@ -385,10 +405,10 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 17, fontWeight: '600', color: colors.label, textAlign: 'center' },
   body: { flex: 1, paddingHorizontal: qSpacing.side },
   grid: { borderRadius: 12, borderCurve: 'continuous' },
-  cards: { paddingHorizontal: qSpacing.side, paddingBottom: 10 },
+  notices: { gap: 10, paddingBottom: 8 },
   actions: { paddingHorizontal: qSpacing.side, paddingTop: 12, gap: qSpacing.gap, backgroundColor: colors.background },
   originals: { fontSize: 13, color: colors.secondaryLabel },
-  jobs: { paddingHorizontal: qSpacing.side, paddingBottom: 10, gap: 8 },
+  jobs: { gap: 8 },
   job: {
     flexDirection: 'row',
     alignItems: 'center',
