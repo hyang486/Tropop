@@ -64,7 +64,8 @@ function RootNavigator() {
     <Stack screenOptions={{ headerLargeTitle: false, headerBackButtonDisplayMode: 'minimal' }}>
       <Stack.Protected guard={signedIn} redirectTo="/welcome">
         <Stack.Screen name="index" options={{ title: en.home.title, headerTitle: '' }} />
-        <Stack.Screen name="profile" options={{ title: en.profile.title }} />
+        <Stack.Screen name="profile" options={{ title: en.profile.title, headerTitle: '' }} />
+        <Stack.Screen name="profile-edit" options={{ title: en.profile.editProfile, headerTitle: '' }} />
         {/* Modal screens (upgrade, room/[id]/invite): keep MODAL_ROUTES in lib/root-link.ts in sync (P-3). */}
         <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, headerTitle: '', presentation: 'modal' }} />
         <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title }} />
@@ -74,8 +75,9 @@ function RootNavigator() {
         {/* Qrew: the handwritten title is in the content (QScreen); the nav bar keeps only Back. */}
         <Stack.Screen name="preview" options={{ title: en.preview.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
-        <Stack.Screen name="room/[id]/info" options={{ title: en.room.info }} />
-        <Stack.Screen name="room/[id]/gallery" options={{ title: en.media.title }} />
+        <Stack.Screen name="room/[id]/info" options={{ title: en.room.info, headerTitle: '' }} />
+        <Stack.Screen name="room/[id]/gallery" options={{ title: en.media.title, headerTitle: '' }} />
+        <Stack.Screen name="room/[id]/camera-off" options={{ title: en.cameraOff.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/map" options={{ title: en.map.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/end-activity" options={{ title: en.endActivity.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/end-room" options={{ title: en.endRoom.title, headerTitle: '' }} />

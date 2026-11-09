@@ -166,8 +166,8 @@ export const INK_DRAWINGS = {
 } satisfies Record<string, InkDrawing>;
 
 /** Extracted from the design PDF with a transparent background (scripts/ink-art-extract.mjs). */
-export type ArtImageKey = 'run' | 'gathering' | 'gate' | 'paper';
-const IMAGE_KEYS: readonly ArtImageKey[] = ['run', 'gathering', 'gate', 'paper'];
+export type ArtImageKey = 'run' | 'gathering' | 'gate' | 'paper' | 'reference' | 'ended' | 'camera';
+const IMAGE_KEYS: readonly ArtImageKey[] = ['run', 'gathering', 'gate', 'paper', 'reference', 'ended', 'camera'];
 /** Drawn by dev in the same pen style (lib/ink-drawings). */
 export type ArtDrawingKey = keyof typeof INK_DRAWINGS;
 export type ArtKey = ArtImageKey | ArtDrawingKey;
@@ -176,7 +176,17 @@ export type ArtEntry = { kind: 'image'; key: ArtImageKey; aspect: number } | { k
 
 /** Pixel sizes of the extracted PNGs (width / height = aspect). */
 // gate: guest greeting at a gate (Q 02.01, 07.02); paper: two people reading a paper (Q 02.03, 07.03).
-const IMAGE_ASPECT: Record<ArtImageKey, number> = { run: 305 / 281, gathering: 646 / 442, gate: 483 / 303, paper: 393 / 262 };
+// reference: person holding a reference photo (Q 06.01); ended: closed gate with a clock (Q 06.04);
+// camera: person taking a photo (Q 07.04).
+const IMAGE_ASPECT: Record<ArtImageKey, number> = {
+  run: 305 / 281,
+  gathering: 646 / 442,
+  gate: 483 / 303,
+  paper: 393 / 262,
+  reference: 336 / 316,
+  ended: 470 / 328,
+  camera: 395 / 252,
+};
 
 /** Theme → art. Every theme has an entry; a key missing from the map falls back to the gathering art. */
 const THEME_ART: Partial<Record<RoomTheme, ArtKey>> = {

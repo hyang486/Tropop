@@ -97,9 +97,11 @@ type ButtonProps = {
   variant?: 'primary' | 'secondary' | 'destructive';
   busy?: boolean;
   disabled?: boolean;
+  /** Caps the title's Dynamic Type scale, for buttons in a pinned footer that must stay on screen. */
+  maxFontSizeMultiplier?: number;
 };
 
-export function Button({ title, onPress, variant = 'primary', busy, disabled }: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', busy, disabled, maxFontSizeMultiplier }: ButtonProps) {
   const isPrimary = variant === 'primary';
   // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red.
   const accent = variant === 'destructive' ? colors.danger : colors.tint;
@@ -118,7 +120,12 @@ export function Button({ title, onPress, variant = 'primary', busy, disabled }: 
       {busy ? (
         <ActivityIndicator color={isPrimary ? colors.onTint : accent} />
       ) : (
-        <Text style={[styles.buttonText, { color: isPrimary ? colors.onTint : accent }]}>{title}</Text>
+        <Text
+          style={[styles.buttonText, { color: isPrimary ? colors.onTint : accent }]}
+          maxFontSizeMultiplier={maxFontSizeMultiplier}
+        >
+          {title}
+        </Text>
       )}
     </Pressable>
   );

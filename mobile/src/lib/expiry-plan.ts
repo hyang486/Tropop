@@ -97,3 +97,16 @@ export function planReminders(
   }
   return plan;
 }
+
+/** Q 06.03: the "Room closes in N min" card on Photos & files shows in the last hour of every room. */
+export const CLOSES_SOON_MS = SHORT_ROOM_BANNER_MS;
+
+/**
+ * Q 06.03: whole minutes left (rounded up, at least 1) while the room closes within CLOSES_SOON_MS, so the
+ * card never says "0 min" while the room is still open; null before that window, after the end, or for a bad date.
+ */
+export function closesSoonMinutes(expiresAt: string, nowMs: number): number | null {
+  const remaining = new Date(expiresAt).getTime() - nowMs;
+  if (!Number.isFinite(remaining) || remaining <= 0 || remaining > CLOSES_SOON_MS) return null;
+  return Math.max(1, Math.ceil(remaining / 60_000));
+}

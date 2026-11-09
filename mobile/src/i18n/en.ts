@@ -146,12 +146,25 @@ export const en = {
     leaveConfirmTitle: 'Leave this room?',
     leaveConfirmBody: 'You will lose access to its chat and photos. You can rejoin with the invite while the room is open.',
     end: 'End room for everyone',
+    // Qrew unit 5 (Q 03.03): Room info cards.
+    infoSubtitle: (isHost: boolean) => (isHost ? 'Room info · Host' : 'Room info'),
+    people: (n: number) => (n === 1 ? '1 person' : `${n} people`),
+    arrived: (n: number) => `${n} arrived`,
+    viewParticipants: 'View participants',
+    hideParticipants: 'Hide participants',
+    statusOptions: 'Status options',
+    editStatusOptions: 'Edit status options',
+    doneEditingStatus: 'Done editing statuses',
     cancel: 'Cancel',
     gone: 'This room has ended.',
     goneHint: 'It expired, was ended by the host, or you left it.',
     reminderGoneHint:
       'The room from your reminder has ended. Its messages, photos, and files were deleted from the server. Anything you already saved to your device is still there.',
     backToRooms: 'Back to rooms',
+    // Qrew unit 5 (Q 06.04): the shared ended screen. closedAt only when the client knows the time (lib/room-ended).
+    endedTitle: 'This room has ended',
+    closedAt: (name: string, when: string) => `${name} closed at ${when}.`,
+    savedStay: 'Saved originals stay on your device.',
   },
   statusEditor: {
     title: 'Statuses',
@@ -200,9 +213,18 @@ export const en = {
     stopBody: 'Your reference photo and all results for this room are deleted from the server.',
     stopConfirm: 'Stop and remove',
     cancel: 'Cancel',
-    setUp: 'Set up',
+    setUp: 'Set up photos of me',
     manage: 'Manage',
-    intro: 'Find the photos you appear in. Optional, and only for this room.',
+    // Qrew unit 5 (Q 06.01): the Me filter before setup.
+    intro: 'Find your photos in this room.',
+    introMeta: 'Optional · One reference photo',
+    // Qrew unit 5 (Q 06.02): the review screen. The consent points above stay in full on it (not Q's short text).
+    reviewTitle: 'Review your reference',
+    reviewSubtitle: 'Check that your face is clearly visible.',
+    pickPhoto: 'Choose a photo',
+    chooseAnother: 'Choose another',
+    pickPhotoHint: 'Takes or chooses a photo of your face',
+    noPhotoYet: 'No photo chosen yet',
     disabled:
       'Face matching is off in this draft. Your reference is saved; photos are sorted when face matching is turned on.',
     runError: (message: string) => `Photos could not be checked: ${message}`,
@@ -296,6 +318,39 @@ export const en = {
     notFound: 'This item is no longer available.',
     video: 'Video',
     file: 'File',
+    // Qrew unit 5 (Q 05.01-05.04, 06.03)
+    photo: 'Photo',
+    addButton: 'Add photos or files',
+    addSheetTitle: 'Add to the room',
+    addSheetTakePhoto: 'Take a photo',
+    addSheetPhotos: 'Choose photos & videos',
+    addSheetFiles: 'Browse files',
+    filters: 'Show',
+    originalsUntil: (day: 'today' | 'tomorrow' | 'later', date: string, time: string) =>
+      day === 'today'
+        ? `Originals available until ${time}.`
+        : day === 'tomorrow'
+          ? `Originals available until tomorrow at ${time}.`
+          : `Originals available until ${date} at ${time}.`,
+    closesIn: (min: number) => `Room closes in ${min} min`,
+    saveBefore: (time: string) => `Save originals before ${time}.`,
+    saveOriginal: 'Save original',
+    share: 'Share',
+    sharedByAge: (name: string, age: string) => `Shared by ${name} · ${age}`,
+    savedTitle: 'Original saved',
+    savedBody: 'It stays on your device after the room closes.',
+    dismissSaved: 'Dismiss',
+    closeSheet: 'Close',
+    // Q 05.03: how long ago an item was shared ("Shared by Mia · 18 sec").
+    age: (n: number, unit: 'sec' | 'min' | 'hr' | 'day') =>
+      unit === 'day' ? `${n} ${n === 1 ? 'day' : 'days'}` : `${n} ${unit}`,
+  },
+  // Qrew unit 5 (Q 07.04): shown instead of an alert when camera access is off for Take a photo.
+  cameraOff: {
+    title: 'Camera access is off',
+    body: 'Allow access in Settings to take a photo.',
+    openSettings: 'Open Settings',
+    chooseLibrary: 'Choose from library',
   },
   activity: {
     arrived: 'Arrived',
@@ -426,6 +481,9 @@ export const en = {
     shareMessage: (name: string, code: string, url: string) =>
       `Join "${name}" on Qrew. Code: ${code}\n${url}`,
     qrLabel: 'Room invite QR code',
+    // Qrew unit 5 (Q 02.04).
+    heading: 'Invite your group',
+    inviteCode: 'Invite code',
   },
   profile: {
     title: 'Profile',
@@ -454,6 +512,14 @@ export const en = {
     deleteConfirmAction: 'Delete',
     deleteCancel: 'Cancel',
     deleteFailed: 'Your account was not deleted. Check your connection and try again.',
+    // Qrew unit 5 (Q 07.01).
+    guestAccount: 'Guest account',
+    hostAccount: 'Host account',
+    guestAccess: 'Guest access',
+    guestAccessBody: 'Join a room using an invitation.',
+    hostAccessBody: 'Create rooms and invite your group.',
+    editProfile: 'Edit profile',
+    editProfileHint: 'Your photo and name are shown to people in your rooms.',
   },
   planPreview: {
     title: 'Plus preview',
