@@ -620,6 +620,21 @@ export function clearAllRoomCaches() {
 export type DownloadResult = { file: File; bytes: number; sha256: string };
 
 /**
+ * N5: removes the downloaded copy of one original (its per-media cache folder, including a partial download)
+ * once Save or Share is finished. The photo library and the share target keep their own copies; the app cache
+ * must not keep originals beyond what the user saved. Best effort; room end, leave and sign-out still clear
+ * the whole room folder.
+ */
+export function discardDownload(media: Pick<Media, 'room_id' | 'id'>) {
+  try {
+    const mediaDir = new Directory(roomCacheDir(media.room_id), media.id);
+    if (mediaDir.exists) mediaDir.delete();
+  } catch {
+    // Cache cleanup is best effort.
+  }
+}
+
+/**
  * Downloads the stored original into the room's cache folder and verifies it against the
  * server-recorded size and the uploader's SHA-256. A mismatched file is deleted.
  */

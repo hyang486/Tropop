@@ -12,7 +12,7 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { excludeFaceMatch, myVisibleMatch } from '@/lib/face';
-import { authHeaders, downloadOriginal, formatBytes, getMedia, type Media, objectUrl, saveOriginal } from '@/lib/media';
+import { authHeaders, discardDownload, downloadOriginal, formatBytes, getMedia, type Media, objectUrl, saveOriginal } from '@/lib/media';
 import { mediaTitle, noteSaved, sharedAge } from '@/lib/media-plan';
 import { listMembers } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
@@ -129,6 +129,8 @@ function MediaDetail({
       setDownload({ status: 'done', message: `${savedTo === 'library' ? en.media.savedToPhotos : en.media.savedFile} ${verified}` });
     } catch (e) {
       setDownload({ status: 'error', message: errorMessage(e) });
+    } finally {
+      discardDownload(media);
     }
   }
 
@@ -141,6 +143,9 @@ function MediaDetail({
       setDownload({ status: 'idle' });
     } catch (e) {
       setDownload({ status: 'error', message: errorMessage(e) });
+    } finally {
+      // Share.share resolves after the sheet closes, when the target has its own copy.
+      discardDownload(media);
     }
   }
 
