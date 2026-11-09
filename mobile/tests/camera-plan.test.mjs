@@ -37,3 +37,10 @@ for (const [file, fn] of [
     assert.ok(guard < body.indexOf('launchCameraAsync'), 'guard before the launch');
   });
 }
+
+test('CameraError reason: denied opens the Camera access is off screen; default is unavailable', () => {
+  assert.equal(new CameraError('x', 'denied').reason, 'denied');
+  assert.equal(new CameraError('x').reason, 'unavailable');
+  const src = readFileSync(new URL('../src/lib/media.ts', import.meta.url), 'utf8');
+  assert.match(src, /if \(!perm\.granted\) throw new CameraError\(en\.media\.cameraDenied, 'denied'\)/);
+});

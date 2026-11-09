@@ -127,7 +127,7 @@ export async function takePhoto(): Promise<PickedItem[]> {
   // G9 F1: decide before any native camera call (the Simulator's missing camera is an uncatchable ObjC crash).
   if (cameraStep(Device.isDevice) === 'unavailable') throw new CameraError(en.media.cameraUnavailable);
   const perm = await ImagePicker.requestCameraPermissionsAsync();
-  if (!perm.granted) throw new CameraError(en.media.cameraDenied);
+  if (!perm.granted) throw new CameraError(en.media.cameraDenied, 'denied');
   let result: ImagePicker.ImagePickerResult;
   try {
     result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 1, exif: false });

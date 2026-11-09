@@ -146,3 +146,19 @@ test('G6b: a reminder scheduled before G6b (no fireAt) is rescheduled to the new
 test('G6b: inside its last hour a short room schedules nothing (the banner covers it)', () => {
   assert.deepEqual(planReminders([room('s', 30 * 60 * 1000, 1, 2.5 * HOUR)], [], NOW, true), { schedule: [], cancel: [] });
 });
+
+test('closesSoonMinutes: only in the last hour, rounded up, never 0 while open', async () => {
+  const { closesSoonMinutes, CLOSES_SOON_MS } = await import('../src/lib/expiry-plan.ts');
+  const now = Date.UTC(2026, 10, 9, 21);
+  const at = (ms) => new Date(now + ms).toISOString();
+  assert.equal(CLOSES_SOON_MS, 60 * 60 * 1000);
+  assert.equal(closesSoonMinutes(at(2 * 3_600_000), now), null);
+  assert.equal(closesSoonMinutes(at(3_600_000 + 1), now), null);
+  assert.equal(closesSoonMinutes(at(3_600_000), now), 60);
+  assert.equal(closesSoonMinutes(at(57 * 60_000), now), 57);
+  assert.equal(closesSoonMinutes(at(56 * 60_000 + 1), now), 57);
+  assert.equal(closesSoonMinutes(at(1_000), now), 1);
+  assert.equal(closesSoonMinutes(at(0), now), null);
+  assert.equal(closesSoonMinutes(at(-60_000), now), null);
+  assert.equal(closesSoonMinutes('not a date', now), null);
+});

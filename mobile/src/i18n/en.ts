@@ -296,6 +296,39 @@ export const en = {
     notFound: 'This item is no longer available.',
     video: 'Video',
     file: 'File',
+    // Qrew unit 5 (Q 05.01-05.04, 06.03)
+    photo: 'Photo',
+    addButton: 'Add photos or files',
+    addSheetTitle: 'Add to the room',
+    addSheetTakePhoto: 'Take a photo',
+    addSheetPhotos: 'Choose photos & videos',
+    addSheetFiles: 'Browse files',
+    filters: 'Show',
+    originalsUntil: (day: 'today' | 'tomorrow' | 'later', date: string, time: string) =>
+      day === 'today'
+        ? `Originals available until ${time}.`
+        : day === 'tomorrow'
+          ? `Originals available until tomorrow at ${time}.`
+          : `Originals available until ${date} at ${time}.`,
+    closesIn: (min: number) => `Room closes in ${min} min`,
+    saveBefore: (time: string) => `Save originals before ${time}.`,
+    saveOriginal: 'Save original',
+    share: 'Share',
+    sharedByAge: (name: string, age: string) => `Shared by ${name} · ${age}`,
+    savedTitle: 'Original saved',
+    savedBody: 'It stays on your device after the room closes.',
+    dismissSaved: 'Dismiss',
+    closeSheet: 'Close',
+    // Q 05.03: how long ago an item was shared ("Shared by Mia · 18 sec").
+    age: (n: number, unit: 'sec' | 'min' | 'hr' | 'day') =>
+      unit === 'day' ? `${n} ${n === 1 ? 'day' : 'days'}` : `${n} ${unit}`,
+  },
+  // Qrew unit 5 (Q 07.04): shown instead of an alert when camera access is off for Take a photo.
+  cameraOff: {
+    title: 'Camera access is off',
+    body: 'Allow access in Settings to take a photo.',
+    openSettings: 'Open Settings',
+    chooseLibrary: 'Choose from library',
   },
   activity: {
     arrived: 'Arrived',
