@@ -94,6 +94,20 @@ export async function getRoom(roomId: string): Promise<Room | null> {
   return data;
 }
 
+/**
+ * Who marked Arrived in the room's current activity (Room info, Q 03.03). A plain read under the existing
+ * arrivals_select policy (room members only); rows are per activity_seq, as mark_arrived writes them.
+ */
+export async function listArrivedIds(roomId: string, activitySeq: number): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('arrivals')
+    .select('user_id')
+    .eq('room_id', roomId)
+    .eq('activity_seq', activitySeq);
+  if (error) throw error;
+  return data.map((r) => r.user_id);
+}
+
 export async function listMembers(roomId: string): Promise<RoomMember[]> {
   const { data: members, error } = await supabase
     .from('room_members')
