@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
-import { Button, colors, Field, Hint, Screen } from '@/components/ui';
+import { Button, colors, Field, Hint, radius, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { createRoom, ROOM_TYPES, type RoomType } from '@/lib/rooms';
@@ -17,7 +17,7 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
       onPress={onPress}
       style={[styles.chip, selected && { backgroundColor: colors.tint }]}
     >
-      <Text style={[styles.chipText, selected && { color: 'white' }]}>{label}</Text>
+      <Text style={[styles.chipText, selected && { color: colors.onTint }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     backgroundColor: colors.field,
-    borderRadius: 18,
+    borderRadius: radius.pill,
     borderCurve: 'continuous',
     paddingHorizontal: 14,
     paddingVertical: 8,

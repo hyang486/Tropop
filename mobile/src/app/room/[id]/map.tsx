@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, Sty
 import { Avatar } from '@/components/avatar';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RouteEditor } from '@/components/route-editor';
-import { Button, colors, Hint } from '@/components/ui';
+import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { useAuth } from '@/lib/auth';
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     gap: 8,
     pointerEvents: 'box-none',
   },
-  chip: { backgroundColor: colors.field, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  chip: { backgroundColor: colors.field, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
   pen: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   distanceChip: { flexShrink: 1, pointerEvents: 'none' },
   distance: { fontSize: 15, lineHeight: 22, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },

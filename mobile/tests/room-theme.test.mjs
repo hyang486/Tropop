@@ -52,8 +52,19 @@ test('ink drawings: dev-drawn, every path well-formed, aspect from the viewBox',
   assert.equal(DRAWN_BY_DEV, true);
   for (const [key, d] of Object.entries(INK_DRAWINGS)) {
     assert.equal(d.viewBox, `0 0 ${d.width} ${d.height}`, key);
-    for (const path of d.paths) assert.match(path, /^M[\d. ]+[MLQCZ\d. ]*$/, `${key}: ${path}`);
+    for (const path of d.paths) assert.match(path, /^M[\d. ]+[MLQCAZ\d. ]*$/, `${key}: ${path}`);
     assert.equal(artEntry(key).aspect, d.width / d.height);
+  }
+});
+
+test('ink drawings (supervisor A1): hike, bike and motorcycle fill a runner-like frame with a person in it', () => {
+  // run.png is 305 x 281 (aspect 1.09) cropped to the drawing; the redrawn art fills its viewBox the same way.
+  for (const key of ['hike', 'bike', 'motorcycle']) {
+    const d = INK_DRAWINGS[key];
+    const aspect = d.width / d.height;
+    assert.ok(aspect >= 1.05 && aspect <= 1.25, `${key} aspect ${aspect}`);
+    // body parts are closed (paper-filled) shapes, so the figure has volume and hides the frame behind it
+    assert.ok(d.paths.filter((p) => p.endsWith('Z')).length >= 8, key);
   }
 });
 

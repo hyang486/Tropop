@@ -1,6 +1,7 @@
 import { useFonts } from 'expo-font';
-import { type StyleProp, StyleSheet, Text, type TextStyle, useColorScheme } from 'react-native';
+import { type StyleProp, StyleSheet, Text, type TextStyle } from 'react-native';
 
+import { usePalette } from '@/components/ui';
 import { HAND_FONT_KOREAN, HAND_FONT_LATIN, handFontFor } from '@/lib/hand-font';
 
 /**
@@ -12,9 +13,9 @@ export const HAND_FONTS = {
   [HAND_FONT_KOREAN]: require('@/assets/fonts/Gaegu-Light.ttf'),
 };
 
-/** Qrew ink: the design's #181817 on light; a pale ink on dark so titles and art stay visible. */
+/** Qrew ink (components/ui palette): the design's #181817 on light; a pale ink on dark so titles and art stay visible. */
 export function useInk() {
-  return useColorScheme() === 'dark' ? '#EDEDE8' : '#181817';
+  return usePalette().ink;
 }
 
 /**

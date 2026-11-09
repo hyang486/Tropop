@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Pressable, type StyleProp, StyleSheet, Text, Vibration, View, type ViewStyle } from 'react-native';
 
-import { colors } from '@/components/ui';
+import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { createAnnouncer, seenSummary } from '@/lib/emergency-plan';
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     minHeight: 36,
     justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: 18,
+    borderRadius: radius.pill,
     borderCurve: 'continuous',
     backgroundColor: colors.field,
   },

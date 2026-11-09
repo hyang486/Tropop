@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   segmentItem: { flex: 1, paddingVertical: 7, borderRadius: 7, alignItems: 'center' },
   segmentSelected: { backgroundColor: colors.tint },
   segmentText: { fontSize: 14, fontWeight: '500', color: colors.label },
-  segmentTextSelected: { color: 'white' },
+  segmentTextSelected: { color: colors.onTint },
   jobs: { paddingHorizontal: 12, paddingBottom: 8, gap: 8 },
   job: {
     flexDirection: 'row',

@@ -212,7 +212,7 @@ export function RouteEditor({
               onPress={() => (pen ? penOff() : penOn())}
               style={[styles.tool, pen && styles.toolOn]}
             >
-              <SymbolView name="pencil.tip" size={18} tintColor={pen ? 'white' : colors.tint} />
+              <SymbolView name="pencil.tip" size={18} tintColor={pen ? colors.onTint : colors.tint} />
               <Text style={[styles.link, pen && styles.toolOnText]}>{en.map.pen}</Text>
             </Pressable>
             <Pressable
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   toolOn: { backgroundColor: colors.tint },
-  toolOnText: { color: 'white' },
+  toolOnText: { color: colors.onTint },
   link: { fontSize: 17, color: colors.tint },
   bold: { fontWeight: '600' },
   disabledLink: { color: colors.secondaryLabel },

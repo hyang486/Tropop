@@ -6,6 +6,7 @@ import { HandTitle } from '@/components/hand-title';
 import { InkArt } from '@/components/ink-art';
 import { Button, colors, Hint, Screen } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { formatDeletedAt } from '@/lib/create-defaults';
 import { errorMessage } from '@/lib/errors';
 import {
   joinRoom,
@@ -95,7 +96,7 @@ export default function Preview() {
       )}
       <View style={styles.footnote}>
         <Text style={styles.meta}>{en.preview.members(preview.member_count, preview.max_members)}</Text>
-        <Text style={styles.meta}>{en.preview.endsAt(expiresAt.toLocaleString())}</Text>
+        <Text style={styles.meta}>{en.preview.endsAt(formatDeletedAt(expiresAt.getTime()))}</Text>
       </View>
     </Screen>
   );
