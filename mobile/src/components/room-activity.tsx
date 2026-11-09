@@ -1,5 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, type StyleProp, StyleSheet, Text, Vibration, View, type ViewStyle } from 'react-native';
+import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  Vibration,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 
@@ -20,6 +31,14 @@ import { useNow } from '@/lib/use-now';
 function timeOf(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
+
+/**
+ * F2 (U5): at the largest text sizes the Emergency card must not push its own actions, the chat composer or
+ * the Photos footer off screen. Its text scales only so far, and the cards scroll inside a box at most this
+ * share of the window tall. At standard size the cards fit, so nothing scrolls and nothing changes.
+ */
+const EMERGENCY_FONT_CAP = 1.4;
+const EMERGENCY_MAX_HEIGHT_SHARE = 0.36;
 
 // One vibration per Emergency across every screen that shows its banner.
 const announcer = createAnnouncer();
@@ -47,6 +66,8 @@ export function EmergencyAlerts({
   onOpenLocation?: (userId: string, coordinates: LatLng) => void;
 }) {
   const router = useRouter();
+  const { height: windowHeight } = useWindowDimensions();
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const now = useNow(15_000);
   const [busy, setBusy] = useState<string | null>(null);
   const lastSeen = useMemo(() => new Map(presence.map((p) => [p.user_id, p])), [presence]);
@@ -85,7 +106,18 @@ export function EmergencyAlerts({
   }
 
   return (
-    <View style={styles.alerts}>
+    <ScrollView
+      ref={scrollRef}
+      style={{ maxHeight: Math.round(windowHeight * EMERGENCY_MAX_HEIGHT_SHARE), flexGrow: 0 }}
+      contentContainerStyle={styles.alerts}
+      contentInsetAdjustmentBehavior="never"
+      alwaysBounceVertical={false}
+      nestedScrollEnabled
+      // When the cards overflow the box, show the indicator so it is clear the actions are below.
+      onContentSizeChange={(_w, h) => {
+        if (h > windowHeight * EMERGENCY_MAX_HEIGHT_SHARE) scrollRef.current?.flashScrollIndicators();
+      }}
+    >
       {activity.emergencies.map((e) => {
         const mine = e.userId === userId;
         const { who, seen } = seenSummary(e.ackedBy, names);
@@ -98,12 +130,12 @@ export function EmergencyAlerts({
           <View key={e.id} style={styles.emergency} accessibilityRole="alert">
             <View style={styles.emergencyHead}>
               <SymbolView name="exclamationmark.triangle" size={22} tintColor={colors.danger} />
-              <Text style={styles.emergencyTitle}>{mine ? en.activity.helpRequested : en.activity.emergencyFrom(name)}</Text>
+              <Text style={styles.emergencyTitle} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>{mine ? en.activity.helpRequested : en.activity.emergencyFrom(name)}</Text>
             </View>
-            <Text style={styles.emergencyMeta}>
+            <Text style={styles.emergencyMeta} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
               {timeOf(e.createdAt)} · {seen === 0 ? en.activity.waitingSeen : en.activity.seenByNames(who, seen, recipients)}
             </Text>
-            <Text style={styles.emergencyMeta}>
+            <Text style={styles.emergencyMeta} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
               {location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation}
             </Text>
             <View style={styles.emergencyActions}>
@@ -115,7 +147,7 @@ export function EmergencyAlerts({
                     <TextAction label={en.activity.openLastLocation} onPress={() => openLocation(e.userId, location.coordinates)} />
                   ) : null}
                   {iAcked ? (
-                    <Text style={styles.emergencyMeta}>{en.activity.acknowledged}</Text>
+                    <Text style={styles.emergencyMeta} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>{en.activity.acknowledged}</Text>
                   ) : (
                     <Chip
                       label={en.activity.acknowledge}
@@ -130,7 +162,7 @@ export function EmergencyAlerts({
           </View>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -281,7 +313,11 @@ function Chip({
       onPress={onPress}
       style={({ pressed }) => [styles.chip, filled && styles.chipFilled, (pressed || busy) && { opacity: 0.5 }]}
     >
-      <Text style={[styles.chipText, filled && styles.chipTextFilled, danger && styles.chipDanger]} numberOfLines={1}>
+      <Text
+        style={[styles.chipText, filled && styles.chipTextFilled, danger && styles.chipDanger]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={EMERGENCY_FONT_CAP}
+      >
         {label}
       </Text>
     </Pressable>
@@ -299,7 +335,9 @@ function TextAction({ label, onPress, busy }: { label: string; onPress: () => vo
       hitSlop={8}
       style={({ pressed }) => [styles.textAction, (pressed || busy) && { opacity: 0.5 }]}
     >
-      <Text style={styles.textActionText}>{label}</Text>
+      <Text style={styles.textActionText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
