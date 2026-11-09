@@ -16,12 +16,18 @@ export function QScreen({
   title,
   children,
   actions,
+  bottom,
   refreshControl,
 }: {
   title?: string;
   children?: ReactNode;
   /** Pinned bottom block: buttons, then a caption (QCaption). */
   actions?: ReactNode;
+  /**
+   * Body content anchored to the bottom of the scroll area, just above the actions (Q 01.04: the art sits
+   * directly above Join). Free space goes between children and this block; it scrolls normally on overflow.
+   */
+  bottom?: ReactNode;
   refreshControl?: ReactElement<RefreshControlProps>;
 }) {
   const insets = useSafeAreaInsets();
@@ -37,6 +43,12 @@ export function QScreen({
       >
         {title ? <HandTitle style={styles.title}>{title}</HandTitle> : null}
         {children}
+        {bottom ? (
+          <>
+            <View style={styles.spacer} />
+            {bottom}
+          </>
+        ) : null}
       </ScrollView>
       {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>{actions}</View> : null}
     </View>
@@ -53,8 +65,9 @@ export const qSpacing = { side: 24, gap: 12 } as const;
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  body: { paddingHorizontal: qSpacing.side, paddingTop: 8, paddingBottom: 24, gap: qSpacing.gap },
+  body: { flexGrow: 1, paddingHorizontal: qSpacing.side, paddingTop: 8, paddingBottom: 24, gap: qSpacing.gap },
   title: { marginBottom: 6 },
+  spacer: { flexGrow: 1 },
   caption: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center', fontVariant: ['tabular-nums'] },
   actions: { paddingHorizontal: qSpacing.side, paddingTop: 12, gap: qSpacing.gap, backgroundColor: colors.background },
 });

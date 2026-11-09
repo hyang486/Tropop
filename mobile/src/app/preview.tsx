@@ -75,7 +75,8 @@ export default function Preview() {
   )}`;
 
   // Q 01.04 (rule USER_DECISIONS:168, R6): title → map → place + Open in Maps → date and time → art, with Join
-  // pinned at the bottom and one caption under it. Map, place and time come with the optional place/time fields
+  // pinned at the bottom and one caption under it. The art and note sit at the bottom of the body, directly
+  // above Join (qa b-run: under the title they left a large gap above Join). Map, place and time come with the optional place/time fields
   // (a separate gated unit); until preview_room returns them those slots render nothing. Q's caption is "Guest
   // name comes next."; here it carries the member count and end time so they stay reachable.
   return (
@@ -95,12 +96,15 @@ export default function Preview() {
           <QCaption>{facts}</QCaption>
         </>
       }
-    >
-      <View style={styles.art}>
-        <InkArt roomName={preview.name} />
-      </View>
-      {endsSoon ? <Hint>{en.preview.endsSoon}</Hint> : null}
-    </QScreen>
+      bottom={
+        <>
+          <View style={styles.art}>
+            <InkArt roomName={preview.name} />
+          </View>
+          {endsSoon ? <Hint>{en.preview.endsSoon}</Hint> : null}
+        </>
+      }
+    />
   );
 }
 
