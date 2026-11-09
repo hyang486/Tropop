@@ -345,34 +345,43 @@ function Tab({
   danger?: boolean;
   a11y?: string;
 }) {
+  const router = useRouter();
+  // Larger text sizes shrink the label to fit its pill instead of wrapping or clipping it.
   const text = (
     <Text
       style={[styles.tabText, selected && styles.tabTextSelected, danger && styles.tabTextDanger]}
       numberOfLines={1}
       adjustsFontSizeToFit
-      minimumFontScale={0.8}
+      minimumFontScale={0.5}
+      maxFontSizeMultiplier={1.6}
     >
       {label}
     </Text>
   );
   if (!href) {
     return (
-      <View style={[styles.tab, styles.tabSelected]} accessibilityRole="tab" accessibilityState={{ selected: !!selected }}>
+      <View
+        style={[styles.tab, styles.tabSelected]}
+        accessibilityRole="tab"
+        accessibilityLabel={a11y ?? label}
+        accessibilityState={{ selected: !!selected }}
+      >
         {text}
       </View>
     );
   }
+  // Not <Link asChild>: its Slot merges styles as objects, so a function style ({ pressed }) => …
+  // was dropped and the pill (background, flex: 1) never applied (U3 F1).
   return (
-    <Link href={href} asChild>
-      <Pressable
-        accessibilityRole="tab"
-        accessibilityLabel={a11y ?? label}
-        accessibilityState={{ selected: false }}
-        style={({ pressed }) => [styles.tab, pressed && { opacity: 0.5 }]}
-      >
-        {text}
-      </Pressable>
-    </Link>
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={a11y ?? label}
+      accessibilityState={{ selected: false }}
+      onPress={() => router.push(href)}
+      style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
+    >
+      {text}
+    </Pressable>
   );
 }
 
@@ -480,6 +489,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.field,
   },
   tabSelected: { backgroundColor: colors.tint },
+  tabPressed: { opacity: 0.5 },
   tabText: { fontSize: 13, color: colors.label },
   tabTextSelected: { color: colors.onTint },
   tabTextDanger: { color: colors.danger },
