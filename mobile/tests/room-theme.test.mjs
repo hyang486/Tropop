@@ -56,3 +56,18 @@ test('ink drawings: dev-drawn, every path well-formed, aspect from the viewBox',
     assert.equal(artEntry(key).aspect, d.width / d.height);
   }
 });
+
+test('roomTheme (supervisor F1): Korean compounds that only contain a term are a gathering', () => {
+  for (const name of ['머신러닝 스터디', '딥러닝', '이러닝 강의', 'e러닝', 'E러닝 모임', '부산행', '부산행 KTX', '리사이클 캠페인']) {
+    assert.equal(roomTheme(name), 'gathering', name);
+  }
+});
+
+test('roomTheme (supervisor F1): the real terms still match next to an excluded compound', () => {
+  assert.equal(roomTheme('러닝크루'), 'run');
+  assert.equal(roomTheme('북한산 등산'), 'hike');
+  assert.equal(roomTheme('한강 자전거'), 'bike');
+  assert.equal(roomTheme('딥러닝 끝나고 러닝'), 'run');
+  assert.equal(roomTheme('부산행 산행'), 'hike');
+  assert.equal(roomTheme('리사이클 사이클'), 'bike');
+});

@@ -27,6 +27,13 @@ const RULES: Rule[] = [
   },
 ];
 
+/**
+ * Supervisor F1: common Korean compounds that contain a theme term but are not that activity. They are
+ * removed before the Korean substring check: 머신러닝 / 딥러닝 / 이러닝 / e러닝 (learning, not 러닝), 부산행
+ * (to Busan, not 산행), 리사이클 (recycle, not 사이클).
+ */
+const KOREAN_EXCLUSIONS = ['머신러닝', '딥러닝', '이러닝', 'e러닝', '부산행', '리사이클'];
+
 /** NFKC, trimmed, lower case (full-width "ＲＵＮ" and "  saturday RUN crew " read like "run"). */
 export function normalizeRoomName(name: string) {
   return name.normalize('NFKC').trim().toLowerCase();
@@ -37,8 +44,9 @@ export function roomTheme(name: string | null | undefined): RoomTheme {
   const text = normalizeRoomName(name ?? '');
   // Whole Latin words: split on everything that is not a Latin letter, so "run크루" still yields "run".
   const words = new Set(text.match(/\p{Script=Latin}+/gu) ?? []);
+  const korean = KOREAN_EXCLUSIONS.reduce((t, x) => t.split(x).join(' '), text);
   for (const rule of RULES) {
-    if (rule.words.some((w) => words.has(w)) || rule.korean.some((k) => text.includes(k))) return rule.theme;
+    if (rule.words.some((w) => words.has(w)) || rule.korean.some((k) => korean.includes(k))) return rule.theme;
   }
   return 'gathering';
 }
