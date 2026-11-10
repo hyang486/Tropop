@@ -2,6 +2,30 @@
 
 Updated: 2026-11-06 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-09: Place and time unit (migration 0026), pre-apply test
+- Branch qrew-pt (c40ccd5, 68abdec). Human go-ahead typed in the developer session; the rollback run of
+  0026 + supabase/tests/room_place_time_test.sql on project wuhkyjksiiqzoxvonfuy (execute_sql, one transaction
+  ending in ROLLBACK) returned "ROOM PLACE TIME TESTS PASSED".
+- Read-only check after it: 0 test users, no tests schema, 0 new rooms columns, one create_room with 5 args,
+  preview_room with 7 output columns, 0 test rooms. The live database is unchanged.
+- APPLIED live 2026-11-09 after a separate human go-ahead ("0026 적용"): apply_migration room_place_and_time,
+  remote version 20261109230223 (file 20261104000026; remote versions are apply timestamps, as before).
+  Read-only checks after it: rooms has the 4 nullable columns and the 5 rooms_place_* constraints; create_room
+  has one signature with 9 args; preview_room returns 11 columns; anon cannot execute either RPC and
+  authenticated can; 2 existing rooms, 0 with any new field set. Security advisors: no new lint type; the
+  new create_room and preview_room show under the existing "authenticated SECURITY DEFINER" WARN like every
+  other public RPC.
+- App UI (2026-11-09, uncommitted → see commit "Place and time UI"): optional fields on Create room (place name,
+  Find on map via expo-location geocodeAsync = Apple CLGeocoder with no permission, tap the map to move the pin,
+  Remove pin, Add start time with the @expo/ui SwiftUI DatePicker limited to now..close−1 min); Invite preview
+  (Q 01.04: map only with a pin → place card with Open in Maps sheet (Apple/Google) → date and time card; nothing
+  added when unset); Room info (same cards under the Ends card); Rooms row (one extra line "place · start" when
+  set; type and ends-in kept). Pure helper src/lib/place-time.ts with tests/place-time.test.mjs (10 tests).
+  database.types.ts compared with generate_typescript_types (live): same fields; preview_room place fields kept
+  `| null` (the generator cannot see nullability of a returns-table); update_room_expiry Returns gained the 4 fields.
+  Checks: tsc 0, expo lint 0, mobile 300/300. NOT VERIFIED on a simulator (map card, DatePicker, Maps sheet,
+  geocoding, create with/without place/time). Branch qrew-pt is not merged into main.
+
 ## 2026-11-07: J-1 and R-1 (human request: each on its own branch, review, then main; no push)
 - J-1 (Join-room keyboard pushed the "5-DIGIT CODE" field under the translucent header on the 17 Pro): fixed in
   6f2a512 (components/ui.tsx Screen: no automatic keyboard inset adjustment on the ScrollView). Supervisor GO;

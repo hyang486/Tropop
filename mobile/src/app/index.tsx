@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
+import { placeTimeLine } from '@/components/place-time-cards';
 import { QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -10,6 +11,7 @@ import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
+import { placeTimeOf } from '@/lib/place-time';
 import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
@@ -109,11 +111,23 @@ export default function Rooms() {
                 {en.rooms.types[room.type as keyof typeof en.rooms.types] ?? room.type} ·{' '}
                 {en.home.endsIn(formatRemaining(new Date(room.expires_at).getTime() - now))}
               </Text>
+              {/* Place and time (0026), when set: one extra line; rooms without them look as before. */}
+              <PlaceTimeLine room={room} />
             </View>
           </Pressable>
         ))}
       </QScreen>
     </>
+  );
+}
+
+function PlaceTimeLine({ room }: { room: Room }) {
+  const placeTime = placeTimeOf(room);
+  if (!placeTime) return null;
+  return (
+    <Text style={styles.rowSubtitle} numberOfLines={1}>
+      {placeTimeLine(placeTime)}
+    </Text>
   );
 }
 

@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
+import { PlaceTimeCards } from '@/components/place-time-cards';
 import { QCaption, QScreen } from '@/components/q-screen';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { formatDeletedAt } from '@/lib/create-defaults';
 import { errorMessage } from '@/lib/errors';
+import { placeTimeOf } from '@/lib/place-time';
 import {
   joinRoom,
   previewRoom,
@@ -90,11 +92,13 @@ export default function Preview() {
     formatDeletedAt(expiresAt.getTime()),
   )}`;
 
+  const placeTime = placeTimeOf(preview);
+
   // Q 01.04 (rule USER_DECISIONS:168, R6): title → map → place + Open in Maps → date and time → art, with Join
   // pinned at the bottom and one caption under it. The art and note sit at the bottom of the body, directly
-  // above Join (qa b-run: under the title they left a large gap above Join). Map, place and time come with the optional place/time fields
-  // (a separate gated unit); until preview_room returns them those slots render nothing. Q's caption is "Guest
-  // name comes next."; here it carries the member count and end time so they stay reachable.
+  // above Join (qa b-run: under the title they left a large gap above Join). Map, place and time (0026) render
+  // only when the host set them: no pin → no map; no place and no time → nothing between title and art. Q's
+  // caption is "Guest name comes next."; here it carries the member count and end time so they stay reachable.
   return (
     <QScreen
       title={preview.name}
@@ -120,7 +124,9 @@ export default function Preview() {
           {endsSoon ? <Hint>{en.preview.endsSoon}</Hint> : null}
         </>
       }
-    />
+    >
+      {placeTime ? <PlaceTimeCards placeTime={placeTime} /> : null}
+    </QScreen>
   );
 }
 

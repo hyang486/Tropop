@@ -90,6 +90,22 @@ export const en = {
     statusesHint: 'Separate with commas. Emergency is always included.',
     submit: 'Create room',
     nameRequired: 'Enter a room name.',
+    // Place and time unit (0026): optional meeting place and start time.
+    placeTimeLabel: 'Meeting place and time (optional)',
+    placeLabel: 'Meeting place',
+    placePlaceholder: 'North Gate, Golden Gate Park',
+    findOnMap: 'Find on map',
+    finding: 'Finding…',
+    notFound: 'No match on the map. The place name still works without a pin.',
+    findFailed: "Couldn't search the map. The place name still works without a pin.",
+    pinHint: 'Tap the map to move the pin.',
+    removePin: 'Remove pin',
+    addStartTime: 'Add start time',
+    startTimeLabel: 'Starts',
+    removeStartTime: 'Remove start time',
+    startAfterClose: 'The start time must be before the room closes.',
+    startTooEarly: 'The start time is too far in the past.',
+    startMoved: 'The start time moved to fit the new room length.',
   },
   // Q 02.03
   join: {
@@ -123,6 +139,18 @@ export const en = {
     // Q 07.03
     unavailableTitle: 'Invite unavailable',
     enterCode: 'Enter a room code',
+  },
+  // Place and time unit (Q 01.04): map, place + Open in Maps, date and time. Shown only when set.
+  placeTime: {
+    mapCaption: 'Meeting point preview',
+    openInMaps: 'Open in Maps',
+    // Q 08.02
+    sheetTitle: 'Open meeting location',
+    openApple: 'Open in Apple Maps',
+    openGoogle: 'Open in Google Maps',
+    cancel: 'Cancel',
+    localTime: 'Local time',
+    starts: (when: string) => `Starts ${when}`,
   },
   room: {
     invite: 'Invite',
