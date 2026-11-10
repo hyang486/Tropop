@@ -5,6 +5,264 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-09: U6 G-U6-1 — 33264a7 on qrew-u6 (from main e89cf85); local, no push, no rebuild
+- Place and time (0026) closed: qa PASS on qrew-pt 62d8fdd and 28bd04f, merged --no-ff → main e89cf85 (dev: tsc 0, lint 0, 303/303).
+  U5 closed earlier: qa PASS, merged --no-ff → main 1d96367 (LS). The U5 and U4 "NOT on a simulator yet" lines below are superseded.
+- G-U6-1: Photos & files, Map, Info, Face, media detail, Camera access is off and Invite switch to Room ended when the room ends
+  while open (one-shot timer at expires_at, re-armed on extend; deleted_at immediately via rooms / room_members notices; empty room
+  read). Opened after the room is gone they show Room ended. Preview shows Invite unavailable once the end time passes.
+  No packages, no server change. tsc 0, lint 0, 308/308 (5 new). Metro :8089 --clear: 28/28 src/app from qrew-u6.
+- Supervisor code review PASS. NOT on a simulator yet: qa full regression (rows 1-25 incl. G-U6-1 a-e) pending.
+- Final per-feature status list: docs/implementation-status.md "Feature status" (refreshed 2026-11-09; stale notes below
+  annotated: J-1 closed, FACE_MATCH_ENABLED ON, Pen chip moved by P-1).
+
+## 2026-11-09: Qrew unit 5 — 1c217d4 on qrew-u5 (from main 8cfd12e); local, no push, no rebuild; Metro :8087 --clear
+- Supervisor released U5 (human accepted U4). Client only, no RPC/migration/RLS. Built by 3 agents in qrew-u5-media
+  (f26449f), qrew-u5-face (3d2b1e2), qrew-u5-profile (e5249b7); merged --no-ff on qrew-u5 with dev commits 6649ba8, 79efc01.
+- Art 6649ba8: Q 06.01 reference, Q 06.04 ended (gate with clock), Q 07.04 camera extracted from the PDF
+  (scripts/ink-art-extract.mjs; pdfimages page 6 img 0/2, page 7 img 2) → assets/art/{reference,ended,camera}.png.
+- Photos & files (Q 05.01-04, 06.03): HandTitle + room name, filter pills, upload rows under filters, "+" and pinned
+  "Add photos or files" → Add to the room sheet (camera/library/file), "Originals available until T", "Room closes in N min"
+  card in the last hour (expiry-plan closesSoonMinutes), Original saved card, detail title Video/Photo/file name,
+  "Shared by X · age", Save original + new Share (same checked download). Approved originals notice text unchanged.
+- Camera denied (Q 07.04): route room/[id]/camera-off (Open Settings / Choose from library) replaces the alert. Real device only
+  (simulator reports camera unavailable before asking).
+- Photos of me (Q 06.01-02): Me intro with art; Review your reference with all five consent points (en.ts list untouched)
+  scrolling above pinned Agree and save; Manage top right → Replace / Stop and remove (logic unchanged).
+- Room ended (Q 06.04): shared components/room-ended.tsx (chat, map, end confirm, info gone state); "closed at" only when
+  known (lib/room-ended.ts + tests).
+- Profile (Q 07.01) + new profile-edit route; Room info (Q 03.03): N people · M arrived (listArrivedIds = plain read under
+  the existing arrivals_select policy, no server change), View participants, Edit status options, red End room/Leave room;
+  Share invite (Q 02.04): Reissue as text button. NOT built: Copy code (expo-clipboard not installed; needs approval).
+- Not in Q style yet: plan-preview.tsx (only its link is placed). tsc/lint clean, 290/290. Bundle :8087: 28/28 src/app from qrew-u5.
+  NOT on a simulator yet (qa).
+- Supervisor review of 1c217d4: no blockers. N5 fixed in c1af50a: downloadOriginal writes Paths.cache/room-media/<room>/<media>/;
+  Save and Share now delete that folder in finally (discardDownload), also on error or cancel. N6 was already handled:
+  arrivedMemberCount counts only arrivals of current members (M ≤ N). Copy code goes to the human (native rebuild); not installed.
+  tsc/lint clean, 290/290; :8087 bundle has the change (no /reload endpoint: the app needs a reload).
+
+## 2026-11-09: Qrew unit 4 MERGED → local main 8cfd12e (--no-ff qrew-u4 3fac672; no push, no rebuild)
+- Hashes rewritten (message only, trees identical): Claude co-author trailers removed per the human rule. Old → new:
+  27ab8d4→b092b00, 702d549→29f577e, 20338f1→3fac672, 8508bed→8cfd12e. qa/supervisor evidence citing old ids = same trees.
+- Supervisor GO after qa PASS on 20338f1 (editor layout, stroke placement corners/center/after pan, behavior, F3, cards,
+  G4/G8 quick set, Allow sharing switch). main: tsc/lint clean, 277/277. Metro :8087 stopped. U5 waits for the supervisor.
+  Carried: N4 Draw/Undo/Clear truncate at largest type; editor map lacks Recenter/Show my location/3D (human); location-off Alert stays.
+- Supervisor released U4 (human accepted U3, USER_DECISIONS:175). Scope: Map / route (Q 04.01-02, 08.03), End activity /
+  end room (Q 03.04). Client only. Worktree .claude/worktrees/qrew-u4.
+- Map: nav title empty, HandTitle "Map" + gray room name at the top of the scroll content; nothing else changed.
+- End activity (host, Map button): pushed screen room/[id]/end-activity instead of the alert. End room (host, Info):
+  room/[id]/end-room. Guest Leave keeps its alert. Shared components/end-confirm.tsx; lib/end-plan.ts (endGate,
+  runOnce) + tests/end-plan.test.mjs. Back/swipe/Keep = no change; swipe off while ending; errors on screen.
+- Copy claims ↔ code: "Live location sharing stops for everyone" = set_activity_state ended deletes live_presence and
+  sets share_location false for all (000024); photos untouched; room end time = rooms.expires_at (unchanged).
+  "closes now for everyone" = end_room sets deleted_at; private.room_is_open/is_room_member/is_room_host require
+  deleted_at is null (0002). "deleted from the server" = room-janitor deletes rooms with deleted_at (FK cascade) and
+  storage via cleanup_jobs. No time stated: the */15 cron lives in the DB, not in code.
+- Supervisor review: no blockers. "Allow location sharing" off alert stays (outside U4; later-unit candidate). tsc/lint clean, 277/277.
+  Bundle :8087: 26/26 src/app files from worktrees/qrew-u4. NOT on a simulator yet (qa).
+- F1 702d549: qa largest-text Map shot (2026-11-09-qrew-u4-map-largest.png) showed "Show my location" (2 lines) under
+  "Recenter" (there before U4). Map overlay texts now one line, maxFontSizeMultiplier 1.3. tsc/lint clean, 277/277. Sent to supervisor; qa recheck pending.
+- F2 20338f1 (supervisor NO-GO on the editor): RouteEditor laid out as Q 04.01 (chevron = Cancel, HandTitle "Edit route" + room
+  name, map card + dark length chip "5.2 km", equal Draw/Undo/Clear pills, hint, pinned Save route = Done). Same Modal, same
+  pen/undo/save logic; strokes now converted without safe-area insets (map is a card inside the safe area). Map host:
+  Start/End activity is a card row; on-map Pen chip reads Edit route / Draw route. tsc/lint clean, 277/277. Metro :8087 (cwd
+  qrew-u4, no new files). NOT on a simulator yet: drawing accuracy in the card must be rechecked by qa.
+
+## 2026-11-08 ~05:55Z: running-crew — local main 40a5535 (no push); 000023 + 000024 LIVE, R1C deleted
+- Human approval ~21:40 PST (USER_DECISIONS line 153): apply 000023/000024, delete the R1C QA host by exact id+email.
+- Local main: 9037a59 G1 merge → e52e5d5 (rc-emergency-resolved f70d432) → f303e68 (rc-activity-lines 88da4a2)
+  → 40a5535 G2 merge (rc-status-map 5bef85f, qa (a)-(e) PASS). Migration/test blobs identical to the accepted commits.
+- Drift check before apply: md5(prosrc) of clear_my_status, set_my_status (0002) and set_activity_state,
+  set_location_allowed (0020) equal to the repo; grants authenticated yes / anon no.
+- 000023 APPLIED (schema_migrations version 20261108053456, name "20261104000023_emergency_resolved_line");
+  both functions contain the resolved line; proacl unchanged.
+- ~05:46Z human at the screen (via qa): 000024 APPLIED as "activity_chat_lines" (version 20261108054618; both
+  functions have the lines; authenticated exec yes, anon no). R1C DELETED (exact id + email, 1 row, 0 left).
+  activity_chat_lines_test.sql PASSED (ROLLBACK, 0 c24… leftovers). Advisors: same known kinds, nothing new.
+- G6 #9 rc-expiry-banner 2ad8138 (one-line banner → Info; last 1 h for rooms < 24 h, 10 min margin; hidden while
+  keyboard open), mobile 194/194. G7 #11 rc-create-defaults 8a790a9 (Sports 3 h default, deleted-at every 5 s, no
+  seconds), mobile 192/192. Both from main 40a5535, tsc/lint clean; sent for supervisor review.
+- emergency_resolved_test.sql RUN on live (human approved, USER_DECISIONS line 154): 'EMERGENCY RESOLVED TESTS PASSED',
+  ROLLBACK; 0 leftovers (auth.users c23…, rooms, messages, room_members, member_status, tests schema).
+- G4 rc-pill-route 2d4e06e: supervisor REVIEWED, no blockers (optional perf: bbox cull/decimate route if jank).
+- Human: Sports default 3 h (+ refresh deleted-at while open, #11); rooms < 24 h ends-soon banner last hour only (#9).
+- Re-checked ~06:00Z after a handoff (read-only): newest schema_migrations = 000023; set_activity_state/
+  set_location_allowed have no activity lines, so 000024 is not applied (not partly either).
+- 000024 NOT applied: apply_migration raised the destructive-SQL confirmation (DELETE in the body), which expired
+  after 2 min. Live functions still equal 0020. Retry only with the human at the prompt (asked qa to signal).
+- R1C delete: pre-check returned exactly 1 row (id c2d629c2-… + r1c-qa-host-11070111@example.com); delete waits
+  for the same human Accept. Advisors run after 000024. SQL tests NOT run (supervisor confirming with the human).
+- Metro :8082 serves rc-chat-events 5061910 (G3 #8) for qa; :8081 = main checkout.
+- G4 (#5) on branch rc-pill-route 2d4e06e (from 9037a59): the projected route is an obstacle in pill placement.
+  tsc/lint clean, mobile 195/195. Sent for supervisor review.
+
+## 2026-11-08: running-crew G1 client part (#1, #12) MERGED to local main 9037a59 (qa (a)-(f) PASS, supervisor GO; no push)
+- Branch rc-emergency (worktree .claude/worktrees/rc-emergency): fef059e + 7720a57 on main 49304f1, merged --no-ff as 9037a59.
+  tsc/lint clean, mobile 188/188. Supervisor review: no blocking findings.
+- Deviation from the plan (accepted by the supervisor): for the #12 header, the plan said ellipsis plus a smaller
+  font. Below 400 pt window width (17e = 390), the branch replaces the four header text links with SF Symbol
+  icons instead, keeping the a11y labels. The four text links were the real cause. qa check (e) covers it.
+- 7720a57 (supervisor note 2): "Seen by" names only current members, so the names match the "x of N" count.
+- #4: migration 000023 on branch rc-emergency-resolved (692e2d8, 0a6fa8e, f70d432; worktree
+  .claude/worktrees/rc-emergency-resolved) has been ACCEPTED by the supervisor. It replaces clear_my_status (I'm OK → "<name> is OK
+  (Emergency resolved)", only while is_room_member) and set_my_status (Emergency → other status: one line
+  "<name> is OK (Emergency resolved) · <label>"). Test: supabase/tests/emergency_resolved_test.sql (10 cases,
+  ROLLBACK). NOT APPLIED, NOT RUN: the human must sign off on both (the test inserts temporary auth.users rows).
+- G2 (#2) on branch rc-status-map 5bef85f (stacked on rc-emergency): status on the pill line and in Sharing now rows.
+  mobile 190/190. Sent for supervisor review; qa checks a-e pending.
+- G2 review: no findings. G3 #8 on branch rc-chat-events (95bb46b + 5061910 note 1: no media_id on the line,
+  stacked on rc-status-map), mobile 192/192, supervisor: no blockers.
+- G3 #3: migration 000024 on branch rc-activity-lines 3d9b53b + 88da4a2 (from main; review fix: set_location_allowed(false) ending an active activity also posts the ended line). set_activity_state now posts system
+  lines "Activity started. Open Map to share your location." / "Activity ended. Location sharing is off." only on
+  a real state change. Test: supabase/tests/activity_chat_lines_test.sql (ROLLBACK). NOT APPLIED, NOT RUN, needs
+  human sign-off. Supervisor: ACCEPTED at 88da4a2 (no findings), for human sign-off only.
+- G3 #8 MERGED → main a491535 (--no-ff rc-chat-events 5061910; local, no push). tsc/lint ok, mobile 192/192.
+  qa PASS (a)-(c) + #3/#4 device lines (supervisor GO). NOT VERIFIED: (d)/(e) video share line, failure path,
+  deleting a shared photo keeps its line.
+- G4 #5: main merged into rc-pill-route → 371bda6 (tsc/lint ok, 199/199). Metro :8082 serves it for the G4 qa run.
+  Merge order after qa: G4 → G6 → G7 → G5+G9 → G8 (G8 last; one map.tsx hunk: keep planLabels(..., shownRoute) + photoPins).
+- G6: main merged into rc-expiry-banner → b7dad23 (196/196), served on :8082 for qa (last-hour banner check
+  after 22:55 PST). G6 stays unmerged until G6b passes.
+- G4 qa (a) FAILED on 371bda6 (F1 pills on pins, F2 route covered, F3 floating/clipped pill, F4 crowded fit).
+  Fix on rc-pill-route 55a169e + 6b2f1df (review notes): pins/pills/edges weigh 100x route, more candidates
+  (slides, beside, 0/8/16 pt stand-off, wrapped lone pill), no pill for off-map groups, marker 36 pt, side
+  padding fixed 64, grid-indexed route cost. Repro test tests/map-labels-g4-repro.test.mjs (qa room loop).
+  Supervisor: no blocking findings; ruling: a pill may cover the route only with no clear candidate within
+  MAX_PILL_GAP, max 120 pt. 203/203. Served on :8083 for qa re-run of (a) and the (b) perf check.
+- G6b (human: reminder follows the banner rule): branch rc-expiry-reminder 56835c4 (from b7dad23). Migration
+  20261104000025 (1 h window for rooms under 24 h - 10 min), DB test supabase/tests/short_room_reminder_test.sql,
+  client planReminders/presentServerReminder guard, last-hour local copy. 201/201.
+  APPLIED 2026-11-08 ~06:13Z as version 20261108061319 (human "둘 다 진행" via qa, Accept in the developer pane).
+  Live body md5 = file body; grants postgres only. expiry_reminders_test.sql PASS, short_room_reminder_test.sql
+  PASS (60b6b59: counts scoped to test rooms; live 4-day room 03424 enters its window at a simulated time).
+  0 leftover test users/rooms/rows, no tests schema; advisors: no new lint types.
+  G6 qa (a)-(d) PASS (3 h room "Ends in 57m" shows the one-line banner). rc-expiry-banner fast-forwarded
+  b7dad23 → 60b6b59 (tsc/lint ok, 201/201), served on :8082 for qa's G6b reminder re-test. Merge to main after
+  qa passes G6b and supervisor GO.
+- G7 MERGED → main 79051e0 (--no-ff rc-create-defaults 1eb330d; local, no push), tsc/lint ok, 216/216.
+  qa (a)-(d) PASS on 1eb330d; supervisor GO. (qa side note on per-type status defaults: out of scope.)
+- G5+G9: main → rc-photo-access 7a1e622, → rc-take-photo cee2c23 (both 216/216, no conflicts; +90/-20 in
+  4 files vs main). Served on :8083 for qa. G8 rc-route-distance untouched (merges last; map.tsx hunk).
+  qa: G5 (a)-(c) PASS (5,539,741-byte video uploaded untranscoded). #7 notice wording APPROVED by the human
+  (2026-11-07, via qa). G9 NO-GO at cee2c23: F1 sim crash 'Source type 1 not available' (uncatchable ObjC),
+  F2 "Upload failed" title for camera errors → fixed in 92782f6 (cameraStep(Device.isDevice) before any native
+  call; CameraError titled "Can't take photo"), 218/218, on :8083. Real capture still NOT VERIFIED (device).
+  Installed builds: only 17 Pro 91F3BFB3 (Nov 7 17:17) has the new camera string; 17 Pro Max, 17 (Nov 5) and
+  17e (Nov 6) have the old one; iPhone 16 Pro unavailable to devicectl. Supervisor: 92782f6 no blocking
+  findings; qa retests (d)/(e) and the "Can't take photo" title. No rebuild (supervisor raises it if needed).
+- G8 MERGED → main e10ca26 (--no-ff rc-route-distance e268be6; local, no push), tsc/lint ok, 225/225. qa (a)-(e)
+  PASS; supervisor GO. Unverified: 3-digit km, editor photo pins (qa photos lack GPS), own dot with Share on,
+  no-route as a guest. ALL running-crew items G1-G9 are now on main.
+## 2026-11-09: Qrew unit 3 — MERGED 356c820 (qrew-u3 790baab), local only, no push
+- Released by supervisor after the human accepted U2. Branch qrew-u3 from main f0c7f54, worktree .claude/worktrees/qrew-u3.
+  Client only (no RPC/migration/RLS). Q 03.01/08.04 chat head (title, Ends line, tab row; hidden with keyboard open),
+  Q 03.02 status sheet (icon+text grid, keyword icons, generic tag for custom, Clear/Cancel, Arrived inline),
+  Q 04.03/04.04 red Emergency card (requester, seen, last-location age or neutral none, Open last shared location →
+  Map focus param). lib/chat-plan.ts + tests. tsc/lint clean, 272/272.
+- Metro :8087 --clear from qrew-u3; entry bundle: all 27 src/app paths under worktrees/qrew-u3.
+- Keyboard: chat keeps KeyboardAvoidingView padding (not QScreen); useKeyboardOpen is iOS-only (Android follow-up).
+- Review: no blockers (N1 answered: one shared room channel). qa: all PASS except F1 (tab row: Link asChild Slot
+  dropped the Pressable function style → no pills, Chat stretched). Fix 790baab: router.push Pressable tabs, equal
+  pills, label shrink-to-fit (max multiplier 1.6). Nav "Chat" title kept (Q 03.01 has it). tsc/lint ok, 272/272.
+  :8087 restarted --clear (27 paths qrew-u3). Waiting for qa F1 re-check.
+- qa F1 PASS (17/17e, largest type, 4 pills w/o Map); supervisor GO. MERGED: 356c820 = --no-ff merge of qrew-u3
+  (790baab) into main, local only. On main: tsc ok (no stale types), lint ok, 272/272. U4 waits for supervisor.
+  Carried: N3 Arrived/Set status chips truncate at largest type; nav title alignment (human side-by-side);
+  Android keyboard follow-up.
+
+## 2026-11-09: Qrew unit 2 — 595f1cf (:8084) + item 10 1b8b940 (:8085), both local, no push
+- 595f1cf on qrew-u2 (from 7eab203, worktree .claude/worktrees/qrew-u2): Q 02.01, 02.03, 07.02, 07.03, 08.01
+  (QScreen subtitle/keyboard/bottomAlign/QField/QLink; gate + paper art; host form, guest, home, create-room 4/7 day
+  chips no Custom, join code boxes, scan, invite-unavailable). 17 files +483/-252, tsc/lint ok, 241/241.
+  Supervisor review: no blockers (N1 folded into item 10). 02.02 place/time: separate gated unit.
+- Item 10 (USER_DECISIONS:172 option A, client only): 1b8b940 on branch qrew-u2-i10 (parent 595f1cf, worktree
+  .claude/worktrees/qrew-u2-i10). Signed out: Welcome Join → start/code | start/scan → /guest (name) → Rooms
+  resumes the held invite once → preview → Join. Link join/[token] signed out: hold, dismissTo welcome, push guest.
+  lib/invite.ts = pure helpers + pending invite (pending-invite.ts removed). N1: unavailable → dismissTo('/join').
+  15 files +416/-246, tsc/lint ok, 251/251 (+10 tests/pending-invite.test.mjs). Sent for review; NOT on a simulator.
+- QA K1/K2 keyboard (qa at 595f1cf, evidence 2026-11-09-qrew-u2-{create,upgrade}-keyboard.png): e8db927 on branch
+  qrew-u2-k (parent 1b8b940, worktree .claude/worktrees/qrew-u2-k). QScreen: no KeyboardAvoidingView; pads by the
+  keyboard-covered part measured at each keyboard move, scrolls the focused field into view; host form keeps the
+  submit button visible. lib/keyboard-plan.ts + tests. tsc/lint ok, 261/261. Supervisor review: no blockers.
+  qa on e8db927 (:8086): item 10 sim-runnable cases PASS, K1 PASS, K2 FAIL (upgrade sheet, Email focused:
+  button half under the keyboard; 2026-11-09-qrew-u2-k-upgrade-email.png). Logged on the 17e (dev, :8087): in
+  the sheet measureInWindow gave root y 0/h 797 (sheet space) vs keyboard screenY 536 on 844 → pad 261 (47 short)
+  and reveal saw the button as visible. Fix 094492f: pad = window height - keyboard top, capped at its height;
+  17e after: pad 308, body scrolled 25, button above the keyboard; Password (Strong Password panel) pad 415 OK;
+  pushed Join code screen OK (evidence 2026-11-09-qrew-u2-k2fix-*-17e.png). tsc/lint ok, 261/261.
+  :8086 restarted --clear at 094492f (routes all under worktrees/qrew-u2-k). :8085 stopped (stale
+  pending-invite red screen). Stack 595f1cf → 1b8b940 → e8db927 → 094492f; U2 merges as one unit after qa passes.
+  qa K2 retest on :8086 PASS (17 Pro Email: button y 471-523, AutoFill bar at 539; Password, K1 Create, Guest
+  name regressions PASS). Supervisor GO.
+- MERGED: f0c7f54 = --no-ff merge of qrew-u2-k (094492f) into main, local only (no push, no rebuild). On main:
+  tsc ok (after Metro :8081 regenerated the ignored .expo/types/router.d.ts with /start/*), lint ok, 261/261.
+  U3 waits for the human.
+  ANDROID FOLLOW-UP: QScreen listens only to iOS keyboardWillChangeFrame/WillHide, so Android gets no keyboard
+  padding/reveal. Add keyboardDidShow/DidHide handling (or adjustResize) when Android starts.
+- METRO CACHE TRAP: worktrees share mobile/node_modules (symlink); a Metro started without --clear reused
+  expo-router's app-root ctx from another worktree (:8084 served qrew-u1 routes until ~19:40Z; qa told to re-run).
+  Start worktree Metros with --clear and check the bundle's `worktrees/<name>/mobile/src/app` paths.
+- Metro: :8081 main checkout, :8083 old qrew-u1 (not mine to stop now), :8084 qrew-u2 595f1cf, :8085 qrew-u2-i10.
+
+## 2026-11-09: Qrew redesign unit 1 (human-directed, USER_DECISIONS:163-166; work list planning/QREW_REDESIGN_WORKLIST_EN.md)
+- Branch qrew-u1 (from e96c755, worktree .claude/worktrees/qrew-u1) 795e268, served on :8083 for qa. Client only.
+  6ba9010 HandTitle + bundled OFL fonts (Patrick Hand 0.21 MB, Gaegu Light 3.21 MB, licenses in assets/fonts),
+  expo-font at runtime, splash waits for fonts. 91a3ecf roomTheme(name) (R1) + one art map (lib/ink-art.ts) +
+  InkArt: run/gathering extracted from Qrew_heytea_UI.pdf (scripts/ink-art-extract.mjs, transparent), hike/
+  bike/motorcycle/meetup DRAWN BY DEV (SVG, placeholder). 795e268 invite preview new order (place/time slots
+  empty until the migration unit), app name Qrew (R2; home-screen name + plist strings NOT YET VISIBLE without
+  a native rebuild). 18 files +633/-36, tsc/lint ok, 238/238. NOT VERIFIED on a device yet (qa: five themes).
+  Supervisor review: no blocking findings; Latin-script split accepted; gathering stays Q 01.01, meetup for unit 2.
+  F1 fixed in 1e118f9 (머신러닝/딥러닝/이러닝/e러닝, 부산행, 리사이클 → gathering), 240/240, on :8083.
+  Title font (Patrick Hand vs Q's Noteworthy) goes to the human via qa screenshots; unchanged until then.
+  qa run (docs/evidence/2026-11-09-qrew-u1-a-*.png) → supervisor NO-GO at 1e118f9: A1 art, A2 palette, A3 time.
+  a3ec1f7 fixes all three (13 files +395/-88, tsc/lint ok, 241/241, :8083 bundle 200), NOT YET re-verified by qa:
+  A1 hike/bike/motorcycle redrawn as a person doing the activity (scripts/ink-drawings.mjs, paper-filled body
+  shapes, DRAWN_BY_DEV), ~175x145-155 pt at width 180 vs runner ~169x156 (was hike 166x102, motorcycle 149x78).
+  A2 components/ui palette (white ground, ink #181817 tint, cards #F6F6F2, onTint, outlined secondary/red
+  destructive Button, radius.pill chips; dark inverts). A3 preview "Ends" via formatDeletedAt (no seconds).
+  9c2b87d close-out (5 files +101/-39, tsc/lint ok, 241/241, :8083 bundle has QScreen): components/q-screen
+  QScreen (hand title top, scroll body 24 pt sides/12 pt gaps, actions pinned bottom) + QCaption; preview on it
+  per Q 01.04 (USER_DECISIONS:168; "Join the room" pinned, count/end time in caption); Button 52 pt regular;
+  Info "Ends" to the minute. qa b-run (docs/evidence/2026-11-09-qrew-u1-b-*.png): items 1-4 PASS; one gap (art
+  right under the title, empty space above Join). 1ab2fd1: QScreen `bottom` slot, preview art + note anchored
+  directly above Join (tsc/lint ok, 241/241, on :8083). qa c-run FAIL: art cut behind Join on open (automatic
+  content inset added header height to the flexGrow body). Fix: QScreen pads useHeaderOverlap, inset "never"
+  3a976c5 (tsc/lint ok, 241/241). qa d-run PASS (d-*.png). Supervisor GO (code+QA) 795e268..3a976c5; human accepted the drawn art (USER_DECISIONS:169). MERGED → main 7eab203 (--no-ff, local, no push, no rebuild); main tsc/lint ok, 241/241. Title font approved (USER_DECISIONS:167). Unit 2 and place/time NOT started.
+- Follow-ups MERGED → main e96c755 (--no-ff rc-followups 4bad94c; local, no push), tsc/lint ok, 228/228. qa
+  (a)(b)(c) PASS on :8083 (face Take photo inline unavailable text, no new .ips; library pick works; one
+  "Route 18.5 km" a11y heading); supervisor GO. Metro: only :8081 (main checkout) runs; :8082/:8083 stopped.
+  OPEN: real-device Take photo capture (human iPhone check); G3 (d)/(e) and G8 unverified items above.
+- Follow-ups on rc-followups (from e10ca26): e88666c editor heading a11y label "Route x.x km"; c47b8db face
+  reference camera simulator guard (CameraError, inline unavailable text); 4bad94c hides the duplicate km line
+  from VoiceOver (supervisor minor). Supervisor: no blocking findings. 228/228, served on :8083 for qa.
+- G5+G9 MERGED → main a31f904 (--no-ff rc-take-photo 92782f6; local, no push), tsc/lint ok, 218/218. qa G9 (d)
+  v2 PASS (no crash, "Can't take photo"), regression PASS; supervisor GO. Real-device capture NOT VERIFIED.
+  :8081 (main checkout, PID 2345, not --clear) sees a31f904 on the iPhone's next reload; not restarted.
+- G8: main a31f904 merged into rc-route-distance → e268be6 (one map.tsx hunk resolved as planned), 225/225,
+  +160/-16 in 5 files vs main. Served on :8082 for qa (a)-(e); supervisor accepted it for qa. :8083 stopped.
+  :8081 left alone (human's iPhone Take photo check).
+- QUEUED after G5+G9 and G8 merge (supervisor): face.ts pickFaceReference('camera') gets the same cameraStep
+  guard + test, small branch from main. Do not start before then.
+- G8 dry run vs main 79051e0 (merge-tree): still one map.tsx hunk (keep planLabels(..., shownRoute) + photoPins).
+- G6+G6b MERGED → main 2d5a98a (--no-ff rc-expiry-banner 60b6b59; local, no push), tsc/lint ok, 214/214.
+  qa on 60b6b59 with 0025 live: 3 h room 77126 no alert at creation (23:06-23:12) PASS; 1-day room 33289 server
+  alert "disappears in 23h 55m" ~23:05 PASS; Saturday Run Crew no new alert (dedupe), as expected. Supervisor GO.
+- G7: main 2d5a98a merged into rc-create-defaults → 1eb330d (216/216), served on :8083 for qa's G7 run.
+  Then G5+G9 → G8.
+- G4 MERGED → main 3a1e49b (--no-ff rc-pill-route 356cf19; local, no push), tsc/lint ok, 205/205. qa v3 PASS
+  (a) Recenter, (b) dense 126-point route responsive (frame rate not measured), (c) zoom; supervisor GO.
+- G7: main merged into rc-create-defaults → 4d6fdb3 (207/207), served on :8083 for qa after G6/G6b.
+  Merge order: G6+G6b → G7 → G5+G9 → G8.
+- G4 v2 qa: (a) no pill on a pin, (c) zoom PASS; F5 pill under MapKit's 3D button → 356cf19 (right control
+  column hard area), 205/205, served on :8083. (b) perf pending.
+- G9 #13 on branch rc-take-photo 3b8c6f7 (stacked on rc-photo-access b3f34fc): "Take photo" first in the Photos
+  Add sheet (camera permission, then launchCameraAsync, images, quality 1; one-time originals notice; denied and
+  unavailable alerts). tsc/lint ok, mobile 190/190. Real capture NOT VERIFIED (needs a device).
+- G8 #10 on branch rc-route-distance 4fed903 (from main): "Route x.x km" chip next to Pen on the Map, a live km line
+  in the editor, and member pins plus own dot (same gate as the Map, no new prompt) in the editor. tsc/lint ok,
+  mobile 197/197. Both sent to supervisor for review on 2026-11-08 ~05:55Z. No sim run yet.
+
 ## 2026-11-08 04:03Z: R1-C QA host cleanup — room purged, account delete PENDING (human)
 - Room 82192 / host c2d629c2-cf2e-49b4-9598-5f6618d7b273: 0 room rows, 0 storage objects (04:03Z check).
 - The account delete (exact id + r1c-qa-host-11070111@example.com) stopped at the Supabase destructive-SQL
@@ -76,7 +334,7 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   - PARTIAL: FG-L1 enrolled pull (no error; spinner not captured).
   - Still NOT VERIFIED: FG-L1 offline pull; cross-account matching upload; C-3 real local reminder tap; N-1 cold
     start (needs a preview/release build); F5-5b single pin and editor map.
-  - Known polish: the Pen chip covers the compass.
+  - Known polish: the Pen chip covers the compass. (Fixed by P-1 063e0ba: chip moved top left.)
 - Simulator_host (17 Pro 91F3BFB3, created by the human) is a standing test host (human FINAL ~17:50 PST): not in
   any delete or cleanup plan. Only the disposable R1-C host (c2d629c2…, r1c-qa-host-11070111@example.com, room
   82192) is still scheduled for deletion after the 04:03Z check.
@@ -87,7 +345,7 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
 ## 2026-11-07: J-1 and R-1 (human request: each on its own branch, review, then main; no push)
 - J-1 (Join-room keyboard pushed the "5-DIGIT CODE" field under the translucent header on the 17 Pro): fixed in
   6f2a512 (components/ui.tsx Screen: no automatic keyboard inset adjustment on the ScrollView). Supervisor GO;
-  main fast-forwarded to 6f2a512. tsc/lint clean, npm test 104/104. NOT verified on any device or other model yet
+  main fast-forwarded to 6f2a512. tsc/lint clean, npm test 104/104. [J-1 CLOSED later 2026-11-07, see LS] NOT verified on any device or other model yet
   (human iPhone / qa). Evidence of the bug: docs/evidence/2026-11-06-bug-join-17pro-shifted.png.
 - R-1 freehand route (branch r1-freehand-route, replaces tap-to-plot and so F5-2 inside route editing): host
   "Pen" button on the map (or Draw route / Edit route) → the map is locked by a touch layer (no pan, zoom,
@@ -181,6 +439,7 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
 - R5 log check: no keys, image data or tokens in the function logs (developer-run 05:47Z; the supervisor did not
   re-query the logs).
 - FACE_MATCH_ENABLED is now OFF: set false by the human at 21:41:34 PST; probe 503 at 05:41:51Z.
+  SUPERSEDED: it is ON by the human's final decision (USER_DECISIONS 2026-11-07).
 - AWS is on the Free plan; AI-services opt-out not done. AWS-side retention is not claimed.
   SUPERSEDED 2026-11-07 ~17:50 PST: demo/presentation scope only, no real participant photos; the AWS paid plan + opt-out item is out of scope (planning/USER_DECISIONS_2026-11-04_OPERATIONS_EN.md).
 - R2 (016c49bf…) ended early by human decision (21:47 PST): expires_at = now() at 05:46:51.861Z (1 row); purged 06:00Z
@@ -676,7 +935,7 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   qa sim PASS of B; human iPhone "B 확인했어" (via qa). Supervisor merge GO → MERGED: main 52df5dd (merge commit of
   r1c-fullscreen-pen @85b413c; base 6f2a512; no conflicts; not pushed). On main: tsc clean, lint clean, mobile 124/124,
   functions 37/37. qa to verify main.
-  Polish (non-blocking, supervisor): on the room map the Pen chip overlaps the map compass/location button (top right).
+  Polish (non-blocking, supervisor): on the room map the Pen chip overlaps the map compass/location button (top right). [Fixed by P-1 063e0ba.]
 - FM-Q ③ caveat resolved (21:0xZ, from logs, no re-run): the ③ sim client DID run the detect-copy code. API logs show the
   app's detect query (media select id,room_id,original_path,width,height for the 3 jobs, 19:50:34Z), then 3 client
   POSTs (Moment/1 CFNetwork) to room-media/<room>/<media>/detect/53d00236….jpg at 19:50:35.355/35.432/36.768Z. face-match
