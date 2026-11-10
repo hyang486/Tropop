@@ -561,6 +561,7 @@ export const en = {
     plus: 'Plus',
     rows: [
       { label: 'Room size', free: 'Up to 30 members', plus: 'Larger (TBD)' },
+      { label: 'Qrewing AI', free: 'Not included', plus: 'Included (TBD)' },
       { label: 'Room length', free: 'Up to 7 days', plus: 'Longer (TBD)' },
       { label: 'Emoji', free: 'Standard', plus: 'Extra set (TBD)' },
       { label: 'Price', free: 'Free', plus: 'Not set yet' },
