@@ -502,6 +502,8 @@ export const en = {
     hint: 'Scan with the Qrew app, or enter the code.',
     code: 'Code',
     share: 'Share invite',
+    copyCode: 'Copy code',
+    copied: 'Copied',
     reissue: 'Reissue invite',
     reissueConfirmTitle: 'Reissue the invite?',
     reissueConfirmBody: 'The current QR code, link, and code stop working. People already in the room stay.',

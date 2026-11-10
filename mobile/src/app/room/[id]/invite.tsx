@@ -1,6 +1,16 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { QrCode } from '@/components/qr-code';
 import { QLink, QScreen } from '@/components/q-screen';
@@ -45,6 +55,28 @@ export default function Invite() {
     if (event.table === 'rooms' || event.table === 'room_members') void readRoom();
   });
   const ended = useRoomOver(room);
+
+  // Copy code (Q 02.04): copies the 5-digit code only; the button reads "Copied" for a moment.
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
+  async function copyCode(code: string) {
+    try {
+      await Clipboard.setStringAsync(code);
+    } catch (e) {
+      setError(errorMessage(e));
+      return;
+    }
+    setCopied(true);
+    AccessibilityInfo.announceForAccessibility(en.invite.copied);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), COPIED_MS);
+  }
 
   function reissue() {
     Alert.alert(en.invite.reissueConfirmTitle, en.invite.reissueConfirmBody, [
@@ -101,9 +133,9 @@ export default function Invite() {
 
   const url = inviteUrl(room.invite_token);
 
-  // Qrew unit 5 (Q 02.04): title and room name, the QR on a pale card, the code, then Share invite. Copy code is
-  // not built: no clipboard module is installed (expo-clipboard would be a new package); the code stays
-  // selectable. Reissue (not in Q) is a text button under the actions, with its confirmation.
+  // Qrew unit 5 (Q 02.04): title and room name, the QR on a pale card, the code, then Share invite and Copy code
+  // (expo-clipboard, rebuild unit). The code also stays selectable by long press. Reissue (not in Q) is a text
+  // button under Copy code, with its confirmation.
   return (
     <QScreen
       title={en.invite.heading}
@@ -113,6 +145,11 @@ export default function Invite() {
           <Button
             title={en.invite.share}
             onPress={() => Share.share({ message: en.invite.shareMessage(room.name, room.code, url) })}
+          />
+          <Button
+            title={copied ? en.invite.copied : en.invite.copyCode}
+            variant="secondary"
+            onPress={() => void copyCode(room.code)}
           />
           <QLink title={en.invite.reissue} onPress={reissue} />
           {error ? <Hint tone="error">{error}</Hint> : null}
@@ -135,6 +172,9 @@ export default function Invite() {
     </QScreen>
   );
 }
+
+/** How long Copy code reads "Copied" after a tap. */
+const COPIED_MS = 2000;
 
 const styles = StyleSheet.create({
   done: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 6 },
