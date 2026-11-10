@@ -17,6 +17,7 @@ can't read its key, so it opens on Welcome signed out (cause of the 891b759 gues
 | 17 Pro spare `20541309` | `9K6BKSS4U6.com.iyaproject.moment` | normal |
 | 17 guest `F11BA960` | `FAKETEAMID.com.iyaproject.moment` | `xcodebuild … -sdk iphonesimulator DEVELOPMENT_TEAM=FAKETEAMID build`, then `simctl install` |
 | 17e guest `6E0F2097` | `FAKETEAMID.com.iyaproject.moment` | same as above |
+| 17 Pro Max guest 4 `99A2323F` | `FAKETEAMID.com.iyaproject.moment` | same as above (Moment.app → Qrew.app ba7470d, 2026-11-09) |
 
 Every future install keeps its simulator's group. Check it before installing:
 `strings <app>/Qrew | grep -A1 application-identifier`. Install over the existing app only. Uninstalling
