@@ -1,0 +1,14 @@
+ba7470d install, 2026-11-09 (simctl install over existing app; no uninstall/erase; app not launched)
+Build A (default team) -> 91F3BFB3, 20541309: application-identifier 9K6BKSS4U6.com.iyaproject.moment
+Build B (DEVELOPMENT_TEAM=FAKETEAMID) -> F11BA960, 6E0F2097: application-identifier FAKETEAMID.com.iyaproject.moment
+A vs B: all bundle resources identical (diff -rq); only Qrew, Qrew.debug.dylib, __preview.dylib (same sizes; entitlements/UUID) and CodeResources differ
+Assets.car: AppIcon 1024 + SplashScreenLogo 200/400/600 light+dark, SplashScreenBackground light+dark (#FAF3E6)
+auth-token value file (md5, mtime) before:
+91F3BFB3 b92f95d65199c39ffb04fe11473d8185 Nov  9 18:36:18 2026
+F11BA960 b82de73dcdfcdea15a7897beca33d921 Nov  9 18:36:47 2026
+6E0F2097 271a2080950d74435ed6a91987f257ab Nov  9 18:36:18 2026
+after:
+91F3BFB3 b92f95d65199c39ffb04fe11473d8185 Nov  9 18:36:18 2026
+F11BA960 b82de73dcdfcdea15a7897beca33d921 Nov  9 18:36:47 2026
+6E0F2097 271a2080950d74435ed6a91987f257ab Nov  9 18:36:18 2026
+Data containers kept (renamed by install; birth times unchanged)
