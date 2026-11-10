@@ -21,6 +21,7 @@ import { ClosesSoonCard, SavedCard } from '@/components/media-cards';
 import { PhotosOfMe } from '@/components/photos-of-me';
 import { qSpacing } from '@/components/q-screen';
 import { RoomEmergencyBanner } from '@/components/room-activity';
+import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
@@ -42,9 +43,11 @@ import {
 } from '@/lib/media';
 import { takeSaved } from '@/lib/media-plan';
 import { confirmOriginalsNotice } from '@/lib/originals-notice';
+import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useNow } from '@/lib/use-now';
+import { useRoomOver } from '@/lib/use-room-over';
 
 /** 'me' = Photos of me (face matching); it lists from the 'all' media query. */
 type GalleryFilter = MediaFilter | 'me';
@@ -77,6 +80,8 @@ export default function GalleryScreen() {
   const [filter, setFilter] = useState<GalleryFilter>('all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
+  // G-U6-1: the room read came back empty (RLS hides a room once it ends or expires, or after a leave).
+  const [gone, setGone] = useState(false);
   const [saved, setSaved] = useState(false);
   const now = useNow(30_000);
   const { rootRef, onLayout: measureRoot, overlap: headerOverlap } = useHeaderOverlap();
@@ -88,15 +93,29 @@ export default function GalleryScreen() {
 
   // Room name and expires_at for the head and the originals lines (Q 05.02, 06.03). A failed or empty read only
   // hides those lines; the media list keeps its own loading and error states.
+  const readRoom = useCallback(() => {
+    getRoom(id)
+      .then((r) => {
+        setRoom(r);
+        setGone(r === null);
+      })
+      .catch(() => undefined);
+  }, [id]);
+
   useFocusEffect(
     useCallback(() => {
-      getRoom(id)
-        .then(setRoom)
-        .catch(() => undefined);
+      readRoom();
       // Q 05.04: "Original saved" once after a save on a media detail of this room.
       if (takeSaved(id)) setSaved(true);
-    }, [id]),
+    }, [id, readRoom]),
   );
+
+  // G-U6-1, as Chat: a host's End, an expiry change or a removal arrives as a rooms / room_members notice; read
+  // the room again (on the room's shared channel, so no extra subscription or polling).
+  useRoomEvents(id, (event) => {
+    if (event.table === 'rooms' || event.table === 'room_members') readRoom();
+  });
+  const ended = useRoomOver(room);
 
   const run = useCallback(
     async (pick: typeof takePhoto) => {
@@ -125,6 +144,16 @@ export default function GalleryScreen() {
       { text: en.media.keepUploading, style: 'cancel' },
       { text: en.media.cancelUpload, style: 'destructive', onPress: () => uploads.cancel(job.id) },
     ]);
+  }
+
+  // G-U6-1: no stale grid, upload rows or Add once the room is over.
+  if (gone || ended.over) {
+    return (
+      <>
+        <Stack.Screen options={{ title: '', headerTitle: '', headerRight: () => null }} />
+        <RoomEnded room={gone ? null : room} nowMs={ended.nowMs ?? now} />
+      </>
+    );
   }
 
   const emptyText = filter === 'mine' ? en.media.emptyMine : filter === 'others' ? en.media.emptyOthers : en.media.empty;

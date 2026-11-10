@@ -18,6 +18,7 @@ import {
   type RoomPreview,
 } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
+import { useRoomOver } from '@/lib/use-room-over';
 
 export default function Preview() {
   const router = useRouter();
@@ -58,11 +59,15 @@ export default function Preview() {
     }
   }
 
+  // G-U6-1: the room's end time passing while the preview is open makes the invite unavailable (Join would fail).
+  const ended = useRoomOver(preview ? { deleted_at: null, expires_at: preview.expires_at } : null);
+  const unavailable = ended.over ? en.rooms.errors.invalid : preview ? null : error;
+
   // Qrew Q 07.03: an invite that can't be previewed (invalid, ended, rotated, full, throttled) gets its own
   // screen: "Invite unavailable", the same cause message as before, the paper art, then Enter a room code /
   // Back to rooms. While loading, only a spinner.
-  if (!preview) {
-    if (!error) {
+  if (!preview || ended.over) {
+    if (!unavailable) {
       return (
         <QScreen>
           <ActivityIndicator style={styles.loading} />
@@ -72,7 +77,7 @@ export default function Preview() {
     return (
       <QScreen
         title={en.preview.unavailableTitle}
-        subtitle={error}
+        subtitle={unavailable}
         bottom={<InkArt art="paper" width={190} />}
         bottomAlign="center"
         actions={
