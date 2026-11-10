@@ -258,6 +258,9 @@ export default function CreateRoom() {
               </Host>
             ))}
           </View>
+          {/* Human decision: the "start moved" note sits right under the pickers, inside the card, so the pinned
+              Create room button never covers it. */}
+          {startNote ? <Hint>{startNote}</Hint> : null}
           <QLink
             title={en.createRoom.removeStartTime}
             onPress={() => {
@@ -269,7 +272,6 @@ export default function CreateRoom() {
       ) : (
         <QLink title={en.createRoom.addStartTime} onPress={addStartTime} />
       )}
-      {startNote ? <Hint>{startNote}</Hint> : null}
 
       <QCard row>
         <Text style={styles.cardTitle}>{en.createRoom.locationLabel}</Text>
