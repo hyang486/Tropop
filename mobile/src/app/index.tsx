@@ -101,7 +101,7 @@ export default function Rooms() {
           >
             {/* Theme mark: the room's ink art, small (Q 01.03). */}
             <View style={styles.mark}>
-              <InkArt roomName={room.name} width={40} />
+              <InkArt roomName={room.name} width={40} ground={colors.field} />
             </View>
             <View style={styles.rowText}>
               <Text style={styles.rowTitle} numberOfLines={1}>
