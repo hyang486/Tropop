@@ -2,6 +2,28 @@
 
 Updated: 2026-11-09 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## Simulator install rule: two keychain groups (2026-11-09, keep on every install)
+
+The Supabase session is AES ciphertext in AsyncStorage (`sb-wuhkyjksiiqzoxvonfuy-auth-token`). Its key is
+in SecureStore (keychain), see `mobile/src/lib/supabase.ts`. Simulator keychain items are scoped by the
+build's `application-identifier` (in the binary's `__TEXT,__entitlements` section). Xcode signs with the
+Personal Team `9K6BKSS4U6` when no team is set. Builds from before that team was in use got the
+placeholder `FAKETEAMID`. Installing a build from the other group leaves the data in place but the app
+can't read its key, so it opens on Welcome signed out (cause of the 891b759 guest sign-out).
+
+| Simulator | Group | Build |
+|---|---|---|
+| 17 Pro host `91F3BFB3` | `9K6BKSS4U6.com.iyaproject.moment` | normal `expo run:ios` / `xcodebuild` |
+| 17 Pro spare `20541309` | `9K6BKSS4U6.com.iyaproject.moment` | normal |
+| 17 guest `F11BA960` | `FAKETEAMID.com.iyaproject.moment` | `xcodebuild … -sdk iphonesimulator DEVELOPMENT_TEAM=FAKETEAMID build`, then `simctl install` |
+| 17e guest `6E0F2097` | `FAKETEAMID.com.iyaproject.moment` | same as above |
+| 17 Pro Max guest 4 `99A2323F` | `FAKETEAMID.com.iyaproject.moment` | same as above (Moment.app → Qrew.app ba7470d, 2026-11-09) |
+
+Every future install keeps its simulator's group. Check it before installing:
+`strings <app>/Qrew | grep -A1 application-identifier`. Install over the existing app only. Uninstalling
+or erasing loses the session, and the guests are anonymous accounts. No repo config encodes this. The
+team value is passed only on the command line.
+
 ## 2026-11-09: Place and time unit (migration 0026), pre-apply test
 - Branch qrew-pt (c40ccd5, 68abdec). Human go-ahead typed in the developer session; the rollback run of
   0026 + supabase/tests/room_place_time_test.sql on project wuhkyjksiiqzoxvonfuy (execute_sql, one transaction
