@@ -21,6 +21,7 @@ import { arrivedMemberCount } from '@/lib/info-plan';
 import { placeTimeOf } from '@/lib/place-time';
 import { getRoom, leaveRoom, listArrivedIds, listMembers, type Room, type RoomMember } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
+import { useRoomOver } from '@/lib/use-room-over';
 
 type State =
   | { status: 'loading' }
@@ -83,6 +84,9 @@ export default function RoomInfoScreen() {
     }, 300);
   });
 
+  // G-U6-1: the room's end time passing while Info is open (the host's End arrives as a rooms notice above).
+  const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+
   if (state.status === 'loading') {
     return (
       <QScreen>
@@ -93,6 +97,10 @@ export default function RoomInfoScreen() {
 
   if (state.status === 'gone') {
     return <RoomEnded />;
+  }
+  // No stale member list, status editing or Leave/End once the room is over.
+  if (state.status === 'ready' && ended.over) {
+    return <RoomEnded room={state.room} nowMs={ended.nowMs ?? now} />;
   }
 
   if (state.status === 'error') {

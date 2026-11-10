@@ -56,6 +56,7 @@ import { useMarkerIcons } from '@/lib/marker-icons';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
+import { useRoomOver } from '@/lib/use-room-over';
 
 type State =
   | { status: 'loading' }
@@ -108,9 +109,14 @@ export default function RoomMapScreen() {
     if (event.table === 'rooms' || event.table === 'room_members') load();
   });
 
+  // G-U6-1: the room's end time passing while Map is open (the host's End arrives as a rooms notice above).
+  const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+
   if (state.status === 'loading') return <ActivityIndicator style={styles.loading} />;
   // Q 06.04: the row is gone, so no closed-at time is known.
   if (state.status === 'gone') return <RoomEnded />;
+  // No stale map, pins or sharing controls once the room is over.
+  if (state.status === 'ready' && ended.over) return <RoomEnded room={state.room} nowMs={ended.nowMs} />;
   if (state.status === 'error') {
     return (
       <View style={styles.center}>

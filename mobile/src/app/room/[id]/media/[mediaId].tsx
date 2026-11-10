@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Share, StyleSheet, Text, View } from 'react-n
 
 import { SavedCard } from '@/components/media-cards';
 import { QScreen } from '@/components/q-screen';
+import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -14,14 +15,17 @@ import { errorMessage } from '@/lib/errors';
 import { excludeFaceMatch, myVisibleMatch } from '@/lib/face';
 import { authHeaders, discardDownload, downloadOriginal, formatBytes, getMedia, type Media, objectUrl, saveOriginal } from '@/lib/media';
 import { mediaTitle, noteSaved, sharedAge } from '@/lib/media-plan';
-import { listMembers } from '@/lib/rooms';
+import { useRoomEvents } from '@/lib/room-channel';
+import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
+import { useRoomOver } from '@/lib/use-room-over';
 
 type State =
   | { status: 'loading' }
   | { status: 'missing' }
+  | { status: 'gone' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; media: Media; uploader: string; matchEnrollment: string | null };
+  | { status: 'ready'; room: Room; media: Media; uploader: string; matchEnrollment: string | null };
 
 export default function MediaScreen() {
   const { id, mediaId } = useLocalSearchParams<{ id: string; mediaId: string }>();
@@ -32,7 +36,12 @@ export default function MediaScreen() {
 
   const load = useCallback(async () => {
     try {
-      const media = await getMedia(mediaId);
+      // G-U6-1: with the room row, a room that ended or expired shows Room ended, not "not found" with Retry.
+      const [room, media] = await Promise.all([getRoom(id), getMedia(mediaId)]);
+      if (!room) {
+        setState({ status: 'gone' });
+        return;
+      }
       if (!media || media.status !== 'ready') {
         setState({ status: 'missing' });
         return;
@@ -47,7 +56,7 @@ export default function MediaScreen() {
       // "Not me" is offered only for a photo currently in my Photos of me.
       const matchEnrollment =
         media.kind === 'photo' && userId ? await myVisibleMatch(id, userId, media.id).catch(() => null) : null;
-      setState({ status: 'ready', media, uploader, matchEnrollment });
+      setState({ status: 'ready', room, media, uploader, matchEnrollment });
     } catch (e) {
       setState({ status: 'error', message: errorMessage(e) });
     }
@@ -59,11 +68,26 @@ export default function MediaScreen() {
     }, [load]),
   );
 
+  // G-U6-1, as Chat: a host's End or a removal arrives as a rooms / room_members notice.
+  useRoomEvents(id, (event) => {
+    if (event.table === 'rooms' || event.table === 'room_members') load();
+  });
+  const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+
   if (state.status === 'loading') {
     return (
       <QScreen>
         <ActivityIndicator style={styles.loading} />
       </QScreen>
+    );
+  }
+  // No Save original or Share once the room is over: the server copy is deleted with it.
+  if (state.status === 'gone' || ended.over) {
+    return (
+      <>
+        <Stack.Screen options={{ title: '' }} />
+        <RoomEnded room={state.status === 'ready' ? state.room : null} nowMs={ended.nowMs} />
+      </>
     );
   }
   if (state.status !== 'ready' || !token) {

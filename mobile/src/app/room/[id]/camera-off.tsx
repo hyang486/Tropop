@@ -1,15 +1,19 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Linking } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
 import { QScreen } from '@/components/q-screen';
+import { RoomEnded } from '@/components/room-ended';
 import { Button } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
 import { useAuth } from '@/lib/auth';
 import { pickPhotosAndVideos } from '@/lib/media';
 import { confirmOriginalsNotice } from '@/lib/originals-notice';
+import { useRoomEvents } from '@/lib/room-channel';
+import { getRoom, type Room } from '@/lib/rooms';
+import { useRoomOver } from '@/lib/use-room-over';
 
 /**
  * Q 07.04 "Camera access is off": pushed from Photos & files when Take a photo finds camera access off (it was
@@ -22,6 +26,19 @@ export default function CameraOffScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const [busy, setBusy] = useState(false);
+  // G-U6-1: Choose from library uploads into the room, so a room that ended or expired shows Room ended.
+  // 'unknown' until read (or when the read fails): the screen shows as before and an upload error says why.
+  const [room, setRoom] = useState<Room | null | 'unknown'>('unknown');
+  const readRoom = useCallback(() => {
+    getRoom(id)
+      .then(setRoom)
+      .catch(() => undefined);
+  }, [id]);
+  useFocusEffect(readRoom);
+  useRoomEvents(id, (event) => {
+    if (event.table === 'rooms' || event.table === 'room_members') readRoom();
+  });
+  const ended = useRoomOver(room === 'unknown' ? null : room);
 
   async function chooseFromLibrary() {
     setBusy(true);
@@ -32,6 +49,15 @@ export default function CameraOffScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (room === null || ended.over) {
+    return (
+      <>
+        <Stack.Screen options={{ title: '', headerTitle: '' }} />
+        <RoomEnded room={room === 'unknown' ? null : room} nowMs={ended.nowMs} />
+      </>
+    );
   }
 
   return (

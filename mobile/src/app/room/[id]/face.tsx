@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { ActionSheetIOS, ActivityIndicator, Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { QLabel, QLink, QScreen } from '@/components/q-screen';
+import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -19,11 +20,15 @@ import {
   runFaceMatch,
 } from '@/lib/face';
 import { createLatestLoader } from '@/lib/latest-load';
+import { useRoomEvents } from '@/lib/room-channel';
+import { getRoom, type Room } from '@/lib/rooms';
+import { useRoomOver } from '@/lib/use-room-over';
 
 type State =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; enrollment: FaceEnrollment | null; refUrl: string | null };
+  | { status: 'gone' }
+  | { status: 'ready'; room: Room; enrollment: FaceEnrollment | null; refUrl: string | null };
 
 /**
  * Photos of me setup for one room (Qrew unit 5, Q 06.02): review the reference with the full consent points,
@@ -49,13 +54,16 @@ export default function FaceScreen() {
     await runLatest(
       `${id}|${userId}`,
       async () => {
-        const { enrollment } = await loadFaceData(id, userId);
+        // G-U6-1: the room row comes with the face data, so a room that ended or expired shows Room ended
+        // instead of an enrollment form whose save would fail.
+        const [room, { enrollment }] = await Promise.all([getRoom(id), loadFaceData(id, userId)]);
+        if (!room) return null;
         const refUrl = enrollment ? await faceRefUrl(enrollment.ref_path) : null;
-        return { enrollment, refUrl };
+        return { room, enrollment, refUrl };
       },
       (outcome) => {
         if (outcome.ok) {
-          setState({ status: 'ready', ...outcome.data });
+          setState(outcome.data ? { status: 'ready', ...outcome.data } : { status: 'gone' });
           return;
         }
         // A failed refresh keeps the screen that is already shown and says why.
@@ -81,6 +89,12 @@ export default function FaceScreen() {
       setRefreshing(false);
     }
   }, [load]);
+  // G-U6-1, as Chat: a host's End or a removal arrives as a rooms / room_members notice.
+  useRoomEvents(id, (event) => {
+    if (event.table === 'rooms' || event.table === 'room_members') load();
+  });
+  const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+
   const refreshControl = <RefreshControl refreshing={refreshing} onRefresh={pullRefresh} enabled={!busy} />;
 
   async function pick(source: 'camera' | 'library') {
@@ -168,6 +182,14 @@ export default function FaceScreen() {
         <Stack.Screen options={{ headerTitle: '' }} />
         <ActivityIndicator style={styles.loading} />
       </QScreen>
+    );
+  }
+  if (state.status === 'gone' || ended.over) {
+    return (
+      <>
+        <Stack.Screen options={{ headerTitle: '', headerRight: () => null }} />
+        <RoomEnded room={state.status === 'ready' ? state.room : null} nowMs={ended.nowMs} />
+      </>
     );
   }
   if (state.status === 'error') {

@@ -35,7 +35,8 @@ export function StatusPicker({
         <Pressable style={styles.flex} accessibilityLabel={en.room.cancel} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]} accessibilityViewIsModal>
           <View style={styles.handle} />
-          <ScrollView contentContainerStyle={styles.body} bounces={false}>
+          {/* flexShrink: inside the sheet's maxHeight the grid scrolls and Cancel stays below it (never over the last row). */}
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.body} bounces={false}>
             <HandTitle style={styles.title}>{en.activity.chooseStatus}</HandTitle>
             <View style={styles.grid}>
               {statuses.map((s) => (
@@ -52,7 +53,9 @@ export function StatusPicker({
             </View>
           </ScrollView>
           <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8} style={({ pressed }) => [styles.cancel, pressed && { opacity: 0.5 }]}>
-            <Text style={styles.cancelText}>{en.room.cancel}</Text>
+            <Text style={styles.cancelText} maxFontSizeMultiplier={1.5}>
+              {en.room.cancel}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -88,7 +91,15 @@ function Tile({
       ]}
     >
       <SymbolView name={symbol} size={22} tintColor={color} />
-      <Text style={[styles.tileText, { color }]} numberOfLines={2}>
+      {/* Dynamic Type capped at 1.4x so one word (Emergency, Resting) fits a half-width tile on the 17e; a longer
+          custom label shrinks to fit two lines instead of breaking inside a word. */}
+      <Text
+        style={[styles.tileText, { color }]}
+        numberOfLines={2}
+        maxFontSizeMultiplier={1.4}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+      >
         {label}
       </Text>
     </Pressable>
@@ -97,6 +108,7 @@ function Tile({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  scroll: { flexGrow: 0, flexShrink: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
   sheet: {
     maxHeight: '85%',

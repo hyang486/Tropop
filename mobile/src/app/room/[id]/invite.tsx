@@ -1,33 +1,50 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { QrCode } from '@/components/qr-code';
 import { QLink, QScreen } from '@/components/q-screen';
+import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
+import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, inviteUrl, rotateInvite, type Room } from '@/lib/rooms';
+import { useRoomOver } from '@/lib/use-room-over';
 
 export default function Invite() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // G-U6-1: the room read came back empty (it ended or expired): Room ended, not a bare error line.
+  const [gone, setGone] = useState(false);
+
+  const readRoom = useCallback(
+    (isActive: () => boolean = () => true) =>
+      getRoom(id)
+        .then((r) => {
+          if (!isActive()) return;
+          setGone(r === null);
+          if (r) setRoom(r);
+        })
+        .catch((e) => isActive() && setError(errorMessage(e))),
+    [id],
+  );
 
   useEffect(() => {
     let active = true;
-    getRoom(id)
-      .then((r) => {
-        if (!active) return;
-        if (r) setRoom(r);
-        else setError(en.room.gone);
-      })
-      .catch((e) => active && setError(errorMessage(e)));
+    readRoom(() => active);
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [readRoom]);
+
+  // G-U6-1, as Chat: a host's End or an expiry change arrives as a rooms notice; the end time passing is timed.
+  useRoomEvents(id, (event) => {
+    if (event.table === 'rooms' || event.table === 'room_members') void readRoom();
+  });
+  const ended = useRoomOver(room);
 
   function reissue() {
     Alert.alert(en.invite.reissueConfirmTitle, en.invite.reissueConfirmBody, [
@@ -62,6 +79,16 @@ export default function Invite() {
       }}
     />
   );
+
+  // No QR or code to share once the room is over.
+  if (gone || ended.over) {
+    return (
+      <>
+        {header}
+        <RoomEnded room={gone ? null : room} nowMs={ended.nowMs} />
+      </>
+    );
+  }
 
   if (!room) {
     return (
