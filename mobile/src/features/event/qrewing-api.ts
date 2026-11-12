@@ -4,7 +4,16 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
-import { classifyQrewingError, invokeFailureKind, isOfflineError, saveErrorKind } from './qrewing-plan';
+import {
+  classifyQrewingError,
+  invokeFailureKind,
+  isOfflineError,
+  type QrewingRoomState,
+  ROOM_READ_FAILED,
+  ROOM_UNKNOWN,
+  roomStateFrom,
+  saveErrorKind,
+} from './qrewing-plan';
 import type { MatchResult, QrewingError, QrewingMemberRow, QrewingRoomRow, RecapResult, TriageResult } from './types';
 
 export type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
@@ -83,28 +92,21 @@ export async function setQrewingMember(roomId: string, aiOk: boolean, mute: bool
   return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
 }
 
-type RoomState = {
-  aiEnabled: boolean;
-  entryRequired: boolean;
-  me: { aiOk: boolean; mute: boolean } | null;
-  /** The last read never reached the server (offline). The state then reads as AI off but is not known. */
-  readFailed: boolean;
-};
-const OFF: RoomState = { aiEnabled: false, entryRequired: false, me: null, readFailed: false };
-const OFFLINE: RoomState = { ...OFF, readFailed: true };
+type RoomState = QrewingRoomState;
 
 /**
- * The room's Qrewing switches and my own consent/mute row. Any read failure (including the tables not existing
- * yet) reads as AI off, so no AI UI shows; `readFailed` tells an offline read apart so settings screens do not
- * show a switch they could not read.
+ * The room's Qrewing switches and my own consent/mute row (roomStateFrom). Any failed room read is `readFailed`
+ * (no AI UI shows, settings screens say they could not load, chat retries); a missing row or missing table is off.
+ * `loaded` is false until the first read answers; an empty `roomId` never reads.
  */
 export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
-  const [state, setState] = useState<RoomState>(OFF);
+  const [state, setState] = useState<RoomState>(ROOM_UNKNOWN);
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
     let alive = true;
+    if (!roomId) return;
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id;
@@ -114,19 +116,9 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
           ? db.from('qrewing_members').select('*').eq('room_id', roomId).eq('user_id', userId).maybeSingle<QrewingMemberRow>()
           : Promise.resolve({ data: null, error: null }),
       ]);
-      if (!alive) return;
-      if (room.error && isOfflineError(room.error)) {
-        setState(OFFLINE);
-        return;
-      }
-      if (room.error || !room.data?.ai_enabled) {
-        setState(OFF);
-        return;
-      }
-      const me = member.data ? { aiOk: member.data.ai_ok_at != null, mute: member.data.mute_small_talk } : null;
-      setState({ aiEnabled: true, entryRequired: room.data.entry_required, me, readFailed: false });
+      if (alive) setState(roomStateFrom(room, member));
     })().catch(() => {
-      if (alive) setState(OFFLINE);
+      if (alive) setState(ROOM_READ_FAILED);
     });
     return () => {
       alive = false;

@@ -1,5 +1,5 @@
 // Pure logic for the Qrewing AI client (no React Native imports, so node --test can load it).
-import type { MatchResult, QrewingError } from './types';
+import type { MatchResult, QrewingError, QrewingMemberRow, QrewingRoomRow } from './types';
 
 const KNOWN: readonly QrewingError[] = [
   'ai_not_configured',
@@ -19,7 +19,7 @@ const KNOWN: readonly QrewingError[] = [
 export function classifyQrewingError(status: number, bodyError?: unknown): QrewingError {
   if (typeof bodyError === 'string' && (KNOWN as readonly string[]).includes(bodyError)) return bodyError as QrewingError;
   if (status === 0) return 'network';
-  if (status === 503) return 'ai_not_configured';
+  // The function always names ai_not_configured in its 503 body, so a bare 503 is a gateway failure.
   if (status === 401 || status === 403) return 'not_member';
   return 'ai_failed';
 }
@@ -66,7 +66,7 @@ export const MATCH_RETRY_MS = 10_000;
 
 export type MatchAnswer = MatchResult | { state: 'pending' } | { error: QrewingError };
 export type MatchStep =
-  | { show: 'list'; result: MatchResult; pending: boolean; retryInMs: number | null }
+  | { show: 'list'; result: MatchResult; pending: boolean; error: QrewingError | null; retryInMs: number | null }
   | { show: 'pending'; retryInMs: number | null }
   | { show: 'error'; error: QrewingError };
 
@@ -76,8 +76,54 @@ export type MatchStep =
  * re-ask; never in a loop. 200 with stale:true is a normal list (the screen shows the stale hint, no error).
  */
 export function matchStep(answer: MatchAnswer, last: MatchResult | null, isRetry: boolean): MatchStep {
-  if ('error' in answer) return { show: 'error', error: answer.error };
-  if ('matches' in answer) return { show: 'list', result: answer, pending: false, retryInMs: null };
+  if ('error' in answer) {
+    // A failed re-ask keeps the list it was updating, with a small error line (review R4).
+    if (isRetry && last) return { show: 'list', result: last, pending: false, error: answer.error, retryInMs: null };
+    return { show: 'error', error: answer.error };
+  }
+  if ('matches' in answer) return { show: 'list', result: answer, pending: false, error: null, retryInMs: null };
   const retryInMs = isRetry ? null : MATCH_RETRY_MS;
-  return last ? { show: 'list', result: last, pending: true, retryInMs } : { show: 'pending', retryInMs };
+  return last ? { show: 'list', result: last, pending: true, error: null, retryInMs } : { show: 'pending', retryInMs };
+}
+
+export type QrewingRoomState = {
+  aiEnabled: boolean;
+  entryRequired: boolean;
+  me: { aiOk: boolean; mute: boolean } | null;
+  /** The last read failed (offline, gateway 5xx, RLS error...). The state then reads as AI off but is not known. */
+  readFailed: boolean;
+  /** A read has answered (false until the first read returns). */
+  loaded: boolean;
+};
+export const ROOM_UNKNOWN: QrewingRoomState = { aiEnabled: false, entryRequired: false, me: null, readFailed: false, loaded: false };
+const ROOM_OFF: QrewingRoomState = { ...ROOM_UNKNOWN, loaded: true };
+export const ROOM_READ_FAILED: QrewingRoomState = { ...ROOM_OFF, readFailed: true };
+
+// Table missing (0027 not applied yet): a known "Qrewing is not here", not a failed read, so rooms without the
+// tables do not show "Could not load" or retry every 30 s.
+const MISSING_TABLE = new Set(['42P01', 'PGRST205']);
+
+/**
+ * The room's Qrewing state from the qrewing_rooms and qrewing_members reads (review R1). Any error on the room
+ * read is `readFailed` (not "off"), except a missing table; no row (no error) is off.
+ */
+export function roomStateFrom(
+  room: { data: QrewingRoomRow | null; error: unknown },
+  member: { data: QrewingMemberRow | null },
+): QrewingRoomState {
+  if (room.error) {
+    const code = (room.error as { code?: unknown }).code;
+    return typeof code === 'string' && MISSING_TABLE.has(code) ? ROOM_OFF : ROOM_READ_FAILED;
+  }
+  if (!room.data?.ai_enabled) return ROOM_OFF;
+  const me = member.data ? { aiOk: member.data.ai_ok_at != null, mute: member.data.mute_small_talk } : null;
+  return { aiEnabled: true, entryRequired: room.data.entry_required, me, readFailed: false, loaded: true };
+}
+
+/**
+ * End-room copy (review R6): name the recap unless a read actually answered that Qrewing AI is off. Still loading
+ * or a failed read keeps the recap wording.
+ */
+export function endCopyHasRecap(state: Pick<QrewingRoomState, 'aiEnabled' | 'readFailed' | 'loaded'>): boolean {
+  return state.aiEnabled || !state.loaded || state.readFailed;
 }

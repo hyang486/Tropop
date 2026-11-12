@@ -7,7 +7,7 @@ import { eventStrings } from '@/features/event/strings';
 import { useAuth } from '@/lib/auth';
 import { useRoomEvents } from '@/lib/room-channel';
 
-import { type RecapMark, type RecapMiss, recapCardView, type SavedRecap } from './recap-plan';
+import { type RecapMark, type RecapMiss, recapCardView, rereadOnSubscribe, type SavedRecap } from './recap-plan';
 import { loadMark, loadSavedRecap, readAndSaveRecap, recapForEndedRoom } from './recap-store';
 
 const s = eventStrings.recap;
@@ -84,8 +84,9 @@ export function SavedRecapCard({ roomId, grace }: { roomId: string; grace: boole
         setTick((n) => n + 1);
       }}
       onSubscribed={() => {
-        // A notice may have gone out before this screen subscribed: read again unless a recap is already here.
-        if (loadedRef.current && !loadedRef.current.saved) setTick((n) => n + 1);
+        // A notice may have gone out before this screen subscribed, even while the first read is in flight: read
+        // again unless a recap is already here (review R2). A re-run cancels the in-flight read.
+        if (rereadOnSubscribe(loadedRef.current)) setTick((n) => n + 1);
       }}
     />
   ) : null;

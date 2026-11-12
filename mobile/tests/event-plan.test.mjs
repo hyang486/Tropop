@@ -160,7 +160,8 @@ test('createTriageBatcher: up to 5 per batch, flush after the delay, no duplicat
 test('classifyQrewingError: body code wins, else status', () => {
   assert.equal(classifyQrewingError(403, 'ai_off'), 'ai_off');
   assert.equal(classifyQrewingError(409, 'too_early'), 'too_early');
-  assert.equal(classifyQrewingError(503), 'ai_not_configured');
+  assert.equal(classifyQrewingError(503), 'ai_failed', 'bare gateway 503');
+  assert.equal(classifyQrewingError(503, 'ai_not_configured'), 'ai_not_configured');
   assert.equal(classifyQrewingError(0), 'network');
   assert.equal(classifyQrewingError(401), 'not_member');
   assert.equal(classifyQrewingError(500, 'boom'), 'ai_failed');
@@ -262,12 +263,44 @@ test('matchStep (68132d6): 202 pending keeps the last list or shows pending, re-
   const { matchStep, MATCH_RETRY_MS } = await import('../src/features/event/qrewing-plan.ts');
   const list = { matches: [{ userId: 'b', displayName: 'B', headline: '', reason: 'r', score: 1 }], cached: false, generatedAt: 't' };
   const stale = { ...list, cached: true, stale: true };
-  assert.deepEqual(matchStep(list, null, false), { show: 'list', result: list, pending: false, retryInMs: null });
-  assert.deepEqual(matchStep(stale, list, false), { show: 'list', result: stale, pending: false, retryInMs: null }, 'stale is no error');
+  assert.deepEqual(matchStep(list, null, false), { show: 'list', result: list, pending: false, error: null, retryInMs: null });
+  assert.deepEqual(matchStep(stale, list, false), { show: 'list', result: stale, pending: false, error: null, retryInMs: null }, 'stale is no error');
   assert.deepEqual(matchStep({ state: 'pending' }, null, false), { show: 'pending', retryInMs: MATCH_RETRY_MS });
-  assert.deepEqual(matchStep({ state: 'pending' }, list, false), { show: 'list', result: list, pending: true, retryInMs: MATCH_RETRY_MS });
+  assert.deepEqual(matchStep({ state: 'pending' }, list, false), { show: 'list', result: list, pending: true, error: null, retryInMs: MATCH_RETRY_MS });
   assert.deepEqual(matchStep({ state: 'pending' }, null, true), { show: 'pending', retryInMs: null }, 're-ask is not repeated');
-  assert.deepEqual(matchStep({ state: 'pending' }, list, true), { show: 'list', result: list, pending: true, retryInMs: null });
-  assert.deepEqual(matchStep({ error: 'network' }, list, true), { show: 'error', error: 'network' });
+  assert.deepEqual(matchStep({ state: 'pending' }, list, true), { show: 'list', result: list, pending: true, error: null, retryInMs: null });
+  // R4: a failed re-ask keeps the list with an error line; a failed first ask (or no list) is the error view.
+  assert.deepEqual(matchStep({ error: 'network' }, list, true), { show: 'list', result: list, pending: false, error: 'network', retryInMs: null });
+  assert.deepEqual(matchStep({ error: 'ai_failed' }, list, true), { show: 'list', result: list, pending: false, error: 'ai_failed', retryInMs: null });
+  assert.deepEqual(matchStep({ error: 'network' }, null, true), { show: 'error', error: 'network' });
+  assert.deepEqual(matchStep({ error: 'no_entry' }, list, false), { show: 'error', error: 'no_entry' });
   assert.equal(MATCH_RETRY_MS, 10_000);
+});
+
+test('roomStateFrom (R1): any room read error is readFailed, a missing row or table is off', async () => {
+  const { roomStateFrom, ROOM_UNKNOWN } = await import('../src/features/event/qrewing-plan.ts');
+  const none = { data: null };
+  const failed = { aiEnabled: false, entryRequired: false, me: null, readFailed: true, loaded: true };
+  const off = { ...failed, readFailed: false };
+  assert.deepEqual(roomStateFrom({ data: null, error: { message: 'TypeError: Network request failed', code: '' } }, none), failed);
+  assert.deepEqual(roomStateFrom({ data: null, error: { message: '<html>502 Bad Gateway</html>', code: '' } }, none), failed, 'gateway 5xx');
+  assert.deepEqual(roomStateFrom({ data: null, error: { message: 'permission denied', code: '42501' } }, none), failed, 'RLS');
+  assert.deepEqual(roomStateFrom({ data: null, error: { message: 'missing', code: 'PGRST205' } }, none), off, '0027 not applied');
+  assert.deepEqual(roomStateFrom({ data: null, error: { message: 'missing', code: '42P01' } }, none), off);
+  assert.deepEqual(roomStateFrom({ data: null, error: null }, none), off, 'no row');
+  const room = { room_id: 'r', ai_enabled: true, entry_required: true };
+  assert.deepEqual(roomStateFrom({ data: { ...room, ai_enabled: false }, error: null }, none), off);
+  assert.deepEqual(roomStateFrom({ data: room, error: null }, { data: { ai_ok_at: 't', mute_small_talk: true } }), {
+    aiEnabled: true, entryRequired: true, me: { aiOk: true, mute: true }, readFailed: false, loaded: true,
+  });
+  assert.equal(ROOM_UNKNOWN.loaded, false);
+  assert.equal(ROOM_UNKNOWN.readFailed, false);
+});
+
+test('endCopyHasRecap (R6): recap wording unless a read answered AI off', async () => {
+  const { endCopyHasRecap, ROOM_UNKNOWN, ROOM_READ_FAILED } = await import('../src/features/event/qrewing-plan.ts');
+  assert.equal(endCopyHasRecap(ROOM_UNKNOWN), true, 'still loading (or no id)');
+  assert.equal(endCopyHasRecap(ROOM_READ_FAILED), true, 'read failed');
+  assert.equal(endCopyHasRecap({ aiEnabled: false, readFailed: false, loaded: true }), false, 'answered off');
+  assert.equal(endCopyHasRecap({ aiEnabled: true, readFailed: false, loaded: true }), true);
 });

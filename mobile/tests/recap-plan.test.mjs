@@ -99,3 +99,20 @@ test('recapMissForError (68132d6): only no connection is retryable; a 502 after 
   assert.equal(recapMissForError('network'), 'offline');
   assert.equal(recapCardView(false, true, recapMissForError('network')), 'offline');
 });
+
+test('rereadOnSubscribe (R2): re-read unless saved, also while the first read is in flight', async () => {
+  const { rereadOnSubscribe } = await import('../src/features/recap/recap-plan.ts');
+  assert.equal(rereadOnSubscribe(null), true, 'first read in flight');
+  assert.equal(rereadOnSubscribe({ saved: null }), true);
+  assert.equal(rereadOnSubscribe({ saved: { title: 't' } }), false);
+});
+
+test('isStalePending (R3): pending rows older than the server TTL (5 min) are stale', async () => {
+  const { isStalePending, RECAP_PENDING_TTL_MS } = await import('../src/features/recap/recap-plan.ts');
+  assert.equal(RECAP_PENDING_TTL_MS, 5 * 60_000);
+  const now = Date.parse('2026-11-12T12:00:00Z');
+  assert.equal(isStalePending('2026-11-12T11:54:59Z', now), true);
+  assert.equal(isStalePending('2026-11-12T11:55:00Z', now), false, 'exactly the TTL is not stale');
+  assert.equal(isStalePending('2026-11-12T11:59:00Z', now), false);
+  assert.equal(isStalePending('not a time', now), false);
+});

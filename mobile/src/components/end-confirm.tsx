@@ -8,6 +8,7 @@ import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
 import { useQrewingRoom } from '@/features/event/qrewing-api';
+import { endCopyHasRecap } from '@/features/event/qrewing-plan';
 import { eventStrings } from '@/features/event/strings';
 import { recapAfterEnd } from '@/features/recap/recap-store';
 import { en } from '@/i18n/en';
@@ -61,9 +62,10 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
   );
 
   // Spec 7.4: the end-room deletion lines come from the event strings until they move into en.ts at merge.
-  // The recap is mentioned only when Qrewing AI is on in this room (no recap is written otherwise).
+  // The recap is left out only when a read answered that Qrewing AI is off (still loading or a failed read keeps
+  // the recap wording, review R6). No id: no read, recap wording.
   const qrewing = useQrewingRoom(id ?? '');
-  const recapOn = qrewing.aiEnabled;
+  const recapOn = endCopyHasRecap(qrewing);
   const ev = eventStrings.endRoom;
   const copy =
     kind === 'activity'

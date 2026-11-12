@@ -15,8 +15,17 @@ const s = eventStrings.people;
 
 type State =
   | { status: 'loading' }
-  | { status: 'ready'; result: MatchResult; links: ReadonlyMap<string, string[]>; updating: boolean }
-  | { status: 'pending' }
+  | {
+      status: 'ready';
+      result: MatchResult;
+      links: ReadonlyMap<string, string[]>;
+      updating: boolean;
+      /** No re-ask follows: the copy says to tap Refresh (R5). */
+      final: boolean;
+      /** A failed re-ask: the kept list shows with this line (R4). */
+      error: QrewingError | null;
+    }
+  | { status: 'pending'; final: boolean }
   | { status: 'error'; error: QrewingError };
 
 type Loaded = { state: State; retryInMs: number | null };
@@ -25,9 +34,10 @@ async function load(roomId: string, last: MatchResult | null, isRetry: boolean):
   const [res, profiles] = await Promise.all([requestMatches(roomId), listEntryProfiles(roomId).catch(() => [])]);
   const step = matchStep(res, last, isRetry);
   if (step.show === 'error') return { state: { status: 'error', error: step.error }, retryInMs: null };
-  if (step.show === 'pending') return { state: { status: 'pending' }, retryInMs: step.retryInMs };
+  const final = step.retryInMs === null;
+  if (step.show === 'pending') return { state: { status: 'pending', final }, retryInMs: step.retryInMs };
   return {
-    state: { status: 'ready', result: step.result, links: linksByUser(profiles), updating: step.pending },
+    state: { status: 'ready', result: step.result, links: linksByUser(profiles), updating: step.pending, final, error: step.error },
     retryInMs: step.retryInMs,
   };
 }
@@ -102,7 +112,7 @@ export function PeopleScreen() {
           <Hint>{s.loading}</Hint>
         </View>
       ) : state.status === 'pending' ? (
-        <Hint>{s.pending}</Hint>
+        <Hint>{state.final ? s.pendingFinal : s.pending}</Hint>
       ) : state.status === 'error' ? (
         <Hint tone="error">
           {notConsented ? s.notConsented : state.error === 'no_entry' ? s.noEntry : eventStrings.errors[state.error]}
@@ -111,7 +121,13 @@ export function PeopleScreen() {
         <Hint>{s.empty}</Hint>
       ) : (
         <>
-          {state.updating ? <Hint>{s.updating}</Hint> : state.result.stale ? <Hint>{s.stale}</Hint> : null}
+          {state.error ? (
+            <Hint tone="error">{state.error === 'network' ? eventStrings.errors.network : s.updateFailed}</Hint>
+          ) : state.updating ? (
+            <Hint>{state.final ? s.updatingFinal : s.updating}</Hint>
+          ) : state.result.stale ? (
+            <Hint>{s.stale}</Hint>
+          ) : null}
           {state.result.matches.map((m) => (
             <QCard key={m.userId}>
               <Text style={styles.name}>{m.displayName}</Text>

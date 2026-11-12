@@ -19,6 +19,7 @@ import {
   type RecapMark,
   recapKey,
   recapMarkKey,
+  isStalePending,
   type RecapMiss,
   recapMissForError,
   type SavedRecap,
@@ -180,11 +181,18 @@ export async function recapForEndedRoom(
         }),
       };
     }
-    if (data?.state === 'pending') return { miss: 'pending' };
+    // A stale pending row (writer gone) falls through to one recap call, which the server retakes (R3); the
+    // answer is 200 done, 202 pending or 502 (gone, no Try again).
+    if (data?.state === 'pending' && !isStalePending(data.updated_at, Date.now())) return { miss: 'pending' };
+    if (data?.state === 'pending') return askRecap(roomId, userId);
   } catch (e) {
     return { miss: isOfflineError(e) ? 'offline' : 'gone' };
   }
   if (!opts.ask) return { miss: 'gone' };
+  return askRecap(roomId, userId);
+}
+
+async function askRecap(roomId: string, userId: string): Promise<{ saved: SavedRecap } | { miss: RecapMiss }> {
   const res = await requestRecap(roomId);
   if ('error' in res) return { miss: recapMissForError(res.error) };
   if (res.state !== 'done') return { miss: 'pending' };

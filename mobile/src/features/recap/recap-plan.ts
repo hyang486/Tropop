@@ -174,3 +174,20 @@ export function recapCardView(hasSaved: boolean, markAi: boolean, miss: RecapMis
 export function recapMissForError(error: string): RecapMiss {
   return error === 'network' ? 'offline' : 'gone';
 }
+
+/** On SUBSCRIBED in grace: read again unless a recap is already saved, including while the first read runs (R2). */
+export function rereadOnSubscribe(loaded: { saved: unknown } | null): boolean {
+  return !loaded?.saved;
+}
+
+/** Server's pending TTL (supabase/functions/qrewing/core.ts RECAP_PENDING_TTL_MS on qrewing-backend 23e1423). */
+export const RECAP_PENDING_TTL_MS = 5 * 60_000;
+
+/**
+ * A pending room_recaps row older than the server's TTL is stale: the writer died, and the server retakes it once,
+ * but only when someone calls recap (review R3). Unparseable times count as not stale.
+ */
+export function isStalePending(updatedAt: string, nowMs: number): boolean {
+  const t = Date.parse(updatedAt);
+  return Number.isFinite(t) && nowMs - t > RECAP_PENDING_TTL_MS;
+}
