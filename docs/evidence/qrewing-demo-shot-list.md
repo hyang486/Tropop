@@ -57,13 +57,13 @@ Before recording, Guest 3 joins by code, taps **Agree** and saves its own entry,
 
 | Shot | Sim | Action | Expected on screen (en.ts) | ≈ Time | Cut |
 |---|---|---|---|---|---|
-| C1 (2.1) | Host | Create room → **Event**, **3 hours**, **Qrewing AI** on, **Ask attendees for entry info** on → Create → **Agree** | Disclosure title "Qrewing AI is on in this room" (`:644`), "Agree" (`:651`), and **no** "…Qrewing AI could not be turned on…" (`:641`) | 0:00–0:40 | Keep the switches and the Agree; trim the typing |
+| C1 (2.1) | Host | Create room → **Event**, **3 hours**, **Qrewing AI** on, **Ask attendees for entry info** on → Create → **Agree** | Disclosure title "Qrewing AI is on in this room" (`:644`), "Agree" (`:651`), and **no** "…Qrewing AI could not be turned on…" (`:641`); then the "Introduce yourself" gate (`:656`), since the entry gate applies to the Host too (`event-plan.ts:60`) | 0:00–0:40 | Keep the switches and the Agree; trim the typing |
 | C2 (2.2) | Guest | Join by code → **Agree** | "Introduce yourself" gate (`:656`). The disclosure's deletion line is `:648` **[40fd48f]**: "…when the room ends, or 30 minutes after the host ends it early." | — | Keep the gate appearing |
 | C3 (2.3) | Guest | Headline, Interests, Looking for, one `https://` link → **Save** | Chat opens. The entry intro line is `:657` **[40fd48f]** | — | Speed up the typing; keep the Save → chat |
-| C4 (2.4) | Host | Fill own entry (gate or Room info → **Edit my entry info**) | — | — | Not filmed / cut |
-| C5 (2.5) **AI** | Guest | Room info → **People to meet** (`:689`) | "Qrewing is reading entry info…" (`:708`), then the Host's name, headline and reason. If "Qrewing is still finding people to meet." (`:712`/`:713`) shows, tap **Refresh**. | wait time varies | Cut the wait; keep loading → list |
+| C4 (2.4) | Host | Fill own entry in the gate shown after C1's Agree | — | — | Not filmed / cut |
+| C5 (2.5) **AI** | Guest | Room info → **People to meet** (`:689`) | "Qrewing is reading entry info…" (`:708`), then the Host's name, headline and reason. If "Qrewing is still finding people to meet." (`:712`/`:713`) shows, tap **Refresh**. Guest 3 may also appear next to the Host. | wait time varies | Cut the wait; keep loading → list |
 | C6 (2.6) | Guest | **Mute small talk** on (`:695`) | "Showing important messages" (`:696`) | — | Short |
-| C7 (2.7) **AI** | Guest 3 → Guest | Post "hi", "lol", "coffee?" | Guest: "3 messages hidden" (`:697`) · Show | — | Film the Guest's screen |
+| C7 (2.7) **AI** | Guest 3 → Guest | Post "hi", "lol", "coffee?" | Guest: "3 messages hidden" (`:697`) · Show. Model-dependent: "lol" is hidden by rule with no model call (`fn/qrewing/core.ts:413`); "hi" and "coffee?" depend on the model, so the count can be lower | — | Film the Guest's screen |
 | C8 (2.8) | Guest 3 → Guest | Post "@everyone doors open in 5" (rule path, no model call) | Guest: the message and `Important: …` (`:699`) | — | Out after the banner |
 
 ## Take D: host ends early (same Event room)
@@ -75,7 +75,7 @@ Before recording, the Guest enrolls for Photos of me and a matching demo photo i
 | D1 (3.1) | Host | Room info → **End room for everyone** (`:176`) → confirm (`:539`) | "Chat closes now. The recap and photos stay available for 30 minutes, then messages, photos and files are deleted from the server. Anything already saved to a phone stays there." (`:531-532`) | 0:00 | Keep the confirm text readable for ~3 s |
 | D2 (3.2) **AI** | both | — | "This room has ended" (`:193`); "Recap and photos available until <time>" (`:733`); "Chat and the room are closed. After that time, everything is deleted from the server." (`:734`); buttons **Photos of me** (`:735`), **Photos & files** (`:736`), **Back to rooms** (`:191`); recap card "Qrewing is still writing the recap." (`:722`) | right after D1 | Keep |
 | D3 (3.3) | Guest | Wait without tapping | The card becomes the recap: title, summary, highlights, "You in this room" (`:725`), "Saved on this phone only." (`:730`) | wait varies | Cut the wait; keep the change |
-| D4 (3.4) **Face** | Guest | **Photos of me** → open a photo → save | The photo saves to the phone. A read-only room shows "The room has ended. View and download until <time>." (`:738`) | — | Keep the save |
+| D4 (3.4) **Face** | Guest | **Photos of me** → open a photo → save | The photo saves to the phone. ("The room has ended. View and download until <time>." (`:738`) shows only in **Photos & files** (`gallery.tsx:170`), not here; film it there if needed.) | — | Keep the save |
 | D5 (3.5) | Guest | **Back to rooms** | Row "Ended · recap and photos until <time>" (`:737`) | — | End of video |
 
 ## Not in this video
