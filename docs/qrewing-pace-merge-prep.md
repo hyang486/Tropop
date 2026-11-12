@@ -166,3 +166,11 @@ Stop on run stop (do this when applying the diff): add `export function stopSpee
 - M3 `features/recap/recap-store.ts`: rehearsed by importing `getActivitySummary` and `paceRecapLine` from `@/features/pace/summary` and replacing `pace: null` with `paceRecapLine(await getActivitySummary(roomId))`. It was not committed; it is to be applied by whoever owns recap at merge. `getActivitySummary` never rejects, and it counts a live run (2ba6451).
 - After the merge plus M3: `npx tsc --noEmit` exit 0; `npm test` 436/436; `npx expo lint` exit 0.
 - Not done in the rehearsal: `expo-speech` in package.json (needs a native rebuild), the `en.pace` move, and any device run.
+
+### 6b. With qrewing-backend (2026-11-12; throwaway worktree and branch, both deleted)
+
+- Order: `main`, then qrewing-backend `686a69e` (fast-forward), then event `73b532d` (`ort`, clean), then qrewing-pace (`ort`, clean).
+- Conflicts: none. No file is changed by any two of the three branches (pairwise `comm` of their `main` diffs is empty).
+- M3: wired as in §6 (not committed).
+- Result: `npx tsc --noEmit` exit 0; `npm test` 436/436; `npx expo lint` exit 0. npm test does not run the backend's SQL and Deno tests.
+- Backend's only `package.json` change adds `"expo-speech": "~58.0.4"`, and 58.0.4 is already in the shared `mobile/node_modules`. Pace adds no dependency. After the merge, the §5 diff can be applied without an install, but speech still needs a native rebuild before device QA.
