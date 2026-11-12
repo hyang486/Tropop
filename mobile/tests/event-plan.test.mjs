@@ -159,6 +159,22 @@ test('createTriageBatcher: up to 5 per batch, flush after the delay, no duplicat
   assert.equal(t.count(), 0);
 });
 
+test('qrewing function not deployed (404 / relay / bare 503): one ai_failed, no retry, recap shows "none"', async () => {
+  const { invokeFailureKind, matchStep } = await import('../src/features/event/qrewing-plan.ts');
+  const { recapMissForError, recapCardView } = await import('../src/features/recap/recap-plan.ts');
+  // Supabase gateway body for a missing function has `code`, not `error`.
+  assert.equal(invokeFailureKind({ name: 'FunctionsHttpError', message: 'Edge Function returned a non-2xx status code' }), 'http');
+  assert.equal(classifyQrewingError(404, undefined), 'ai_failed');
+  assert.equal(classifyQrewingError(404, 'NOT_FOUND'), 'ai_failed', 'unknown body code falls back to status');
+  assert.equal(invokeFailureKind({ name: 'FunctionsRelayError', message: 'Relay Error' }), 'server');
+  // Match: an error is shown once; only a 202 pending schedules a re-ask.
+  assert.deepEqual(matchStep({ error: 'ai_failed' }, null, false), { show: 'error', error: 'ai_failed' });
+  // Recap: a non-network error is "gone", which shows the plain "no recap" line, not a retry loop.
+  assert.equal(recapMissForError('ai_failed'), 'gone');
+  assert.equal(recapCardView(false, true, 'gone'), 'none');
+  assert.equal(recapCardView(false, false, 'gone'), 'hidden');
+});
+
 test('classifyQrewingError: body code wins, else status', () => {
   assert.equal(classifyQrewingError(403, 'ai_off'), 'ai_off');
   assert.equal(classifyQrewingError(409, 'too_early'), 'too_early');
