@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { useAnnounce } from '@/features/event/announce';
 import { QCard, QField, QLabel, QLink } from '@/components/q-screen';
 import { colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -45,7 +46,6 @@ function IconButton({ name, label, disabled, onPress }: { name: string; label: s
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      hitSlop={6}
       style={({ pressed }) => [styles.icon, (pressed || disabled) && { opacity: 0.35 }]}
     >
       <SymbolView name={name as never} size={18} tintColor={colors.label} />
@@ -67,6 +67,8 @@ export function QuestionEditor({
   problem: { problem: QuestionProblem; key?: string } | null;
 }) {
   const removable = canRemove(value);
+  const problemIndex = problem?.key ? value.findIndex((q) => q.key === problem.key) : -1;
+  useAnnounce(problem ? questionProblemText(problem.problem, problemIndex >= 0 ? problemIndex + 1 : null) : null, problem);
   return (
     <>
       <QLabel>{s.questionsTitle}</QLabel>
@@ -133,14 +135,17 @@ export function QuestionEditor({
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   number: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
-  icon: { padding: 8 },
+  // 44 pt target without hitSlop, so neighbouring icons never overlap.
+  icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   kinds: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     backgroundColor: colors.field,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 9,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   chipText: { fontSize: 14, color: colors.label },
   row: { flexDirection: 'row', alignItems: 'center' },

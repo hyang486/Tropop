@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useAnnounce } from '@/features/event/announce';
 import { QField, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { paceSnapshot } from '@/features/pace/engine';
@@ -28,6 +29,8 @@ export function AskScreen() {
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<AskError | null>(null);
   const [consent, setConsent] = useState(false);
+  useAnnounce(sending ? s.thinking : null, sending);
+  useAnnounce(error ? en.qrewing.errors[error] : null, error);
   const mounted = useRef(true);
   const lastRef = useRef<ComponentRef<typeof View>>(null);
   const revealRef = useRef<QScreenReveal>(null);
@@ -107,7 +110,7 @@ export function AskScreen() {
           headerTitle: '',
           // A visible way out besides the swipe (VoiceOver users cannot discover it).
           headerRight: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel={s.doneLabel} hitSlop={8} onPress={() => router.back()}>
+            <Pressable accessibilityRole="button" accessibilityLabel={s.doneLabel} onPress={() => router.back()} style={styles.headerHit}>
               <Text style={styles.done}>{s.done}</Text>
             </Pressable>
           ),
@@ -180,6 +183,7 @@ function Bubble({ text, mine }: { text: string; mine?: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
   done: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 6 },
   flex: { flex: 1 },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },

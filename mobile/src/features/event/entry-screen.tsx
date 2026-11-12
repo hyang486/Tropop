@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-r
 import { type ComponentRef, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { useAnnounce } from '@/features/event/announce';
 import { QField, QLabel, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -73,6 +74,8 @@ export function EntryScreen() {
   const fields = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   // Set after a successful save: prevention turns off first, then the effect below leaves.
   const [saved, setSaved] = useState(false);
+  useAnnounce(invalid?.text, invalid);
+  useAnnounce(error);
 
   useEffect(() => {
     if (!userId) return;
@@ -188,7 +191,13 @@ export function EntryScreen() {
           // qa F1: Save stays reachable from the header while the keyboard covers the bottom.
           headerRight: () =>
             !ready ? null : (
-              <Pressable onPress={save} disabled={busy} accessibilityRole="button" hitSlop={8}>
+              <Pressable
+                onPress={save}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: busy, busy }}
+                style={styles.headerHit}
+              >
                 <Text style={[styles.headerSave, busy && styles.headerSaveBusy]}>{s.save}</Text>
               </Pressable>
             ),
@@ -291,6 +300,7 @@ const styles = StyleSheet.create({
   // Matches QLabel (q-screen.tsx), which only takes a plain string.
   label: { fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 6 },
   star: { color: colors.danger },
+  headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
   headerSave: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 8 },
   headerSaveBusy: { opacity: 0.4 },
 });
