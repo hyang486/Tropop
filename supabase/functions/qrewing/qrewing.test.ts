@@ -16,6 +16,8 @@ import {
   parseHistory,
   parseTz,
   localTime,
+  friendlyTime,
+  questionLang,
   routeKm,
   ASK_USER_CAP,
   ASK_ROOM_CAP,
@@ -1068,6 +1070,25 @@ test('ask parseBody: question 1..300 after trim; history up to 4 turns; tz defau
   assert.equal(localTime('2026-11-12T18:05:00.000Z', 'Asia/Seoul'), '2026-11-13 03:05');
 });
 
+test('ask friendlyTime: local, relative to now in tz; 12 h for en, 24 h for ko; questionLang by Hangul', () => {
+  const now = new Date('2026-11-12T21:28:00.000Z'); // Thu Nov 12, 1:28 PM in Los Angeles; Fri Nov 13 06:28 in Seoul
+  const LA = 'America/Los_Angeles';
+  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'en'), 'today at 1:28 PM');
+  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'en', true), 'Thu, Nov 12 at 1:28 PM');
+  assert.equal(friendlyTime('2026-11-13T17:00:00.000Z', LA, now, 'en'), 'tomorrow at 9:00 AM');
+  assert.equal(friendlyTime('2026-11-14T08:05:00.000Z', LA, now, 'en'), 'Sat, Nov 14 at 12:05 AM');
+  assert.equal(friendlyTime('2026-11-12T07:59:00.000Z', LA, now, 'en'), 'yesterday at 11:59 PM');
+  assert.equal(friendlyTime('2027-01-02T20:00:00.000Z', LA, now, 'en'), 'Sat, Jan 2, 2027 at 12:00 PM');
+  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'ko'), '오늘 13:28');
+  assert.equal(friendlyTime('2026-11-13T17:00:00.000Z', LA, now, 'ko'), '내일 09:00');
+  assert.equal(friendlyTime('2026-11-15T00:30:00.000Z', LA, now, 'ko'), '11월 14일 (토) 16:30');
+  // Same instant, Seoul: "today" follows the asker's tz, not UTC.
+  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', 'Asia/Seoul', now, 'ko'), '오늘 06:28');
+  assert.equal(friendlyTime('2026-11-12T14:00:00.000Z', 'Asia/Seoul', now, 'ko'), '어제 23:00');
+  assert.equal(questionLang('언제 끝나?'), 'ko');
+  assert.equal(questionLang('When does it end?'), 'en');
+});
+
 test('ask parseMe: only elapsedSec, distanceM, paceSecPerKm in range and activity moving|stopped; unknown keys dropped', () => {
   assert.deepEqual(parseMe({ distanceM: 3200, paceSecPerKm: 330, activity: 'moving', lat: 37.8, name: 'x' }), { distanceM: 3200, paceSecPerKm: 330, activity: 'moving' });
   assert.equal(parseMe(undefined), null);
@@ -1139,7 +1160,7 @@ test('ask context: facts in local tz, consenting chat and entry answers, me and 
     '<status>On my way</status>', '<activity>active</activity>', '<asker is_host="false">Bob</asker>',
     '<me distanceM="2500" paceSecPerKm="340" activity="stopped"/>', '<history>\n<turn><q>Who hosts?</q><a>Hana hosts.</a></turn>\n</history>',
     'Hana: Meet at the boathouse 7:30', 'Bob: see you', '<question>Where do we meet?</question>',
-    '<tz>America/Los_Angeles</tz>', `<now>${localTime(NOW.toISOString(), 'America/Los_Angeles')}</now>`]) {
+    '<tz>America/Los_Angeles</tz>', '<now>Thu, Nov 12 at 12:00 PM</now>']) {
     assert.ok(u.includes(s), `missing ${s}`);
   }
   assert.ok(!u.includes(NOW.toISOString()), 'UTC instant sent instead of local time');

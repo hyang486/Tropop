@@ -313,6 +313,48 @@ export function localTime(isoStr: string, tz: string): string {
   return `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')}`;
 }
 
+export type AskLang = 'en' | 'ko';
+/** Korean if the question has any Hangul, else English. */
+export function questionLang(q: string): AskLang {
+  return /[ᄀ-ᇿ㄰-㆏가-힯]/.test(q) ? 'ko' : 'en';
+}
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const KO_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+function localParts(d: Date, tz: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23',
+  }).formatToParts(d);
+  const n = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const y = n('year'), m = n('month'), day = n('day');
+  const dayNum = Date.UTC(y, m - 1, day) / 86_400_000;
+  return { y, m, day, h: n('hour'), min: n('minute'), dayNum, wd: new Date(dayNum * 86_400_000).getUTCDay() };
+}
+
+/**
+ * Friendly local time for the ask context: "today at 1:28 PM" / "Fri, Nov 13 at 9:00 AM" (en, 12 h) or
+ * "오늘 13:28" / "11월 13일 (금) 09:00" (ko, 24 h). Relative words only for yesterday/today/tomorrow, relative to `now`
+ * in `tz`; the year is added when it differs from now's. `absolute` skips the relative words (used for <now> itself).
+ */
+export function friendlyTime(isoStr: string, tz: string, now: Date, lang: AskLang, absolute = false): string {
+  const t = localParts(new Date(isoStr), tz);
+  const n = localParts(now, tz);
+  const diff = t.dayNum - n.dayNum;
+  const mm = String(t.min).padStart(2, '0');
+  if (lang === 'ko') {
+    const clock = `${String(t.h).padStart(2, '0')}:${mm}`;
+    const rel = absolute ? null : ({ [-1]: '어제', 0: '오늘', 1: '내일' } as Record<number, string>)[diff];
+    if (rel) return `${rel} ${clock}`;
+    return `${t.y !== n.y ? `${t.y}년 ` : ''}${t.m}월 ${t.day}일 (${KO_WEEKDAYS[t.wd]}) ${clock}`;
+  }
+  const clock = `${t.h % 12 === 0 ? 12 : t.h % 12}:${mm} ${t.h < 12 ? 'AM' : 'PM'}`;
+  const rel = absolute ? null : ({ [-1]: 'yesterday', 0: 'today', 1: 'tomorrow' } as Record<number, string>)[diff];
+  if (rel) return `${rel} at ${clock}`;
+  return `${WEEKDAYS[t.wd]}, ${MONTHS[t.m - 1]} ${t.day}${t.y !== n.y ? `, ${t.y}` : ''} at ${clock}`;
+}
+
 export function parseBody(raw: unknown): Body | null {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const b = raw as Record<string, unknown>;
@@ -918,6 +960,7 @@ export function compactPerson(name: string, p: Pick<EntryProfile, 'answers' | 'h
  */
 async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: AskMe | null; tz: string }): Promise<Reply> {
   const { store, room, now } = ctx;
+  const lang = questionLang(body.question);
   const consents = await store.consents(room.id);
   if (consents.get(ctx.userId)?.aiOk !== true) return { status: 403, body: { error: 'not_consented' } };
 
@@ -964,9 +1007,9 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
     roomName: room.name,
     roomType: room.type,
     placeName: room.placeName,
-    startsAt: room.startsAt ? localTime(room.startsAt, body.tz) : null,
-    endsAt: localTime(room.expiresAt, body.tz),
-    now: localTime(now.toISOString(), body.tz),
+    startsAt: room.startsAt ? friendlyTime(room.startsAt, body.tz, now, lang) : null,
+    endsAt: friendlyTime(room.expiresAt, body.tz, now, lang),
+    now: friendlyTime(now.toISOString(), body.tz, now, lang, true),
     tz: body.tz,
     routeKm: routeKm(extras.route),
     memberCount: members.length,
