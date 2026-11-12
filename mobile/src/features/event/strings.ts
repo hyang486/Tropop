@@ -1,4 +1,13 @@
 // UI copy for Qrewing AI event features. Moves into an `en.ts` section at the merge step (spec section 4).
+//
+// en.ts merge plan (event first, then pace):
+// 1. Move this object into en.ts as `en.qrewing` (keys unchanged), switch imports from eventStrings to en.qrewing,
+//    delete this file.
+// 2. Spec 7.4: `endRoom` below REPLACES en.endRoom.deleted, effects and effectsLabel, and the end-room comment
+//    above en.endActivity becomes: "end_room sets deleted_at and grace_until = now + 30 min: chat and every room
+//    feature close at once; only the recap, Photos of me and downloads stay readable until grace ends, then the
+//    room-janitor (every 5 minutes) deletes the room's rows and storage." end-confirm.tsx then reads en.endRoom again.
+// 3. Scheduled-end copy (rooms that reach expires_at, no grace) stays as it is.
 export const eventStrings = {
   create: {
     aiLabel: 'Qrewing AI',
@@ -79,6 +88,13 @@ export const eventStrings = {
     photosOfMe: (n: number) => (n === 1 ? '1 photo of you' : `${n} photos of you`),
     arrived: (time: string) => `Arrived at ${time}`,
     savedHere: 'Saved on this phone only.',
+  },
+  // Spec 7.4: the host's early end now keeps the recap and photos for 30 minutes (human decision 2026-11-12 (b)).
+  endRoom: {
+    deleted:
+      'Chat closes now. The recap and photos stay available for 30 minutes, then messages, photos and files are deleted from the server. Anything already saved to a phone stays there.',
+    effects: 'Closes now · Deleted after 30 min',
+    effectsLabel: 'The room closes now. The recap and photos stay for 30 minutes, then everything is deleted.',
   },
   grace: {
     availableUntil: (time: string) => `Recap and photos available until ${time}`,

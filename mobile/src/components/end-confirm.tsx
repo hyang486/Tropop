@@ -7,6 +7,7 @@ import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
+import { eventStrings } from '@/features/event/strings';
 import { recapAfterEnd } from '@/features/recap/recap-store';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -58,7 +59,8 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
     }, [reload]),
   );
 
-  const copy = kind === 'activity' ? en.endActivity : en.endRoom;
+  // Spec 7.4: the end-room deletion lines come from the event strings until they move into en.ts at merge.
+  const copy = kind === 'activity' ? en.endActivity : { ...en.endRoom, ...eventStrings.endRoom };
   const header = <Stack.Screen options={{ title: copy.title, headerTitle: '', gestureEnabled: !running }} />;
 
   if (load.status === 'loading') {
@@ -147,7 +149,7 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
             new Date(expiresMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
           ),
         ]
-      : [en.endRoom.body, en.endRoom.deleted];
+      : [en.endRoom.body, eventStrings.endRoom.deleted];
   const from = kind === 'activity' ? ['mappin.and.ellipse'] : ['bubble.left', 'photo', 'doc'];
   const to = kind === 'activity' ? 'photo' : 'trash';
 
