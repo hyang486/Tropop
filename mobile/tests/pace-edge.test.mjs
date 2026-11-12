@@ -100,6 +100,26 @@ test('a pause inside a km does not slow its split', () => {
   assert.ok(tracker.splits[0] < 340, `split ${tracker.splits[0]}`);
 });
 
+test('slow creep under 0.5 m/s is all pauses: no distance and no time (distance and time from the same fix)', () => {
+  // 0.4 m/s for 300 s with a fix every 30 s: every step is 12 m in 30 s.
+  const fixes = [];
+  for (let s = 0; s <= 300; s += 30) fixes.push(at(s * 0.4, s));
+  const sum = summarize(feed(fixes).tracker);
+  assert.equal(sum.distanceM, 0);
+  assert.equal(sum.durationS, 0);
+});
+
+test('a 5-minute stop after the first km, then running: the second split is still 5:00 of moving time', () => {
+  const still = [];
+  for (let s = 330; s <= 630; s += 30) still.push(at(1000 + (s % 60 === 0 ? 0 : 6), s));
+  // Resume from where the last heartbeat put me, 5:00 per km.
+  const fixes = [...run(0, 300), ...still, ...run(640, 960, 1000)];
+  const { tracker } = feed(fixes);
+  assert.equal(tracker.splits.length, 2);
+  assert.ok(near(tracker.splits[0], 300, 1), `split 1 ${tracker.splits[0]}`);
+  assert.ok(near(tracker.splits[1], 300, 12), `split 2 ${tracker.splits[1]}`);
+});
+
 test('a 3-minute stop during the activity still opens the stationary prompt from kept fixes', () => {
   const still = [];
   for (let s = 330; s <= 510; s += 30) still.push(at(1000 + (s % 60 === 0 ? 0 : 8), s));
@@ -123,9 +143,9 @@ test('back from the background after standing still: no distance, no moving time
   const { tracker, kept } = feed(fixes);
   assert.ok(kept.some((f) => f.atMs === 900_000));
   const sum = summarize(tracker);
-  // 300 s before, 300 s after, and the 10 s step from the returning fix: the 600 s gap is left out.
-  assert.equal(sum.durationS, 610);
-  assert.ok(near(sum.distanceM, 2010, 2));
+  // 300 s before and 300 s after; the 600 s gap and its 10 m drift are left out.
+  assert.equal(sum.durationS, 600);
+  assert.ok(near(sum.distanceM, 2000, 2));
 });
 
 test('back from the background: the gap is not read as 3 minutes standing still', () => {

@@ -92,9 +92,9 @@ export function targetSecPerKm(target: PaceTarget, usual: number | null): number
 export type Tracker = {
   roomId: string;
   startedAt: number;
-  /** The last fix that counted (moved, or the start); pauses and outliers do not replace it. */
+  /** The newest accepted fix (a move, a pause or the start); dropped jumps do not replace it. */
   lastFix: PaceFix | null;
-  /** Device time of the newest accepted fix, pauses included. */
+  /** Device time of lastFix (or startedAt before the first fix): steps are measured from both together. */
   lastAtMs: number;
   distanceM: number;
   /** Time spent moving, ms: pauses (standing still) are left out, so average and splits are moving pace. */
@@ -133,7 +133,8 @@ function plausibleStep(a: PaceFix, b: PaceFix): boolean {
 /**
  * Adds one fix. `kept` is false for a fix that goes back in time or implies a jump faster than
  * MAX_STEP_SPEED_MPS (GPS noise); only kept fixes should feed recent pace and the stationary check.
- * - A pause (slower than PAUSE_SPEED_MPS) moves the clock but adds no distance or moving time.
+ * - A pause (slower than PAUSE_SPEED_MPS) adds no distance or moving time, and the next step is measured from it
+ *   (distance and time from the same fix, so slow creep or drift over several pauses never adds up to a move).
  * - REANCHOR_AFTER dropped fixes in a row that agree with each other re-anchor the session there, without
  *   adding distance (the earlier position was the bad one, e.g. a wrong first fix).
  * - A long gap (the screen was closed) counts as the straight line between the fixes when it was movement.
@@ -155,7 +156,7 @@ export function stepFix(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boo
     return { tracker: { ...t, rejects }, kept: false };
   }
   if (step / dt < PAUSE_SPEED_MPS) {
-    return { tracker: { ...t, lastAtMs: fix.atMs, rejects: [] }, kept: true };
+    return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, rejects: [] }, kept: true };
   }
   const before = t.distanceM;
   const after = before + step;
