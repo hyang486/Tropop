@@ -5,7 +5,6 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, V
 import { HandTitle } from '@/components/hand-title';
 import { InkArt } from '@/components/ink-art';
 import { Button, colors, Hint } from '@/components/ui';
-import { eventStrings } from '@/features/event/strings';
 import { en } from '@/i18n/en';
 import { clearMatchRun, type FaceData, lastMatchRun, loadFaceData, runFaceMatch } from '@/lib/face';
 import { faceJobCounts, faceViewState, type MatchRun, photosOfMe, shouldRunMatch } from '@/lib/face-plan';
@@ -134,7 +133,7 @@ export function PhotosOfMe({
             <Text style={styles.introMeta}>{en.face.introMeta}</Text>
           </View>
           <InkArt art="reference" width={180} />
-          {readOnly ? <Hint>{eventStrings.grace.notSetUp}</Hint> : <Button title={en.face.setUp} onPress={openSetup} />}
+          {readOnly ? <Hint>{en.qrewing.grace.notSetUp}</Hint> : <Button title={en.face.setUp} onPress={openSetup} />}
         </View>
       </ScrollView>
     );

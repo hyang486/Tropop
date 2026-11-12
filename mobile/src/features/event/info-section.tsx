@@ -7,9 +7,9 @@ import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
 
 import { setQrewingMember, setQrewingRoom, useQrewingRoom } from './qrewing-api';
-import { eventStrings } from './strings';
+import { en } from '@/i18n/en';
 
-const s = eventStrings.info;
+const s = en.qrewing.info;
 
 /**
  * Room info "Qrewing AI" section (spec 3.2). Host: the room switches (also the retry path when the switch failed
@@ -33,7 +33,7 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
     setError(null);
     const res = await action();
     setBusy(false);
-    if (res.error) setError(res.offline ? eventStrings.errors.network : s.saveFailed);
+    if (res.error) setError(res.offline ? en.qrewing.errors.network : s.saveFailed);
     q.reload();
   }
 
@@ -59,22 +59,22 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
       {isHost ? (
         <>
           <QCard row>
-            <Text style={styles.cardTitle}>{eventStrings.create.aiLabel}</Text>
+            <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
             <Switch
               value={q.aiEnabled}
               disabled={busy}
               onValueChange={(v) => run(() => setQrewingRoom(roomId, v, v && isEvent && q.entryRequired))}
-              accessibilityLabel={eventStrings.create.aiLabel}
+              accessibilityLabel={en.qrewing.create.aiLabel}
             />
           </QCard>
           {q.aiEnabled && isEvent ? (
             <QCard row>
-              <Text style={styles.cardTitle}>{eventStrings.create.entryLabel}</Text>
+              <Text style={styles.cardTitle}>{en.qrewing.create.entryLabel}</Text>
               <Switch
                 value={q.entryRequired}
                 disabled={busy}
                 onValueChange={(v) => run(() => setQrewingRoom(roomId, true, v))}
-                accessibilityLabel={eventStrings.create.entryLabel}
+                accessibilityLabel={en.qrewing.create.entryLabel}
               />
             </QCard>
           ) : null}

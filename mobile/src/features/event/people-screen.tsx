@@ -9,9 +9,9 @@ import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
 import { type MatchResult, type QrewingError, requestMatches, useQrewingRoom } from './qrewing-api';
 import { matchStep } from './qrewing-plan';
-import { eventStrings } from './strings';
+import { en } from '@/i18n/en';
 
-const s = eventStrings.people;
+const s = en.qrewing.people;
 
 type State =
   | { status: 'loading' }
@@ -97,7 +97,7 @@ export function PeopleScreen() {
       actions={
         state.status === 'error' && state.error === 'no_entry' && !notConsented ? (
           <Button
-            title={eventStrings.info.addEntry}
+            title={en.qrewing.info.addEntry}
             onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id } })}
           />
         ) : (
@@ -115,14 +115,14 @@ export function PeopleScreen() {
         <Hint>{state.final ? s.pendingFinal : s.pending}</Hint>
       ) : state.status === 'error' ? (
         <Hint tone="error">
-          {notConsented ? s.notConsented : state.error === 'no_entry' ? s.noEntry : eventStrings.errors[state.error]}
+          {notConsented ? s.notConsented : state.error === 'no_entry' ? s.noEntry : en.qrewing.errors[state.error]}
         </Hint>
       ) : state.result.matches.length === 0 ? (
         <Hint>{s.empty}</Hint>
       ) : (
         <>
           {state.error ? (
-            <Hint tone="error">{state.error === 'network' ? eventStrings.errors.network : s.updateFailed}</Hint>
+            <Hint tone="error">{state.error === 'network' ? en.qrewing.errors.network : s.updateFailed}</Hint>
           ) : state.updating ? (
             <Hint>{state.final ? s.updatingFinal : s.updating}</Hint>
           ) : state.result.stale ? (

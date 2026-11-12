@@ -15,7 +15,6 @@ import { placeTimeOf } from '@/lib/place-time';
 import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
-import { eventStrings } from '@/features/event/strings';
 import { roomListEntry } from '@/features/recap/grace-plan';
 import { graceTime } from '@/features/recap/use-grace';
 
@@ -121,7 +120,7 @@ export default function Rooms() {
                 {room.name}
               </Text>
               {entry.kind === 'grace' ? (
-                <Text style={styles.rowSubtitle}>{eventStrings.grace.listRow(graceTime(entry.untilMs))}</Text>
+                <Text style={styles.rowSubtitle}>{en.qrewing.grace.listRow(graceTime(entry.untilMs))}</Text>
               ) : (
                 <>
                   <Text style={styles.rowSubtitle}>

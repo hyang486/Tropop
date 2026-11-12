@@ -9,7 +9,6 @@ import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
 import { useQrewingRoom } from '@/features/event/qrewing-api';
 import { endCopyHasRecap } from '@/features/event/qrewing-plan';
-import { eventStrings } from '@/features/event/strings';
 import { recapAfterEnd } from '@/features/recap/recap-store';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -61,16 +60,16 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
     }, [reload]),
   );
 
-  // Spec 7.4: the end-room deletion lines come from the event strings until they move into en.ts at merge.
+  // Spec 7.4: the end-room deletion lines name the recap only when Qrewing AI may have written one.
   // The recap is left out only when a read answered that Qrewing AI is off (still loading or a failed read keeps
   // the recap wording, review R6). No id: no read, recap wording.
   const qrewing = useQrewingRoom(id ?? '');
   const recapOn = endCopyHasRecap(qrewing);
-  const ev = eventStrings.endRoom;
+  const ev = en.endRoom;
   const copy =
     kind === 'activity'
       ? en.endActivity
-      : { ...en.endRoom, ...ev, effectsLabel: recapOn ? ev.effectsLabel : ev.effectsLabelNoRecap };
+      : { ...ev, effectsLabel: recapOn ? ev.effectsLabel : ev.effectsLabelNoRecap };
   const header = <Stack.Screen options={{ title: copy.title, headerTitle: '', gestureEnabled: !running }} />;
 
   if (load.status === 'loading') {

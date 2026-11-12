@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { requestRecap } from '@/features/event/qrewing-api';
 import { isOfflineError } from '@/features/event/qrewing-plan';
+import { getActivitySummary, paceRecapLine } from '@/features/pace/summary';
 import type { RoomRecapRow } from '@/features/event/types';
 import { loadFaceData } from '@/lib/face';
 import { supabase } from '@/lib/supabase';
@@ -92,8 +93,9 @@ export async function readMyPart(roomId: string, userId: string): Promise<MyPart
       .then(({ data }) => data?.[0]?.arrived_at ?? null)
       .catch(() => null),
   ]);
-  // Pace summary: features/pace `getActivitySummary` joins at the merge step (spec 3.3); null until then.
-  return { messages, mediaShared, photosOfMe, arrivedAt, pace: null };
+  // Pace summary (spec 3.3): counts the in-memory run too (pace 2ba6451) and never rejects.
+  const pace = paceRecapLine(await getActivitySummary(roomId));
+  return { messages, mediaShared, photosOfMe, arrivedAt, pace };
 }
 
 async function save(roomId: string, userId: string, server: ServerRecap): Promise<SavedRecap> {

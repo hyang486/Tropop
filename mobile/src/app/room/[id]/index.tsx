@@ -21,7 +21,6 @@ import { Button, colors, Hint, radius, Screen } from '@/components/ui';
 import { EntryGate, HiddenRow, ImportantBannerView, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
 import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
-import { eventStrings } from '@/features/event/strings';
 import { useSmallTalk } from '@/features/event/use-small-talk';
 import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { en } from '@/i18n/en';
@@ -306,7 +305,7 @@ function ChatRoom({
           )}
           {aiNoteShown && !keyboardOpen ? (
             <Pressable style={styles.aiNote} onPress={() => setAiNoteShown(false)} accessibilityRole="button">
-              <Hint>{eventStrings.create.aiSaveFailed}</Hint>
+              <Hint>{en.qrewing.create.aiSaveFailed}</Hint>
             </Pressable>
           ) : null}
           {qrewing.available && isEvent && !qrewing.gates.disclosure && !qrewing.gates.entry && !keyboardOpen ? (

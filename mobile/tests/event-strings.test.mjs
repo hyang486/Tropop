@@ -1,11 +1,13 @@
-// Run: npm test. Guard for the 6b move of eventStrings into en.qrewing: every key the code reads exists, and no key
-// is unused. Code check over src/: direct `eventStrings.section.key` reads plus per-file aliases
-// (`const s = eventStrings.section`). `errors` is indexed by QrewingError, so its keys must match that union.
+// Run: npm test. Guard for en.qrewing (event copy, moved from features/event/strings.ts in 6b): every key the code
+// reads exists, and no key is unused. Code check over src/: direct `en.qrewing.section.key` reads plus per-file aliases
+// (`const s = en.qrewing.section`). `errors` is indexed by QrewingError, so its keys must match that union.
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { test } from 'node:test';
 
-import { eventStrings } from '../src/features/event/strings.ts';
+import { en } from '../src/i18n/en.ts';
+
+const eventStrings = en.qrewing;
 
 const SRC = new URL('../src/', import.meta.url);
 function walk(dir) {
@@ -16,9 +18,8 @@ function walk(dir) {
   });
 }
 const sources = walk(SRC)
-  .filter((u) => !u.pathname.endsWith('/features/event/strings.ts'))
   .map((u) => ({ path: u.pathname.split('/src/')[1], text: readFileSync(u, 'utf8') }))
-  .filter((f) => f.text.includes('eventStrings'));
+  .filter((f) => f.text.includes('en.qrewing'));
 
 /** section -> Set of keys read, plus a list of reads with the file they came from. */
 function collectReads() {
@@ -30,24 +31,22 @@ function collectReads() {
     reads.push({ path, section, key });
   };
   for (const { path, text } of sources) {
-    for (const [, section, key] of text.matchAll(/eventStrings\.(\w+)\.(\w+)/g)) add(path, section, key);
-    for (const [, alias, section] of text.matchAll(/const (\w+) = eventStrings\.(\w+);/g)) {
+    for (const [, section, key] of text.matchAll(/en\.qrewing\.(\w+)\.(\w+)/g)) add(path, section, key);
+    for (const [, alias, section] of text.matchAll(/const (\w+) = en\.qrewing\.(\w+);/g)) {
       for (const [, key] of text.matchAll(new RegExp(`(?<![\\w.])${alias}\\.(\\w+)`, 'g'))) add(path, section, key);
-      // `...alias` copies the whole section (end-confirm), so every key in it is read.
-      if (new RegExp(`\\.\\.\\.${alias}\\b`).test(text)) for (const key of Object.keys(eventStrings[section])) add(path, section, key);
     }
   }
   return { used, reads };
 }
 
-test('eventStrings: every key the code reads exists', () => {
+test('en.qrewing: every key the code reads exists', () => {
   const { reads } = collectReads();
   assert.ok(reads.length > 50, `only ${reads.length} reads found; the scan is broken`);
   const missing = reads.filter(({ section, key }) => !(section in eventStrings) || !(key in eventStrings[section]));
   assert.deepEqual(missing, []);
 });
 
-test('eventStrings: no section or key is unused', () => {
+test('en.qrewing: no section or key is unused', () => {
   const { used } = collectReads();
   const unused = [];
   for (const [section, keys] of Object.entries(eventStrings)) {
@@ -57,7 +56,7 @@ test('eventStrings: no section or key is unused', () => {
   assert.deepEqual(unused, []);
 });
 
-test('eventStrings.errors keys match QrewingError exactly', () => {
+test('en.qrewing.errors keys match QrewingError exactly', () => {
   const types = readFileSync(new URL('features/event/types.ts', SRC), 'utf8');
   const union = types.match(/export type QrewingError =([^;]+);/)[1];
   const codes = [...union.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
