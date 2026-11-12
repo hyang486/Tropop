@@ -272,17 +272,18 @@ reset role;
 insert into public.messages (id, room_id, sender_id, kind, body)
 values ('c2710000-0000-4000-8000-0000000000b1', (select room_id from tests.made where label = 'G'),
         'c2700000-0000-4000-8000-000000000003', 'text', 'Bus at 5');
+-- Storage objects first, with a size: media_integrity (0015) rejects a ready row whose original is missing or empty.
+insert into storage.objects (bucket_id, name, owner_id, metadata)
+select 'room-media', room_id::text || '/c2720000-0000-4000-8000-0000000000c1/original.jpg',
+       'c2700000-0000-4000-8000-000000000002', '{"size":1}'::jsonb
+from tests.made where label = 'G';
+insert into storage.objects (bucket_id, name, owner_id, metadata)
+select 'room-media', room_id::text || '/c2720000-0000-4000-8000-0000000000c1/detect/0.jpg',
+       'c2700000-0000-4000-8000-000000000002', '{"size":1}'::jsonb
+from tests.made where label = 'G';
 insert into public.media (id, room_id, uploader_id, kind, original_path, preview_path, file_name, mime_type, status)
 select 'c2720000-0000-4000-8000-0000000000c1', room_id, 'c2700000-0000-4000-8000-000000000002', 'photo',
        room_id::text || '/c2720000-0000-4000-8000-0000000000c1/original.jpg', null, 'a.jpg', 'image/jpeg', 'ready'
-from tests.made where label = 'G';
-insert into storage.objects (bucket_id, name, owner_id)
-select 'room-media', room_id::text || '/c2720000-0000-4000-8000-0000000000c1/original.jpg',
-       'c2700000-0000-4000-8000-000000000002'
-from tests.made where label = 'G';
-insert into storage.objects (bucket_id, name, owner_id)
-select 'room-media', room_id::text || '/c2720000-0000-4000-8000-0000000000c1/detect/0.jpg',
-       'c2700000-0000-4000-8000-000000000002'
 from tests.made where label = 'G';
 insert into public.face_enrollments (id, room_id, user_id, ref_path)
 select 'c2730000-0000-4000-8000-0000000000d1', room_id, 'c2700000-0000-4000-8000-000000000002', 'qa/ref.jpg'
