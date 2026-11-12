@@ -445,7 +445,7 @@ export function newCueSchedule(): CueSchedule {
  * At most one cue per fix, never within MIN_CUE_GAP_MS of the last one. A km cue that falls in that window waits
  * (its km is not marked done) and comes on the first fix after it, with the latest split. Order: km, then the
  * lead-group gap (at most every OFF_TARGET_EVERY_MS on its own clock), then off-target (at most every
- * OFF_TARGET_EVERY_MS and once per km, through paceCue); off-target stays quiet while I am behind the lead group.
+ * OFF_TARGET_EVERY_MS, through paceCue; a km cue restarts that clock); off-target stays quiet while I am behind the lead group.
  * No gap cue while I am standing still (no recent pace): "Run 2:18 per km" to someone stopped, maybe with the
  * "Everything okay?" sheet open, is wrong; it comes once I move again.
  */
