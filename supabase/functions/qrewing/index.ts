@@ -4,10 +4,10 @@
 // unscoped probe after auth returns 503 ai_not_configured before any DB write, so deploying makes no AI calls.
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 // Order: 405 (not POST) -> 401 (no valid user JWT) -> core.handle (400 -> 503 -> 403 not_member -> 403 ai_off -> action).
-import Anthropic from 'npm:@anthropic-ai/sdk@1';
+import Anthropic from 'npm:@anthropic-ai/sdk@1.8.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-import { handle, type Model, type Msg, type QrewingStore, type RecapRow } from './core.ts';
+import { handle, type Model, type Msg, type QrewingStore, type RecapRow, type StoredMatch } from './core.ts';
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (req: Request) => Promise<Response> | Response): void };
 
@@ -47,10 +47,26 @@ const MSG_COLS = 'id, room_id, kind, sender_id, body, created_at';
 type MsgRow = { id: string; room_id: string; kind: string; sender_id: string | null; body: string | null; created_at: string };
 const toMsg = (r: MsgRow): Msg => ({ id: r.id, roomId: r.room_id, kind: r.kind, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 
-const RECAP_COLS = 'state, title, summary, highlights, updated_at, refreshed_at';
-type RecapDb = { state: RecapRow['state']; title: string | null; summary: string | null; highlights: string[] | null; updated_at: string; refreshed_at: string | null };
+const RECAP_COLS = 'state, title, summary, highlights, created_at, updated_at, refreshed_at';
+type RecapDb = {
+  state: RecapRow['state'];
+  title: string | null;
+  summary: string | null;
+  highlights: string[] | null;
+  created_at: string;
+  updated_at: string;
+  refreshed_at: string | null;
+};
 const toRecap = (r: RecapDb | null): RecapRow | null =>
-  r && { state: r.state, title: r.title, summary: r.summary, highlights: r.highlights, updatedAt: r.updated_at, refreshedAt: r.refreshed_at };
+  r && {
+    state: r.state,
+    title: r.title,
+    summary: r.summary,
+    highlights: r.highlights,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    refreshedAt: r.refreshed_at,
+  };
 
 /** Throws on a PostgREST error so core never mistakes a failed read for "no rows". */
 // deno-lint-ignore no-explicit-any
@@ -241,20 +257,35 @@ function createStore(admin: any): QrewingStore {
         'recap_claim',
       );
       if ((inserted ?? []).length > 0) return true;
-      const retaken = must(
+      const now = new Date().toISOString();
+      // A pending row whose caller died: retaken as is (a retry marker it carries stays).
+      const stale = must(
         await admin
           .from('room_recaps')
-          .update({ state: 'pending', title: null, summary: null, highlights: null })
+          .update({ created_at: now })
           .eq('room_id', roomId)
-          .or(`state.eq.failed,and(state.eq.pending,updated_at.lt.${staleBefore})`)
+          .eq('state', 'pending')
+          .lt('updated_at', staleBefore)
           .select('room_id'),
-        'recap_retake',
+        'recap_retake_stale',
       );
-      return (retaken ?? []).length > 0;
+      if ((stale ?? []).length > 0) return true;
+      // F1: a failed row is retried once; refreshed_at marks the retry as spent. The row lock makes it one winner.
+      const retried = must(
+        await admin
+          .from('room_recaps')
+          .update({ state: 'pending', title: null, summary: null, highlights: null, created_at: now, refreshed_at: now })
+          .eq('room_id', roomId)
+          .eq('state', 'failed')
+          .is('refreshed_at', null)
+          .select('room_id'),
+        'recap_retake_failed',
+      );
+      return (retried ?? []).length > 0;
     },
     async finishRecap(roomId, r) {
       const patch = r.state === 'done'
-        ? { state: 'done', title: r.title, summary: r.summary, highlights: r.highlights }
+        ? { state: 'done', title: r.title, summary: r.summary, highlights: r.highlights, refreshed_at: null }
         : { state: 'failed', title: null, summary: null, highlights: null };
       return toRecap(
         must(await admin.from('room_recaps').update(patch).eq('room_id', roomId).eq('state', 'pending').select(RECAP_COLS).maybeSingle(), 'recap_finish'),
@@ -308,15 +339,56 @@ function createStore(admin: any): QrewingStore {
       );
       return r ? { inputHash: r.input_hash, matches: Array.isArray(r.matches) ? r.matches : [], createdAt: r.created_at } : null;
     },
-    async saveMatch(roomId, userId, inputHash, matches) {
+    async claimMatch(roomId, userId, seenHash, claim) {
+      const now = new Date().toISOString();
+      const rows = seenHash === null
+        ? must(
+          await admin
+            .from('qrewing_matches')
+            .upsert({ room_id: roomId, user_id: userId, input_hash: claim, matches: [], created_at: now }, {
+              onConflict: 'room_id,user_id',
+              ignoreDuplicates: true,
+            })
+            .select('room_id'),
+          'match_claim_insert',
+        )
+        : must(
+          await admin
+            .from('qrewing_matches')
+            .update({ input_hash: claim, created_at: now })
+            .eq('room_id', roomId)
+            .eq('user_id', userId)
+            .eq('input_hash', seenHash)
+            .select('room_id'),
+          'match_claim',
+        );
+      return (rows ?? []).length > 0;
+    },
+    async saveMatch(roomId, userId, claim, inputHash, matches: StoredMatch[]) {
       const createdAt = new Date().toISOString();
       must(
         await admin
           .from('qrewing_matches')
-          .upsert({ room_id: roomId, user_id: userId, input_hash: inputHash, matches, created_at: createdAt }, { onConflict: 'room_id,user_id' }),
+          .update({ input_hash: inputHash, matches, created_at: createdAt })
+          .eq('room_id', roomId)
+          .eq('user_id', userId)
+          .eq('input_hash', claim),
         'match_save',
       );
       return createdAt;
+    },
+    async releaseMatch(roomId, userId, claim, restore) {
+      must(
+        await admin
+          .from('qrewing_matches')
+          .update(restore
+            ? { input_hash: restore.inputHash, created_at: restore.createdAt }
+            : { input_hash: 'released', created_at: new Date(0).toISOString() })
+          .eq('room_id', roomId)
+          .eq('user_id', userId)
+          .eq('input_hash', claim),
+        'match_release',
+      );
     },
 
     async logUsage(roomId, action, model, inputTokens, outputTokens) {

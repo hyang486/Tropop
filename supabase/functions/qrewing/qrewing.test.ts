@@ -1,4 +1,4 @@
-// Run: node --test supabase/functions/qrewing/   (Node 24 strips types; no network, no Anthropic key)
+// Run: node --test supabase/functions/qrewing/qrewing.test.ts   (Node 24 strips types; no network, no Anthropic key)
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -166,18 +166,31 @@ function store(w: World): QrewingStore {
       return w.recap;
     },
     async claimRecap(_roomId, staleBefore) {
-      if (!w.recap || w.recap.state === 'failed' || (w.recap.state === 'pending' && w.recap.updatedAt < staleBefore)) {
+      const t = NOW.toISOString();
+      const fresh = { state: 'pending' as const, title: null, summary: null, highlights: null, createdAt: t, updatedAt: t };
+      if (!w.recap) {
         w.writes++;
-        w.recap = { state: 'pending', title: null, summary: null, highlights: null, updatedAt: NOW.toISOString(), refreshedAt: null };
+        w.recap = { ...fresh, refreshedAt: null };
+        return true;
+      }
+      if (w.recap.state === 'pending' && w.recap.updatedAt < staleBefore) {
+        w.writes++;
+        w.recap = { ...w.recap, createdAt: t, updatedAt: t };
+        return true;
+      }
+      if (w.recap.state === 'failed' && w.recap.refreshedAt === null) {
+        w.writes++;
+        w.recap = { ...fresh, refreshedAt: t };
         return true;
       }
       return false;
     },
     async finishRecap(_roomId, r) {
+      const t = NOW.toISOString();
       w.recap =
         r.state === 'done'
-          ? { state: 'done', title: r.title, summary: r.summary, highlights: r.highlights, updatedAt: NOW.toISOString(), refreshedAt: null }
-          : { state: 'failed', title: null, summary: null, highlights: null, updatedAt: NOW.toISOString(), refreshedAt: null };
+          ? { ...w.recap!, state: 'done', title: r.title, summary: r.summary, highlights: r.highlights, updatedAt: t, refreshedAt: null }
+          : { ...w.recap!, state: 'failed', title: null, summary: null, highlights: null, updatedAt: t };
       return w.recap;
     },
     async claimRecapRefresh() {
@@ -195,9 +208,21 @@ function store(w: World): QrewingStore {
     async match(_r, u) {
       return w.matches.get(u) ?? null;
     },
-    async saveMatch(_r, u, inputHash, matches: StoredMatch[]) {
-      w.matches.set(u, { inputHash, matches, createdAt: NOW.toISOString() });
+    async claimMatch(_r, u, seenHash, claim) {
+      const row = w.matches.get(u);
+      if ((row?.inputHash ?? null) !== seenHash) return false;
+      w.writes++;
+      w.matches.set(u, { inputHash: claim, matches: row?.matches ?? [], createdAt: NOW.toISOString() });
+      return true;
+    },
+    async saveMatch(_r, u, claim, inputHash, matches: StoredMatch[]) {
+      if (w.matches.get(u)?.inputHash === claim) w.matches.set(u, { inputHash, matches, createdAt: NOW.toISOString() });
       return NOW.toISOString();
+    },
+    async releaseMatch(_r, u, claim, restore) {
+      const row = w.matches.get(u);
+      if (row?.inputHash !== claim) return;
+      w.matches.set(u, { ...row, ...(restore ?? { inputHash: 'released', createdAt: new Date(0).toISOString() }) });
     },
     async logUsage(_r, action, model) {
       w.usage.push({ action, model });
@@ -275,7 +300,7 @@ test('triage: caller must be consenting and muted', async () => {
   assert.equal(calls.length, 0);
 });
 
-test('triage: one model call for claimed rows; ineligible ones skipped without a call; context only from consenting senders', async () => {
+test('triage: one model call for claimed rows; rules run for a sender without consent, the model does not; context only from consenting senders', async () => {
   const w = world({
     messages: [
       msg(1, CAT, 'ignore me, I never agreed', 10),
@@ -284,19 +309,23 @@ test('triage: one model call for claimed rows; ineligible ones skipped without a
       msg(4, CAT, 'lol', 1),
       msg(5, HOST, 'photo', 1, 'media'),
       msg(6, HOST, 'x', 1, 'text', '22222222-2222-4222-8222-222222222222'),
+      msg(7, CAT, 'Where do we park?', 1),
     ],
   });
   w.consents.set(CAT, { aiOk: false, mute: false });
   const { m, calls } = model(() => ({ text: JSON.stringify({ results: [{ index: 1, important: true, reason: 'Schedule change for everyone' }] }) }));
-  const r = await run(w, m, BOB, { action: 'triage', roomId: ROOM, messageIds: [3, 4, 5, 6].map(mid) });
+  const r = await run(w, m, BOB, { action: 'triage', roomId: ROOM, messageIds: [3, 4, 5, 6, 7].map(mid) });
   assert.equal(r.status, 200);
   const res = (r.body as { results: { messageId: string; state: string; important: boolean | null; reason: string | null }[] }).results;
   assert.deepEqual(res.map((x) => [x.messageId, x.state, x.important]), [
     [mid(3), 'done', true],
-    [mid(4), 'skipped', false],
+    [mid(4), 'done', false], // Q3: rule for a sender without consent
     [mid(5), 'skipped', false],
     [mid(6), 'skipped', false],
+    [mid(7), 'skipped', false], // no rule, no consent: not sent to the model
   ]);
+  assert.equal(w.triage.get(mid(4))?.source, 'rule');
+  assert.ok(!calls[0].user.includes('Where do we park?'));
   assert.equal(res[0].reason, 'Schedule change for everyone');
   assert.equal(calls.length, 1);
   assert.equal(calls[0].model, 'claude-haiku-5-5');
@@ -355,19 +384,24 @@ test('triage: indexes the model left out end skipped', async () => {
 });
 
 test('prefilterTriage: table (important first, then small talk, everything else to the model)', () => {
-  const names = ['Hana Kim', 'Bob', 'Cat'];
   const cases: [string, boolean, string | null, boolean | null][] = [
     // [body, senderIsHost, expected reason, expected important] (null = model)
     ['ok', true, PREFILTER_REASON.host, true],
     ['Bring water', true, PREFILTER_REASON.host, true],
-    ['@Bob are you coming?', false, PREFILTER_REASON.mention, true],
-    ['can you wait @hana', false, PREFILTER_REASON.mention, true],
-    ['@Hana Kim the bus is here', false, PREFILTER_REASON.mention, true],
+    // Q1: a personal @name is not a rule (the client shows it to that member); room-wide mentions are.
+    ['@Bob are you coming?', false, null, null],
+    ['can you wait @hana', false, null, null],
     ['@all bus leaves now', false, PREFILTER_REASON.mention, true],
+    ['heads down @EVERYONE', false, PREFILTER_REASON.mention, true],
+    ['@here who has the keys', false, PREFILTER_REASON.mention, true],
+    ['me@all.com is my email', false, null, null],
+    ['@allison hi', false, null, null],
     ['email me at bob@bobby.example', false, null, null],
-    ['@Bobby hi', false, null, null],
     ['Announcement: bus at 5', false, PREFILTER_REASON.announcement, true],
-    ['hey EVERYONE look', false, PREFILTER_REASON.announcement, true],
+    // Q2: bare everyone / everybody / important go to the model.
+    ['hey EVERYONE look', false, null, null],
+    ['hi everybody', false, null, null],
+    ['this is important to me', false, null, null],
     ['urgent, lost my keys', false, PREFILTER_REASON.announcement, true],
     ['Meet at gate B', false, PREFILTER_REASON.announcement, true],
     ['Race starts at 7', false, PREFILTER_REASON.announcement, true],
@@ -389,9 +423,10 @@ test('prefilterTriage: table (important first, then small talk, everything else 
     ['공지: 7시에 정문에서 모여요', false, null, null],
     ['ㅋㅋㅋ', false, null, null],
     ['   ', false, null, null],
+    ['Cafe\u0301 meet at noon', false, PREFILTER_REASON.announcement, true], // NFC input
   ];
   for (const [body, host, reason, important] of cases) {
-    const r = prefilterTriage({ body, senderIsHost: host, memberNames: names });
+    const r = prefilterTriage({ body, senderIsHost: host });
     assert.deepEqual(r && [r.reason, r.important], reason === null ? null : [reason, important], body);
   }
 });
@@ -400,7 +435,7 @@ test('triage: prefilter decides without a model call, writes done rows with sour
   const w = world({
     messages: [
       msg(1, HOST, 'Bring water', 5),
-      msg(2, CAT, '@bob wait for me', 4),
+      msg(2, CAT, '@everyone wait for me', 4),
       msg(3, CAT, '👍', 3),
       msg(4, CAT, 'Where do we park?', 2),
       msg(5, CAT, 'thanks', 1),
@@ -434,14 +469,44 @@ test('triage: prefilter decides without a model call, writes done rows with sour
   assert.equal(calls.length, 1);
 });
 
-test('triage: prefilter reads member names only when a candidate has an @', async () => {
-  const w = world({ messages: [msg(1, CAT, 'lol', 1)] });
+test('triage: rules decide without reading member names or ids', async () => {
+  const w = world({ messages: [msg(1, CAT, 'lol', 1), msg(2, CAT, '@bob @all wait', 1)] });
   const s = store(w);
-  let nameReads = 0;
-  const counted: QrewingStore = { ...s, displayNames: (ids) => (nameReads++, s.displayNames(ids)) };
-  const { m } = model(() => ({}));
-  await handle({ store: counted, model: m, now: () => NOW }, BOB, { action: 'triage', roomId: ROOM, messageIds: [mid(1)] });
-  assert.equal(nameReads, 0);
+  let reads = 0;
+  const counted: QrewingStore = {
+    ...s,
+    displayNames: (ids) => (reads++, s.displayNames(ids)),
+    memberIds: (r) => (reads++, s.memberIds(r)),
+  };
+  const { m, calls } = model(() => ({}));
+  await handle({ store: counted, model: m, now: () => NOW }, BOB, { action: 'triage', roomId: ROOM, messageIds: [mid(1), mid(2)] });
+  assert.equal(reads, 0);
+  assert.equal(calls.length, 0);
+});
+
+test('triage Q3: a host without consent saying "ok" and "@everyone" from a sender without consent are important by rule', async () => {
+  const w = world({ messages: [msg(1, HOST, 'ok', 2), msg(2, CAT, '@everyone bus is here', 1)] });
+  w.consents.set(HOST, { aiOk: false, mute: false });
+  w.consents.set(CAT, { aiOk: false, mute: false });
+  const { m, calls } = model(() => ({}));
+  const r = await run(w, m, BOB, { action: 'triage', roomId: ROOM, messageIds: [mid(1), mid(2)] });
+  const res = (r.body as { results: { state: string; important: boolean | null; reason: string | null }[] }).results;
+  assert.deepEqual(res.map((x) => [x.state, x.important, x.reason]), [
+    ['done', true, PREFILTER_REASON.host],
+    ['done', true, PREFILTER_REASON.mention],
+  ]);
+  assert.equal(calls.length, 0);
+});
+
+test('triage: a model failure after rule rows returns 200 with the rule results and the rest skipped', async () => {
+  const w = world({ messages: [msg(1, HOST, 'Bring water', 2), msg(2, CAT, 'Where do we park?', 1)] });
+  const err = Object.assign(new Error('boom'), { status: 529 });
+  const r = await run(w, model(() => err).m, BOB, { action: 'triage', roomId: ROOM, messageIds: [mid(1), mid(2)] });
+  assert.equal(r.status, 200);
+  const res = (r.body as { results: { state: string; important: boolean | null }[] }).results;
+  assert.deepEqual(res.map((x) => [x.state, x.important]), [['done', true], ['skipped', false]]);
+  assert.equal(w.triage.has(mid(2)), false, 'API error: claim released so a later call can retry');
+  assert.equal(w.triage.get(mid(1))?.source, 'rule');
 });
 
 // ------------------------------------------------------------------------------------------- recap
@@ -485,13 +550,38 @@ test('recap: host may ask any time; consenting text only; cached afterwards', as
 test('recap: member allowed within the last 60 minutes; pending → 202; failure → failed + 502', async () => {
   const w = world();
   w.room = { ...w.room!, expiresAt: iso(59 * MIN) };
-  w.recap = { state: 'pending', title: null, summary: null, highlights: null, updatedAt: iso(-MIN), refreshedAt: null };
+  w.recap = { state: 'pending', title: null, summary: null, highlights: null, createdAt: iso(-MIN), updatedAt: iso(-MIN), refreshedAt: null };
   const { m, calls } = model(() => ({ stopReason: 'max_tokens' }));
   assert.deepEqual(await run(w, m, BOB, { action: 'recap', roomId: ROOM }), { status: 202, body: { state: 'pending' } });
   assert.equal(calls.length, 0);
   w.recap = { ...w.recap, updatedAt: iso(-10 * MIN) }; // stale claim is retaken
   assert.deepEqual(await run(w, m, BOB, { action: 'recap', roomId: ROOM }), { status: 502, body: { error: 'ai_failed' } });
   assert.equal(w.recap?.state, 'failed');
+});
+
+test('recap F1: a failed recap is retried once per room, then stays failed with no more model calls', async () => {
+  const w = world({ messages: [msg(1, HOST, 'Start at 7', 5)] });
+  w.room = { ...w.room!, expiresAt: iso(30 * MIN) };
+  let fail = true;
+  const { m, calls } = model(() => (fail ? { stopReason: 'refusal' } : { text: RECAP_OUT }));
+  assert.equal((await run(w, m, BOB, { action: 'recap', roomId: ROOM })).status, 502);
+  assert.equal((await run(w, m, CAT, { action: 'recap', roomId: ROOM })).status, 502, 'the one retry');
+  assert.equal(calls.length, 2);
+  for (const u of [BOB, CAT, HOST, BOB]) {
+    assert.deepEqual(await run(w, m, u, { action: 'recap', roomId: ROOM }), { status: 502, body: { error: 'ai_failed' } });
+    assert.deepEqual(await run(w, m, u, { action: 'recap', roomId: ROOM, refresh: true }), { status: 502, body: { error: 'ai_failed' } });
+  }
+  assert.equal(calls.length, 2, 'final: no call per member per trigger');
+
+  // A retry that succeeds gives a done row whose refresh is still available.
+  const w2 = world({ messages: [msg(1, HOST, 'Start at 7', 5)] });
+  w2.room = w.room;
+  fail = true;
+  await run(w2, m, BOB, { action: 'recap', roomId: ROOM });
+  fail = false;
+  assert.equal((await run(w2, m, BOB, { action: 'recap', roomId: ROOM })).status, 200);
+  assert.equal(w2.recap?.state, 'done');
+  assert.equal(w2.recap?.refreshedAt, null);
 });
 
 test('grace (host ended early): recap allowed for members; triage, match and probe are not', async () => {
@@ -512,10 +602,10 @@ test('grace (host ended early): recap allowed for members; triage, match and pro
   assert.deepEqual(await run(over, m, BOB, { action: 'recap', roomId: ROOM }), { status: 403, body: { error: 'not_member' } });
 });
 
-test('recap refresh: once, only with newer consenting messages, 50 newest, max_tokens 1024', async () => {
+test('recap refresh: once, only with newer consenting messages, 50 newest, max_tokens 2048 (F2)', async () => {
   const w = world();
   w.room = { ...w.room!, expiresAt: iso(8 * MIN) };
-  w.recap = { state: 'done', title: 'Run', summary: 'We ran.', highlights: ['Gate B'], updatedAt: iso(-40 * MIN), refreshedAt: null };
+  w.recap = { state: 'done', title: 'Run', summary: 'We ran.', highlights: ['Gate B'], createdAt: iso(-40 * MIN), updatedAt: iso(-40 * MIN), refreshedAt: null };
   w.messages = [msg(1, HOST, 'before the recap', 50), msg(2, CAT, 'hidden', 5)];
   w.consents.set(CAT, { aiOk: false, mute: false });
   const { m, calls } = model(() => ({ text: JSON.stringify({ title: 'Run, then coffee', summary: 'We ran and got coffee.', highlights: ['Gate B', 'Coffee'] }) }));
@@ -532,7 +622,7 @@ test('recap refresh: once, only with newer consenting messages, 50 newest, max_t
   assert.equal((r.body as { title: string; cached: boolean }).title, 'Run, then coffee');
   assert.equal((r.body as { cached: boolean }).cached, false);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].maxTokens, 1024);
+  assert.equal(calls[0].maxTokens, 2048);
   assert.equal(calls[0].model, 'claude-sonnet-5-5');
   assert.equal((calls[0].user.match(/^Bob: m\d+$/gm) ?? []).length, 50);
   assert.ok(calls[0].user.includes('Bob: m59') && !calls[0].user.includes('Bob: m9\n'), 'the 50 newest');
@@ -545,10 +635,21 @@ test('recap refresh: once, only with newer consenting messages, 50 newest, max_t
   assert.equal(calls.length, 1, 'second refresh makes no call');
 });
 
+test('recap refresh: messages sent while the first recap was generating count as newer (cutoff = claim time)', async () => {
+  const w = world({ messages: [msg(1, BOB, 'sent during generation', 39)] });
+  w.room = { ...w.room!, expiresAt: iso(8 * MIN) };
+  // Claimed 40 min ago, finished (updated) 38 min ago; the message 39 min ago was not in its input.
+  w.recap = { state: 'done', title: 'Run', summary: 'We ran.', highlights: [], createdAt: iso(-40 * MIN), updatedAt: iso(-38 * MIN), refreshedAt: null };
+  const { m, calls } = model(() => ({ text: RECAP_OUT }));
+  assert.equal((await run(w, m, BOB, { action: 'recap', roomId: ROOM, refresh: true })).status, 200);
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].user.includes('sent during generation'));
+});
+
 test('recap refresh: a failed refresh keeps the previous recap and is spent', async () => {
   const w = world({ messages: [msg(1, BOB, 'new', 1)] });
   w.room = { ...w.room!, expiresAt: iso(8 * MIN) };
-  w.recap = { state: 'done', title: 'Run', summary: 'We ran.', highlights: [], updatedAt: iso(-40 * MIN), refreshedAt: null };
+  w.recap = { state: 'done', title: 'Run', summary: 'We ran.', highlights: [], createdAt: iso(-40 * MIN), updatedAt: iso(-40 * MIN), refreshedAt: null };
   const { m } = model(() => ({ stopReason: 'refusal' }));
   assert.equal((await run(w, m, BOB, { action: 'recap', roomId: ROOM, refresh: true })).status, 502);
   assert.equal(w.recap?.state, 'done');
@@ -599,6 +700,72 @@ test('match: p# mapped back, unknown dropped, score clamped, top 5; cached by ha
   w.matches.set(BOB, { ...w.matches.get(BOB)!, createdAt: iso(-11 * MIN) });
   await run(w, m, BOB, { action: 'match', roomId: ROOM });
   assert.equal(calls.length, 2, 'older than 10 minutes → recomputed');
+});
+
+test('match F3: parallel calls make one model call; a loser gets the previous list as stale, or 202 with none', async () => {
+  const w = world({ entries: [entry(BOB, 'CS junior'), entry(HOST, 'Recruiter at Acme'), entry(CAT, 'PhD student')] });
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  const calls: ModelRequest[] = [];
+  const slow: Model = {
+    async call(req) {
+      calls.push(req);
+      await gate;
+      return { stopReason: 'end_turn', text: JSON.stringify({ matches: [{ person: 'p1', reason: 'Hiring', score: 4 }] }), inputTokens: 1, outputTokens: 1 };
+    },
+  };
+  const first = run(w, slow, BOB, { action: 'match', roomId: ROOM });
+  await new Promise((r) => setImmediate(r));
+  const second = await run(w, slow, BOB, { action: 'match', roomId: ROOM });
+  assert.deepEqual(second, { status: 202, body: { state: 'pending' } }, 'no previous list yet');
+  release();
+  assert.equal((await first).status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(w.matches.get(BOB)?.matches.length, 1);
+  assert.ok(!w.matches.get(BOB)!.inputHash.startsWith('pending:'));
+
+  // Inputs changed and the list is old: one caller recomputes, a parallel one sees the previous list as stale.
+  w.entries = [...w.entries, entry(OUT, 'n/a')];
+  w.entries[1] = entry(HOST, 'Recruiter at Beta');
+  w.matches.set(BOB, { ...w.matches.get(BOB)!, createdAt: iso(-11 * MIN) });
+  let release2!: () => void;
+  const gate2 = new Promise<void>((r) => (release2 = r));
+  const slow2: Model = {
+    async call(req) {
+      calls.push(req);
+      await gate2;
+      return { stopReason: 'end_turn', text: JSON.stringify({ matches: [{ person: 'p1', reason: 'Hiring', score: 4 }] }), inputTokens: 1, outputTokens: 1 };
+    },
+  };
+  const a = run(w, slow2, BOB, { action: 'match', roomId: ROOM });
+  await new Promise((r) => setImmediate(r));
+  const b = (await run(w, slow2, BOB, { action: 'match', roomId: ROOM })).body as { matches: unknown[]; stale?: boolean };
+  assert.equal(b.stale, true);
+  assert.equal(b.matches.length, 1);
+  release2();
+  assert.equal((await a).status, 200);
+  assert.equal(calls.length, 2, 'one call per round');
+});
+
+test('match F3: an abandoned claim is retaken after the TTL; a model failure puts the previous row back', async () => {
+  const w = world({ entries: [entry(BOB, 'CS junior'), entry(HOST, 'Recruiter at Acme')] });
+  w.matches.set(BOB, { inputHash: 'pending:dead', matches: [], createdAt: iso(-MIN) });
+  const { m, calls } = model(() => ({ text: JSON.stringify({ matches: [{ person: 'p1', reason: 'Hiring', score: 4 }] }) }));
+  assert.deepEqual(await run(w, m, BOB, { action: 'match', roomId: ROOM }), { status: 202, body: { state: 'pending' } });
+  assert.equal(calls.length, 0, 'fresh claim: no call');
+  w.matches.set(BOB, { inputHash: 'pending:dead', matches: [], createdAt: iso(-3 * MIN) });
+  assert.equal((await run(w, m, BOB, { action: 'match', roomId: ROOM })).status, 200);
+  assert.equal(calls.length, 1);
+
+  const prev = { inputHash: 'old-hash', matches: [{ userId: HOST, reason: 'Hiring', score: 4 }], createdAt: iso(-20 * MIN) };
+  w.matches.set(BOB, prev);
+  const { m: bad } = model(() => ({ stopReason: 'refusal' }));
+  assert.deepEqual(await run(w, bad, BOB, { action: 'match', roomId: ROOM }), { status: 502, body: { error: 'ai_failed' } });
+  assert.deepEqual(w.matches.get(BOB), prev);
+
+  const w2 = world({ entries: [entry(BOB, 'CS junior'), entry(HOST, 'Recruiter at Acme')] });
+  assert.equal((await run(w2, bad, BOB, { action: 'match', roomId: ROOM })).status, 502);
+  assert.equal(w2.matches.get(BOB)?.inputHash, 'released', 'no previous row: released, so the next call may try');
 });
 
 test('match: a cached person who withdrew consent or left is not returned', async () => {

@@ -38,6 +38,10 @@ export const MATCH_FIELD_MAX = { name: 40, headline: 80, interests: 160, looking
 /** A claim whose caller died (crash, timeout) is retaken after this long. Not in the spec's response shapes. */
 export const TRIAGE_PENDING_TTL_MS = 2 * 60_000;
 export const RECAP_PENDING_TTL_MS = 5 * 60_000;
+/** F3: a match claim older than this is treated as abandoned (its caller died) and may be retaken. */
+export const MATCH_PENDING_TTL_MS = 2 * 60_000;
+/** input_hash prefix of a qrewing_matches row that a caller is computing (no new column; 0027 is frozen). */
+export const MATCH_PENDING_PREFIX = 'pending:';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -71,7 +75,20 @@ export type RoomInfo = {
 };
 export type Msg = { id: string; roomId: string; kind: string; senderId: string | null; body: string | null; createdAt: string };
 export type TriageRow = { messageId: string; state: 'pending' | 'done' | 'skipped'; important: boolean | null; reason: string | null; updatedAt: string };
-export type RecapRow = { state: 'pending' | 'done' | 'failed'; title: string | null; summary: string | null; highlights: string[] | null; updatedAt: string; refreshedAt: string | null };
+/**
+ * createdAt = when the attempt that produced this row was claimed (reset on every retake), so messages sent while it
+ * was generating count as newer for the refresh. refreshedAt: on a done row, the one refresh is spent; on a failed
+ * row, the one retry is spent (F1: no new column, 0027 is frozen as reviewed). A done row starts with it null.
+ */
+export type RecapRow = {
+  state: 'pending' | 'done' | 'failed';
+  title: string | null;
+  summary: string | null;
+  highlights: string[] | null;
+  createdAt: string;
+  updatedAt: string;
+  refreshedAt: string | null;
+};
 export type EntryProfile = { userId: string; headline: string; interests: string; lookingFor: string; updatedAt: string };
 export type StoredMatch = { userId: string; reason: string; score: number };
 export type MatchRow = { inputHash: string; matches: StoredMatch[]; createdAt: string };
@@ -114,8 +131,12 @@ export interface QrewingStore {
   releaseTriage(messageIds: string[]): Promise<void>;
 
   recap(roomId: string): Promise<RecapRow | null>;
-  /** Inserts 'pending', or retakes a 'failed' row or a 'pending' row last updated before `staleBefore`. True if claimed. */
+  /**
+   * Inserts 'pending', or retakes a 'pending' row last updated before `staleBefore`, or retakes a 'failed' row whose
+   * retry is not spent yet (refreshed_at null), setting refreshed_at. Every retake resets created_at. True if claimed.
+   */
   claimRecap(roomId: string, staleBefore: string): Promise<boolean>;
+  /** done: content set, refreshed_at cleared (the refresh is still available). failed: refreshed_at kept. */
   finishRecap(roomId: string, r: { state: 'done'; title: string; summary: string; highlights: string[] } | { state: 'failed' }): Promise<RecapRow | null>;
   /** Section 7.2: sets refreshed_at on a done row whose refreshed_at is null. True if this call set it (one refresh per room). */
   claimRecapRefresh(roomId: string): Promise<boolean>;
@@ -124,7 +145,16 @@ export interface QrewingStore {
 
   entryProfiles(roomId: string): Promise<EntryProfile[]>;
   match(roomId: string, userId: string): Promise<MatchRow | null>;
-  saveMatch(roomId: string, userId: string, inputHash: string, matches: StoredMatch[]): Promise<string>;
+  /**
+   * F3 in-flight guard. Compare-and-set on input_hash: inserts {input_hash: claim, matches: []} when `seenHash` is
+   * null (no row), else sets input_hash = claim and created_at = now where input_hash still equals `seenHash`.
+   * The old matches stay in the row. True if this call now owns the row.
+   */
+  claimMatch(roomId: string, userId: string, seenHash: string | null, claim: string): Promise<boolean>;
+  /** Writes the result where input_hash still equals `claim`; returns the created_at it wrote. */
+  saveMatch(roomId: string, userId: string, claim: string, inputHash: string, matches: StoredMatch[]): Promise<string>;
+  /** Model failure: puts back `restore` (or 'released' with an old created_at) where input_hash still equals `claim`. */
+  releaseMatch(roomId: string, userId: string, claim: string, restore: { inputHash: string; createdAt: string } | null): Promise<void>;
 
   logUsage(roomId: string, action: 'triage' | 'recap' | 'match', model: string, inputTokens: number, outputTokens: number): Promise<void>;
 }
@@ -269,23 +299,21 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
       out.set(id, { messageId: id, state: row.state, important: row.important, reason: row.reason });
       continue;
     }
-    const eligible = m.kind === 'text' && !!m.body?.trim() && !!m.senderId && consents.get(m.senderId)?.aiOk === true;
-    if (eligible) candidates.push(id);
+    if (m.kind === 'text' && !!m.body?.trim() && !!m.senderId) candidates.push(id);
     else toSkip.push(id);
   }
 
-  // Spec 8.8: the rule prefilter decides clear cases with no model call; only the rest is capped and sent.
+  // Spec 8.8 + Q3: the rule prefilter runs for every sender and decides clear cases with no model call. Only the
+  // rest from consenting senders is capped and sent; the rest from senders without consent is skipped.
   const ruled = new Map<string, Prefiltered>();
-  if (candidates.length > 0) {
-    const needNames = candidates.some((id) => msgs.get(id)!.body!.includes('@'));
-    const memberNames = needNames ? [...(await store.displayNames(await store.memberIds(room.id))).values()] : [];
-    for (const id of candidates) {
-      const m = msgs.get(id)!;
-      const r = prefilterTriage({ body: m.body!, senderIsHost: m.senderId === room.hostId, memberNames });
-      if (r) ruled.set(id, r);
-    }
+  const toModel: string[] = [];
+  for (const id of candidates) {
+    const m = msgs.get(id)!;
+    const r = prefilterTriage({ body: m.body!, senderIsHost: m.senderId === room.hostId });
+    if (r) ruled.set(id, r);
+    else if (consents.get(m.senderId!)?.aiOk === true) toModel.push(id);
+    else toSkip.push(id);
   }
-  const toModel = candidates.filter((id) => !ruled.has(id));
 
   // Daily cap per room: rows that were (or are being) sent to the model in the last 24 hours.
   if (toModel.length > 0) {
@@ -322,7 +350,10 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
   const claimedForModel = claimed.filter((id) => !ruled.has(id));
   if (claimedForModel.length > 0) {
     const failed = await runTriageModel(ctx, claimedForModel.map((id) => msgs.get(id)!), consents, out);
-    if (failed) return AI_FAILED;
+    // Rule rows of this call are already saved: return them, with the failed ones as skipped (an API error left no
+    // row, so a later call may try again). With no rule row decided here, the failure is a 502 as before.
+    if (failed && !claimed.some((id) => ruled.has(id))) return AI_FAILED;
+    if (failed) for (const id of claimedForModel) out.set(id, { messageId: id, state: 'skipped', important: false, reason: null });
   }
   return { status: 200, body: { results: ids.map((id) => out.get(id)!) } };
 }
@@ -330,53 +361,37 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
 // ---------------------------------------------------------------------------------------------- triage prefilter
 
 /**
- * Spec 8.8: clear cases are decided by rule, with no model call. Important: a message from the host, one that
- * @-mentions a current member (or @all / @everyone), or one with announcement words. Not important: emoji-only
- * or a short acknowledgement. Everything else (including any non-English text) returns null and goes to the model.
- * The important rules are checked first, so the host's "ok" is important (the spec's order).
+ * Spec 8.8 with the qa rulings of 2026-11-12 (Q1-Q3): clear cases are decided by rule, with no model call.
+ * Important: a message from the host, one addressed to the whole room (@all / @everyone / @here), or one with
+ * announcement words. Not important: emoji-only or a short acknowledgement. A personal @name mention is NOT a rule
+ * (the client shows it to the mentioned member); it goes to the model like any other text. Everything else
+ * (including any non-English text) returns null. The important rules are checked first, so the host's "ok" is
+ * important (the spec's order). The rules run for every sender; consent gates only the model call (Q3).
  */
 export type Prefiltered = { important: boolean; reason: string };
-export type PrefilterInput = { body: string; senderIsHost: boolean; memberNames: string[] };
+export type PrefilterInput = { body: string; senderIsHost: boolean };
 
 export const PREFILTER_REASON = {
   host: 'From the host',
-  mention: 'Mentions a member',
+  mention: 'For everyone',
   announcement: 'Announcement',
   smallTalk: 'Small talk',
 } as const;
 
-const ANNOUNCE_RE =
-  /\b(?:announcements?|announcing|everyone|everybody|important|urgent|heads up|meet(?:ing)? at|starts? at|starting at|moved to|cancel(?:l)?ed)\b/i;
+// Q2: bare "everyone", "everybody" and "important" are not announcement words (they go to the model).
+const ANNOUNCE_RE = /\b(?:announcements?|announcing|urgent|heads up|meet(?:ing)? at|starts? at|starting at|moved to|cancel(?:l)?ed)\b/i;
 const ALL_MENTION_RE = /(?:^|[^\p{L}\p{N}_])@(?:all|everyone|here)(?![\p{L}\p{N}_])/iu;
-const EMOJI_RE = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}‍️⃣]/gu;
+const EMOJI_RE = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}\u200d\ufe0f\u20e3]/gu;
 const ACKS = new Set(['ok', 'okay', 'okk', 'k', 'kk', 'lol', 'lmao', 'thanks', 'thank you', 'thanks all', 'thx', 'ty', 'nice', 'cool', 'got it']);
 const LAUGH_RE = /^(?:(?:ha){2,}h?|(?:he){2,}|lo+l|o+k+)$/;
 /** Longer text is never treated as an acknowledgement. */
 const ACK_MAX = 20;
 
-function mentionsMember(body: string, names: string[]): boolean {
-  const lower = body.toLowerCase();
-  for (const name of names) {
-    const full = name.trim().toLowerCase();
-    for (const n of new Set([full, full.split(/\s+/)[0]])) {
-      if ([...n].length < 2) continue;
-      let at = lower.indexOf('@' + n);
-      while (at !== -1) {
-        const before = at === 0 ? '' : lower[at - 1];
-        const after = lower.slice(at + 1 + n.length);
-        if (!/[\p{L}\p{N}_]/u.test(before) && !/^[\p{L}\p{N}_]/u.test(after)) return true;
-        at = lower.indexOf('@' + n, at + 1);
-      }
-    }
-  }
-  return false;
-}
-
 export function prefilterTriage(input: PrefilterInput): Prefiltered | null {
-  const body = input.body.trim();
+  const body = input.body.normalize('NFC').trim();
   if (!body) return null;
   if (input.senderIsHost) return { important: true, reason: PREFILTER_REASON.host };
-  if (ALL_MENTION_RE.test(body) || mentionsMember(body, input.memberNames)) return { important: true, reason: PREFILTER_REASON.mention };
+  if (ALL_MENTION_RE.test(body)) return { important: true, reason: PREFILTER_REASON.mention };
   if (ANNOUNCE_RE.test(body)) return { important: true, reason: PREFILTER_REASON.announcement };
 
   const words = body.replace(EMOJI_RE, ' ').replace(/[!.?,~]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -459,10 +474,13 @@ async function recap(ctx: Ctx): Promise<Reply> {
 
   const existing = await store.recap(room.id);
   if (existing?.state === 'done') return { status: 200, body: recapBody(existing, true) };
+  // F1: at most two attempts per room. A failed row whose one retry is spent stays failed: no more model calls.
+  if (existing?.state === 'failed' && existing.refreshedAt !== null) return AI_FAILED;
   const staleBefore = new Date(now.getTime() - RECAP_PENDING_TTL_MS).toISOString();
   if (!(await store.claimRecap(room.id, staleBefore))) {
     const again = await store.recap(room.id);
     if (again?.state === 'done') return { status: 200, body: recapBody(again, true) };
+    if (again?.state === 'failed') return AI_FAILED;
     return { status: 202, body: { state: 'pending' } };
   }
 
@@ -499,7 +517,7 @@ async function recap(ctx: Ctx): Promise<Reply> {
   const saved = await store.finishRecap(room.id, { state: 'done', ...out });
   return {
     status: 200,
-    body: recapBody(saved ?? { state: 'done', ...out, updatedAt: now.toISOString(), refreshedAt: null }, false),
+    body: recapBody(saved ?? { state: 'done', ...out, createdAt: now.toISOString(), updatedAt: now.toISOString(), refreshedAt: null }, false),
   };
 }
 
@@ -516,7 +534,9 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
 
   const consents = await store.consents(room.id);
   const ok = (id: string | null) => !!id && consents.get(id)?.aiOk === true;
-  const newer = (await store.textAfter(room.id, existing.updatedAt, RECAP_REFRESH_MESSAGES * 2))
+  // Newer than the claim of the attempt that produced the recap (not updated_at): messages sent while it was being
+  // generated were not in its input.
+  const newer = (await store.textAfter(room.id, existing.createdAt, RECAP_REFRESH_MESSAGES * 2))
     .filter((m) => ok(m.senderId) && m.body?.trim())
     .slice(0, RECAP_REFRESH_MESSAGES)
     .reverse();
@@ -530,7 +550,8 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
   const r = await callModel(ctx, 'recap', {
     model: RECAP_MODEL,
     effort: 'medium',
-    maxTokens: 1024,
+    // F2: same budget as the first recap; max_tokens includes adaptive thinking, and the one refresh is spent anyway.
+    maxTokens: 2048,
     system: RECAP_REFRESH_SYSTEM,
     user: recapRefreshUser({
       previous: { title: existing.title ?? '', summary: existing.summary ?? '', highlights: existing.highlights ?? [] },
@@ -590,15 +611,30 @@ async function match(ctx: Ctx): Promise<Reply> {
       .filter((m) => members.has(m.userId) && prof.has(m.userId) && consents.get(m.userId)?.aiOk === true)
       .map((m) => ({ userId: m.userId, displayName: nameOf(m.userId), headline: prof.get(m.userId)!.headline, reason: m.reason, score: m.score }));
   };
-  if (cachedRow) {
-    const ageMs = now.getTime() - new Date(cachedRow.createdAt).getTime();
-    if (cachedRow.inputHash === hash) {
-      return { status: 200, body: { matches: hydrate(cachedRow.matches), cached: true, generatedAt: cachedRow.createdAt } };
+  const fromCache = (row: MatchRow): Reply | null => {
+    const ageMs = now.getTime() - new Date(row.createdAt).getTime();
+    const stale = { status: 200, body: { matches: hydrate(row.matches), cached: true, stale: true, generatedAt: row.createdAt } };
+    if (row.inputHash.startsWith(MATCH_PENDING_PREFIX)) {
+      // F3: another call is computing. Show the previous list if there is one, else pending (like recap's 202).
+      if (ageMs >= MATCH_PENDING_TTL_MS) return null; // abandoned claim: retake it
+      return row.matches.length > 0 ? stale : { status: 202, body: { state: 'pending' } };
     }
-    if (ageMs < MATCH_STALE_OK_MS) {
-      return { status: 200, body: { matches: hydrate(cachedRow.matches), cached: true, stale: true, generatedAt: cachedRow.createdAt } };
-    }
+    if (row.inputHash === hash) return { status: 200, body: { matches: hydrate(row.matches), cached: true, generatedAt: row.createdAt } };
+    if (ageMs < MATCH_STALE_OK_MS) return stale;
+    return null;
+  };
+  const cachedReply = cachedRow && fromCache(cachedRow);
+  if (cachedReply) return cachedReply;
+
+  // F3: one model call per (room, user) at a time. A losing call reads the row again and answers from it.
+  const claim = MATCH_PENDING_PREFIX + crypto.randomUUID();
+  if (!(await store.claimMatch(room.id, userId, cachedRow?.inputHash ?? null, claim))) {
+    const again = await store.match(room.id, userId);
+    return (again && fromCache(again)) ?? { status: 202, body: { state: 'pending' } };
   }
+  const restore = cachedRow && !cachedRow.inputHash.startsWith(MATCH_PENDING_PREFIX)
+    ? { inputHash: cachedRow.inputHash, createdAt: cachedRow.createdAt }
+    : null;
 
   const r = await callModel(ctx, 'match', {
     model: MATCH_MODEL,
@@ -608,7 +644,10 @@ async function match(ctx: Ctx): Promise<Reply> {
     user: matchUser(me, people),
     schema: MATCH_SCHEMA,
   });
-  if (!r.ok) return AI_FAILED;
+  if (!r.ok) {
+    await store.releaseMatch(room.id, userId, claim, restore);
+    return AI_FAILED;
+  }
 
   const list: StoredMatch[] = [];
   const seen = new Set<string>();
@@ -623,7 +662,7 @@ async function match(ctx: Ctx): Promise<Reply> {
   }
   list.sort((a, b) => b.score - a.score);
   list.splice(5);
-  const createdAt = await store.saveMatch(room.id, userId, hash, list);
+  const createdAt = await store.saveMatch(room.id, userId, claim, hash, list);
   return { status: 200, body: { matches: hydrate(list), cached: false, generatedAt: createdAt } };
 }
 
