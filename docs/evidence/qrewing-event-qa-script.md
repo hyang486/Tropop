@@ -91,6 +91,9 @@ Use the step-1 room.
 4. Photos & files: viewing and downloading work. Any write (send, upload) is blocked with "This room has ended.
    Only viewing and downloads still work."
 5. Photos of me without enrollment: "Photos of me was not set up before the room ended."
+6. Pace stops on End (after the pace merge, sports room): a guest has the pace maker running on the Map tab with
+   voice cues on. The host taps End. Expected: within a few seconds the guest's map switches to "This room has
+   ended" and the voice stops. If the voice keeps playing, that is a FAIL.
 
 ## 7. R7: room channel in grace
 
