@@ -14,7 +14,7 @@ can't read its key, so it opens on Welcome signed out (cause of the 891b759 gues
 | Simulator | Group | Build |
 |---|---|---|
 | 17 Pro host `91F3BFB3` | `9K6BKSS4U6.com.iyaproject.moment` | normal `expo run:ios` / `xcodebuild` |
-| 17 Pro spare `20541309` | `9K6BKSS4U6.com.iyaproject.moment` | normal |
+| 17 Pro spare `20541309` | `9K6BKSS4U6.com.iyaproject.moment` | normal (since 2026-11-12: a Release build of 335f700, no Metro) |
 | 17 guest `F11BA960` | `FAKETEAMID.com.iyaproject.moment` | `xcodebuild … -sdk iphonesimulator DEVELOPMENT_TEAM=FAKETEAMID build`, then `simctl install` |
 | 17e guest `6E0F2097` | `FAKETEAMID.com.iyaproject.moment` | same as above |
 | 17 Pro Max guest 4 `99A2323F` | `FAKETEAMID.com.iyaproject.moment` | same as above (Moment.app → Qrew.app ba7470d, 2026-11-09) |
@@ -23,6 +23,28 @@ Every future install keeps its simulator's group. Check it before installing:
 `strings <app>/Qrew | grep -A1 application-identifier`. Install over the existing app only. Uninstalling
 or erasing loses the session, and the guests are anonymous accounts. No repo config encodes this. The
 team value is passed only on the command line.
+
+## 2026-11-12 (afternoon): spec 9, spec 10 and a11y on local main 78a9cfe (not pushed)
+
+- Merged (--no-ff): spec 9 entry questions (83397b4, 863129f, 66bb53e, a30765a); spec 10 Qrewing bot (66b98f5,
+  b21c94f); spec 10.5 Siri + friendly times (a3b4624, ea1f217); a11y/dark (335f700, 78a9cfe).
+- Live: migrations 0028 entry_questions (20261112180712) and 0029 qrewing_ask_usage (20261112183834) in
+  list_migrations. Edge Function qrewing v5 ACTIVE, verify_jwt false, deployed from ea1f217 (human 13:05 FINAL;
+  supervisor confirmed). Byte check against git: index.ts and prompts.ts identical; core.ts differs only where EMOJI_RE's
+  ‍️⃣ escapes were uploaded as literal characters (same match set).
+- Siri 10.5: BUILT AND PACKAGED, BLOCKED ON SIMULATOR. ea1f217 Debug rebuild (prebuild --clean) installed over the
+  existing app on host 91F3BFB3 (9K6BKSS4U6) and guests F11BA960, 6E0F2097, 99A2323F (FAKETEAMID); app-id checked
+  before and after. Each installed app has Metadata.appintents (AskQrewIntent, provider 4Qrew12AppShortcutsV) and
+  INAlternativeAppNames[0] "Qrewing". The Shortcuts tile "Ask Qrewing" shows, but running it fails with "Couldn't find
+  AppShortcutsProvider" (2026-11-12-siri-unable-to-run.jpg, 2026-11-12-siri-shortcut-fail-log.txt). A Release build
+  (no debug dylib, provider in the main binary) on the spare fails the same way (2026-11-12-siri-release-spare-unable.jpg),
+  matching Apple forum thread 836585 / FB23504349 (iOS Simulator 26.5 through 27.0 beta 2, Apple's sample too). No code
+  change. To verify on a real iPhone (human: "Not now").
+- A11y/dark: per qa, 44 pt targets and dark mode PASS. VoiceOver announcements are NOT verified.
+- Open (not changed): app.json `web.output: "server"` turns on API-routes server export in `expo export:embed`, so any
+  Release/EAS iOS build fails at "Exporting server" (PlatformColor is not a function, web eval in Node). The app has no
+  +api routes. The spare's test build used `EXTRA_PACKAGER_ARGS=--skip-server`. Needs a decision: web.output "single"
+  or --skip-server in the build profile.
 
 ## 2026-11-12: Qrewing AI on main b9d031c, now eeeafd9 (local, not pushed)
 
