@@ -32,7 +32,8 @@ committed) plus the qa-as-proxy entries of the same day. Requirements: planning/
 
 **What main b9d031c contains**
 - Backend (qrewing-backend → 5ae3f10): migration 0027 qrewing_ai, APPLIED LIVE (remote version 20261112105302 for local
-  file 20261104000027; treat as one migration in a later CLI push). Edge Function qrewing v2 = d30438f (deployed, id
+  file 20261104000027, content byte-identical to the reviewed 9a4cdb6; treat as one migration in a later CLI push).
+  Before and after the apply its test file ran on the live DB in one transaction ending in ROLLBACK: no FAIL, 0 leftovers. Edge Function qrewing v2 = d30438f (deployed, id
   8befc29d, verify_jwt false; v1 = 23e1423 was live ~7 min and never called). room-janitor v10 (grace-aware, cron */5).
 - event (cf19e4d, 84a97b6, post-merge 03320df, ux-polish 8ae6c98) and pace (8edef43, 0a1854b, post-merge c982ebf,
   demo-replay 9a7c18f), all --no-ff. Checks on b9d031c: tsc 0, npm test 446/446, expo lint 0; Deno node tests 47/47.
@@ -62,7 +63,8 @@ committed) plus the qa-as-proxy entries of the same day. Requirements: planning/
 - Reviewed DRAFT for the human: docs/evidence/qrewing-privacy-and-store-notes.md (pace b9a26b1); its UNVERIFIED items stay open.
 
 **Not verified**
-- Spoken pace cues: audio output until qa confirms it; the silent switch on a physical device; behaviour on a network drop.
+- Spoken pace cues: audible voice until qa confirms it; the silent switch on a physical device; behaviour on a network drop.
+- Anything on a real iPhone: every Qrewing result so far is from simulators (GPS by simctl, simulator audio).
 - Recap (first and refresh) and the grace window end to end; match/triage failure paths live (unit tests only: M1 cooldown
   2 min/10 min/24 h, M2 model-failed rows final and counted in the 300/day cap).
 
