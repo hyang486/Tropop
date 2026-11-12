@@ -10,7 +10,15 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.iyaproject.moment",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "INAlternativeAppNames": [
+          {
+            "INAlternativeAppName": "Qrewing",
+            "INAlternativeAppNamePronunciationHint": "crew-ing"
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
