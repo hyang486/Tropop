@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestRecap } from '@/features/event/qrewing-api';
 import { isOfflineError } from '@/features/event/qrewing-plan';
 import { getActivitySummary, paceRecapLine } from '@/features/pace/summary';
+import { roomPhase } from '@/features/recap/grace-plan';
 import type { RoomRecapRow } from '@/features/event/types';
 import { loadFaceData } from '@/lib/face';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +14,7 @@ import {
   EMPTY_MARK,
   END_RECAP_TIMEOUT_MS,
   mergeMyPart,
+  myPartAfterRoomCheck,
   type MyPart,
   parseMark,
   parseSavedRecap,
@@ -95,7 +97,17 @@ export async function readMyPart(roomId: string, userId: string): Promise<MyPart
   ]);
   // Pace summary (spec 3.3): counts the in-memory run too (pace 2ba6451) and never rejects.
   const pace = paceRecapLine(await getActivitySummary(roomId));
-  return { messages, mediaShared, photosOfMe, arrivedAt, pace };
+  return myPartAfterRoomCheck({ messages, mediaShared, photosOfMe, arrivedAt, pace }, await isRoomOpen(roomId));
+}
+
+/** Read after the counts: open now means open when they were read. Any failure reads as not open. */
+async function isRoomOpen(roomId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.from('rooms').select('deleted_at, expires_at, grace_until').eq('id', roomId).maybeSingle();
+    return !error && roomPhase(data, Date.now()) === 'open';
+  } catch {
+    return false;
+  }
 }
 
 async function save(roomId: string, userId: string, server: ServerRecap): Promise<SavedRecap> {

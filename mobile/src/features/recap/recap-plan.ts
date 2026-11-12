@@ -121,6 +121,15 @@ export function mergeMyPart(prev: MyPart | null | undefined, next: MyPart): MyPa
   };
 }
 
+/**
+ * Messages have no grace read policy (0027), so after the end the head count reads 0 with no error. The count is
+ * kept only when the room was still open when read after it (rooms never reopen); otherwise it is unknown (null),
+ * and mergeMyPart keeps the earlier value.
+ */
+export function myPartAfterRoomCheck(part: MyPart, openAfterCount: boolean): MyPart {
+  return openAfterCount ? part : { ...part, messages: null };
+}
+
 /** Resolves with the promise's value, or `fallback` after `ms`. Never rejects. */
 export function withTimeout<T, F>(p: Promise<T>, ms: number, fallback: F, setTimer = setTimeout): Promise<T | F> {
   return new Promise((resolve) => {
