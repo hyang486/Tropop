@@ -16,7 +16,7 @@ import {
   staysVisible,
   validateEntry,
 } from '../src/features/event/event-plan.ts';
-import { classifyQrewingError, isQrewingError } from '../src/features/event/qrewing-plan.ts';
+import { allowedQrewingCalls, classifyQrewingError, isQrewingError } from '../src/features/event/qrewing-plan.ts';
 
 const entry = (o = {}) => ({ headline: 'CS junior', interests: '', lookingFor: '', links: [], ...o });
 
@@ -390,4 +390,59 @@ test('nextLoadedOnce (B2): an empty room that loads fine still alerts on the fir
   assert.equal(since, 0);
   const first = [{ id: 'm1', kind: 'text', sender_id: 'u', body: 'hey @Sam', created_at: '2026-11-12T10:00:00Z' }];
   assert.equal(pickBanner(first, { since, userId: 'me', myName: 'Sam', flags: new Map(), dismissed: new Set() })?.messageId, 'm1');
+});
+
+// First-run path (create with AI -> guest consent -> Introduce yourself), at the plan level.
+test('first run: the consent sheet asks until Agree or Not now saves a row; swipe-down saves nothing', async () => {
+  const { roomStateFrom } = await import('../src/features/event/qrewing-plan.ts');
+  const room = { data: { ai_enabled: true, entry_required: true }, error: null };
+  const fresh = roomStateFrom(room, { data: null });
+  assert.equal(chatGates(fresh.aiEnabled, fresh.me, true, 'event', false).disclosure, true, 'first open');
+  // Swipe-down saves nothing: the next read still has no row, so the sheet asks again.
+  assert.equal(chatGates(true, roomStateFrom(room, { data: null }).me, true, 'event', false).disclosure, true);
+  const agreed = roomStateFrom(room, { data: { ai_ok_at: '2026-11-12T10:00:00Z', mute_small_talk: false } });
+  assert.deepEqual(agreed.me, { aiOk: true, mute: false });
+  assert.equal(chatGates(true, agreed.me, true, 'event', true).disclosure, false, 'Agree');
+  const later = roomStateFrom(room, { data: { ai_ok_at: null, mute_small_talk: false } });
+  assert.deepEqual(later.me, { aiOk: false, mute: false });
+  assert.equal(chatGates(true, later.me, true, 'event', true).disclosure, false, 'Not now');
+  // Not now keeps my messages out of triage even with Mute on.
+  assert.equal(allowedQrewingCalls({ aiEnabled: true, me: { aiOk: false, mute: true } }, true, true).triage, false);
+  // The sheet never shows when the probe fails (aiEnabled && available is what reaches chatGates).
+  assert.equal(chatGates(false, null, true, 'event', false).disclosure, false);
+});
+
+test('first run: the Introduce yourself card shows for an event room without my entry and hides once saved', () => {
+  assert.equal(chatGates(true, null, true, 'event', false).entry, true, 'no entry yet');
+  assert.equal(chatGates(true, { aiOk: true, mute: false }, true, 'event', true).entry, false, 'entry saved');
+  assert.equal(chatGates(true, null, true, 'event', null).entry, false, 'unknown (loading or failed read) does not lock chat');
+  assert.equal(chatGates(true, null, false, 'event', false).entry, false, 'host did not ask for entry info');
+  assert.equal(chatGates(true, null, true, 'meetup', false).entry, false, 'not an event room');
+  assert.equal(chatGates(false, { aiOk: false, mute: false }, true, 'event', false).entry, true, 'Not now or AI down: still asked');
+});
+
+test('first run: an AI-off, loading or unreadable room never calls qrewing', async () => {
+  const { roomStateFrom, ROOM_UNKNOWN, ROOM_READ_FAILED } = await import('../src/features/event/qrewing-plan.ts');
+  const none = { probe: false, triage: false, recap: false };
+  const member = { data: { ai_ok_at: 't', mute_small_talk: true } };
+  const off = roomStateFrom({ data: { ai_enabled: false, entry_required: true }, error: null }, member);
+  assert.equal(off.me, null, 'an AI-off room ignores an old member row');
+  for (const state of [off, ROOM_UNKNOWN, ROOM_READ_FAILED, roomStateFrom({ data: null, error: null }, member)]) {
+    assert.deepEqual(allowedQrewingCalls(state, true, true), none);
+  }
+  const on = roomStateFrom({ data: { ai_enabled: true, entry_required: false }, error: null }, member);
+  assert.deepEqual(allowedQrewingCalls(on, true, true), { probe: true, triage: true, recap: true });
+  assert.equal(allowedQrewingCalls(on, false, true).triage, false, 'probe failed');
+  assert.equal(allowedQrewingCalls(on, true, false).triage, false, 'not an event room');
+});
+
+test('entryDirty (qa F2): only a change from the loaded form asks before leaving', async () => {
+  const { entryDirty } = await import('../src/features/event/event-plan.ts');
+  const empty = { headline: '', interests: '', lookingFor: '', links: ['', '', ''] };
+  assert.equal(entryDirty(empty, { ...empty }), false, 'untouched new form leaves freely');
+  assert.equal(entryDirty(empty, { ...empty, headline: 'CS junior' }), true);
+  assert.equal(entryDirty(empty, { ...empty, links: ['', 'https://a.b', ''] }), true);
+  const saved = { headline: 'A', interests: 'B', lookingFor: 'C', links: ['https://x.y', '', ''] };
+  assert.equal(entryDirty(saved, { ...saved, links: [...saved.links] }), false, 'loaded entry, no edit');
+  assert.equal(entryDirty(saved, { ...saved, lookingFor: 'D' }), true);
 });

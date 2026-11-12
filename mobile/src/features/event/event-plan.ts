@@ -22,6 +22,17 @@ export function validateEntry(input: EntryInput): { value: EntryInput } | { prob
   return { value: { headline, interests, lookingFor, links } };
 }
 
+/** True when the form differs from what it loaded (qa F2: leaving then asks before input is thrown away). */
+export function entryDirty(loaded: EntryInput, current: EntryInput): boolean {
+  return (
+    loaded.headline !== current.headline ||
+    loaded.interests !== current.interests ||
+    loaded.lookingFor !== current.lookingFor ||
+    loaded.links.length !== current.links.length ||
+    loaded.links.some((l, i) => l !== current.links[i])
+  );
+}
+
 type Me = { aiOk: boolean; mute: boolean } | null;
 
 /** The disclosure shows once per member per AI room: until they answer (Agree or Not now both create their row). */
