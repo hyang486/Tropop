@@ -10,9 +10,10 @@ Sources: `qrewing-pace-qa-demo.md` (pace timings), `qrewing-event-qa-script.md` 
 |---|---|---|
 | Host | iPhone 17 Pro `91F3BFB3` | Simulator_host |
 | Guest | iPhone 17 `F11BA960` | existing guest account |
+| Guest 3 (Act 2 only) | iPhone 17e `6E0F2097` | existing guest account |
 
 - Use existing accounts only. Check the app id and keychain group before any install.
-- Real time is longer than the cut. The pace legs run 10–18 min, so record each act in full and cut to the times below.
+- Real time is longer than the cut. The pace legs run 10–18 min, so record each act in full and cut to the times below (qa confirmed).
 - **AI** marks a step that makes a live Qrewing model call. Run AI steps only after the fixed qrewing deploy (M1/M2/L4). Pace makes no server or model calls.
 - **Face** marks the face-match step. Use only demo images already used in QA, never real people's photos.
 - With no `expo-speech` in the build, a cue is a vibration plus a banner. Any captions about voice apply only to a build that has it.
@@ -30,11 +31,11 @@ Setup (not filmed): Host creates a **Sports** room. Guest joins by code. On both
 | 1.4 | Guest | Film ~3:00. | `Lead group N meters ahead. Run m:ss per km to catch them in 3 minutes.` | "It tells you how fast to go to rejoin the group." |
 | 1.5 | Guest | Film ~8:30 (back within 150 m at ~8:10). | `Ease off: 3:42 per km, target 5:00.` | "Caught up. Now settle back in." |
 | 1.6 | Host | Film ~5:00. | `Kilometer 1: 5:00 per km, target 5:00.` | "Splits every kilometer." |
-| 1.7 | Mac | Stop the leg, `clear`, then `node scripts/pace-gps-demo.mjs stop` (Host only). | — | — |
+| 1.7 | Mac | Stop the leg and `clear`. Then start both together in two terminals: `node scripts/pace-gps-demo.mjs stop` (Host) and `node scripts/pace-gps-demo.mjs steady --host F11BA960-…` (Guest keeps running at 5:00 per km). Each process clears and drives only its own device. | — | — |
 | 1.8 | Host | Film ~6:00 (3 min standing). | Sheet `You've stopped for 3 minutes. Everything okay?` | "Stopped for 3 minutes? Qrewing checks on you." |
 | 1.9 | Host | Tap **Dismiss**. Do **not** send Emergency. | The sheet closes; the card's time does not grow while standing. | — |
 
-Note: during 1.7–1.8 the Guest's location is not moving, so the Guest may get the same sheet. Dismiss it off camera, or film it as a second example.
+Because the Guest has its own moving leg in 1.7, only the Host gets the 3-minute sheet. After filming, stop both and run `clear` (it clears the Host and Guest).
 
 ## Act 2: event (cut ≈ 100 s)
 
@@ -46,10 +47,10 @@ Note: during 1.7–1.8 the Guest's location is not moving, so the Guest may get 
 | 2.4 | Host | Fill the host's own entry (the gate, or Room info → **Edit my entry info**). People to meet lists only members who have an entry. | — | — |
 | 2.5 | Guest | Room info → **People to meet**. **AI** | "Qrewing is reading entry info…", then the Host's name, headline and a reason (tap **Refresh** if "still finding"). | "Qrewing suggests who to meet, and why." |
 | 2.6 | Guest | Turn on **Mute small talk**. | "Showing important messages" | "Too much chat? Mute the small talk." |
-| 2.7 | Host | Post "hi", "lol", "coffee?". **AI** (the rule prefilter may decide some with no call) | Guest: "3 messages hidden · Show" | — |
-| 2.8 | Host | Post "@everyone doors open in 5". | Guest: the message plus an "Important: …" banner | "Important messages still get through." |
+| 2.7 | Guest 3 | Post "hi", "lol", "coffee?". **AI** (the rule prefilter may decide some with no call) | Guest: "3 messages hidden · Show" | — |
+| 2.8 | Guest 3 | Post "@everyone doors open in 5". | Guest: the message plus an "Important: …" banner | "Important messages still get through." |
 
-With only two sims, the Host plays the "other member" in 2.7–2.8. Host lines always show, so 2.7 may show fewer hidden lines than 3. If that cut looks wrong, use a third sim as Guest B, following the event QA script step 3.
+Guest 3 is the third member (not filmed until 2.7). Before 2.5 it joins by code, taps **Agree** and saves its own entry, the same as 2.2–2.3. Host lines always show, which is why Guest 3, not the Host, posts the small talk.
 
 ## Act 3: host ends early (cut ≈ 50 s)
 
