@@ -35,7 +35,7 @@ Setup (not filmed): Host creates a **Sports** room. Guest joins by code. On both
 | 1.8 | Host | Film ~6:00 (3 min standing). | Sheet `You've stopped for 3 minutes. Everything okay?` | "Stopped for 3 minutes? Qrewing checks on you." |
 | 1.9 | Host | Tap **Dismiss**. Do **not** send Emergency. | The sheet closes; the card's time does not grow while standing. | — |
 
-Because the Guest has its own moving leg in 1.7, only the Host gets the 3-minute sheet. After filming, stop both and run `clear` (it clears the Host and Guest).
+Because the Guest has its own moving leg in 1.7, only the Host gets the 3-minute sheet. While the Host stands still it gets no lead-group gap cue, even though the Guest pulls ahead (no "Run m:ss per km" to someone who has stopped, and none over the sheet). Once the Host runs on after the stop, the gap cues come back (`Lead group 800 meters ahead. …`) next to its km cue. `mobile/tests/pace-demo-engine.test.mjs` checks this. After filming, stop both and run `clear` (it clears the Host and Guest).
 
 ## Act 2: event (cut ≈ 100 s)
 
