@@ -29,4 +29,127 @@ Pace branch `qrewing-pace` at 376a10d. This follows the event plan in `qrewing-e
 ## 4. Copy and theme pass (code level)
 
 - Colors: the pace UI uses only `colors` tokens from `components/ui` (`tint`/`onTint` are DynamicColorIOS, labels are PlatformColor). The one literal is the banner shadow `rgba(0,0,0,0.18)`. Dark mode on device is a qa item after the rebuild.
-- Copy is unchanged. Open item for voice: cue text shares the banner string, so pace reads as "5:00 per km". Speech engines may read "5:00" as a clock time. Check this when `expo-speech` is in a build (not in this branch's `package.json`). If it misreads, add a spoken variant (for example "5 minutes per kilometer") in `voice.ts` instead of changing the banner copy.
+- Copy is unchanged. Speech has its own wording since 3c0466b: `spokenCue` in pace-core gives "5 minutes per kilometer" instead of "5:00 per km". The banner keeps the display copy. Speech itself is unverified until a build includes `expo-speech` (section 5).
+
+## 5. Ready diff: `voice.ts` → expo-speech JS API (apply after the backend and event merge; not committed to code)
+
+Checked against https://docs.expo.dev/versions/v58.0.0/sdk/speech/ (2026-11-12):
+- Install: `npx expo install expo-speech`. Import: `import * as Speech from 'expo-speech'`.
+- `Speech.speak(text, options?)` returns void. Options used here: `language`, `onDone`, `onStopped` (after `Speech.stop()`), `onError(error)`. Also available: `onStart`, `onBoundary`, `rate`, `pitch`, `volume`, `voice`, and iOS-only `useApplicationAudioSession`.
+- `Speech.stop(): Promise<void>` "interrupts current speech and deletes all in queue". There is also `Speech.isSpeakingAsync()` and `Speech.maxSpeechInputLength`.
+- No config plugin. iOS physical devices make no sound in silent mode. The simulator is fine; note it for device QA.
+- Needs a native rebuild (new native module). The JS entry requires the native module, so the build must include it before this lands.
+
+What changes:
+- Drop `requireOptionalNativeModule('ExpoSpeech')`, the raw `speak(id, text, opts)` call and the `Exponent.speaking*` listeners. Per-utterance callbacks replace them, and each one calls `ended(id)`.
+- `speech-queue.ts` is unchanged. It still sets one cue at a time and keeps only the newest waiting cue. The budget timer stays as a backstop if no callback comes. `finish()` ignores an unknown id, so a late `onStopped` after `stopSpeech()` is a no-op.
+- `onError` vibrates, so the cue still registers, and moves on to the waiting cue.
+- New `stopSpeech()`: resets the queue and calls `Speech.stop()`. pace-layer calls it when `running` ends (switch off, sharing off, activity ended) or the runner unmounts.
+- Not changed: `useApplicationAudioSession` stays at its default. Ducking music while speaking is a device QA question for later.
+
+```diff
+--- a/mobile/src/features/pace/voice.ts
++++ b/mobile/src/features/pace/voice.ts
+@@
+-import { requireOptionalNativeModule } from 'expo';
++import * as Speech from 'expo-speech';
+ import { Vibration } from 'react-native';
+ 
+ import { enqueue, finish, newSpeechQueue, speechBudgetMs, type Utterance } from './speech-queue';
+ 
+-/**
+- * Spoken cues through expo-speech's native module when the app was built with it; null otherwise. ...
+- */
+-type Subscription = { remove(): void };
+-type SpeechModule = {
+-  speak(id: string, text: string, options: Record<string, unknown>): void;
+-  addListener?(event: string, listener: (e: { id?: string }) => void): Subscription;
+-};
+-const speech = requireOptionalNativeModule<SpeechModule>('ExpoSpeech');
+ let nextId = 0;
+ 
+-/** Whether cues are spoken on this build. */
+-export const canSpeak = speech != null;
++const VIBRATE = [0, 250, 150, 250];
+ 
+ // One cue at a time: a cue that arrives while another is spoken waits for its end (only the newest waits).
+ let queue = newSpeechQueue();
+ let budgetTimer: ReturnType<typeof setTimeout> | null = null;
+ 
+ function say(u: Utterance | null) {
+-  if (!u || !speech) return;
++  if (!u) return;
+   if (budgetTimer) clearTimeout(budgetTimer);
+-  // If the end event never comes, the cue's time budget ends it.
++  // If no callback comes, the cue's time budget ends it.
+   budgetTimer = setTimeout(() => ended(u.id), speechBudgetMs(u.text));
+   try {
+-    speech.speak(u.id, u.text, { language: 'en-US' });
++    Speech.speak(u.text, {
++      language: 'en-US',
++      onDone: () => ended(u.id),
++      onStopped: () => ended(u.id),
++      onError: () => {
++        Vibration.vibrate(VIBRATE);
++        ended(u.id);
++      },
++    });
+   } catch {
+-    Vibration.vibrate([0, 250, 150, 250]);
++    Vibration.vibrate(VIBRATE);
+     ended(u.id);
+   }
+ }
+@@
+-if (speech?.addListener) {
+-  for (const event of ['Exponent.speakingDone', 'Exponent.speakingStopped', 'Exponent.speakingError']) {
+-    try {
+-      speech.addListener(event, (e) => {
+-        if (e?.id != null) ended(String(e.id));
+-      });
+-    } catch {
+-      // No events: the time budget ends each cue.
+-    }
+-  }
+-}
++/** Stops the cue being spoken and drops the waiting one (switch or sharing off, activity ended, screen left). */
++export function stopSpeech() {
++  queue = newSpeechQueue();
++  if (budgetTimer) {
++    clearTimeout(budgetTimer);
++    budgetTimer = null;
++  }
++  Speech.stop().catch(() => {});
++}
+@@
+ export function speak(text: string, spoken?: string) {
+-  if (speech) {
+-    const r = enqueue(queue, { id: String(++nextId), text: spoken ?? text }, Date.now());
+-    queue = r.queue;
+-    say(r.say);
+-  } else {
+-    Vibration.vibrate([0, 250, 150, 250]);
+-  }
++  const r = enqueue(queue, { id: String(++nextId), text: spoken ?? text }, Date.now());
++  queue = r.queue;
++  say(r.say);
+   for (const l of listeners) l(text);
+ }
+--- a/mobile/src/features/pace/pace-layer.tsx
++++ b/mobile/src/features/pace/pace-layer.tsx
+@@
+-import { onCue } from './voice';
++import { onCue, stopSpeech } from './voice';
+@@ function PaceRunner
++  // Speech ends with the run on this screen: switch or sharing off, activity ended, or the runner unmounts.
++  useEffect(() => {
++    if (!running) return;
++    return stopSpeech;
++  }, [running]);
+```
+
+Before applying:
+- `grep -rn canSpeak mobile/src`. It is exported today, so remove or replace any use. At 7d8eb4e it has no importer outside voice.ts; check again after the merge.
+- Chat and Map can both mount the layer. Popping Map back to chat unmounts one runner, and `stopSpeech` cuts a cue in progress. This is acceptable because only the focused screen gives cues.
+
+After applying: `npx tsc --noEmit`, `npm test` (speech-queue tests unchanged), lint. Then rebuild both simulators and run `docs/evidence/qrewing-pace-qa-demo.md` steady to check speech. Without sound, check the banner and the `Spoken` column timing.
