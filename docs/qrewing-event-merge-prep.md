@@ -72,6 +72,12 @@ Check after the switch: `npx tsc --noEmit` should flag any name drift between th
 - `getActivitySummary` never rejects; `mergeMyPart` already keeps an earlier non-null pace.
 - Check after: `npx tsc --noEmit`, `npm test`; device check is QA script step 5/6 (recap shows "Pace maker: …").
 
+## Merge rulings from pace's cross-review (supervisor accepted)
+
+- M1: the pace maker stays on the Map tab only. `PaceLayer` is not added to the chat screen (`app/room/[id]/index.tsx`).
+- M2: en.ts order: event's `en.qrewing` and its overrides (6b step 2: `en.endRoom` copy) go in first, then pace's
+  separate top-level `en.pace`. Do not flatten pace into `en.qrewing`.
+
 ## Open device items (not part of this unit)
 
 - Dark mode on device: qa runs it after the single rebuild (f7baf8f was a code-only pass).

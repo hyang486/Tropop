@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Button, colors, Hint } from '@/components/ui';
 
 import { getEntryProfile } from './entry-api';
-import { needsDisclosure, needsEntry } from './event-plan';
+import { chatGates } from './event-plan';
 import { probeQrewing, setQrewingMember, useQrewingRoom } from './qrewing-api';
 import type { QrewingError } from './types';
 import { eventStrings } from './strings';
@@ -67,13 +67,9 @@ export function useQrewingChat(roomId: string, roomType: string, userId: string 
 
   // The entry form is a client gate on the room's setting, not on the AI probe: attendees still introduce
   // themselves to each other when the model is unavailable.
-  const gate: 'disclosure' | 'entry' | null = needsDisclosure(aiEnabled && available, q.me)
-    ? 'disclosure'
-    : needsEntry(entryRequired, roomType, hasProfile)
-      ? 'entry'
-      : null;
+  const gates = chatGates(aiEnabled && available, q.me, entryRequired, roomType, hasProfile);
 
-  return { ...q, available, gate };
+  return { ...q, available, gates };
 }
 
 const m = eventStrings.mute;

@@ -179,7 +179,7 @@ function ChatRoom({
   useRecapTriggers(room.id, userId, qrewing.aiEnabled, remainingMs);
   const [disclosureClosed, setDisclosureClosed] = useState(false);
   const [askConsent, setAskConsent] = useState(false);
-  const showDisclosure = (qrewing.gate === 'disclosure' && !disclosureClosed) || askConsent;
+  const showDisclosure = (qrewing.gates.disclosure && !disclosureClosed) || askConsent;
   const isEvent = room.type === 'event';
   const smallTalk = useSmallTalk({
     roomId: room.id,
@@ -187,6 +187,7 @@ function ChatRoom({
     myName: userId ? names.get(userId) : undefined,
     muted: qrewing.available && isEvent && !!qrewing.me?.aiOk && !!qrewing.me?.mute,
     ready: !chat.loading,
+    loadError: chat.error,
     messages: chat.messages,
   });
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -308,7 +309,7 @@ function ChatRoom({
               <Hint>{eventStrings.create.aiSaveFailed}</Hint>
             </Pressable>
           ) : null}
-          {qrewing.available && isEvent && qrewing.gate === null && !keyboardOpen ? (
+          {qrewing.available && isEvent && !qrewing.gates.disclosure && !qrewing.gates.entry && !keyboardOpen ? (
             <MuteBar
               roomId={room.id}
               me={qrewing.me}
@@ -333,7 +334,7 @@ function ChatRoom({
             hideControls={keyboardOpen}
           />
 
-          {qrewing.gate === 'entry' ? (
+          {qrewing.gates.entry ? (
             <EntryGate roomId={room.id} />
           ) : chat.loading ? (
             <ActivityIndicator style={styles.loading} />
@@ -386,7 +387,7 @@ function ChatRoom({
           )}
 
           {/* Q 03.01: one rounded field with the arrow Send inside. Q's left chat icon has no action: omitted. */}
-          {qrewing.gate === 'entry' ? null : (
+          {qrewing.gates.entry ? null : (
             <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
               <View style={styles.inputWrap}>
                 <TextInput

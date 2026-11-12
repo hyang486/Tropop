@@ -13,6 +13,7 @@ import {
   type ImportantBanner,
   mentionsName,
   newestMs,
+  nextLoadedOnce,
   pickBanner,
   staysVisible,
 } from './event-plan';
@@ -39,6 +40,7 @@ export function useSmallTalk({
   myName,
   muted,
   ready,
+  loadError,
   messages,
 }: {
   roomId: string;
@@ -46,8 +48,10 @@ export function useSmallTalk({
   myName: string | undefined;
   /** Mute small talk is on and I agreed to the disclosure. */
   muted: boolean;
-  /** The first page of messages has loaded. */
+  /** The first page of messages is not loading. */
   ready: boolean;
+  /** The last load failed (B2: no mute session until a load succeeds). */
+  loadError?: unknown;
   /** Newest first, as the chat list holds them. */
   messages: readonly Item[];
 }) {
@@ -57,7 +61,10 @@ export function useSmallTalk({
 
   // A mute session starts when mute is on and the first page is loaded. Only messages newer than the newest one
   // loaded at that moment are triaged and can alert; older ones only read existing flags.
-  const session = muted && ready ? 'on' : 'off';
+  const [loadedOnce, setLoadedOnce] = useState(false);
+  const loadedNow = nextLoadedOnce(loadedOnce, !ready, loadError);
+  if (loadedNow !== loadedOnce) setLoadedOnce(loadedNow);
+  const session = muted && loadedNow ? 'on' : 'off';
   const [prevSession, setPrevSession] = useState<'on' | 'off'>('off');
   const [since, setSince] = useState<number | null>(null);
   if (session !== prevSession) {

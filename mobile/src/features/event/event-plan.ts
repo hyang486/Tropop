@@ -34,6 +34,21 @@ export function needsEntry(entryRequired: boolean, roomType: string, hasProfile:
   return entryRequired && roomType === 'event' && hasProfile === false;
 }
 
+/**
+ * The two chat gates, independent (B1): the disclosure sheet asks until the member answers, and the entry form
+ * locks the list and composer until they fill it in. Closing the sheet without an answer (iOS swipe) hides the
+ * sheet only; the entry gate still applies.
+ */
+export function chatGates(
+  aiEnabled: boolean,
+  me: Me,
+  entryRequired: boolean,
+  roomType: string,
+  hasProfile: boolean | null,
+): { disclosure: boolean; entry: boolean } {
+  return { disclosure: needsDisclosure(aiEnabled, me), entry: needsEntry(entryRequired, roomType, hasProfile) };
+}
+
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -178,6 +193,14 @@ export function newestMs(items: readonly Timed[]): number {
     if (Number.isFinite(t) && t > max) max = t;
   }
   return max;
+}
+
+/**
+ * B2: whether the chat has had one successful load (latched). A mute session starts only after that, so a failed
+ * first page (empty list, newestMs 0) never makes old messages look new when a later load brings them in.
+ */
+export function nextLoadedOnce(prev: boolean, loading: boolean, error: unknown): boolean {
+  return prev || (!loading && (error === null || error === undefined));
 }
 
 export type ImportantBanner = { messageId: string; reason: string | null; mention: boolean; createdMs: number };

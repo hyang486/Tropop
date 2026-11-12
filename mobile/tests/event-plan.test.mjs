@@ -5,11 +5,13 @@ import { test } from 'node:test';
 import {
   collapseSmallTalk,
   createTriageBatcher,
+  chatGates,
   linksByUser,
   mentionsName,
   needsDisclosure,
   needsEntry,
   newestMs,
+  nextLoadedOnce,
   pickBanner,
   staysVisible,
   validateEntry,
@@ -303,4 +305,51 @@ test('endCopyHasRecap (R6): recap wording unless a read answered AI off', async 
   assert.equal(endCopyHasRecap(ROOM_READ_FAILED), true, 'read failed');
   assert.equal(endCopyHasRecap({ aiEnabled: false, readFailed: false, loaded: true }), false, 'answered off');
   assert.equal(endCopyHasRecap({ aiEnabled: true, readFailed: false, loaded: true }), true);
+});
+
+test('chatGates (B1): sheet closed without an answer + entry required + no profile → entry form, composer locked', () => {
+  // me === null: the member swiped the disclosure away without Agree or Not now.
+  const g = chatGates(true, null, true, 'event', false);
+  assert.deepEqual(g, { disclosure: true, entry: true });
+  // The screen hides the sheet after the swipe, but the entry gate does not depend on it.
+  const sheetClosed = true;
+  const showSheet = g.disclosure && !sheetClosed;
+  const composerLocked = g.entry;
+  assert.equal(showSheet, false);
+  assert.equal(composerLocked, true);
+  // Answered (Not now creates the row) and filled in: no gate. Profile unknown (read failed): no lock.
+  assert.deepEqual(chatGates(true, { aiOk: false, mute: false }, true, 'event', true), { disclosure: false, entry: false });
+  assert.equal(chatGates(true, null, true, 'event', null).entry, false);
+  assert.equal(chatGates(false, null, true, 'event', false).entry, true, 'AI off: entry still required');
+  assert.equal(chatGates(true, null, true, 'social', false).entry, false);
+});
+
+test('nextLoadedOnce (B2): a failed first load starts no mute session; old messages loaded later never alert', () => {
+  const row = (id, body, iso) => ({ id, kind: 'text', sender_id: 'u', body, created_at: iso });
+  const flags = new Map([['old-flag', { state: 'done', important: true, reason: 'Stage moved' }]]);
+  const opts = (since) => ({ since, userId: 'me', myName: 'Sam', flags, dismissed: new Set() });
+  // First page fails: list empty, no session (the old code set since = newestMs([]) = 0 here).
+  let loaded = nextLoadedOnce(false, false, new Error('offline'));
+  assert.equal(loaded, false);
+  assert.equal(nextLoadedOnce(false, true, null), false, 'still loading');
+  // Retry succeeds and brings in older messages: the session starts now, at the newest of them.
+  const old = [row('old-flag', 'x', '2026-11-12T10:02:00Z'), row('old-mention', 'hey @Sam', '2026-11-12T10:01:00Z')];
+  loaded = nextLoadedOnce(loaded, false, null);
+  assert.equal(loaded, true);
+  const since = newestMs(old);
+  assert.equal(pickBanner(old, opts(since)), null, 'old important and mention do not alert');
+  assert.equal(old.filter((m) => Date.parse(m.created_at) > since).length, 0, 'nothing old is sent to triage');
+  // Latched: a later failed reload keeps the session.
+  assert.equal(nextLoadedOnce(loaded, false, new Error('offline')), true);
+  // A new mention after the start alerts.
+  const fresh = [row('new', 'hey @Sam', '2026-11-12T10:03:00Z'), ...old];
+  assert.equal(pickBanner(fresh, opts(since))?.messageId, 'new');
+});
+
+test('nextLoadedOnce (B2): an empty room that loads fine still alerts on the first new message', () => {
+  assert.equal(nextLoadedOnce(false, false, null), true);
+  const since = newestMs([]);
+  assert.equal(since, 0);
+  const first = [{ id: 'm1', kind: 'text', sender_id: 'u', body: 'hey @Sam', created_at: '2026-11-12T10:00:00Z' }];
+  assert.equal(pickBanner(first, { since, userId: 'me', myName: 'Sam', flags: new Map(), dismissed: new Set() })?.messageId, 'm1');
 });
