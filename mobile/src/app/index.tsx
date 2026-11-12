@@ -16,6 +16,7 @@ import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
+import { syncSiriRooms } from '@/features/event/siri-mirror';
 import { roomListEntry } from '@/features/recap/grace-plan';
 import { graceTime } from '@/features/recap/use-grace';
 
@@ -35,6 +36,7 @@ export default function Rooms() {
       pruneRoomCaches(list.map((r) => r.id));
       // Spec 10.4: Ask Qrewing history goes once a room ended (grace counts as ended), expired or was left.
       void purgeStaleAskHistories(list.filter((r) => r.deleted_at === null).map((r) => r.id));
+      syncSiriRooms(list);
       // Local 24-hour reminders for every open room; cancels those of rooms no longer listed. Rooms the host
       // ended (listed only during their grace window, spec 7) get no reminder.
       syncExpiryReminders(

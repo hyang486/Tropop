@@ -21,6 +21,7 @@ import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab'
 import { Button, colors, Hint, radius, Screen } from '@/components/ui';
 import { EntryGate, HiddenRow, ImportantBannerView, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
+import { noteSiriRoomOpened } from '@/features/event/siri-mirror';
 import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
 import { useSmallTalk } from '@/features/event/use-small-talk';
 import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
@@ -173,6 +174,8 @@ function ChatRoom({
   const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
   const router = useRouter();
   const chat = useChat(room.id, userId, onNewSender);
+  // Spec 10.5: the room I opened last is the one Siri asks about.
+  useEffect(() => noteSiriRoomOpened(room.id), [room.id]);
   const uploadSummary = useRoomUploadSummary(room.id);
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
   // Qrewing AI (spec 3.2): disclosure, entry gate, Mute small talk with important-message alerts.

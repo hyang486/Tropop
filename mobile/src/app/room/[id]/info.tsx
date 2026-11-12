@@ -7,6 +7,7 @@ import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RoomEnded } from '@/components/room-ended';
 import { purgeAskHistory } from '@/features/event/ask-store';
+import { noteSiriRoomClosed } from '@/features/event/siri-mirror';
 import { QrewingFab } from '@/features/event/qrewing-fab';
 import { StatusEditor } from '@/components/status-editor';
 import { QrewingInfoSection } from '@/features/event/info-section';
@@ -136,6 +137,7 @@ export default function RoomInfoScreen() {
             cancelExpiryReminder(room.id);
             clearRoomCache(room.id);
             void purgeAskHistory(room.id);
+            noteSiriRoomClosed(room.id);
             router.dismissTo('/');
           } catch (e) {
             setBusy(false);
