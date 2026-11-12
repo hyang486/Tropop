@@ -360,8 +360,11 @@ select tests.expect_count($$ select 1 from realtime.messages where event <> 'roo
 select tests.expect_state($$ insert into public.messages (room_id, sender_id, kind, body)
   values ((select room_id from tests.made where label = 'G'), 'c2700000-0000-4000-8000-000000000002', 'text', 'x') $$,
   '42501', 'grace: A cannot send a message');
-select tests.expect_state($$ insert into public.media (room_id, uploader_id, kind, original_path, file_name, mime_type)
-  select room_id, 'c2700000-0000-4000-8000-000000000002', 'photo', room_id::text || '/x/original.jpg', 'x.jpg', 'image/jpeg'
+-- A valid path under {room_id}/{media_id}/ and the default status ('uploading'), so media_integrity (0015, a BEFORE
+-- trigger that runs before the RLS check) passes and the 42501 comes from the insert policy under test.
+select tests.expect_state($$ insert into public.media (id, room_id, uploader_id, kind, original_path, file_name, mime_type)
+  select 'c2720000-0000-4000-8000-0000000000c2', room_id, 'c2700000-0000-4000-8000-000000000002', 'photo',
+         room_id::text || '/c2720000-0000-4000-8000-0000000000c2/original.jpg', 'x.jpg', 'image/jpeg'
   from tests.made where label = 'G' $$, '42501', 'grace: A cannot add media');
 select tests.expect_state($$ select public.set_qrewing_member((select room_id from tests.made where label = 'G'), false, false) $$,
   '42501', 'grace: A cannot change consent');

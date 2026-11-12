@@ -27,6 +27,15 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   stale pending returns 502 with no call (test added). qrewing 33/33, janitor 11/11, tsc strict clean. No SQL.
   Deploy order (supervisor): 0027 rollback test → apply → janitor deploy → qrewing deploy → probe smoke (200, no content logged).
   Still held on qa's approval-scope answer.
+- Sitting (authority: USER_DECISIONS 2026-11-12 FINAL (2) "해도 돼"). Pre-checks passed (0026 last, no drift in end_room /
+  broadcast_room_change, cron */15, advisor baseline saved). Step 1 dry run RAN (human approved the prompt) and FAILED:
+  22023 from private.media_integrity (0015) "original file is missing or empty" — test 7b inserted a ready media row before
+  its Storage object. Rolled back. Test-only fix 32ac0c7. Rerun (qa accepted 10:47Z) FAILED at "grace: A cannot add
+  media" (got 22023): the media_integrity BEFORE trigger fires before RLS and rejected the path '{room}/x/original.jpg'.
+  Test-only fix: explicit id, path under {room}/{id}/, default status. Scan: no other trap (only media has a raising
+  BEFORE trigger live; every RPC under a 42501 test checks host/member first). 0027 byte-identical to 9a4cdb6.
+  Recheck: still 0026, no qrewing tables, no grace_until, janitor */15, no idle transaction. Rerun on supervisor PASS
+  (qa answers the prompts). Steps 2-5 not run.
 
 ## 2026-11-09: U6 G-U6-1 — 33264a7 on qrew-u6 (from main e89cf85); local, no push, no rebuild
 - Place and time (0026) closed: qa PASS on qrew-pt 62d8fdd and 28bd04f, merged --no-ff → main e89cf85 (dev: tsc 0, lint 0, 303/303).
