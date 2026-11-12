@@ -21,6 +21,7 @@ export const eventStrings = {
     title: 'Qrewing AI is on in this room',
     body: [
       'In this room, your messages and entry info are sent to Anthropic’s Claude to flag important messages, suggest people to meet and write a recap.',
+      'Host messages and messages with @everyone or @all are highlighted by simple rules in Qrew, without AI. Only other messages, and only from members who agreed, are sent to the AI.',
       'Qrew deletes them, along with everything Qrewing made from them, when the room ends.',
       'If you choose Not now, your messages stay out of every Qrewing request. You can agree later from Room info.',
     ],

@@ -39,14 +39,22 @@ function escapeRegExp(s: string) {
 }
 
 /**
- * True when `body` mentions `displayName` as a whole word (case-insensitive, optional leading @). Marked
- * important without AI (spec 3.2). Names shorter than 2 characters never match, to avoid noise.
+ * True when `body` mentions me personally (qa ruling 2026-11-12 Q1): "@" plus my full display name or its first
+ * word, case-insensitive, NFC-normalized, word-bounded on both sides. The "@" must not follow a letter, digit,
+ * "_", "." or another "@", so an email address ("x@bob.com") never matches; the name must end at a non-word
+ * character, so "@Bobby" does not mention Bob. A bare name without "@" does not count. Names (or first words)
+ * shorter than 2 characters never match. Such a message stays visible only for me; "@everyone"/"@all"/"@here" and
+ * host messages come back important from the server for everyone.
  */
 export function mentionsName(body: string | null | undefined, displayName: string | null | undefined): boolean {
-  const name = displayName?.trim();
-  if (!body || !name || name.length < 2) return false;
-  const re = new RegExp(`(^|[^\\p{L}\\p{N}_])@?${escapeRegExp(name)}(?=$|[^\\p{L}\\p{N}_])`, 'iu');
-  return re.test(body);
+  const name = displayName?.normalize('NFC').trim().replace(/\s+/g, ' ');
+  if (!body || !name) return false;
+  const first = name.split(' ')[0];
+  const names = [...new Set([name, first])].filter((n) => n.length >= 2);
+  if (names.length === 0) return false;
+  const alt = names.map(escapeRegExp).join('|');
+  const re = new RegExp(`(^|[^\\p{L}\\p{N}_.@])@(?:${alt})(?=$|[^\\p{L}\\p{N}_])`, 'iu');
+  return re.test(body.normalize('NFC'));
 }
 
 export type ChatLike = { id: string; kind: string; sender_id: string | null; body: string | null };

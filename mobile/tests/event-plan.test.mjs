@@ -52,18 +52,30 @@ test('needsEntry: event rooms with entry_required, once we know there is no prof
   assert.equal(needsEntry(false, 'event', false), false);
 });
 
-test('mentionsName: whole word, case-insensitive, optional @', () => {
-  assert.equal(mentionsName('hey Jay, where are you?', 'Jay'), true);
+test('mentionsName: "@" + full name or first word, word-bounded, case-insensitive, NFC', () => {
   assert.equal(mentionsName('@jay check this', 'Jay'), true);
-  assert.equal(mentionsName('jaywalking is bad', 'Jay'), false);
-  assert.equal(mentionsName('Ask Mina Park', 'Mina Park'), true);
-  assert.equal(mentionsName('민지 어디야', '민지'), true);
-  assert.equal(mentionsName('민지야', '민지'), false);
-  assert.equal(mentionsName('a.b', 'a.b'), true);
-  assert.equal(mentionsName('axb', 'a.b'), false);
-  assert.equal(mentionsName('J is here', 'J'), false);
+  assert.equal(mentionsName('hey @JAY, where are you?', 'Jay'), true);
+  assert.equal(mentionsName('hey Jay, where are you?', 'Jay'), false, 'bare name is not a mention');
+  assert.equal(mentionsName('@Bobby is here', 'Bob'), false, 'longer name');
+  assert.equal(mentionsName('mail x@bob.com', 'Bob'), false, 'email');
+  assert.equal(mentionsName('@@bob', 'Bob'), false);
+  assert.equal(mentionsName('(@bob)', 'Bob'), true);
+  assert.equal(mentionsName('@bob.', 'Bob'), true, 'sentence end');
+  assert.equal(mentionsName('Ask @Mina Park', 'Mina Park'), true, 'full name');
+  assert.equal(mentionsName('Ask @mina', 'Mina  Park'), true, 'first word');
+  assert.equal(mentionsName('Ask @Park', 'Mina Park'), false, 'last word alone');
+  assert.equal(mentionsName('@민지 어디야', '민지'), true);
+  assert.equal(mentionsName('@민지야', '민지'), false);
+  // NFD "é" (e + U+0301) in the body matches the NFC name, and the reverse.
+  assert.equal(mentionsName('@Jose\u0301 hi', 'Jos\u00e9'), true);
+  assert.equal(mentionsName('@Jos\u00e9 hi', 'Jose\u0301'), true);
+  assert.equal(mentionsName('@a.b', 'a.b'), true);
+  assert.equal(mentionsName('@axb', 'a.b'), false);
+  assert.equal(mentionsName('@J is here', 'J'), false, 'under 2 characters');
+  assert.equal(mentionsName('@J is here', 'J Lee'), false, 'first word under 2 characters');
+  assert.equal(mentionsName('@everyone', 'Jay'), false);
   assert.equal(mentionsName(null, 'Jay'), false);
-  assert.equal(mentionsName('Jay', ''), false);
+  assert.equal(mentionsName('@Jay', ''), false);
 });
 
 const ME = 'u-me';
@@ -81,7 +93,9 @@ test('staysVisible: only others\' text judged done and not important can hide', 
   assert.equal(staysVisible(msg('no-flag'), ME, 'Jay', flags), true, 'never judged stays');
   assert.equal(staysVisible(msg('pending'), ME, 'Jay', flags), true, 'pending stays');
   assert.equal(staysVisible(msg('skipped'), ME, 'Jay', flags), true, 'skipped (not consented, cap) stays');
-  assert.equal(staysVisible(msg('done-false', { body: 'Jay come here' }), ME, 'Jay', flags), true, 'mention stays');
+  assert.equal(staysVisible(msg('done-false', { body: '@Jay come here' }), ME, 'Jay', flags), true, 'mention stays');
+  assert.equal(staysVisible(msg('done-false', { body: 'Jay come here' }), ME, 'Jay', flags), false, 'bare name hides');
+  assert.equal(staysVisible(msg('done-false', { body: '@Jay come here' }), ME, 'Sam', flags), false, 'mention of someone else hides');
   assert.equal(staysVisible(msg('done-false', { sender_id: ME }), ME, 'Jay', flags), true);
   assert.equal(staysVisible(msg('done-false', { kind: 'arrival' }), ME, 'Jay', flags), true);
   assert.equal(staysVisible(msg('done-false', { kind: 'emergency' }), ME, 'Jay', flags), true);
