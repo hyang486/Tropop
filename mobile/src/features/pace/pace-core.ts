@@ -718,3 +718,49 @@ export function spokenCue(cue: ChosenCue): string {
       return `Ease off: ${spokenPace(cue.pace) ?? cue.pace}${targetPart}.`;
   }
 }
+
+// --- Qrewing bot `me` snapshot (spec 10.3/10.4) ----------------------------------------------------------------
+// Only these four fields leave the phone, for the asker only: never a position.
+
+export type PaceSnapshot = {
+  /** Moving seconds (pauses under PAUSE_SPEED_MPS left out), as in the pace card and recap. */
+  elapsedSec: number;
+  /** Whole metres. */
+  distanceM: number;
+  /** Average moving pace, s/km; null under MIN_PACE_DISTANCE_M or outside the server's range. */
+  paceSecPerKm: number | null;
+  /** My own state now: 'moving' when my newest fix added distance and is fresh, otherwise 'stopped'. */
+  activity: 'moving' | 'stopped';
+};
+
+/** A move older than this (no new fix, or only pauses and GPS noise since) reads as stopped. */
+export const SNAPSHOT_MOVING_FRESH_MS = 30_000;
+/** The ask action accepts paceSecPerKm in [0, 3600]; slower than 1 km/h is sent as null instead of being rejected. */
+export const SNAPSHOT_MAX_PACE_S = 3600;
+
+/**
+ * Null when no activity is running in the room or my tracker for it has no fix yet; otherwise my moving time,
+ * distance, average moving pace and whether I am moving now.
+ */
+export function currentPaceSnapshot(input: {
+  activityRunning: boolean;
+  tracker: Tracker | null | undefined;
+  nowMs: number;
+}): PaceSnapshot | null {
+  const t = input.tracker;
+  if (!input.activityRunning || !t || !t.lastFix) return null;
+  const elapsedSec = Math.max(0, Math.round(t.movingMs / 1000));
+  const distanceM = Math.max(0, Math.round(t.distanceM));
+  const raw = t.distanceM >= MIN_PACE_DISTANCE_M && elapsedSec > 0 ? Math.round(elapsedSec / (t.distanceM / 1000)) : null;
+  const paceSecPerKm = raw != null && raw <= SNAPSHOT_MAX_PACE_S ? raw : null;
+  return { elapsedSec, distanceM, paceSecPerKm, activity: movingNow(t, input.nowMs) ? 'moving' : 'stopped' };
+}
+
+/** The newest trail point added moving time over the one before it, and it is at most SNAPSHOT_MOVING_FRESH_MS old. */
+function movingNow(t: Tracker, nowMs: number): boolean {
+  const n = t.trail.length;
+  if (n < 2) return false;
+  const last = t.trail[n - 1];
+  const prev = t.trail[n - 2];
+  return last.movingMs > prev.movingMs && nowMs - last.atMs <= SNAPSHOT_MOVING_FRESH_MS;
+}
