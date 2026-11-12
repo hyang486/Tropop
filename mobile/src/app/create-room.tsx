@@ -7,6 +7,7 @@ import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'rea
 
 import { PlacePinMap } from '@/components/place-time-cards';
 import { defaultDraft, type QuestionPayload, validateQuestions } from '@/features/event/entry-questions';
+import { useAnnounce } from '@/features/event/announce';
 import { QuestionEditor, questionProblemText } from '@/features/event/question-editor';
 import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api';
 import { QCard, QField, QLabel, QLink, QScreen } from '@/components/q-screen';
@@ -57,6 +58,14 @@ export default function CreateRoom() {
   const [questionProblem, setQuestionProblem] = useState<ReturnType<typeof validateQuestions> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // iOS VoiceOver ignores Hint's live region: each failure bumps the counter so a repeated identical error is read
+  // again. Question problems skip it (QuestionEditor announces those), so one Create never speaks twice.
+  const [failures, setFailures] = useState(0);
+  useAnnounce(error, failures);
+  function fail(message: string) {
+    setError(message);
+    setFailures((n) => n + 1);
+  }
   // Place and time (0026), all optional: a place name, a pin found from the name (tap the map to move it) and a
   // start time. A pin is kept only while there is a place name (create_room rule).
   const [placeName, setPlaceName] = useState('');
@@ -146,13 +155,13 @@ export default function CreateRoom() {
   async function submit() {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError(en.createRoom.nameRequired);
+      fail(en.createRoom.nameRequired);
       return;
     }
     const expiresAt = new Date(Date.now() + hours * 3_600_000);
     const startProblem = startTimeError(startsAt, expiresAt.getTime(), Date.now());
     if (startProblem) {
-      setError(startProblem === 'afterClose' ? en.createRoom.startAfterClose : en.createRoom.startTooEarly);
+      fail(startProblem === 'afterClose' ? en.createRoom.startAfterClose : en.createRoom.startTooEarly);
       return;
     }
     const askEntry = aiEnabled && type === 'event' && entryRequired;
@@ -203,7 +212,7 @@ export default function CreateRoom() {
       router.push({ pathname: '/room/[id]/invite', params: { id: room.id } });
       if (questionsNote) Alert.alert(questionsNote);
     } catch (e) {
-      setError(errorMessage(e));
+      fail(errorMessage(e));
       setBusy(false);
     }
   }
