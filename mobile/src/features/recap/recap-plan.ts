@@ -31,15 +31,27 @@ export type SavedRecap = { server: ServerRecap; me: MyPart; savedAt: string };
 
 export type RecapMark = { ai: true; first: boolean; refresh: boolean };
 
+export type RecapStep = 'first' | 'refresh' | 'late';
+
+/** What to mark and whether to send `refresh` for a step. */
+export function stepCall(step: RecapStep): { mark: Partial<Pick<RecapMark, 'first' | 'refresh'>>; refresh: boolean } {
+  if (step === 'first') return { mark: { first: true }, refresh: false };
+  if (step === 'refresh') return { mark: { refresh: true }, refresh: true };
+  return { mark: { first: true, refresh: true }, refresh: true };
+}
+
 export const EMPTY_MARK: RecapMark = { ai: true, first: false, refresh: false };
 
 /**
  * Spec 7.3 scheduled end: the first time the app sees 60 minutes or less left, ask once; within the last
  * 10 minutes, ask once more with `refresh` (the server decides whether anything changed). Null: nothing to do.
+ * First seen with 10 minutes or less left: 'late', one call with `refresh` that counts as both (the server treats a
+ * refresh with no done row as a normal recap), so two calls never go out seconds apart.
  * After the end (remaining <= 0) the scheduled path stops; the host's early end has its own call.
  */
-export function recapStep(remainingMs: number, mark: RecapMark): 'first' | 'refresh' | null {
+export function recapStep(remainingMs: number, mark: RecapMark): RecapStep | null {
   if (!Number.isFinite(remainingMs) || remainingMs <= 0) return null;
+  if (remainingMs <= REFRESH_CALL_MS && !mark.first && !mark.refresh) return 'late';
   if (remainingMs <= FIRST_CALL_MS && !mark.first) return 'first';
   if (remainingMs <= REFRESH_CALL_MS && !mark.refresh) return 'refresh';
   return null;

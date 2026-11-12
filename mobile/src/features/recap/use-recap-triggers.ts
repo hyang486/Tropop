@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import { useRoomEvents } from '@/lib/room-channel';
 
-import { recapStep } from './recap-plan';
+import { recapStep, stepCall } from './recap-plan';
 import { fetchAndSaveRecap, loadMark, readAndSaveRecap, saveMark } from './recap-store';
 
 /**
@@ -22,9 +22,10 @@ export function useRecapTriggers(roomId: string, userId: string | undefined, aiE
       const mark = (await loadMark(roomId)) ?? (await saveMark(roomId, {}));
       const step = recapStep(remainingMs, mark);
       if (!step) return;
+      const call = stepCall(step);
       // Marked before the call, so a slow or failed call is not repeated on the next tick.
-      await saveMark(roomId, step === 'first' ? { first: true } : { refresh: true });
-      await fetchAndSaveRecap(roomId, userId, step === 'refresh' ? { refresh: true } : undefined);
+      await saveMark(roomId, call.mark);
+      await fetchAndSaveRecap(roomId, userId, call.refresh ? { refresh: true } : undefined);
     })()
       .catch(() => {})
       .finally(() => {

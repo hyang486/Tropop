@@ -59,8 +59,8 @@ export function SavedRecapCard({ roomId }: { roomId: string }) {
       <QCard>
         <Text style={styles.title}>{saved.server.title}</Text>
         <Text style={styles.body}>{saved.server.summary}</Text>
-        {saved.server.highlights.map((h) => (
-          <Text key={h} style={styles.body}>
+        {saved.server.highlights.map((h, i) => (
+          <Text key={i} style={styles.body}>
             {`•  ${h}`}
           </Text>
         ))}
@@ -69,8 +69,8 @@ export function SavedRecapCard({ roomId }: { roomId: string }) {
         <>
           <QLabel>{s.you}</QLabel>
           <QCard>
-            {mine.map((line) => (
-              <Text key={line} style={styles.body}>
+            {mine.map((line, i) => (
+              <Text key={i} style={styles.body}>
                 {line}
               </Text>
             ))}

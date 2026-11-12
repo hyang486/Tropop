@@ -9,6 +9,7 @@ import {
   parseSavedRecap,
   recapKey,
   recapStep,
+  stepCall,
   withTimeout,
 } from '../src/features/recap/recap-plan.ts';
 
@@ -24,11 +25,20 @@ test('recapStep: first at 60 minutes, refresh in the last 10, each once, nothing
   assert.equal(recapStep(30 * MIN, { ...EMPTY_MARK, first: true }), null);
   assert.equal(recapStep(10 * MIN, { ...EMPTY_MARK, first: true }), 'refresh');
   assert.equal(recapStep(5 * MIN, { ...EMPTY_MARK, first: true, refresh: true }), null);
-  // App first opened in the last 10 minutes: first, then refresh on a later tick.
-  assert.equal(recapStep(5 * MIN, EMPTY_MARK), 'first');
+  // App first opened in the last 10 minutes: one 'late' call, never first then refresh.
+  assert.equal(recapStep(5 * MIN, EMPTY_MARK), 'late');
+  assert.equal(recapStep(10 * MIN, EMPTY_MARK), 'late');
   assert.equal(recapStep(0, EMPTY_MARK), null);
   assert.equal(recapStep(-MIN, EMPTY_MARK), null);
   assert.equal(recapStep(Number.NaN, EMPTY_MARK), null);
+});
+
+test('stepCall: late is one refresh call that marks first and refresh, so the next tick sends nothing', () => {
+  assert.deepEqual(stepCall('first'), { mark: { first: true }, refresh: false });
+  assert.deepEqual(stepCall('refresh'), { mark: { refresh: true }, refresh: true });
+  const late = stepCall('late');
+  assert.deepEqual(late, { mark: { first: true, refresh: true }, refresh: true });
+  assert.equal(recapStep(4 * MIN, { ...EMPTY_MARK, ...late.mark }), null);
 });
 
 test('parseSavedRecap round-trips and rejects malformed data', () => {
