@@ -270,6 +270,8 @@ select tests.expect_state($$ select public.upsert_entry_answers(tests.rid('E'), 
 select tests.expect_state($$ select public.upsert_entry_answers(tests.rid('E'), jsonb_build_object(
   tests.qid('E', 0), 'X', tests.qid('E', 2), jsonb_build_array('http://a.example'))) $$, '22023', 'http:// link rejected');
 select tests.expect_state($$ select public.upsert_entry_answers(tests.rid('E'), jsonb_build_object(
+  tests.qid('E', 0), 'X', tests.qid('E', 2), jsonb_build_array('HTTPS://a.example'))) $$, '22023', 'G1: uppercase HTTPS:// link rejected (case-sensitive)');
+select tests.expect_state($$ select public.upsert_entry_answers(tests.rid('E'), jsonb_build_object(
   tests.qid('E', 0), 'X', tests.qid('E', 2), jsonb_build_array('https://a.example/x y'))) $$, '22023', 'link with a space rejected');
 select tests.expect_state($$ select public.upsert_entry_answers(tests.rid('E'), jsonb_build_object(
   tests.qid('E', 0), 'X', tests.qid('E', 2), jsonb_build_array('https://' || repeat('a', 193)))) $$, '22023', '201-char link rejected');
@@ -277,6 +279,21 @@ select tests.expect_state($$ select public.upsert_entry_answers(tests.rid('E'), 
   tests.qid('E', 0), 'X', tests.qid('E', 2),
   jsonb_build_array('https://a.example', 'https://b.example', 'https://c.example', 'https://d.example'))) $$,
   '22023', '4 links rejected');
+-- G2: a required links question answered only with blank strings. Questions are set for this check and put back.
+select tests.login('c2800000-0000-4000-8000-000000000001', false);
+select tests.expect_ok($$ select public.set_entry_questions(tests.rid('E'), jsonb_build_array(
+  jsonb_build_object('kind', 'links', 'prompt', 'Portfolio', 'required', true))) $$, 'G2 setup: one required links question');
+select tests.login('c2800000-0000-4000-8000-000000000002', true);
+select tests.expect_state($$ select public.upsert_entry_answers(tests.rid('E'), jsonb_build_object(
+  tests.qid('E', 0), jsonb_build_array('  '))) $$, '22023', 'G2: required links answered only with blanks rejected');
+select tests.login('c2800000-0000-4000-8000-000000000001', false);
+select tests.expect_ok($$ select public.set_entry_questions(tests.rid('E'), jsonb_build_array(
+  jsonb_build_object('kind', 'short', 'prompt', '  What do you do?  ', 'required', true),
+  jsonb_build_object('kind', 'long', 'prompt', 'Topics you want to talk about'),
+  jsonb_build_object('kind', 'links', 'prompt', 'Portfolio', 'required', false),
+  jsonb_build_object('kind', 'short', 'prompt', repeat('t', 120), 'id', 'client-key-ignored'))) $$,
+  'G2 teardown: questions put back (G3: the 120-char prompt is accepted)');
+select tests.login('c2800000-0000-4000-8000-000000000002', true);
 select tests.expect_true($$ not exists (select 1 from public.entry_profiles where room_id = tests.rid('E')) $$,
   'no row written by any rejected call');
 
@@ -291,6 +308,8 @@ select tests.expect_true($$ (select answers = jsonb_build_object(tests.qid('E', 
   and interests = '' and looking_for = ''
   from public.entry_profiles where room_id = tests.rid('E') and user_id = 'c2800000-0000-4000-8000-000000000002') $$,
   'stored: trimmed, blanks left out, headline and links derived');
+select tests.expect_ok($$ select public.upsert_entry_answers(tests.rid('E'), jsonb_build_object(tests.qid('E', 0), repeat('s', 80))) $$,
+  'G3: 80-char short answer accepted');
 select tests.expect_ok($$ select public.upsert_entry_answers(tests.rid('E'), jsonb_build_object(tests.qid('E', 0), 'Designer')) $$,
   'A updates with only the required answer');
 select tests.expect_true($$ (select answers = jsonb_build_object(tests.qid('E', 0), 'Designer') and headline = 'Designer'
