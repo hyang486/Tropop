@@ -5,6 +5,11 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-12: Qrewing merged to main (local, no push) — worktree .claude/worktrees/qrewing-merge
+- main ed5a281 ← backend 08823fc (5ae3f10) ← event cf19e4d (b206b54) ← pace 8edef43 (44e758f) ← event 84a97b6 (2272da1)
+  ← pace 0a1854b (81c6da1), all --no-ff, no conflicts. Types = event bdb86d3 (incl. preview_room | null). tsc 0,
+  npm test 438/438, lint 0, Deno node tests 47/47. NOT rebuilt (expo-speech native) and not on a device yet.
+
 ## 2026-11-12: Qrewing backend (branch qrewing-backend); nothing applied or deployed
 - 00dd3b7 Edge Function qrewing (spec 2, 7.2): node tests 21/21. ddfe985 migration 0027 tables/RPCs.
 - d2fad59 0027 grace (7.1) plus the supervisor's broadcast fix: grace_until, end_room with 30 min grace, is_grace_member,
