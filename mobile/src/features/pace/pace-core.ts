@@ -107,6 +107,8 @@ export type Tracker = {
   broken: boolean;
   /** Device time of the first accepted fix (elapsed time counts from it). */
   firstAtMs: number | null;
+  /** Where the first accepted fix was (the activity start point for progress without a route or place pin). */
+  firstPoint: Point | null;
   distanceM: number;
   /** Time spent moving, ms: pauses (standing still) are left out, so average and splits are moving pace. */
   movingMs: number;
@@ -147,6 +149,7 @@ export function newTracker(roomId: string, startedAt: number): Tracker {
     noiseFix: null,
     broken: false,
     firstAtMs: null,
+    firstPoint: null,
     distanceM: 0,
     movingMs: 0,
     splits: [],
@@ -198,7 +201,7 @@ export function stepFix(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boo
 function stepFixRaw(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean } {
   if (!t.lastFix) {
     const atMs = Math.max(t.lastAtMs, fix.atMs);
-    return { tracker: { ...t, lastFix: fix, lastAtMs: atMs, seenAtMs: atMs, firstAtMs: atMs, rejects: [] }, kept: true };
+    return { tracker: { ...t, lastFix: fix, lastAtMs: atMs, seenAtMs: atMs, firstAtMs: atMs, firstPoint: { latitude: fix.latitude, longitude: fix.longitude }, rejects: [] }, kept: true };
   }
   const newest = t.rejects.length ? t.rejects[t.rejects.length - 1].atMs : t.seenAtMs;
   if (fix.atMs <= Math.max(t.seenAtMs, newest)) return { tracker: t, kept: false };
@@ -215,7 +218,9 @@ function stepFixRaw(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean
     const prev = t.rejects[t.rejects.length - 1];
     const rejects = prev && plausibleStep(prev, fix) ? [...t.rejects, fix] : [fix];
     if (rejects.length >= REANCHOR_AFTER) {
-      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, noiseFix: null, rejects: [] }, kept: true };
+      // No distance yet: the first fix was the outlier, so the start point moves too.
+      const firstPoint = t.distanceM === 0 ? { latitude: fix.latitude, longitude: fix.longitude } : t.firstPoint;
+      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, noiseFix: null, firstPoint, rejects: [] }, kept: true };
     }
     return { tracker: { ...t, rejects }, kept: false };
   }

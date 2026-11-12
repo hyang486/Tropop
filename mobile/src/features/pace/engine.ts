@@ -159,9 +159,8 @@ export function feedFixes(key: string, batch: PaceFix[], ctx: FeedContext) {
   const recent = recentPace(tracker, tracker.seenAtMs);
   run = { ...run, tracker, fixes, recent };
 
-  // The activity start point: where my session's first fix was.
-  const anchor =
-    ctx.place ?? (run.fixes[0] ? { latitude: run.fixes[0].latitude, longitude: run.fixes[0].longitude } : null);
+  // The activity start point: where my session's first fix was (run.fixes keeps only the last few minutes).
+  const anchor = ctx.place ?? tracker.firstPoint;
   const runners: Runner[] = ctx.others.flatMap((o) => {
     const progressM = progressOf(o.point, ctx.route, anchor);
     return progressM == null ? [] : [{ userId: o.userId, progressM, speedMps: o.speedMps }];
