@@ -21,6 +21,12 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   for developer-event), qa Q1-Q3 prefilter (no @name rule, no bare everyone/important, rules for every sender). No SQL.
   qrewing 32/32, janitor 11/11. Review requested.
   0027 apply HOLD: waiting for qa on the approval scope (USER_DECISIONS line 219); then rollback test, apply, janitor deploy.
+- Supervisor PASS on 68132d6, plus S1/S2 required before the qrewing deploy. 23e1423: S1 SDK pinned to 1.3.0 (2026-10-23;
+  npm pack typings have output_config.effort and format json_schema; the adapter tsc-checks against them, negative
+  control fails as expected). S2 a stale pending recap is retaken only while refreshed_at is null and sets it; a spent
+  stale pending returns 502 with no call (test added). qrewing 33/33, janitor 11/11, tsc strict clean. No SQL.
+  Deploy order (supervisor): 0027 rollback test → apply → janitor deploy → qrewing deploy → probe smoke (200, no content logged).
+  Still held on qa's approval-scope answer.
 
 ## 2026-11-09: U6 G-U6-1 — 33264a7 on qrew-u6 (from main e89cf85); local, no push, no rebuild
 - Place and time (0026) closed: qa PASS on qrew-pt 62d8fdd and 28bd04f, merged --no-ff → main e89cf85 (dev: tsc 0, lint 0, 303/303).
