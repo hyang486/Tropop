@@ -196,3 +196,55 @@ test('speech queue: a cue during speech waits (newest only); stopSpeech stops an
   s.voice.speak('five');
   assert.equal(s.log.at(-1)[2], 'five');
 });
+
+/**
+ * qa's stop-leg bug (main eeeafd9): the host stood still with the sheet up and got "Lead group 774 meters ahead. Run
+ * 2:11 per km". A fix wobbling ±20 m (over the 30 m noise floor, inside the 25 m stationary radius) reads as movement,
+ * so recent pace is not null. Host: runs 600 m, stands 240 s jumping (heartbeat every 30 s), runs on; the lead runs
+ * steadily 200 m ahead of the host's start.
+ */
+function driveWobble(s, { closeSheetAtS = null } = {}) {
+  const { engine, tick } = s;
+  const key = engine.runKey('wobble', 1);
+  const prompts = [];
+  for (let t = 0; t <= 660; t += 1) {
+    if (t) tick(1000);
+    const nowMs = t * 1000;
+    const holding = t > 180 && t < 420;
+    const report = holding ? (t - 180) % HEARTBEAT_S === 0 : t % REPORT_S === 0;
+    if (report) {
+      const m = t <= 180 ? (600 * t) / 180 : holding ? 600 + (((t - 180) / HEARTBEAT_S) % 2 ? 34 : 0) : 600 + (t - 420) * (10 / 3);
+      const others = [
+        { userId: 'host', point: pointAt(m), speedMps: holding ? 0 : 10 / 3 },
+        { userId: 'lead', point: pointAt(200 + (t * 10) / 3), speedMps: 10 / 3 },
+      ];
+      engine.feedFixes(key, [{ ...pointAt(m), atMs: nowMs, accuracyM: 5 }], {
+        roomId: 'wobble', userId: 'host', nowMs, targetSecPerKm: TARGET, route, place: null, others,
+      });
+    }
+    if (t % 5 === 0 && engine.checkStationary(key, nowMs, 0)) prompts.push(t);
+    if (closeSheetAtS != null && t === closeSheetAtS) engine.closeStationaryPrompt(key, nowMs);
+  }
+  return prompts;
+}
+
+test('no gap cue while standing still with a wobbling fix or with the sheet open; too far says keep your pace', async (t) => {
+  const s = await load(t, 'absent');
+  const prompts = driveWobble(s);
+  assert.equal(prompts.length, 1, `one sheet: ${prompts}`);
+  const p = en.pace;
+  const gaps = s.banner.filter((b) => b[1].startsWith('Lead group'));
+  // While running behind (200 m): a catch-up pace. Nothing from the stop (180-420 s); the sheet stays open after it.
+  assert.ok(gaps.length >= 1 && gaps.every(([ms]) => ms <= 180_000), JSON.stringify(gaps));
+  assert.match(gaps[0][1], /Run 3:\d\d per km/);
+  const cues = (banner) => banner.filter(([, text]) => text !== p.stationaryTitle);
+  assert.ok(cues(s.banner).every(([ms]) => ms <= 180_000 || ms >= 420_000), JSON.stringify(s.banner));
+
+  // Sheet closed at 425 s (moving again): ~1000 m behind needs ~1:52 per km, under 70% of 5:00, so keep your pace.
+  const s2 = await load(t, 'absent');
+  driveWobble(s2, { closeSheetAtS: 425 });
+  const after = s2.banner.filter(([ms, text]) => ms > 420_000 && text.startsWith('Lead group'));
+  assert.ok(after.length >= 1, JSON.stringify(s2.banner));
+  assert.match(after[0][1], /^Lead group \d+ meters ahead\. Too far to catch in 3 minutes: keep your pace\.$/);
+  assert.ok(cues(s2.banner).every(([ms]) => ms <= 180_000 || ms >= 425_000), JSON.stringify(s2.banner));
+});

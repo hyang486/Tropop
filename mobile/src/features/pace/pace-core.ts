@@ -410,13 +410,20 @@ export function leadGroup(runners: Runner[]): LeadGroup | null {
   };
 }
 
-export type GapCue = { gapM: number; secPerKm: number; pace: string };
+/** pace null: the catch-up pace is unrealistic (CATCH_UP_LIMIT), so the cue says "keep your pace" instead. */
+export type GapCue = { gapM: number; secPerKm: number; pace: string | null };
+
+/** A catch-up pace faster than this share of the target time per km is not asked for. */
+export const CATCH_UP_LIMIT = 0.7;
+/** With no target: no catch-up pace faster than 3:00 per km. */
+export const CATCH_UP_FASTEST_SEC_PER_KM = 180;
 
 /**
  * More than BEHIND_GAP_M behind the lead group's last member: the pace that closes the gap in CATCH_UP_S at the
- * group's average speed (the gap alone when no group speed is known).
+ * group's average speed (the gap alone when no group speed is known). A pace faster than CATCH_UP_LIMIT × target
+ * (CATCH_UP_FASTEST_SEC_PER_KM with no target) comes back with pace null ("too far, keep your pace").
  */
-export function gapCue(myId: string, runners: Runner[]): GapCue | null {
+export function gapCue(myId: string, runners: Runner[], targetSecPerKm: number | null = null): GapCue | null {
   const me = runners.find((r) => r.userId === myId);
   const group = leadGroup(runners);
   if (!me || !group || group.members.includes(myId)) return null;
@@ -424,8 +431,22 @@ export function gapCue(myId: string, runners: Runner[]): GapCue | null {
   if (gapM <= BEHIND_GAP_M) return null;
   const needed = (group.speedMps ?? 0) + gapM / CATCH_UP_S;
   const secPerKm = 1000 / needed;
+  const fastest = targetSecPerKm != null && targetSecPerKm > 0 ? CATCH_UP_LIMIT * targetSecPerKm : CATCH_UP_FASTEST_SEC_PER_KM;
+  if (secPerKm < fastest) return { gapM, secPerKm, pace: null };
   const pace = formatPace(secPerKm);
   return pace ? { gapM, secPerKm, pace } : null;
+}
+
+/** My fixes of this window decide whether I am standing still for cues. */
+export const STOPPED_WINDOW_MS = 60_000;
+
+/**
+ * Standing still for cues: at least 2 of my fixes in the last STOPPED_WINDOW_MS and all within STATIONARY_RADIUS_M
+ * of their centroid. A wobbling simulator or GPS fix can read as slow movement (a recent pace) while I stand.
+ */
+export function standingStill(fixes: PaceFix[], nowMs: number): boolean {
+  const inWindow = fixes.filter((f) => f.atMs >= nowMs - STOPPED_WINDOW_MS && f.atMs <= nowMs);
+  return inWindow.length >= 2 && withinStationaryRadius(inWindow);
 }
 
 // --- cue cadence ------------------------------------------------------------------------------------------------
@@ -447,7 +468,8 @@ export function newCueSchedule(): CueSchedule {
  * lead-group gap (at most every OFF_TARGET_EVERY_MS on its own clock), then off-target (at most every
  * OFF_TARGET_EVERY_MS, through paceCue; a km cue restarts that clock); off-target stays quiet while I am behind the lead group.
  * No gap cue while I am standing still (no recent pace): "Run 2:18 per km" to someone stopped, maybe with the
- * "Everything okay?" sheet open, is wrong; it comes once I move again.
+ * "Everything okay?" sheet open, is wrong; it comes once I move again. `stopped` (the sheet is open, or standingStill)
+ * also keeps the gap and off-target cues quiet, even when a wobbling fix gives a recent pace.
  */
 export function chooseCue(
   schedule: CueSchedule,
@@ -458,6 +480,7 @@ export function chooseCue(
     recentSecPerKm: number | null;
     targetSecPerKm: number | null;
     gap: GapCue | null;
+    stopped?: boolean;
   },
 ): { schedule: CueSchedule; cue: ChosenCue | null } {
   if (schedule.lastCueAtMs != null && input.nowMs - schedule.lastCueAtMs < MIN_CUE_GAP_MS) return { schedule, cue: null };
@@ -467,6 +490,7 @@ export function chooseCue(
     cue,
   });
   if (paced.cue?.kind === 'km') return said({ pace: paced.state }, paced.cue);
+  if (input.stopped) return { schedule, cue: null };
   const gapDue = schedule.lastGapCueAtMs == null || input.nowMs - schedule.lastGapCueAtMs >= OFF_TARGET_EVERY_MS;
   if (input.gap && gapDue && input.recentSecPerKm != null) return said({ lastGapCueAtMs: input.nowMs }, { kind: 'gap', ...input.gap });
   if (!input.gap && paced.cue) return said({ pace: paced.state }, paced.cue);
@@ -676,6 +700,8 @@ const spokenPace = (text: string | null) => {
 /** The words spoken for a cue; same content as the banner (strings.ts cue*), said as words. */
 export function spokenCue(cue: ChosenCue): string {
   if (cue.kind === 'gap') {
+    if (cue.pace == null)
+      return `Lead group ${spokenDistance(cue.gapM)} ahead. Too far to catch in ${spokenDuration(CATCH_UP_S)}: keep your pace.`;
     const run = spokenPace(cue.pace) ?? cue.pace;
     return `Lead group ${spokenDistance(cue.gapM)} ahead. Run ${run} to catch them in ${spokenDuration(CATCH_UP_S)}.`;
   }
