@@ -24,13 +24,14 @@ import {
   parseQuestions,
   type QuestionPayload,
 } from './entry-questions';
+import { askBody, askErrorKind, type AskError, type AskMe, type AskTurn, parseAskAnswer } from './ask-plan';
 import type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 
 export type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 export { isQrewingError } from './qrewing-plan';
 
 
-type Invoke<T> = { data: T } | { error: QrewingError };
+export type Invoke<T> = { data: T } | { error: QrewingError };
 
 async function invokeQrewing<T>(body: Record<string, unknown>): Promise<Invoke<T>> {
   try {
@@ -47,6 +48,26 @@ async function invokeQrewing<T>(body: Record<string, unknown>): Promise<Invoke<T
   } catch (e) {
     return { error: isOfflineError(e) ? 'network' : 'ai_failed' };
   }
+}
+
+/** Spec 10.3 `ask` (private chat). `invoke` is replaceable for the fake API and tests. */
+export async function askQrewing(
+  roomId: string,
+  question: string,
+  history: readonly AskTurn[],
+  me?: AskMe | null,
+  invoke: (body: Record<string, unknown>) => Promise<Invoke<unknown>> = invokeQrewing,
+): Promise<{ answer: string } | { error: AskError }> {
+  let tz: string | undefined;
+  try {
+    tz = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    tz = undefined;
+  }
+  const res = await invoke(askBody(roomId, question, history, me, tz));
+  if ('error' in res) return { error: askErrorKind(res.error) };
+  const ok = parseAskAnswer(res.data);
+  return ok ? { answer: ok.answer } : { error: 'ai_failed' };
 }
 
 export async function probeQrewing(roomId: string): Promise<{ ok: true } | { error: QrewingError }> {
