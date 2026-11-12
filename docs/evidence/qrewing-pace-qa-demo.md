@@ -45,9 +45,9 @@ Guest:
 
 | When | Banner | Spoken |
 |---|---|---|
-| early, slow part | `Pick it up: 6:40 per km, target 5:00.` (pace may read a little faster while it settles) | `Pick it up: 6 minutes 40 seconds per kilometer, target 5 minutes.` |
+| ~0:15 and ~2:15 (every 2 min until the first gap cue) | `Pick it up: 6:40 per km, target 5:00.` (pace may read a little faster while it settles) | `Pick it up: 6 minutes 40 seconds per kilometer, target 5 minutes.` |
 | ~3:00, then at most every 2 min while >150 m behind (~5:00, ~7:00) | `Lead group N meters ahead. Run m:ss per km to catch them in 3 minutes.` | `Lead group N meters ahead. Run M minutes S seconds per kilometer to catch them in 3 minutes.` (`1.2 kilometers` style at 1000 m or more) |
-| after ~8:10 (back within 150 m), up to ~10:17 | maybe `Ease off: 3:42 per km, target 5:00.` | `Ease off: 3 minutes 42 seconds per kilometer, target 5 minutes.` |
+| ~8:30 (back within 150 m at ~8:10), before ~10:17 | `Ease off: 3:42 per km, target 5:00.` | `Ease off: 3 minutes 42 seconds per kilometer, target 5 minutes.` |
 | km crossings | `Kilometer n: m:ss per km, target 5:00.` | `n kilometers, split M minutes S seconds, target 5 minutes.` |
 
 - While the gap cue applies, it replaces "Pick it up" and "Ease off".
@@ -78,3 +78,5 @@ Run `steady`. Near 4:00, turn the Pace maker switch off with the Map screen open
 ## Evidence
 
 Save screenshots here as `YYYY-MM-DD-pace-<scenario>-<what>.png`, and note the banner text and time for each cue.
+
+Timings above are checked without a simulator by `mobile/tests/pace-demo-replay.test.mjs`. It replays each demo leg at the reporter's rate (a fix every 5 s while moving, a 30 s heartbeat while still) through the same core calls as `engine.feedFixes`. Replayed: steady km cues at 5:10, 10:00 and 15:10. Gap (guest): Pick it up at 0:15 and 2:15; gap cues at 3:05 (154 m), 5:05 (254 m) and 7:05 (224 m); Ease off at 8:30; km cues at 6:30, 10:10 and 15:10. Stop: the sheet at 5:55, km 1 at 9:10. A device run can differ by a few seconds, depending on when the reporter sends.
