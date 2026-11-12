@@ -16,6 +16,14 @@ import {
   saveErrorKind,
   sessionUserId,
 } from './qrewing-plan';
+import {
+  type EntryAnswers,
+  type EntryQuestion,
+  type EntryQuestionsError,
+  entryQuestionsErrorKind,
+  parseQuestions,
+  type QuestionPayload,
+} from './entry-questions';
 import type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 
 export type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
@@ -87,6 +95,79 @@ export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRe
 export async function setQrewingMember(roomId: string, aiOk: boolean, mute: boolean): Promise<{ error?: string; offline?: boolean }> {
   const { error } = await supabase.rpc('set_qrewing_member', { p_room_id: roomId, p_ai_ok: aiOk, p_mute: mute });
   return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
+}
+
+// --- host-defined entry questions (spec 9.2 contract, migration 0028) -----------------------------------------------
+// 0028 is not in database.types.ts yet, so these calls go through an untyped view of the client. Regenerate the
+// types after 0028 is applied and drop the cast.
+type Untyped = {
+  rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ error: { code?: string; message: string } | null }>;
+  from(table: string): {
+    select(cols: string): {
+      eq(col: string, v: string): { order(col: string): PromiseLike<{ data: unknown; error: unknown }> };
+    };
+  };
+};
+const untyped = () => supabase as unknown as Untyped;
+
+type EntryWrite = { ok: true } | { error: EntryQuestionsError };
+
+function entryWriteResult(error: { code?: string; message: string } | null): EntryWrite {
+  return error ? { error: entryQuestionsErrorKind(error.code, saveErrorKind(error) === 'network') } : { ok: true };
+}
+
+/** Replaces the room's whole question list (host only; 55000 once anyone has answered). */
+export async function setEntryQuestions(roomId: string, questions: QuestionPayload[]): Promise<EntryWrite> {
+  try {
+    const { error } = await untyped().rpc('set_entry_questions', { p_room_id: roomId, p_questions: questions });
+    return entryWriteResult(error);
+  } catch (e) {
+    return { error: saveErrorKind(e) === 'network' ? 'network' : 'failed' };
+  }
+}
+
+/** Writes my answers (question id -> string or links array); the server derives headline and links. */
+export async function saveEntryAnswers(roomId: string, answers: EntryAnswers): Promise<EntryWrite> {
+  try {
+    const { error } = await untyped().rpc('upsert_entry_answers', { p_room_id: roomId, p_answers: answers });
+    return entryWriteResult(error);
+  } catch (e) {
+    return { error: saveErrorKind(e) === 'network' ? 'network' : 'failed' };
+  }
+}
+
+export async function getEntryQuestions(roomId: string): Promise<EntryQuestion[]> {
+  const { data, error } = await untyped()
+    .from('entry_questions')
+    .select('id, position, kind, prompt, required')
+    .eq('room_id', roomId)
+    .order('position');
+  if (error) throw error;
+  return parseQuestions(data);
+}
+
+/** The room's questions in position order. `failed` when the read failed; `loaded` false until it answers. */
+export function useEntryQuestions(roomId: string): {
+  questions: EntryQuestion[];
+  loaded: boolean;
+  failed: boolean;
+  reload(): void;
+} {
+  const [kept, setKept] = useState<{ roomId: string; questions: EntryQuestion[]; failed: boolean } | null>(null);
+  const [tick, setTick] = useState(0);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  useEffect(() => {
+    let alive = true;
+    if (!roomId) return;
+    getEntryQuestions(roomId)
+      .then((questions) => alive && setKept({ roomId, questions, failed: false }))
+      .catch(() => alive && setKept({ roomId, questions: [], failed: true }));
+    return () => {
+      alive = false;
+    };
+  }, [roomId, tick]);
+  const mine = kept?.roomId === roomId ? kept : null;
+  return { questions: mine?.questions ?? [], loaded: !!mine, failed: mine?.failed ?? false, reload };
 }
 
 type RoomState = QrewingRoomState;
