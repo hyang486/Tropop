@@ -4,8 +4,8 @@ From `qrewing-demo-scenario.md`. Record each take in full and cut later (the hum
 
 - **Sims:** Host `91F3BFB3` (17 Pro, Simulator_host); Guest `F11BA960` (17, existing guest); Guest 3 `6E0F2097` (17e, existing guest, Act 2 only). Existing demo accounts only. Check the app id and keychain group before any install.
 - **Copy:** text cites `mobile/src/i18n/en.ts` on main `b9d031c`. The 30-minute early-end copy is in `40fd48f` (branch copy-grace, not yet on main). Its lines are marked **[40fd48f]**, with the same line numbers there.
-- **AI** = live model call; run only after the fixed qrewing deploy. **Face** = demo images already used in QA only.
-- Without expo-speech in the build, a cue is a vibration plus the banner. No voice captions then.
+- **AI** = live model call (qrewing v2 deployed; qa verified match/triage on b9d031c). **Face** = demo images already used in QA only.
+- Voice cues are spoken on these builds (the 55948fd rebuild on all 5 sims includes ExpoSpeech). The vibration-plus-banner fallback applies only to older builds.
 - Run `node scripts/pace-gps-demo.mjs clear` after each pace take.
 
 ## Setup (not filmed)
@@ -81,5 +81,5 @@ Before recording, the Guest enrolls for Photos of me and a matching demo photo i
 ## Not in this video
 
 - **Recap pace line:** "Pace maker: … km, moving …" is not shown. It would appear only if Take A/B and Take D used the same Sports room with AI on.
-- **Spoken cues:** need a build with expo-speech.
+- **Spoken cues:** included in the 55948fd builds on all 5 sims.
 - **Real-device GPS and audio:** not covered.
