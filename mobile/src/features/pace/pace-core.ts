@@ -401,6 +401,14 @@ export function summaryFor(
     : null;
 }
 
+/** The recap line's parts for a summary ("5:00" pace, "12:00" moving time), or null with no session. */
+export function recapParts(
+  summary: { distanceM: number; durationS: number; avgSecPerKm: number } | null | undefined,
+): { distanceM: number; duration: string; pace: string } | null {
+  const pace = summary ? formatPace(summary.avgSecPerKm) : null;
+  return summary && pace ? { distanceM: summary.distanceM, duration: formatDuration(summary.durationS), pace } : null;
+}
+
 // --- target input -----------------------------------------------------------------------------------------------
 
 /** "5:30" -> 330 s per km. Minutes 1-30, seconds 0-59. */

@@ -45,3 +45,16 @@ test('recap summary: the latest session in that room with an average pace, else 
   assert.deepEqual(summaryFor(h, 'a'), { distanceM: 2400, durationS: 300, avgSecPerKm: 300 });
   assert.equal(summaryFor(h, 'zzz'), null);
 });
+
+test('recap hand-off: no session in the room gives null and no line; a session gives one line', async () => {
+  const { recapParts } = await import('../src/features/pace/pace-core.ts');
+  const { paceStrings } = await import('../src/features/pace/strings.ts');
+  assert.equal(summaryFor([], 'a'), null);
+  assert.equal(summaryFor(parseHistory(null), 'a'), null);
+  assert.equal(summaryFor([s('a', 1, 50)], 'a'), null);
+  assert.equal(recapParts(null), null);
+  const one = summaryFor([s('a', 1, 2400)], 'a');
+  assert.deepEqual(Object.keys(one).sort(), ['avgSecPerKm', 'distanceM', 'durationS']);
+  const p = recapParts(one);
+  assert.equal(paceStrings.recap(p.distanceM, p.duration, p.pace), 'Pace maker: 2.40 km in 5:00, 5:00 per km');
+});

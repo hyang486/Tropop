@@ -19,6 +19,8 @@ export const paceStrings = {
   invalidPace: 'Enter a pace like 5:30.',
   invalidTime: 'Enter a distance in km and a time like 50:00 or 1:45:00.',
   noTarget: 'No target yet. Run once, or set a target pace.',
+  // The recap's pace line (features/recap shows it under my part; spec 3.3).
+  recap: (distanceM: number, duration: string, pace: string) => `Pace maker: ${km(distanceM)} km in ${duration}, ${pace} per km`,
   stats: (distanceM: number, duration: string, pace: string | null) =>
     `${km(distanceM)} km · ${duration}${pace ? ` · ${pace} per km` : ''}`,
   // Cues (spoken when voice is available; otherwise a vibration and this banner).
