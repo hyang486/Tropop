@@ -14,7 +14,7 @@ import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
-import { checkStationary, closeStationaryPrompt, feedFix, flushRun, runKey } from './engine';
+import { breakRun, checkStationary, closeStationaryPrompt, feedFix, flushRun, runKey } from './engine';
 import { targetSecPerKm, usualPace } from './pace-core';
 import { reloadHistory, usePaceSettings } from './settings';
 import { paceStrings as t } from './strings';
@@ -107,6 +107,11 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
     }, STATIONARY_TICK_MS);
     return () => clearInterval(timer);
   }, [live, key, room.activity_started_at]);
+
+  // Switch or sharing off with the screen open: the next fix re-anchors (leaving the screen still bridges the gap).
+  useEffect(() => {
+    if (!running) breakRun(key);
+  }, [running, key]);
 
   // Save to history when the session stops (switch off, activity ended, sharing off, screen left).
   useEffect(() => {

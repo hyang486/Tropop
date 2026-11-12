@@ -101,6 +101,10 @@ export type Tracker = {
   lastAtMs: number;
   /** Device time of the newest kept fix, including fixes within GPS noise of lastFix (order, elapsed time). */
   seenAtMs: number;
+  /** The newest fix within GPS noise of lastFix since it was set (standing still), or null. */
+  noiseFix: PaceFix | null;
+  /** Set by breakTracker (switch or sharing off): the next fix re-anchors the session without distance or time. */
+  broken: boolean;
   /** Device time of the first accepted fix (elapsed time counts from it). */
   firstAtMs: number | null;
   distanceM: number;
@@ -121,11 +125,15 @@ export const PAUSE_SPEED_MPS = 0.5;
 export const REANCHOR_AFTER = 3;
 /** Per-fix cap on the accuracy used as GPS noise, so one coarse fix does not hide a real move. */
 export const MAX_NOISE_ACCURACY_M = 50;
+/** Per-fix floor on the accuracy used as GPS noise: phones often report a few metres while wandering more. */
+export const MIN_NOISE_ACCURACY_M = 15;
 
-/** How far two fixes can be apart from GPS error alone: the sum of their accuracies (0 when unknown). */
+/** How far two fixes can be apart from GPS error alone: the sum of their accuracies, each kept between the floor and the cap. */
 export function noiseM(a: PaceFix, b: PaceFix): number {
   const acc = (f: PaceFix) =>
-    f.accuracyM != null && Number.isFinite(f.accuracyM) && f.accuracyM > 0 ? Math.min(f.accuracyM, MAX_NOISE_ACCURACY_M) : 0;
+    f.accuracyM != null && Number.isFinite(f.accuracyM) && f.accuracyM > MIN_NOISE_ACCURACY_M
+      ? Math.min(f.accuracyM, MAX_NOISE_ACCURACY_M)
+      : MIN_NOISE_ACCURACY_M;
   return acc(a) + acc(b);
 }
 
@@ -136,6 +144,8 @@ export function newTracker(roomId: string, startedAt: number): Tracker {
     lastFix: null,
     lastAtMs: startedAt,
     seenAtMs: startedAt,
+    noiseFix: null,
+    broken: false,
     firstAtMs: null,
     distanceM: 0,
     movingMs: 0,
@@ -144,6 +154,14 @@ export function newTracker(roomId: string, startedAt: number): Tracker {
     rejects: [],
     trail: [],
   };
+}
+
+/**
+ * The switch or sharing went off: the next fix re-anchors the session, so the off period (a bus ride, say) adds
+ * no distance, moving time, km cue or split. Elapsed time still counts it. Leaving the screen does not break.
+ */
+export function breakTracker(t: Tracker): Tracker {
+  return t.lastFix && !t.broken ? { ...t, broken: true } : t;
 }
 
 function plausibleStep(a: PaceFix, b: PaceFix): boolean {
@@ -175,21 +193,34 @@ function stepFixRaw(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean
   }
   const newest = t.rejects.length ? t.rejects[t.rejects.length - 1].atMs : t.seenAtMs;
   if (fix.atMs <= Math.max(t.seenAtMs, newest)) return { tracker: t, kept: false };
-  const dt = (fix.atMs - t.lastAtMs) / 1000;
+  if (t.broken) {
+    const tracker = { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, noiseFix: null, broken: false, rejects: [] };
+    return { tracker, kept: true };
+  }
+  let dt = (fix.atMs - t.lastAtMs) / 1000;
   const step = distanceM(t.lastFix, fix);
   // Within GPS noise of lastFix (standing still with a wandering fix): kept, but no distance or time, and lastFix
   // stays, so a run of noisy fixes never adds up; the next real move is measured from lastFix.
-  if (step < noiseM(t.lastFix, fix)) return { tracker: { ...t, seenAtMs: fix.atMs, rejects: [] }, kept: true };
+  if (step < noiseM(t.lastFix, fix)) return { tracker: { ...t, seenAtMs: fix.atMs, noiseFix: fix, rejects: [] }, kept: true };
   if (step / dt > MAX_STEP_SPEED_MPS) {
     const prev = t.rejects[t.rejects.length - 1];
     const rejects = prev && plausibleStep(prev, fix) ? [...t.rejects, fix] : [fix];
     if (rejects.length >= REANCHOR_AFTER) {
-      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, rejects: [] }, kept: true };
+      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, noiseFix: null, rejects: [] }, kept: true };
     }
     return { tracker: { ...t, rejects }, kept: false };
   }
   if (step / dt < PAUSE_SPEED_MPS) {
-    return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, rejects: [] }, kept: true };
+    // Leaving the noise circle after a stop: timed from the anchor it looks like a pause, but if it moves at least
+    // PAUSE_SPEED_MPS since the last noise fix it is a move. Its distance is from the anchor, its time is that
+    // distance at the speed since the last noise fix (the time spent standing is left out).
+    const n = t.noiseFix;
+    const sinceS = n ? (fix.atMs - n.atMs) / 1000 : 0;
+    const speed = n && sinceS > 0 ? distanceM(n, fix) / sinceS : 0;
+    if (speed < PAUSE_SPEED_MPS) {
+      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, noiseFix: null, rejects: [] }, kept: true };
+    }
+    dt = step / speed;
   }
   const before = t.distanceM;
   const after = before + step;
@@ -208,6 +239,7 @@ function stepFixRaw(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean
       lastFix: fix,
       lastAtMs: fix.atMs,
       seenAtMs: fix.atMs,
+      noiseFix: null,
       distanceM: after,
       movingMs,
       splits,

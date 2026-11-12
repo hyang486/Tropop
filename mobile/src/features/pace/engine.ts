@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import {
+  breakTracker,
   type ChosenCue,
   chooseCue,
   closeStationary,
@@ -82,6 +83,16 @@ function getRun(key: string, roomId: string, nowMs: number): PaceRun {
 function put(run: PaceRun) {
   runs.set(run.key, run);
   emit();
+}
+
+/**
+ * The switch or sharing went off while the screen is open: the next fix re-anchors the session (the off period adds
+ * no distance or moving time), and the stationary check starts over from the fixes after it.
+ */
+export function breakRun(key: string) {
+  const run = runs.get(key);
+  if (!run || !run.tracker.lastFix || run.tracker.broken) return;
+  put({ ...run, tracker: breakTracker(run.tracker), fixes: [] });
 }
 
 /** Saves the session to history now (End activity, switch off, leaving the screen). */

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  breakTracker,
   chooseCue,
   closeStationary,
   mergeSession,
@@ -118,17 +119,37 @@ test('(a) jitter while stopped for 10 minutes: about 0 m, no moving time, one st
   }
 });
 
-test('(a) without accuracy the same jitter would count as running (why the accuracy matters)', () => {
-  const noAcc = jitter(1).map((f) => ({ ...f, accuracyM: null }));
-  const sum = summarize(live(newSim(), noAcc, 600).tracker);
-  assert.ok(sum.distanceM > 50, `${sum.distanceM} m`);
+test('(a) without accuracy the noise floor still holds the same jitter', () => {
+  for (const seed of [1, 2, 3]) {
+    const noAcc = jitter(seed).map((f) => ({ ...f, accuracyM: null }));
+    const sum = summarize(live(newSim(), noAcc, 600).tracker);
+    assert.ok(sum.distanceM <= 15, `seed ${seed}: ${sum.distanceM} m`);
+  }
+});
+
+test('(a) jitter wider than the reported accuracy (5-15 m at 5 m, every 5 s): the 15 m floor holds it', () => {
+  for (const seed of [11, 12, 13, 14, 15]) {
+    const r = rng(seed);
+    const fixes = [];
+    for (let s = 0; s <= 600; s += 5) {
+      const off = 5 + r() * 10;
+      const angle = r() * 2 * Math.PI;
+      fixes.push(at(off * Math.cos(angle), s, 5, off * Math.sin(angle)));
+    }
+    const sim = live(newSim(), fixes, 600);
+    const sum = summarize(sim.tracker);
+    assert.ok(sum.distanceM <= 15, `seed ${seed}: ${sum.distanceM} m`);
+    assert.ok(sum.durationS <= 10, `seed ${seed}: moving ${sum.durationS} s`);
+    assert.deepEqual(sim.said, [], `seed ${seed}: ${JSON.stringify(sim.said)}`);
+  }
 });
 
 test('(a) jitter after running: the run keeps its distance and the stop adds none', () => {
-  // 1050 m in 315 s, then 10 minutes standing there with a wandering fix.
+  // 1050 m in 315 s, then 10 minutes standing there with a wandering fix. The last run fixes may be within noise
+  // of the anchor (up to 30 m behind); they count once running resumes.
   const sim = live(newSim(), [...run(0, 315), ...jitter(9, 1050, 320, 920)], 920);
   const sum = summarize(sim.tracker);
-  assert.ok(Math.abs(sum.distanceM - 1050) <= 15, `${sum.distanceM} m`);
+  assert.ok(sum.distanceM >= 1020 && sum.distanceM <= 1065, `${sum.distanceM} m`);
   assert.ok(Math.abs(sum.durationS - 315) <= 10, `moving ${sum.durationS} s`);
   assert.equal(sim.opened.length, 1);
   assert.deepEqual(
@@ -140,11 +161,11 @@ test('(a) jitter after running: the run keeps its distance and the stop adds non
 // --- (b) a tunnel -----------------------------------------------------------------------------------------------
 
 test('(b) tunnel: 4 minutes with no fix, then 800 m on: counted as the straight line, no stop prompt, no burst', () => {
-  // 2300 m at 690 s, no fix until 930 s at 3100 m (3.33 m/s, plausible), then on at 5:00 per km.
-  const sim = live(newSim(), [...run(0, 690), ...run(930, 1200, 3100)], 1200);
+  // 2300 m at 690 s, no fix until 930 s at 3100 m (3.33 m/s, plausible), then on at 5:00 per km to 4200 m.
+  const sim = live(newSim(), [...run(0, 690), ...run(930, 1260, 3100)], 1260);
   const sum = summarize(sim.tracker);
-  assert.ok(Math.abs(sum.distanceM - 4000) <= 2, `${sum.distanceM} m`);
-  assert.ok(Math.abs(sum.durationS - 1200) <= 1, `moving ${sum.durationS} s`);
+  assert.ok(sum.distanceM >= 4170 && sum.distanceM <= 4202, `${sum.distanceM} m`);
+  assert.ok(Math.abs(sum.durationS - 1260) <= 10, `moving ${sum.durationS} s`);
   assert.deepEqual(sim.opened, []);
   const after = sim.said.filter((c) => c.s >= 930 && c.s < 1100);
   assert.deepEqual(
@@ -208,27 +229,92 @@ test('(c) a batch older than what was already seen is ignored, not inserted into
 
 // --- (d) the switch off and on mid-activity ---------------------------------------------------------------------
 
-test('(d) switch off then on in the same room: one session, splits and km numbering go on, one history entry', () => {
-  // The run map keeps the session per room and activity (engine runKey); off flushes it, on picks it up again.
+test('(d) switch off then on in the same room: one session, the off period adds nothing, splits go on', () => {
+  // The run map keeps the session per room and activity (engine runKey); off flushes it and breaks the run
+  // (engine.breakRun), on picks it up again from the next fix.
   const sim = live(newSim(), run(0, 400), 400);
   let history = mergeSession([], summarize(sim.tracker));
   assert.deepEqual(
     sim.said.map((c) => c.km),
     [1],
   );
+  sim.tracker = breakTracker(sim.tracker);
+  sim.fixes = [];
 
-  // Off from 400 s to 520 s (no fixes fed), still running; on again at 520 s, 1733 m. Up to 930 s (3100 m).
+  // Off from 400 s to 520 s (no fixes fed), still running 400 m; on again at 520 s, 1733 m. Up to 930 s (3100 m).
   for (const f of run(520, 930, (520 * 1000) / 300)) deliver(sim, [f], f.atMs / 1000);
   history = mergeSession(history, summarize(sim.tracker));
   history = mergeSession(history, summarize(sim.tracker));
 
   assert.equal(history.length, 1);
   assert.equal(history[0].startedAt, 0);
-  assert.ok(Math.abs(history[0].distanceM - 3100) <= 2, `${history[0].distanceM} m`);
-  assert.equal(history[0].splits.length, 3);
+  // 1333 m before and 1367 m after (the last fixes may be within noise); the 400 m while off is not counted.
+  assert.ok(history[0].distanceM >= 2670 && history[0].distanceM <= 2702, `${history[0].distanceM} m`);
+  assert.ok(Math.abs(history[0].durationS - 810) <= 10, `moving ${history[0].durationS} s`);
+  // Elapsed (first to last fix) still includes the off period.
+  assert.ok(Math.abs(history[0].elapsedS - 930) <= 5, `elapsed ${history[0].elapsedS} s`);
+  assert.equal(history[0].splits.length, 2);
   for (const split of history[0].splits) assert.ok(Math.abs(split - 300) <= 1, `split ${split}`);
   assert.deepEqual(
     sim.said.filter((c) => c.kind === 'km').map((c) => c.km),
-    [1, 2, 3],
+    [1, 2],
   );
+});
+
+test('(d) switch off for a 10 m/s bus ride of 600 s: no 6 km, no moving time, no fake km cues', () => {
+  const sim = live(newSim(), run(0, 300), 300);
+  sim.tracker = breakTracker(sim.tracker);
+  sim.fixes = [];
+  // Off at 1000 m; on again at 900 s, 7000 m away, then running on to 8200 m.
+  for (const f of run(900, 1260, 7000)) deliver(sim, [f], f.atMs / 1000);
+  const sum = summarize(sim.tracker);
+  assert.ok(sum.distanceM >= 2170 && sum.distanceM <= 2202, `${sum.distanceM} m`);
+  assert.ok(Math.abs(sum.durationS - 660) <= 10, `moving ${sum.durationS} s`);
+  assert.equal(sum.splits.length, 2);
+  for (const split of sum.splits) assert.ok(Math.abs(split - 300) <= 1, `split ${split}`);
+  assert.deepEqual(
+    sim.said.filter((c) => c.kind === 'km').map((c) => c.km),
+    [1, 2],
+  );
+});
+
+test('(d) known limit: with the switch on and the screen left, the same bus ride is bridged (under 12 m/s)', () => {
+  // Leaving the screen does not break the run (agreed for the background), so a gap no faster than
+  // MAX_STEP_SPEED_MPS counts as a straight line; only switching off or sharing off re-anchors.
+  const sim = live(newSim(), [...run(0, 300), ...run(900, 1260, 7000)], 1260);
+  const sum = summarize(sim.tracker);
+  assert.ok(sum.distanceM > 8000, `${sum.distanceM} m`);
+});
+
+// --- (e) leaving the noise circle after a stop ------------------------------------------------------------------
+
+test('(e) walking 1.2 m/s with a 60 s light every 2 minutes (accuracy 20 m): the steps out of each stop count', () => {
+  // 5 x (120 s walking, 144 m; 60 s standing): 720 m in 600 s of walking.
+  const fixes = [];
+  let m = 0;
+  let s = 0;
+  for (let leg = 0; leg < 5; leg++) {
+    for (let i = 0; i < 24; i++) {
+      s += 5;
+      m += 6;
+      fixes.push(at(m, s, 20));
+    }
+    for (let i = 0; i < 12; i++) {
+      s += 5;
+      fixes.push(at(m, s, 20));
+    }
+  }
+  const sum = summarize(live(newSim(), fixes, s).tracker);
+  // The final 40 m may still be within noise of the anchor (ends standing).
+  assert.ok(sum.distanceM >= 680 && sum.distanceM <= 722, `${sum.distanceM} m`);
+  assert.ok(Math.abs(sum.durationS - 600) <= 60, `moving ${sum.durationS} s`);
+});
+
+test('(e) a 4-minute stop mid-run loses no distance and adds no moving time', () => {
+  const stop = [];
+  for (let s = 305; s <= 540; s += 5) stop.push(at(1000, s));
+  const sim = live(newSim(), [...run(0, 300), ...stop, ...run(545, 1145, 1000)], 1145);
+  const sum = summarize(sim.tracker);
+  assert.ok(sum.distanceM >= 2970 && sum.distanceM <= 3002, `${sum.distanceM} m`);
+  assert.ok(Math.abs(sum.durationS - 900) <= 10, `moving ${sum.durationS} s`);
 });
