@@ -82,3 +82,34 @@ test('screenActions: open shows everything; grace keeps view and download only; 
   assert.deepEqual(screenActions('face', 'grace'), ended);
   for (const s of ['gallery', 'media', 'photos-of-me', 'face']) assert.deepEqual(screenActions(s, 'ended'), ended);
 });
+
+test('grace clock walk: open, mid grace, exact end, after (QA edge)', () => {
+  const endedAt = NOW + 10 * MIN;
+  const until = endedAt + 30 * MIN;
+  const before = { deleted_at: null, expires_at: iso(NOW + 120 * MIN), grace_until: null };
+  const after = { ...before, deleted_at: iso(endedAt), grace_until: iso(until) };
+  assert.equal(roomPhase(before, NOW), 'open');
+  // Mid grace: read-only, timer counts down to grace_until.
+  const mid = endedAt + 15 * MIN;
+  assert.equal(roomPhase(after, mid), 'grace');
+  assert.deepEqual(graceAllows(roomPhase(after, mid)), { read: true, write: false });
+  assert.equal(graceTimerDelay(after, mid), 15 * MIN);
+  assert.equal(graceUntilMs(after, mid), until);
+  // Exactly at grace_until and after: ended, no timer, nothing allowed.
+  for (const t of [until, until + 1, until + 60 * MIN]) {
+    assert.equal(roomPhase(after, t), 'ended');
+    assert.equal(graceTimerDelay(after, t), null);
+    assert.deepEqual(graceAllows(roomPhase(after, t)), { read: false, write: false });
+  }
+});
+
+test('grace edge rows: past expires_at still in grace, bad or missing grace_until, huge delay clamps (QA edge)', () => {
+  const pastExpiry = { deleted_at: iso(NOW - MIN), expires_at: iso(NOW - 2 * MIN), grace_until: iso(NOW + 29 * MIN) };
+  assert.equal(roomPhase(pastExpiry, NOW), 'grace');
+  assert.equal(roomPhase({ ...graceRoom, grace_until: 'not a date' }, NOW), 'ended');
+  assert.equal(roomPhase({ ...graceRoom, grace_until: undefined }, NOW), 'ended');
+  assert.equal(roomPhase(null, NOW), 'ended');
+  assert.equal(roomPhase({ ...open, expires_at: 'bad' }, NOW), 'ended');
+  const far = { ...graceRoom, grace_until: iso(NOW + 40 * 24 * 60 * MIN) };
+  assert.equal(graceTimerDelay(far, NOW), 2_147_483_647);
+});

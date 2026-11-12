@@ -121,7 +121,7 @@ function RecapCardBody({
   if (view === 'pending' || view === 'offline' || !saved) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.line}>{view === 'pending' ? s.pending : s.offline}</Text>
+        <Text style={styles.line} accessibilityLiveRegion="polite">{view === 'pending' ? s.pending : s.offline}</Text>
         <Button title={s.retry} variant="secondary" busy={retrying} onPress={onRetry} />
       </View>
     );
@@ -139,10 +139,10 @@ function RecapCardBody({
     <View style={styles.wrap}>
       <QLabel>{s.title}</QLabel>
       <QCard>
-        <Text style={styles.title}>{saved.server.title}</Text>
+        <Text style={styles.title} accessibilityRole="header">{saved.server.title}</Text>
         <Text style={styles.body}>{saved.server.summary}</Text>
         {saved.server.highlights.map((h, i) => (
-          <Text key={i} style={styles.body}>
+          <Text key={i} style={styles.body} accessibilityLabel={h}>
             {`•  ${h}`}
           </Text>
         ))}

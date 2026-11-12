@@ -116,3 +116,19 @@ test('isStalePending (R3): pending rows older than the server TTL (5 min) are st
   assert.equal(isStalePending('2026-11-12T11:59:00Z', now), false);
   assert.equal(isStalePending('not a time', now), false);
 });
+
+test('recapStep walk: one first, one refresh, nothing after the end or on bad input (QA edge)', () => {
+  let mark = { ...EMPTY_MARK };
+  assert.equal(recapStep(61 * MIN, mark), null);
+  assert.equal(recapStep(60 * MIN, mark), 'first');
+  mark = { ...mark, ...stepCall('first').mark };
+  assert.equal(recapStep(30 * MIN, mark), null);
+  assert.equal(recapStep(10 * MIN + 1, mark), null);
+  assert.equal(recapStep(10 * MIN, mark), 'refresh');
+  mark = { ...mark, ...stepCall('refresh').mark };
+  assert.equal(recapStep(5 * MIN, mark), null);
+  for (const r of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) assert.equal(recapStep(r, EMPTY_MARK), null);
+  // First seen inside the last 10 minutes: one late call that spends both.
+  assert.equal(recapStep(3 * MIN, EMPTY_MARK), 'late');
+  assert.equal(recapStep(2 * MIN, { ...EMPTY_MARK, ...stepCall('late').mark }), null);
+});

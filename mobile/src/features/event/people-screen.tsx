@@ -130,7 +130,7 @@ export function PeopleScreen() {
           ) : null}
           {state.result.matches.map((m) => (
             <QCard key={m.userId}>
-              <Text style={styles.name}>{m.displayName}</Text>
+              <Text style={styles.name} accessibilityRole="header">{m.displayName}</Text>
               {m.headline ? <Text style={styles.headline}>{m.headline}</Text> : null}
               <Text style={styles.reason}>{m.reason}</Text>
               {(state.links.get(m.userId) ?? []).map((url) => (
