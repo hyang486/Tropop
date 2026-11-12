@@ -40,6 +40,7 @@ const ANSWER_CASES = [
   ['4 links', { [S]: 'a', [K]: ['https://a.b', 'https://c.d', 'https://e.f', 'https://g.h'] }, false, 'tooManyLinks'],
   ['http link', { [S]: 'a', [K]: links('http://a.b') }, false, 'linkInvalid'],
   ['no scheme', { [S]: 'a', [K]: links('a.b') }, false, 'linkInvalid'],
+  ['uppercase scheme', { [S]: 'a', [K]: links('HTTPS://a.b') }, false, 'linkInvalid'],
   ['link at 200', { [S]: 'a', [K]: links(url(200)) }, true],
   ['link at 201', { [S]: 'a', [K]: links(url(201)) }, false, 'linkInvalid'],
   ['blank links dropped', { [S]: 'a', [K]: links('  ', '') }, true],
