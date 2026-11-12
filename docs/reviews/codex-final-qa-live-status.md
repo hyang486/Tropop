@@ -1801,3 +1801,8 @@ NOT RUN visually: app splash (dev builds show the Expo dev-launcher loading scre
 - B1 CONFIRMED, must-fix: in chat-layer.tsx the gate is 'disclosure' while needsDisclosure is true. When the user swipes the iOS pageSheet down, onRequestClose only sets disclosureClosed, so the entry gate is never reached and an event room with entry info required can be used without filling it in. Assigned to event with a test.
 - B2 CONFIRMED (failure path), should-fix: use-small-talk.ts:67 sets since = newestMs(messages). After a failed or empty first load this is 0, so history loaded later is triaged and can fire important alerts. Assigned to event: use a Date.now() baseline when empty, or wait for a successful load.
 - M1 accepted: pace stays on Map only. M2 accepted: in en.ts, event's en.qrewing goes first, then a separate en.pace. M3 is the same as 6d. expo-speech is still to add at merge, plus one native rebuild.
+
+### developer-pace 372d69a (qa item 3) and d67e7f7 (item 4): PASS (supervisor, 2026-11-12)
+- Re-ran 389/389, tsc 0. 372d69a: PaceRunner reads presence only while `live` (running && focused, pace-layer.tsx:58), so a hidden Map tab no longer refetches every member's row. Cleanup claims (stationary interval, flush on stop/off/unmount, banner timer, voice budget) accepted as reported.
+- Open, merge-time: a cue already queued can play once after End activity. Call Speech.stop on run stop when expo-speech is wired.
+- d67e7f7: pace-demo-replay test replays the demo legs through the core; the QA doc now gives replayed times (~0:15/~2:15, Ease off ~8:30). Accepted.
