@@ -52,7 +52,7 @@ The developer regenerates `mobile/src/lib/database.types.ts` after the live sitt
 | Place | Hand-written type or cast | Switch to |
 |---|---|---|
 | `features/event/types.ts` 1.1–1.5 | `QrewingRoomRow`, `QrewingMemberRow`, `EntryProfileRow`, `MessageTriageRow`, `RoomRecapRow` | `Tables<'qrewing_rooms'>`, `Tables<'qrewing_members'>`, `Tables<'entry_profiles'>`, `Tables<'message_triage'>`, `Tables<'room_recaps'>`, kept as aliases so importers stay the same. Keep `QrewingError` and the 2.x response types (Edge Function contract, not DB) |
-| `features/event/qrewing-api.ts:26`, `features/event/use-small-talk.ts:22`, `features/event/entry-api.ts:11`, `features/recap/recap-store.ts:31` | `const db = supabase as unknown as SupabaseClient` (untyped client, because the tables are not in the generated types yet) | Use the typed `supabase` directly. Remove `db` and the `.maybeSingle<Row>()` generics |
+| `features/event/qrewing-api.ts:26`, `features/event/use-small-talk.ts:23`, `features/event/entry-api.ts:11`, `features/recap/recap-store.ts:31` | `const db = supabase as unknown as SupabaseClient` (untyped client, because the tables are not in the generated types yet) | Use the typed `supabase` directly. Remove `db` and the `.maybeSingle<Row>()` generics |
 | `qrewing-api.ts:82, :91`, `entry-api.ts:32` | `db.rpc('set_qrewing_room' / 'set_qrewing_member' / 'upsert_entry_profile', …)` untyped | Typed `supabase.rpc`. The arg names `p_room_id`, `p_ai_enabled`, `p_entry_required`, `p_ai_ok`, `p_mute` and the entry fields get checked against the SQL |
 | `qrewing-api.ts:114-116`, `qrewing-plan.ts:111-112` (`roomStateFrom`) | reads typed by `QrewingRoomRow`/`QrewingMemberRow` | Follow automatically through the aliases |
 | `use-small-talk.ts:33` | `(data ?? []) as MessageTriageRow[]` | Drop the cast |
@@ -62,6 +62,23 @@ The developer regenerates `mobile/src/lib/database.types.ts` after the live sitt
 | `features/recap/use-grace.ts:16-19`, `components/room-ended.tsx:25`, `app/index.tsx` (`roomListEntry(room, now)`) | read `room.grace_until` through `GraceRoomFields` | Follow from the grace-plan change. Check that `getRoom` / the room list `select` includes `grace_until` |
 
 Check after the switch: `npx tsc --noEmit` should flag any name drift between the hand-written rows and the SQL (for example `ai_ok_at`, `mute_small_talk`, `entry_required`, `state` enum values `pending/done/failed`, `skipped` on message_triage). Then run `npm test`; the tests use plain objects and need no change.
+
+### 6c pre-check against qrewing-backend `686a69e` (read-only, 2026-11-12)
+
+Backend changes no mobile client file (only `package.json`: `expo-speech`), so 6c touches only the event files above.
+
+- DB columns vs the hand-written rows (migration 0027): `qrewing_rooms`, `qrewing_members` and `entry_profiles` match field for field. The SQL adds two columns the hand-written rows lack: `message_triage.source` (`'model' | 'rule'`) and `room_recaps.refreshed_at` (`string | null`). Through the `Tables<>` aliases they appear without code changes; no event code reads them. The `state` enums match: triage `pending/done/skipped`, recap `pending/done/failed`.
+- RPCs: `set_qrewing_room(p_room_id, p_ai_enabled, p_entry_required)`, `set_qrewing_member(p_room_id, p_ai_ok, p_mute)` and `upsert_entry_profile(p_room_id, p_headline, p_interests, p_looking_for, p_links)` match the calls at `qrewing-api.ts:82, :91` and `entry-api.ts:32`.
+- `rooms.grace_until timestamptz` is added. `lib/rooms.ts:91, :98` select `*`, so `Room` (`Tables<'rooms'>`, `lib/rooms.ts:11`) carries it after regeneration. `grace-plan.ts:12` then becomes `Pick<Room, 'deleted_at' | 'expires_at' | 'grace_until'>`, and `use-grace.ts:19` builds `expires_at: ''`, which still type-checks.
+- Edge Function request bodies (`core.ts` `parseBody`) match `qrewing-api.ts:48, :53, :63-67, :75`: `probe {roomId?}`, `triage {roomId, messageIds 1-5}`, `recap {roomId, refresh?: boolean}`, `match {roomId}`.
+- Responses match `types.ts` 2.x:
+  - triage: `200 {results: [{messageId, state, important, reason}]}`.
+  - recap: `200 {state: 'done', title, summary, highlights, generatedAt, cached}`, or `202 {state: 'pending'}`.
+  - match: `200 {matches: [{userId, displayName, headline, reason, score}], cached, stale?, generatedAt}`, or `202 {state: 'pending'}`.
+  - Errors: `400 bad_request` (maps to `ai_failed`), `503 ai_not_configured`, `403 not_member` / `ai_off` / `not_muted`, `409 no_entry` / `too_early`, `502 ai_failed`. All are covered by `QrewingError` and `classifyQrewingError`.
+  - `too_early` also returns `availableAt`. The client does not read it, and this is not a 6c change.
+- Grace (0027): the server's `recap` action and the `room_recaps` select policy stay reachable during grace. `message_triage`, `entry_profiles` and matches do not, which is consistent with the grace-plan screens.
+- Result: no contract change is needed for 6c. It is the type switch in the table above only.
 
 ## 6d. Pace line in the recap (after the pace branch is in)
 
