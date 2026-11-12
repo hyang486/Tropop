@@ -2,7 +2,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { HISTORY_LIMIT, mergeSession, parseHistory, summaryFor } from '../src/features/pace/pace-core.ts';
+import {
+  HISTORY_LIMIT,
+  mergeSession,
+  paceCue,
+  parseHistory,
+  summaryFor,
+  targetSecPerKm,
+  usualPace,
+} from '../src/features/pace/pace-core.ts';
 
 const s = (roomId, startedAt, distanceM = 1000) => ({
   roomId,
@@ -65,4 +73,36 @@ test('recap hand-off: no session in the room gives null and no line; a session g
   // Stored elapsedS is read back; a bad one drops the row.
   assert.equal(parseHistory(JSON.stringify([{ ...s('a', 1), elapsedS: 400 }]))[0].elapsedS, 400);
   assert.equal(parseHistory(JSON.stringify([{ ...s('a', 1), elapsedS: 'x' }])).length, 0);
+});
+
+test('usual pace learns from my own runs in every room (history is per phone, not per room)', () => {
+  let h = mergeSession([], { ...s('room-a', 1), avgSecPerKm: 360 });
+  h = mergeSession(h, { ...s('room-b', 2), avgSecPerKm: 340 });
+  h = mergeSession(h, { ...s('room-c', 3), avgSecPerKm: 350 });
+  assert.equal(usualPace(h), 350);
+  // A new room with no session of its own still gets that usual pace as its target.
+  assert.equal(targetSecPerKm({ kind: 'usual' }, usualPace(h)), 350);
+});
+
+test('first run: no history gives no usual target, so only km cues speak (no slow/fast nagging)', () => {
+  const goal = targetSecPerKm({ kind: 'usual' }, usualPace([]));
+  assert.equal(goal, null);
+  const off = paceCue({ lastKm: 0, lastOffCueAtMs: null }, { nowMs: 600_000, km: 0, lastSplitS: null, recentSecPerKm: 420, targetSecPerKm: goal });
+  assert.equal(off.cue, null);
+  const km = paceCue({ lastKm: 0, lastOffCueAtMs: null }, { nowMs: 600_000, km: 1, lastSplitS: 400, recentSecPerKm: 400, targetSecPerKm: goal });
+  assert.deepEqual(km.cue, { kind: 'km', km: 1, pace: '6:40', target: null });
+});
+
+test('the cap keeps the newest runs, so usual pace follows recent form, not old runs', () => {
+  let h = [];
+  for (let i = 0; i < 30; i++) h = mergeSession(h, { ...s('r', i), avgSecPerKm: i < 25 ? 480 : 300 });
+  assert.equal(h.length, HISTORY_LIMIT);
+  assert.equal(usualPace(h), 300); // the last 5 runs (25..29) are all 300
+});
+
+test('runs under 100 m have no pace and never pull the usual pace', () => {
+  let h = mergeSession([], { ...s('r', 1), avgSecPerKm: 330 });
+  h = mergeSession(h, s('r', 2, 50));
+  assert.equal(h[0].avgSecPerKm, null);
+  assert.equal(usualPace(h), 330);
 });
