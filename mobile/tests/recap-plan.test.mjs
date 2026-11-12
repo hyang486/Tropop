@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import {
   EMPTY_MARK,
   mergeMyPart,
+  myPartAfterRoomCheck,
   parseMark,
   parseSavedRecap,
   recapKey,
@@ -131,4 +132,17 @@ test('recapStep walk: one first, one refresh, nothing after the end or on bad in
   // First seen inside the last 10 minutes: one late call that spends both.
   assert.equal(recapStep(3 * MIN, EMPTY_MARK), 'late');
   assert.equal(recapStep(2 * MIN, { ...EMPTY_MARK, ...stepCall('late').mark }), null);
+});
+
+test('myPartAfterRoomCheck: a messages count read after the end (RLS 0, no error) never replaces the saved one', () => {
+  const before = { messages: 12, mediaShared: 3, photosOfMe: 1, arrivedAt: 'a', pace: 'p' };
+  // Host ended the room: messages_select needs deleted_at is null, so the head count reads 0 without an error.
+  const inGrace = { messages: 0, mediaShared: 3, photosOfMe: 1, arrivedAt: null, pace: 'p' };
+  assert.equal(mergeMyPart(before, inGrace).messages, 0); // the bug without the room check
+  assert.deepEqual(mergeMyPart(before, myPartAfterRoomCheck(inGrace, false)), before);
+  // No earlier copy (first save in grace): unknown, so the card hides the line instead of "0 messages".
+  assert.equal(myPartAfterRoomCheck(inGrace, false).messages, null);
+  // Still open after the count: a real 0 stays 0, other fields untouched.
+  const open = { ...inGrace, messages: 0 };
+  assert.deepEqual(myPartAfterRoomCheck(open, true), open);
 });

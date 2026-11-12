@@ -10,9 +10,11 @@ import {
   isOfflineError,
   type QrewingRoomState,
   ROOM_READ_FAILED,
-  ROOM_UNKNOWN,
+  type KeyedRoomState,
+  roomStateFor,
   roomStateFrom,
   saveErrorKind,
+  sessionUserId,
 } from './qrewing-plan';
 import type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 
@@ -95,7 +97,7 @@ type RoomState = QrewingRoomState;
  * `loaded` is false until the first read answers; an empty `roomId` never reads.
  */
 export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
-  const [state, setState] = useState<RoomState>(ROOM_UNKNOWN);
+  const [kept, setKept] = useState<KeyedRoomState | null>(null);
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
@@ -103,22 +105,21 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
     let alive = true;
     if (!roomId) return;
     (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
+      const userId = sessionUserId(await supabase.auth.getSession());
       const [room, member] = await Promise.all([
         supabase.from('qrewing_rooms').select('*').eq('room_id', roomId).maybeSingle(),
         userId
           ? supabase.from('qrewing_members').select('*').eq('room_id', roomId).eq('user_id', userId).maybeSingle()
           : Promise.resolve({ data: null, error: null }),
       ]);
-      if (alive) setState(roomStateFrom(room, member));
+      if (alive) setKept({ roomId, state: roomStateFrom(room, member) });
     })().catch(() => {
-      if (alive) setState(ROOM_READ_FAILED);
+      if (alive) setKept({ roomId, state: ROOM_READ_FAILED });
     });
     return () => {
       alive = false;
     };
   }, [roomId, tick]);
 
-  return { ...state, reload };
+  return { ...roomStateFor(kept, roomId), reload };
 }

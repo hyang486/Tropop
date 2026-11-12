@@ -99,6 +99,19 @@ export const ROOM_UNKNOWN: QrewingRoomState = { aiEnabled: false, entryRequired:
 const ROOM_OFF: QrewingRoomState = { ...ROOM_UNKNOWN, loaded: true };
 export const ROOM_READ_FAILED: QrewingRoomState = { ...ROOM_OFF, readFailed: true };
 
+/** A read kept with the room it answered for, so a different room never shows it (useQrewingRoom). */
+export type KeyedRoomState = { roomId: string; state: QrewingRoomState };
+
+/** The state to show for `roomId`: ROOM_UNKNOWN until a read for this room answers. */
+export function roomStateFor(kept: KeyedRoomState | null, roomId: string): QrewingRoomState {
+  return kept && kept.roomId === roomId ? kept.state : ROOM_UNKNOWN;
+}
+
+/** My user id from the locally stored session (auth.getSession() reads storage, so it also works offline). */
+export function sessionUserId(res: { data: { session: { user: { id: string } } | null } } | null | undefined): string | undefined {
+  return res?.data?.session?.user?.id;
+}
+
 // Table missing (0027 not applied yet): a known "Qrewing is not here", not a failed read, so rooms without the
 // tables do not show "Could not load" or retry every 30 s.
 const MISSING_TABLE = new Set(['42P01', 'PGRST205']);
