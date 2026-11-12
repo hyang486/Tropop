@@ -4,6 +4,8 @@ import test from 'node:test';
 
 import {
   compactPerson,
+  LEGACY_QUESTIONS,
+  matchLegend,
   handle,
   MATCH_FIELD_MAX,
   MATCH_MAX_CANDIDATES,
@@ -18,6 +20,7 @@ import {
   TRIAGE_DAILY_CAP,
   type Consent,
   type EntryProfile,
+  type EntryQuestion,
   type MatchRow,
   type Model,
   type ModelRequest,
@@ -50,11 +53,21 @@ type World = {
   messages: Msg[];
   triage: Map<string, TriageRow & { roomId: string; createdAt: string; source?: 'model' | 'rule' }>;
   recap: RecapRow | null;
+  questions: EntryQuestion[];
   entries: EntryProfile[];
   matches: Map<string, MatchRow>;
   usage: { action: string; model: string }[];
   writes: number;
 };
+
+// The default four (0028 backfill), stored out of order to prove core sorts by position.
+const qid = (n: number) => `cccccccc-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const DEFAULT_QS: EntryQuestion[] = [
+  { id: qid(3), position: 3, kind: 'links', prompt: 'Links' },
+  { id: qid(0), position: 0, kind: 'short', prompt: 'Headline' },
+  { id: qid(1), position: 1, kind: 'long', prompt: 'Interests' },
+  { id: qid(2), position: 2, kind: 'long', prompt: 'Looking for' },
+];
 
 function world(over: Partial<World> = {}): World {
   return {
@@ -84,6 +97,7 @@ function world(over: Partial<World> = {}): World {
     messages: [],
     triage: new Map(),
     recap: null,
+    questions: DEFAULT_QS.map((q) => ({ ...q })),
     entries: [],
     matches: new Map(),
     usage: [],
@@ -201,6 +215,9 @@ function store(w: World): QrewingStore {
     async saveRecapRefresh(_roomId, r) {
       w.recap = { ...w.recap!, ...r, updatedAt: NOW.toISOString() };
       return w.recap;
+    },
+    async entryQuestions() {
+      return w.questions;
     },
     async entryProfiles() {
       return w.entries;
@@ -721,7 +738,14 @@ test('recap refresh with no done row is a normal recap request', async () => {
 
 // ------------------------------------------------------------------------------------------- match
 
-const entry = (userId: string, headline: string, updatedAt = iso(-MIN)): EntryProfile => ({ userId, headline, interests: 'ML, running', lookingFor: 'internship', updatedAt });
+const entry = (userId: string, headline: string, updatedAt = iso(-MIN)): EntryProfile => ({
+  userId,
+  headline,
+  interests: '',
+  lookingFor: '',
+  answers: { [qid(0)]: headline, [qid(1)]: 'ML, running', [qid(2)]: 'internship', [qid(3)]: ['https://x.example/me'] },
+  updatedAt,
+});
 
 test('match: needs consent and an entry; no candidates → empty without a call', async () => {
   const { m, calls } = model(() => ({}));
@@ -877,21 +901,98 @@ test('matchCandidates: cap keeps the newest entries, ordered by user id; non-mem
   assert.deepEqual(out.map((p) => p.userId), ids.slice(38 - MATCH_MAX_CANDIDATES, 38), 'the 29 newest eligible, by id');
 });
 
-test('compactPerson: fields collapsed and cut to fixed lengths; the match prompt carries no links or ids', async () => {
+test('compactPerson: answers collapsed and cut per kind, legend order, links and unknown ids left out', () => {
   const long = 'word '.repeat(100);
-  const c = compactPerson('N'.repeat(60), { headline: 'CS\n\n  junior', interests: long, lookingFor: long });
-  assert.equal(c.headline, 'CS junior');
+  const { keyOf } = matchLegend(DEFAULT_QS);
+  const c = compactPerson('N'.repeat(60), {
+    headline: 'x', interests: 'old', lookingFor: 'old',
+    answers: { [qid(2)]: long, [qid(0)]: 'CS\n\n  junior', [qid(3)]: ['https://a.example'], [qid(9)]: 'ghost', [qid(1)]: '   ' },
+  }, keyOf);
   assert.equal([...c.name].length, MATCH_FIELD_MAX.name);
-  assert.equal([...c.interests].length, MATCH_FIELD_MAX.interests);
-  assert.equal([...c.lookingFor].length, MATCH_FIELD_MAX.lookingFor);
-  assert.ok(c.interests.endsWith('…'));
-  assert.deepEqual(Object.keys(c).sort(), ['headline', 'interests', 'lookingFor', 'name']);
+  assert.deepEqual(Object.keys(c.answers), ['q1', 'q3'], 'legend order; blank, links and unknown left out');
+  assert.equal(c.answers.q1, 'CS junior');
+  assert.equal([...c.answers.q3].length, MATCH_FIELD_MAX.long);
+  assert.ok(c.answers.q3.endsWith('…'));
+  assert.equal(c.legacy, false, 'legacy columns ignored once answers exist');
+  const shortQ = matchLegend([{ id: qid(5), position: 0, kind: 'short', prompt: 'Role' }]);
+  assert.equal([...compactPerson('n', { headline: '', interests: '', lookingFor: '', answers: { [qid(5)]: 's'.repeat(200) } }, shortQ.keyOf).answers.q1].length, MATCH_FIELD_MAX.short);
+});
 
-  const w = world({ entries: [entry(BOB, 'CS junior'), { ...entry(HOST, 'Recruiter'), interests: long }] });
+test('matchLegend: q1.. for short and long in position order, links left out, prompt collapsed and cut', () => {
+  const { questions, keyOf } = matchLegend([
+    { id: qid(7), position: 2, kind: 'long', prompt: 'Topics' },
+    { id: qid(6), position: 1, kind: 'links', prompt: 'Portfolio' },
+    { id: qid(5), position: 0, kind: 'short', prompt: '  What\n do you   do? ' },
+    { id: qid(8), position: 3, kind: 'short', prompt: 'P'.repeat(200) },
+  ]);
+  assert.deepEqual(questions.slice(0, 2), [{ key: 'q1', kind: 'short', prompt: 'What do you do?' }, { key: 'q2', kind: 'long', prompt: 'Topics' }]);
+  assert.equal(questions.length, 3);
+  assert.equal([...questions[2].prompt].length, MATCH_FIELD_MAX.prompt);
+  assert.equal(keyOf.has(qid(6)), false);
+});
+
+test('match 9.3: prompt has the legend once and {q#: answer} per person; no links, ids or question ids', async () => {
+  const w = world({ entries: [entry(BOB, 'CS junior'), entry(HOST, 'Recruiter at Acme')] });
+  const { m, calls } = model(() => ({ text: JSON.stringify({ matches: [{ person: 'p1', reason: 'Hiring', score: 4 }] }) }));
+  const r = await run(w, m, BOB, { action: 'match', roomId: ROOM });
+  assert.equal(r.status, 200, 'a room with the default four still matches');
+  const u = calls[0].user;
+  assert.ok(u.startsWith('<questions>\n<question id="q1" kind="short">Headline</question>\n<question id="q2" kind="long">Interests</question>\n<question id="q3" kind="long">Looking for</question>\n</questions>'));
+  assert.equal(u.split('<questions>').length, 2, 'legend sent once');
+  assert.ok(u.includes('<requesting_person><name>Bob</name><answer q="q1">CS junior</answer><answer q="q2">ML, running</answer><answer q="q3">internship</answer></requesting_person>'));
+  assert.ok(u.includes('<person id="p1"><name>Hana</name><answer q="q1">Recruiter at Acme</answer>'));
+  assert.ok(!u.includes('https://') && !u.includes('Links') && !u.includes(HOST) && !u.includes(qid(0)));
+  assert.ok(calls[0].system.includes('<questions>'));
+  assert.equal((r.body as { matches: { headline: string }[] }).matches[0].headline, 'Recruiter at Acme', 'response headline = derived column');
+});
+
+test('match 9.3: the hash changes when a question or an answer changes, not when only a link changes', async () => {
+  const w = world({ entries: [entry(BOB, 'CS junior'), entry(HOST, 'Recruiter')] });
+  const { m } = model(() => ({ text: JSON.stringify({ matches: [] }) }));
+  const hashAfter = async (change: () => void) => {
+    change();
+    w.matches.delete(BOB);
+    await run(w, m, BOB, { action: 'match', roomId: ROOM });
+    return w.matches.get(BOB)!.inputHash;
+  };
+  const h0 = await hashAfter(() => {});
+  assert.equal(await hashAfter(() => {}), h0, 'same inputs, same hash');
+  assert.equal(await hashAfter(() => { w.entries[1].answers[qid(3)] = ['https://other.example']; }), h0, 'links never reach the hash');
+  const h1 = await hashAfter(() => { w.entries[1].answers[qid(1)] = 'Hiring'; });
+  assert.notEqual(h1, h0, 'answer change');
+  const h2 = await hashAfter(() => { w.questions.find((q) => q.id === qid(1))!.prompt = 'Topics'; });
+  assert.notEqual(h2, h1, 'question prompt change');
+  const h3 = await hashAfter(() => { w.questions.find((q) => q.id === qid(1))!.kind = 'short'; });
+  assert.notEqual(h3, h2, 'question kind change');
+});
+
+test('match 9.3: custom questions; a person with only a links answer still counts but sends no answers', async () => {
+  const qs: EntryQuestion[] = [
+    { id: qid(10), position: 0, kind: 'long', prompt: 'What are you building?' },
+    { id: qid(11), position: 1, kind: 'links', prompt: 'Links' },
+  ];
+  const e = (u: string, a: Record<string, unknown>): EntryProfile => ({ userId: u, headline: '', interests: '', lookingFor: '', answers: a, updatedAt: iso(-MIN) });
+  const w = world({ questions: qs, entries: [e(BOB, { [qid(10)]: 'A <b>robot</b>' }), e(HOST, { [qid(11)]: ['https://h.example'] })] });
+  const { m, calls } = model(() => ({ text: JSON.stringify({ matches: [] }) }));
+  assert.equal((await run(w, m, BOB, { action: 'match', roomId: ROOM })).status, 200);
+  assert.ok(calls[0].user.includes('<question id="q1" kind="long">What are you building?</question>\n</questions>'));
+  assert.ok(calls[0].user.includes('<answer q="q1">A &lt;b&gt;robot&lt;/b&gt;</answer>'), 'answers escaped');
+  assert.ok(calls[0].user.includes('<person id="p1"><name>Hana</name></person>'));
+});
+
+test('match 9.3 legacy row (answers empty): headline, interests and looking for sent under h/i/l with their legend lines', async () => {
+  const legacy: EntryProfile = { userId: HOST, headline: 'Recruiter', interests: 'Robotics', lookingFor: '', answers: {}, updatedAt: iso(-MIN) };
+  const w = world({ entries: [entry(BOB, 'CS junior'), legacy] });
   const { m, calls } = model(() => ({ text: JSON.stringify({ matches: [] }) }));
   await run(w, m, BOB, { action: 'match', roomId: ROOM });
-  assert.ok(!calls[0].user.includes(long.trim()), 'long field cut before sending');
-  assert.ok(calls[0].user.includes(`<interests>${cut(long.replace(/\s+/g, ' '), MATCH_FIELD_MAX.interests)}</interests>`));
+  const u = calls[0].user;
+  assert.ok(u.includes('<question id="h" kind="short">Headline</question>\n<question id="i" kind="long">Interests</question>'));
+  assert.ok(u.includes('<person id="p1"><name>Hana</name><answer q="h">Recruiter</answer><answer q="i">Robotics</answer></person>'));
+  assert.deepEqual(LEGACY_QUESTIONS.map((q) => q.key), ['h', 'i', 'l']);
+  // Without a legacy row, no h/i/l lines.
+  const w2 = world({ entries: [entry(BOB, 'CS junior'), entry(HOST, 'Recruiter')] });
+  await run(w2, m, BOB, { action: 'match', roomId: ROOM });
+  assert.ok(!calls[1].user.includes('id="h"'));
 });
 
 // ------------------------------------------------------------------------------------------- prompts

@@ -318,16 +318,29 @@ function createStore(admin: any): QrewingStore {
       );
     },
 
+    async entryQuestions(roomId) {
+      const rows = must(
+        await admin.from('entry_questions').select('id, position, kind, prompt').eq('room_id', roomId).order('position'),
+        'entry_questions',
+      );
+      return (rows ?? []).map((r: { id: string; position: number; kind: 'short' | 'long' | 'links'; prompt: string }) => ({
+        id: r.id,
+        position: r.position,
+        kind: r.kind,
+        prompt: r.prompt,
+      }));
+    },
     async entryProfiles(roomId) {
       const rows = must(
-        await admin.from('entry_profiles').select('user_id, headline, interests, looking_for, updated_at').eq('room_id', roomId),
+        await admin.from('entry_profiles').select('user_id, headline, interests, looking_for, answers, updated_at').eq('room_id', roomId),
         'entries',
       );
-      return (rows ?? []).map((r: { user_id: string; headline: string; interests: string; looking_for: string; updated_at: string }) => ({
+      return (rows ?? []).map((r: { user_id: string; headline: string; interests: string; looking_for: string; answers: unknown; updated_at: string }) => ({
         userId: r.user_id,
         headline: r.headline,
         interests: r.interests,
         lookingFor: r.looking_for,
+        answers: r.answers && typeof r.answers === 'object' && !Array.isArray(r.answers) ? (r.answers as Record<string, unknown>) : {},
         updatedAt: r.updated_at,
       }));
     },

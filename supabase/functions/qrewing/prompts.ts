@@ -91,7 +91,9 @@ export const RECAP_REFRESH_SYSTEM = [
 ].join(' ');
 
 export const MATCH_SYSTEM = [
-  'You suggest which other attendees of an event the requesting person should meet, based only on their entry info.',
+  'You suggest which other attendees of an event the requesting person should meet, based only on their entry info:',
+  'the host\'s entry questions (in <questions>, each with an id q1, q2, ...) and each attendee\'s answers to them',
+  '(<answer q="q1">). Unanswered questions are left out.',
   'Pick at most 5 people with a real reason (shared interests, or one offers what the other is looking for).',
   'Use the person ids exactly as given (p1, p2, ...). score: integer 1 (weak) to 5 (strong).',
   'reason: one sentence addressed to the requesting person, at most 150 characters, naming the concrete overlap.',
@@ -169,12 +171,16 @@ export function recapRefreshUser(r: RecapRefreshInput): string {
   );
 }
 
-export type MatchPerson ={ id: string; name: string; headline: string; interests: string; lookingFor: string };
+/** A host question as the match model sees it: q1, q2, ... in position order, links questions left out. */
+export type MatchQuestion = { key: string; kind: 'short' | 'long'; prompt: string };
+/** answers: question key → answer text, only answered questions, in question order. */
+export type MatchPerson = { id: string; name: string; answers: Record<string, string> };
 
-export function matchUser(me: Omit<MatchPerson, 'id'>, people: MatchPerson[]): string {
+export function matchUser(questions: MatchQuestion[], me: Omit<MatchPerson, 'id'>, people: MatchPerson[]): string {
+  const legend = questions.map((q) => `<question id="${q.key}" kind="${q.kind}">${esc(q.prompt)}</question>`).join('\n');
   const p = (x: Omit<MatchPerson, 'id'>) =>
-    `<name>${esc(x.name)}</name><headline>${esc(x.headline)}</headline>` +
-    `<interests>${esc(x.interests)}</interests><looking_for>${esc(x.lookingFor)}</looking_for>`;
+    `<name>${esc(x.name)}</name>` +
+    Object.entries(x.answers).map(([k, v]) => `<answer q="${esc(k)}">${esc(v)}</answer>`).join('');
   const list = people.map((x) => `<person id="${x.id}">${p(x)}</person>`).join('\n');
-  return `<requesting_person>${p(me)}</requesting_person>\n<attendees>\n${list}\n</attendees>`;
+  return `<questions>\n${legend}\n</questions>\n<requesting_person>${p(me)}</requesting_person>\n<attendees>\n${list}\n</attendees>`;
 }
