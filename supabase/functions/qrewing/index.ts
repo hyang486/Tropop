@@ -401,7 +401,7 @@ function createStore(admin: any): QrewingStore {
       );
     },
 
-    async logUsage(roomId, action, model, inputTokens, outputTokens) {
+    async logUsage(roomId, action, model, inputTokens, outputTokens, userId) {
       must(
         await admin.rpc('log_qrewing_usage', {
           p_room_id: roomId,
@@ -409,12 +409,16 @@ function createStore(admin: any): QrewingStore {
           p_model: model,
           p_input_tokens: inputTokens,
           p_output_tokens: outputTokens,
+          ...(userId ? { p_user_id: userId } : {}),
         }),
         'usage',
       );
     },
-    async usageCountSince(roomId, action, since) {
-      const n = must(await admin.rpc('qrewing_usage_count', { p_room_id: roomId, p_action: action, p_since: since }), 'usage_count');
+    async usageCountSince(roomId, action, since, userId) {
+      const n = must(
+        await admin.rpc('qrewing_usage_count', { p_room_id: roomId, p_action: action, p_since: since, ...(userId ? { p_user_id: userId } : {}) }),
+        'usage_count',
+      );
       return typeof n === 'number' ? n : 0;
     },
     async roomExtras(roomId) {

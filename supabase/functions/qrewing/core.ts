@@ -23,7 +23,8 @@ import {
   TRIAGE_SYSTEM,
   triageUser,
   type AskFacts,
-  type AskPace,
+  type AskMe,
+  type AskTurn,
   type MatchPerson,
   type MatchQuestion,
   type TriageItem,
@@ -51,21 +52,25 @@ export const TRIAGE_PENDING_TTL_MS = 3 * 60_000;
 export const RECAP_PENDING_TTL_MS = 5 * 60_000;
 /** F3: a match claim older than this is treated as abandoned (its caller died) and may be retaken. */
 export const MATCH_PENDING_TTL_MS = 3 * 60_000;
-/** Bot (spec 10, draft): per room per rolling 24 h, counted from private.qrewing_usage rows with action 'ask'. */
-export const ASK_DAILY_CAP = 100;
+/**
+ * Bot (spec 10.2): caps over the last 24 h, counted from private.qrewing_usage rows with action 'ask' (0029).
+ * The count and the usage write are not atomic: parallel asks can overshoot a cap by a few (accepted, supervisor).
+ */
+export const ASK_USER_CAP = 30;
+export const ASK_ROOM_CAP = 300;
 export const ASK_WINDOW_MS = 24 * 60 * 60_000;
-export const ASK_QUESTION_MAX = 500;
+export const ASK_TEXT_MAX = 300;
+export const ASK_HISTORY_MAX = 4;
 export const ASK_CHAT_LINES = 60;
+export const ASK_CHAT_CHARS = 6000;
 export const ASK_LINE_MAX = 300;
 export const ASK_ENTRY_PEOPLE = 30;
 export const ASK_ANSWER_MAX = 600;
-/** Client pace snapshot: only these numeric fields, in these closed ranges. Never coordinates. */
-export const ASK_PACE_RANGES = {
-  distanceKm: [0, 1000],
+/** Spec 10.3 `me`: the asker's own snapshot from their phone. Only these fields, in these closed ranges. */
+export const ASK_ME_RANGES = {
   elapsedSec: [0, 7 * 24 * 3600],
+  distanceM: [0, 1_000_000],
   paceSecPerKm: [0, 3600],
-  speedKmh: [0, 200],
-  remainingKm: [0, 1000],
 } as const;
 /** input_hash prefix of a qrewing_matches row that a caller is computing (no new column; 0027 is frozen). */
 export const MATCH_PENDING_PREFIX = 'pending:';
@@ -224,9 +229,10 @@ export interface QrewingStore {
   /** M1, model failure: sets input_hash = `marker` and created_at = now where input_hash still equals `claim` (matches kept). */
   failMatch(roomId: string, userId: string, claim: string, marker: string): Promise<void>;
 
-  logUsage(roomId: string, action: UsageAction, model: string, inputTokens: number, outputTokens: number): Promise<void>;
-  /** private.qrewing_usage rows of the room with this action created at or after `since` (0029 RPC). */
-  usageCountSince(roomId: string, action: UsageAction, since: string): Promise<number>;
+  /** userId: only for 'ask' (0029 p_user_id); the other actions keep the 0027 call. */
+  logUsage(roomId: string, action: UsageAction, model: string, inputTokens: number, outputTokens: number, userId?: string): Promise<void>;
+  /** private.qrewing_usage rows of the room with this action at or after `since`; only this user's rows when given (0029). */
+  usageCountSince(roomId: string, action: UsageAction, since: string, userId?: string): Promise<number>;
   roomExtras(roomId: string): Promise<RoomExtras>;
 }
 
@@ -244,20 +250,67 @@ type Body =
   | { action: 'triage'; roomId: string; messageIds: string[] }
   | { action: 'recap'; roomId: string; refresh: boolean }
   | { action: 'match'; roomId: string }
-  | { action: 'ask'; roomId: string; question: string; pace: AskPace | null };
+  | { action: 'ask'; roomId: string; question: string; history: AskTurn[]; me: AskMe | null; tz: string };
 
-/** null = invalid. Absent pace = null. Unknown keys are dropped (never forwarded); a known key must be in range. */
-export function parsePace(raw: unknown): AskPace | null | undefined {
+const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+/** Trimmed text of 1..max code points, else null. */
+function askText(v: unknown, max = ASK_TEXT_MAX): string | null {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t && Array.from(t).length <= max ? t : null;
+}
+
+/** undefined = invalid (400). Absent = null. Unknown keys are dropped (never forwarded); a known key must be valid. */
+export function parseMe(raw: unknown): AskMe | null | undefined {
   if (raw === undefined || raw === null) return null;
-  if (typeof raw !== 'object' || Array.isArray(raw)) return undefined;
-  const out: AskPace = {};
-  for (const [k, [lo, hi]] of Object.entries(ASK_PACE_RANGES)) {
-    const v = (raw as Record<string, unknown>)[k];
+  if (!isObj(raw)) return undefined;
+  const out: AskMe = {};
+  for (const [k, [lo, hi]] of Object.entries(ASK_ME_RANGES)) {
+    const v = raw[k];
     if (v === undefined || v === null) continue;
     if (typeof v !== 'number' || !Number.isFinite(v) || v < lo || v > hi) return undefined;
-    out[k as keyof AskPace] = v;
+    out[k as keyof typeof ASK_ME_RANGES] = v;
+  }
+  if (raw.activity !== undefined && raw.activity !== null) {
+    if (raw.activity !== 'moving' && raw.activity !== 'stopped') return undefined;
+    out.activity = raw.activity;
   }
   return out;
+}
+
+/** undefined = invalid. Up to 4 turns of {q, a}, each 1..300 chars after trim; extra keys dropped. */
+export function parseHistory(raw: unknown): AskTurn[] | undefined {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.length > ASK_HISTORY_MAX) return undefined;
+  const out: AskTurn[] = [];
+  for (const t of raw) {
+    if (!isObj(t)) return undefined;
+    const q = askText(t.q);
+    const a = askText(t.a);
+    if (q === null || a === null) return undefined;
+    out.push({ q, a });
+  }
+  return out;
+}
+
+/** undefined = invalid. Absent = 'UTC'. An IANA name the runtime accepts (Intl throws RangeError otherwise). */
+export function parseTz(raw: unknown): string | undefined {
+  if (raw === undefined || raw === null) return 'UTC';
+  if (typeof raw !== 'string' || !raw || raw.length > 64) return undefined;
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZone: raw }).resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
+}
+
+/** ISO instant → 'YYYY-MM-DD HH:mm' in `tz` (24 h). */
+export function localTime(isoStr: string, tz: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(isoStr));
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')}`;
 }
 
 export function parseBody(raw: unknown): Body | null {
@@ -281,12 +334,12 @@ export function parseBody(raw: unknown): Body | null {
     case 'match':
       return roomOk ? { action: 'match', roomId: b.roomId as string } : null;
     case 'ask': {
-      if (!roomOk || typeof b.question !== 'string') return null;
-      const question = b.question.trim();
-      if (!question || Array.from(question).length > ASK_QUESTION_MAX) return null;
-      const pace = parsePace(b.pace);
-      if (pace === undefined) return null;
-      return { action: 'ask', roomId: b.roomId as string, question, pace };
+      const question = askText(b.question);
+      const history = parseHistory(b.history);
+      const me = parseMe(b.me);
+      const tz = parseTz(b.tz);
+      if (!roomOk || question === null || history === undefined || me === undefined || tz === undefined) return null;
+      return { action: 'ask', roomId: b.roomId as string, question, history, me, tz };
     }
     default:
       return null;
@@ -324,7 +377,7 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
     case 'match':
       return match(ctx);
     case 'ask':
-      return ask(ctx, body.question, body.pace);
+      return ask(ctx, body);
   }
 }
 
@@ -337,7 +390,8 @@ async function callModel(
   ctx: Ctx,
   action: UsageAction,
   req: ModelRequest,
-): Promise<{ ok: true; data: unknown } | { ok: false; kind: 'error' | 'refusal' | 'max_tokens' | 'bad_output' }> {
+  userId?: string,
+): Promise<{ ok: true; data: unknown; usage: { input: number; output: number } } | { ok: false; kind: 'error' | 'refusal' | 'max_tokens' | 'bad_output' }> {
   let res: ModelResult;
   try {
     res = await ctx.model.call(req);
@@ -346,7 +400,7 @@ async function callModel(
     return { ok: false, kind: 'error' };
   }
   try {
-    await ctx.store.logUsage(ctx.room.id, action, req.model, res.inputTokens, res.outputTokens);
+    await ctx.store.logUsage(ctx.room.id, action, req.model, res.inputTokens, res.outputTokens, userId);
   } catch {
     ctx.log('usage_log_failed', { action });
   }
@@ -355,7 +409,7 @@ async function callModel(
     return { ok: false, kind: res.stopReason };
   }
   try {
-    return { ok: true, data: JSON.parse(res.text) };
+    return { ok: true, data: JSON.parse(res.text), usage: { input: res.inputTokens, output: res.outputTokens } };
   } catch {
     ctx.log('model_bad_output', { action });
     return { ok: false, kind: 'bad_output' };
@@ -855,21 +909,24 @@ export function compactPerson(name: string, p: Pick<EntryProfile, 'answers' | 'h
   return { name: flatCut(name, MATCH_FIELD_MAX.name), answers, legacy };
 }
 
-// ---------------------------------------------------------------------------------------------- ask (bot, spec 10 draft)
+// ---------------------------------------------------------------------------------------------- ask (bot, spec 10.3)
 
 /**
  * One private question to the bot. Nothing about the conversation is stored (history stays on the device); only the
  * usage row (token counts) is written. Context: room facts, chat of consenting members, entry answers of consenting
- * members (links never), and the asker's own pace snapshot. Never user ids, coordinates or links.
+ * members (links never), the asker's own `me` snapshot and their on-device history. Never user ids, coordinates or links.
  */
-async function ask(ctx: Ctx, question: string, pace: AskPace | null): Promise<Reply> {
+async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: AskMe | null; tz: string }): Promise<Reply> {
   const { store, room, now } = ctx;
   const consents = await store.consents(room.id);
   if (consents.get(ctx.userId)?.aiOk !== true) return { status: 403, body: { error: 'not_consented' } };
 
   const since = new Date(now.getTime() - ASK_WINDOW_MS).toISOString();
-  const used = await store.usageCountSince(room.id, 'ask', since);
-  if (used >= ASK_DAILY_CAP) return { status: 429, body: { error: 'cap_reached' } };
+  const [usedByUser, usedByRoom] = await Promise.all([
+    store.usageCountSince(room.id, 'ask', since, ctx.userId),
+    store.usageCountSince(room.id, 'ask', since),
+  ]);
+  if (usedByUser >= ASK_USER_CAP || usedByRoom >= ASK_ROOM_CAP) return { status: 429, body: { error: 'ask_limit' } };
 
   const ok = (id: string | null) => !!id && consents.get(id)?.aiOk === true;
   const [extras, members, msgsRaw, questionRows, profiles] = await Promise.all([
@@ -880,7 +937,17 @@ async function ask(ctx: Ctx, question: string, pace: AskPace | null): Promise<Re
     store.entryProfiles(room.id),
   ]);
   const memberSet = new Set(members);
-  const msgs = msgsRaw.filter((m) => ok(m.senderId) && m.body?.trim()).slice(0, ASK_CHAT_LINES).reverse();
+  // Newest first: keep consenting lines until ASK_CHAT_LINES or about ASK_CHAT_CHARS, then oldest first.
+  const msgs: typeof msgsRaw = [];
+  let chars = 0;
+  for (const m of msgsRaw) {
+    if (!ok(m.senderId) || !m.body?.trim()) continue;
+    const len = Math.min(Array.from(m.body).length, ASK_LINE_MAX);
+    if (msgs.length >= ASK_CHAT_LINES || chars + len > ASK_CHAT_CHARS) break;
+    msgs.push(m);
+    chars += len;
+  }
+  msgs.reverse();
   const people = profiles
     .filter((p) => memberSet.has(p.userId) && ok(p.userId))
     .sort((a, b) =>
@@ -897,9 +964,10 @@ async function ask(ctx: Ctx, question: string, pace: AskPace | null): Promise<Re
     roomName: room.name,
     roomType: room.type,
     placeName: room.placeName,
-    startsAt: room.startsAt,
-    endsAt: room.expiresAt,
-    now: now.toISOString(),
+    startsAt: room.startsAt ? localTime(room.startsAt, body.tz) : null,
+    endsAt: localTime(room.expiresAt, body.tz),
+    now: localTime(now.toISOString(), body.tz),
+    tz: body.tz,
     routeKm: routeKm(extras.route),
     memberCount: members.length,
     statusLabels: extras.statusLabels,
@@ -914,21 +982,22 @@ async function ask(ctx: Ctx, question: string, pace: AskPace | null): Promise<Re
       facts,
       asker: flatCut(nameOf(ctx.userId), MATCH_FIELD_MAX.name),
       askerIsHost: room.hostId === ctx.userId,
-      pace,
+      me: body.me,
+      history: body.history,
       questions,
       people: compact.map(({ name, answers }) => ({ name, answers })),
       lines: msgs.map((m) => ({ sender: flatCut(nameOf(m.senderId!), MATCH_FIELD_MAX.name), text: cut(m.body!, ASK_LINE_MAX) })),
-      question,
+      question: body.question,
     }),
     schema: ASK_SCHEMA,
-  });
+  }, ctx.userId);
   if (!r.ok) return AI_FAILED;
   const answer = (r.data as { answer?: unknown } | null)?.answer;
   if (typeof answer !== 'string' || !answer.trim()) {
     ctx.log('model_bad_output', { action: 'ask' });
     return AI_FAILED;
   }
-  return { status: 200, body: { answer: cut(answer, ASK_ANSWER_MAX), remaining: Math.max(0, ASK_DAILY_CAP - used - 1) } };
+  return { status: 200, body: { answer: cut(answer, ASK_ANSWER_MAX), usage: r.usage } };
 }
 
 /** Route length in km (haversine), 1 decimal; null with fewer than 2 valid points. */
