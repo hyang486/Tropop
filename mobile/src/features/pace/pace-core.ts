@@ -92,41 +92,95 @@ export function targetSecPerKm(target: PaceTarget, usual: number | null): number
 export type Tracker = {
   roomId: string;
   startedAt: number;
+  /** The last fix that counted (moved, or the start); pauses and outliers do not replace it. */
   lastFix: PaceFix | null;
+  /** Device time of the newest accepted fix, pauses included. */
   lastAtMs: number;
   distanceM: number;
+  /** Time spent moving, ms: pauses (standing still) are left out, so average and splits are moving pace. */
+  movingMs: number;
   splits: number[];
-  /** When the last full km was crossed (startedAt before the first). */
-  lastSplitAtMs: number;
+  /** Moving time when the last full km was crossed (0 before the first). */
+  lastSplitMovingMs: number;
+  /** Consecutive fixes dropped as GPS jumps since the last accepted one. */
+  rejects: PaceFix[];
 };
 
+/** A step slower than this (heartbeats while standing, GPS drift) is a pause: no distance and no moving time. */
+export const PAUSE_SPEED_MPS = 0.5;
+/** After this many consecutive dropped fixes that agree with each other, the old position was the outlier. */
+export const REANCHOR_AFTER = 3;
+
 export function newTracker(roomId: string, startedAt: number): Tracker {
-  return { roomId, startedAt, lastFix: null, lastAtMs: startedAt, distanceM: 0, splits: [], lastSplitAtMs: startedAt };
+  return {
+    roomId,
+    startedAt,
+    lastFix: null,
+    lastAtMs: startedAt,
+    distanceM: 0,
+    movingMs: 0,
+    splits: [],
+    lastSplitMovingMs: 0,
+    rejects: [],
+  };
 }
 
-/** Adds one fix; drops fixes that go back in time or imply a jump faster than MAX_STEP_SPEED_MPS. */
-export function addFix(t: Tracker, fix: PaceFix): Tracker {
-  if (!t.lastFix) return { ...t, lastFix: fix, lastAtMs: Math.max(t.lastAtMs, fix.atMs) };
-  const dt = (fix.atMs - t.lastFix.atMs) / 1000;
-  if (dt <= 0) return t;
+function plausibleStep(a: PaceFix, b: PaceFix): boolean {
+  const dt = (b.atMs - a.atMs) / 1000;
+  return dt > 0 && distanceM(a, b) / dt <= MAX_STEP_SPEED_MPS;
+}
+
+/**
+ * Adds one fix. `kept` is false for a fix that goes back in time or implies a jump faster than
+ * MAX_STEP_SPEED_MPS (GPS noise); only kept fixes should feed recent pace and the stationary check.
+ * - A pause (slower than PAUSE_SPEED_MPS) moves the clock but adds no distance or moving time.
+ * - REANCHOR_AFTER dropped fixes in a row that agree with each other re-anchor the session there, without
+ *   adding distance (the earlier position was the bad one, e.g. a wrong first fix).
+ * - A long gap (the screen was closed) counts as the straight line between the fixes when it was movement.
+ */
+export function stepFix(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean } {
+  if (!t.lastFix) {
+    return { tracker: { ...t, lastFix: fix, lastAtMs: Math.max(t.lastAtMs, fix.atMs), rejects: [] }, kept: true };
+  }
+  const newest = t.rejects.length ? t.rejects[t.rejects.length - 1].atMs : t.lastAtMs;
+  if (fix.atMs <= Math.max(t.lastAtMs, newest)) return { tracker: t, kept: false };
+  const dt = (fix.atMs - t.lastAtMs) / 1000;
   const step = distanceM(t.lastFix, fix);
-  if (step / dt > MAX_STEP_SPEED_MPS) return t;
+  if (step / dt > MAX_STEP_SPEED_MPS) {
+    const prev = t.rejects[t.rejects.length - 1];
+    const rejects = prev && plausibleStep(prev, fix) ? [...t.rejects, fix] : [fix];
+    if (rejects.length >= REANCHOR_AFTER) {
+      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, rejects: [] }, kept: true };
+    }
+    return { tracker: { ...t, rejects }, kept: false };
+  }
+  if (step / dt < PAUSE_SPEED_MPS) {
+    return { tracker: { ...t, lastAtMs: fix.atMs, rejects: [] }, kept: true };
+  }
   const before = t.distanceM;
   const after = before + step;
+  const movingMs = t.movingMs + dt * 1000;
   const splits = [...t.splits];
-  let lastSplitAtMs = t.lastSplitAtMs;
-  // Each km boundary crossed on this step, at the interpolated time.
+  let lastSplitMovingMs = t.lastSplitMovingMs;
+  // Each km boundary crossed on this step, at the interpolated moving time.
   for (let km = Math.floor(before / 1000) + 1; km * 1000 <= after; km++) {
-    const share = step > 0 ? (km * 1000 - before) / step : 1;
-    const crossedAt = t.lastFix.atMs + share * dt * 1000;
-    splits.push((crossedAt - lastSplitAtMs) / 1000);
-    lastSplitAtMs = crossedAt;
+    const crossedAt = t.movingMs + ((km * 1000 - before) / step) * dt * 1000;
+    splits.push((crossedAt - lastSplitMovingMs) / 1000);
+    lastSplitMovingMs = crossedAt;
   }
-  return { ...t, lastFix: fix, lastAtMs: fix.atMs, distanceM: after, splits, lastSplitAtMs };
+  return {
+    tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, distanceM: after, movingMs, splits, lastSplitMovingMs, rejects: [] },
+    kept: true,
+  };
 }
 
+export function addFix(t: Tracker, fix: PaceFix): Tracker {
+  return stepFix(t, fix).tracker;
+}
+
+/** durationS is moving time; avgSecPerKm is moving pace (null under MIN_PACE_DISTANCE_M). */
 export function summarize(t: Tracker): PaceSession {
-  const durationS = Math.max(0, Math.round((t.lastAtMs - t.startedAt) / 1000));
+  const durationS = Math.max(0, Math.round(t.movingMs / 1000));
   const avgSecPerKm = t.distanceM >= MIN_PACE_DISTANCE_M && durationS > 0 ? durationS / (t.distanceM / 1000) : null;
   return { roomId: t.roomId, startedAt: t.startedAt, durationS, distanceM: t.distanceM, avgSecPerKm, splits: t.splits };
 }

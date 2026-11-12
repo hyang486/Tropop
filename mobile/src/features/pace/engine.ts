@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
 import {
-  addFix,
   closeStationary,
   gapCue,
   newPaceCueState,
@@ -18,6 +17,7 @@ import {
   type Runner,
   type StationaryState,
   stationaryDue,
+  stepFix,
   summarize,
   type Tracker,
 } from './pace-core';
@@ -113,8 +113,13 @@ export type FeedContext = {
 /** One new fix of mine: stats, then at most one cue (km first, then the lead-group gap, then off-target). */
 export function feedFix(key: string, fix: PaceFix, ctx: FeedContext) {
   let run = getRun(key, ctx.roomId, ctx.nowMs);
-  if (run.fixes.length && run.fixes[run.fixes.length - 1].atMs >= fix.atMs) return;
-  const tracker = addFix(run.tracker, fix);
+  const stepped = stepFix(run.tracker, fix);
+  // A repeat, an older fix or a GPS jump: nothing to update (the tracker keeps its count of dropped jumps).
+  if (!stepped.kept) {
+    if (stepped.tracker !== run.tracker) put({ ...run, tracker: stepped.tracker });
+    return;
+  }
+  const tracker = stepped.tracker;
   const fixes = [...run.fixes.filter((f) => f.atMs >= ctx.nowMs - FIX_KEEP_MS), fix];
   const recent = recentSecPerKm(fixes, fix.atMs);
   run = { ...run, tracker, fixes, recent };

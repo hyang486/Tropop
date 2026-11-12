@@ -30,7 +30,7 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
   const stats = run?.tracker.lastFix
     ? t.stats(
         run.tracker.distanceM,
-        formatDuration((run.tracker.lastAtMs - run.tracker.startedAt) / 1000),
+        formatDuration(run.tracker.movingMs / 1000),
         formatPace(run.recent),
       )
     : null;
