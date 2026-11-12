@@ -5,6 +5,16 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-12: Qrewing on main b9d031c — QA in progress (resume here)
+- Full status: docs/implementation-status.md "2026-11-12: Qrewing AI on main b9d031c" and Feature status (Qrewing rows).
+- main b9d031c = 55948fd + event-ux-polish 8ae6c98 (58e6ada) + pace-demo-replay 9a7c18f; tsc 0, 446/446, lint 0. Local, not pushed.
+- Live: 0027 applied, qrewing v2 d30438f, room-janitor v10 */5. Sims: signed rebuild 55948fd on all 5 (groups kept).
+- Metro :8093 (qrewing-merge) is the ONLY Metro while qa tests (shared metro-cache; .env.local copied into the worktree).
+- qa PARTIAL: first real AI calls OK (match sonnet 667/67, triage haiku 587/42), People to meet, Mute small talk, F1, E2.6d.
+- Pending: qa pace stop scenario and early end → grace → recap. After qa's pass, merge (supervisor's go): 70f850d
+  (keyboard header, then device check E2.5k), copy-grace 40fd48f, pace-privacy-notes 9859293.
+- Not verified: spoken audio, the silent switch on a physical device, a network drop, recap/grace end to end.
+
 ## 2026-11-12: Qrewing merged to main (local, no push) — worktree .claude/worktrees/qrewing-merge
 - main ed5a281 ← backend 08823fc (5ae3f10) ← event cf19e4d (b206b54) ← pace 8edef43 (44e758f) ← event 84a97b6 (2272da1)
   ← pace 0a1854b (81c6da1), all --no-ff, no conflicts. Types = event bdb86d3 (incl. preview_room | null). tsc 0,
