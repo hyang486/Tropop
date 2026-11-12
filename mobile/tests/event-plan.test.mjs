@@ -197,6 +197,20 @@ test('newestMs skips pending rows and returns 0 for none', () => {
   assert.equal(newestMs(items), Date.parse('2026-11-12T10:03:00Z'));
 });
 
+test('pickBanner: a reason shows only on done+important (skipped "model_failed" never reaches the screen)', () => {
+  const since = Date.parse('2026-11-12T10:00:00Z');
+  const row = (id, min) => ({ id, kind: 'text', sender_id: 'u', body: 'hello', created_at: `2026-11-12T10:0${min}:00Z` });
+  const items = [row('skipped', 3), row('notImportant', 2)];
+  const flags = new Map([
+    ['skipped', { state: 'skipped', important: false, reason: 'model_failed' }],
+    ['notImportant', { state: 'done', important: false, reason: 'model_failed' }],
+  ]);
+  const base = { since, userId: 'me', myName: 'Sam', flags, dismissed: new Set() };
+  assert.equal(pickBanner(items, base), null);
+  // A skipped row stays visible (nothing hidden without a done verdict).
+  assert.equal(staysVisible(items[0], 'me', 'Sam', flags), true);
+});
+
 test('pickBanner: newest important or mention after since, not mine, not dismissed', () => {
   const since = Date.parse('2026-11-12T10:00:00Z');
   const row = (id, sender, body, min) => ({ id, kind: 'text', sender_id: sender, body, created_at: `2026-11-12T10:0${min}:00Z` });
