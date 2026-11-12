@@ -85,7 +85,7 @@ export function validateQuestions(
   for (const q of list) {
     const prompt = q.prompt.trim();
     if (!prompt) return { problem: 'promptRequired', key: q.key };
-    if (prompt.length > QUESTION_LIMITS.prompt) return { problem: 'promptTooLong', key: q.key };
+    if (chars(prompt) > QUESTION_LIMITS.prompt) return { problem: 'promptTooLong', key: q.key };
     value.push({ kind: q.kind, prompt, required: q.required });
   }
   return { value };
@@ -133,7 +133,9 @@ export function answersDirty(loaded: AnswerDraft, current: AnswerDraft): boolean
 
 export type AnswerProblem = 'required' | 'tooLong' | 'tooManyLinks' | 'linkInvalid';
 
-const HTTPS = /^https:\/\/\S+$/i;
+// Case-sensitive like the server (spec 9.2 `^https://`). Lengths count code points like Postgres char_length.
+const HTTPS = /^https:\/\/\S+$/;
+const chars = (text: string) => [...text].length;
 
 export function answerLimit(kind: EntryQuestionKind): number {
   return kind === 'short' ? ANSWER_LIMITS.short : kind === 'long' ? ANSWER_LIMITS.long : ANSWER_LIMITS.link;
@@ -154,12 +156,12 @@ export function validateAnswers(
       const links = (Array.isArray(raw) ? raw : []).map((l) => l.trim()).filter((l) => l.length > 0);
       if (q.required && links.length === 0) return { problem: 'required', questionId: q.id };
       if (links.length > ANSWER_LIMITS.links) return { problem: 'tooManyLinks', questionId: q.id };
-      if (links.some((l) => !HTTPS.test(l) || l.length > ANSWER_LIMITS.link)) return { problem: 'linkInvalid', questionId: q.id };
+      if (links.some((l) => !HTTPS.test(l) || chars(l) > ANSWER_LIMITS.link)) return { problem: 'linkInvalid', questionId: q.id };
       if (links.length) value[q.id] = links;
     } else {
       const text = (typeof raw === 'string' ? raw : '').trim();
       if (q.required && !text) return { problem: 'required', questionId: q.id };
-      if (text.length > answerLimit(q.kind)) return { problem: 'tooLong', questionId: q.id };
+      if (chars(text) > answerLimit(q.kind)) return { problem: 'tooLong', questionId: q.id };
       if (text) value[q.id] = text;
     }
   }

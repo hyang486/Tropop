@@ -1,28 +1,36 @@
 import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
-import { type ComponentRef, useEffect, useRef, useState } from 'react';
+import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 
-import { getEntryProfile, saveEntryProfile } from './entry-api';
+import { getEntryProfile } from './entry-api';
 import { en } from '@/i18n/en';
 
-import { ENTRY_LIMITS, type EntryProblem, entryDirty, validateEntry } from './event-plan';
+import {
+  type AnswerDraft,
+  type AnswerProblem,
+  ANSWER_LIMITS,
+  answerDraft,
+  answerLimit,
+  answersDirty,
+  type EntryQuestion,
+  ordered,
+  validateAnswers,
+} from './entry-questions';
+import { saveEntryAnswers, useEntryQuestions } from './qrewing-api';
 
 const s = en.qrewing.entry;
 
-function problemText(p: EntryProblem): string {
+function problemText(p: AnswerProblem, q: EntryQuestion | undefined): string {
+  const prompt = q?.prompt ?? '';
   switch (p) {
-    case 'headlineRequired':
-      return s.headlineRequired;
-    case 'headlineTooLong':
-      return s.headlineTooLong(ENTRY_LIMITS.headline);
-    case 'interestsTooLong':
-      return s.tooLong(s.interests, ENTRY_LIMITS.interests);
-    case 'lookingForTooLong':
-      return s.tooLong(s.lookingFor, ENTRY_LIMITS.lookingFor);
+    case 'required':
+      return s.answerRequired(prompt);
+    case 'tooLong':
+      return s.tooLong(prompt, q ? answerLimit(q.kind) : ANSWER_LIMITS.long);
     case 'tooManyLinks':
       return s.tooManyLinks;
     case 'linkInvalid':
@@ -30,29 +38,33 @@ function problemText(p: EntryProblem): string {
   }
 }
 
+/** One text field of the form: a short or long answer, or one slot of a links answer. */
+type Field = { q: EntryQuestion; slot: number | null };
+
 /**
- * Entry info form (spec 3.2), pushed from the chat gate or Room info. `gate=1`: opened before chat, so Save
- * returns to the chat with `replace` and Back leaves the room screen as it was (the chat re-checks on focus).
+ * Entry info form (spec 3.2, 9.4): the room's own questions in position order, pushed from the chat gate or Room
+ * info. `gate=1`: opened before chat, so Save returns to the chat with `replace` and Back leaves the room screen as
+ * it was (the chat re-checks on focus).
  */
 export function EntryScreen() {
   const { id, gate } = useLocalSearchParams<{ id: string; gate?: string }>();
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
-  const [loading, setLoading] = useState(true);
-  const [headline, setHeadline] = useState('');
-  const [interests, setInterests] = useState('');
-  const [lookingFor, setLookingFor] = useState('');
-  const [links, setLinks] = useState<string[]>(['', '', '']);
+  const room = useEntryQuestions(id);
+  const questions = useMemo(() => ordered(room.questions), [room.questions]);
+  // My saved answers (entry_profiles.answers). `failed`: Save stays off so an empty form never replaces them.
+  const [profile, setProfile] = useState<{ done: boolean; failed: boolean; answers: unknown }>({
+    done: false,
+    failed: false,
+    answers: null,
+  });
+  const [loadTick, setLoadTick] = useState(0);
+  // Only what the attendee changed; the rest comes from the saved answers (qa F2: leaving with changes asks first).
+  const [edits, setEdits] = useState<AnswerDraft>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The saved entry could not be read: Save stays off so an empty form never replaces it.
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [loadTick, setLoadTick] = useState(0);
-  // What the form held after the load (qa F2): leaving with other input asks before it is thrown away.
-  const [loaded, setLoaded] = useState({ headline: '', interests: '', lookingFor: '', links: ['', '', ''] });
   const fields = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
-  const focusNext = (i: number) => fields.current[i + 1]?.focus();
   // Set after a successful save: prevention turns off first, then the effect below leaves.
   const [saved, setSaved] = useState(false);
 
@@ -61,26 +73,31 @@ export function EntryScreen() {
     let alive = true;
     getEntryProfile(id, userId)
       .then((row) => {
-        if (!alive || !row) return;
-        setHeadline(row.headline);
-        setInterests(row.interests);
-        setLookingFor(row.looking_for);
-        setLinks([0, 1, 2].map((i) => row.links[i] ?? ''));
-        setLoaded({
-          headline: row.headline,
-          interests: row.interests,
-          lookingFor: row.looking_for,
-          links: [0, 1, 2].map((i) => row.links[i] ?? ''),
-        });
+        // 0028 adds `answers`; database.types.ts does not have it until the types are regenerated.
+        const answers = row ? (row as unknown as { answers?: unknown }).answers : null;
+        if (alive) setProfile({ done: true, failed: false, answers });
       })
-      .catch(() => alive && setLoadFailed(true))
-      .finally(() => alive && setLoading(false));
+      .catch(() => alive && setProfile({ done: true, failed: true, answers: null }));
     return () => {
       alive = false;
     };
   }, [id, userId, loadTick]);
 
-  const dirty = !loading && !loadFailed && entryDirty(loaded, { headline, interests, lookingFor, links });
+  const loading = !room.loaded || !profile.done;
+  const loadFailed = room.failed || profile.failed;
+  const base = useMemo(() => answerDraft(questions, profile.answers), [questions, profile.answers]);
+  const current = useMemo(() => ({ ...base, ...edits }), [base, edits]);
+  const ready = !loading && !loadFailed && questions.length > 0;
+  const dirty = ready && answersDirty(base, current);
+
+  const list: Field[] = useMemo(
+    () =>
+      questions.flatMap<Field>((q) =>
+        q.kind === 'links' ? Array.from({ length: ANSWER_LIMITS.links }, (_, slot) => ({ q, slot })) : [{ q, slot: null }],
+      ),
+    [questions],
+  );
+
   // `repeat` turns prevention off and then runs the blocked action (dispatching alone would be blocked again).
   usePreventRemove(dirty && !busy && !saved, ({ repeat }) => {
     Alert.alert(s.discardTitle, s.discardBody, [
@@ -95,19 +112,34 @@ export function EntryScreen() {
     else router.back();
   }, [saved, gate, id, router]);
 
+  function retry() {
+    setProfile({ done: false, failed: false, answers: null });
+    setEdits({});
+    setLoadTick((n) => n + 1);
+    room.reload();
+  }
+
+  function setAnswer({ q, slot }: Field, text: string) {
+    setEdits((cur) => {
+      if (slot === null) return { ...cur, [q.id]: text };
+      const prev = (cur[q.id] ?? base[q.id]) as string[];
+      return { ...cur, [q.id]: prev.map((v, j) => (j === slot ? text : v)) };
+    });
+  }
+
   async function save() {
-    if (busy || saved || loading || loadFailed) return;
-    const checked = validateEntry({ headline, interests, lookingFor, links });
+    if (busy || saved || !ready) return;
+    const checked = validateAnswers(questions, current);
     if ('problem' in checked) {
-      setError(problemText(checked.problem));
+      setError(problemText(checked.problem, questions.find((q) => q.id === checked.questionId)));
       return;
     }
     setBusy(true);
     setError(null);
-    const res = await saveEntryProfile(id, checked.value);
+    const res = await saveEntryAnswers(id, checked.value);
     setBusy(false);
-    if (res.error) {
-      setError(res.offline ? en.qrewing.errors.network : s.saveFailed);
+    if ('error' in res) {
+      setError(res.error === 'network' ? en.qrewing.errors.network : s.saveFailed);
       return;
     }
     setSaved(true);
@@ -121,13 +153,9 @@ export function EntryScreen() {
         <>
           {error ? <Hint tone="error">{error}</Hint> : null}
           {loadFailed ? (
-            <Button title={s.retry} variant="secondary" onPress={() => {
-                setLoading(true);
-                setLoadFailed(false);
-                setLoadTick((n) => n + 1);
-              }} />
+            <Button title={s.retry} variant="secondary" onPress={retry} />
           ) : (
-            <Button title={s.save} onPress={save} busy={busy} disabled={loading} />
+            <Button title={s.save} onPress={save} busy={busy} disabled={!ready} />
           )}
         </>
       }
@@ -138,7 +166,7 @@ export function EntryScreen() {
           headerTitle: '',
           // qa F1: Save stays reachable from the header while the keyboard covers the bottom.
           headerRight: () =>
-            loading || loadFailed ? null : (
+            !ready ? null : (
               <Pressable onPress={save} disabled={busy} accessibilityRole="button" hitSlop={8}>
                 <Text style={[styles.headerSave, busy && styles.headerSaveBusy]}>{s.save}</Text>
               </Pressable>
@@ -148,70 +176,52 @@ export function EntryScreen() {
       {loading ? (
         <ActivityIndicator />
       ) : loadFailed ? (
-        <Hint tone="error">{s.loadFailed}</Hint>
+        <Hint tone="error">{room.failed ? s.questionsLoadFailed : s.loadFailed}</Hint>
+      ) : questions.length === 0 ? (
+        <Hint>{s.noQuestions}</Hint>
       ) : (
-        <>
-          <QLabel>{s.headline}</QLabel>
-          <QField
-            label={s.headline}
-            placeholder={s.headlinePlaceholder}
-            value={headline}
-            onChangeText={setHeadline}
-            maxLength={ENTRY_LIMITS.headline}
-            ref={(r) => { fields.current[0] = r; }}
-            returnKeyType="next"
-            submitBehavior="submit"
-            onSubmitEditing={() => focusNext(0)}
-          />
-          <QLabel>{s.interests}</QLabel>
-          <QField
-            label={s.interests}
-            placeholder={s.interestsPlaceholder}
-            value={interests}
-            onChangeText={setInterests}
-            maxLength={ENTRY_LIMITS.interests}
-            multiline
-            ref={(r) => { fields.current[1] = r; }}
-            returnKeyType="next"
-            submitBehavior="submit"
-            onSubmitEditing={() => focusNext(1)}
-          />
-          <QLabel>{s.lookingFor}</QLabel>
-          <QField
-            label={s.lookingFor}
-            placeholder={s.lookingForPlaceholder}
-            value={lookingFor}
-            onChangeText={setLookingFor}
-            maxLength={ENTRY_LIMITS.lookingFor}
-            multiline
-            ref={(r) => { fields.current[2] = r; }}
-            returnKeyType="next"
-            submitBehavior="submit"
-            onSubmitEditing={() => focusNext(2)}
-          />
-          <QLabel>{s.links}</QLabel>
-          {links.map((link, i) => (
-            <QField
-              key={i}
-              label={`${s.links} ${i + 1}`}
-              placeholder={s.linkPlaceholder}
-              value={link}
-              onChangeText={(t) => setLinks((cur) => cur.map((v, j) => (j === i ? t : v)))}
-              maxLength={ENTRY_LIMITS.link}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              textContentType="URL"
-              ref={(r) => { fields.current[3 + i] = r; }}
-              returnKeyType={i < 2 ? 'next' : 'done'}
-              submitBehavior={i < 2 ? 'submit' : 'blurAndSubmit'}
-              onSubmitEditing={() => (i < 2 ? focusNext(3 + i) : save())}
-            />
-          ))}
-          <Text style={styles.note}>{s.linksNote}</Text>
-        </>
+        list.map((field, i) => {
+          const { q, slot } = field;
+          const last = i === list.length - 1;
+          const value = current[q.id];
+          const text = slot === null ? (value as string) : (value as string[])[slot];
+          const label = q.required ? `${q.prompt} (${s.requiredMark})` : q.prompt;
+          const links = slot !== null;
+          return (
+            <FieldBlock key={`${q.id}:${slot ?? ''}`} first={!links || slot === 0} last={links && slot === ANSWER_LIMITS.links - 1} label={label}>
+              <QField
+                label={links ? `${q.prompt} ${slot + 1}` : q.prompt}
+                placeholder={links ? s.linkPlaceholderN(slot + 1) : undefined}
+                value={text}
+                onChangeText={(t) => setAnswer(field, t)}
+                maxLength={links ? ANSWER_LIMITS.link : answerLimit(q.kind)}
+                multiline={q.kind === 'long'}
+                {...(links
+                  ? { autoCapitalize: 'none' as const, autoCorrect: false, keyboardType: 'url' as const, textContentType: 'URL' as const }
+                  : {})}
+                ref={(r) => {
+                  fields.current[i] = r;
+                }}
+                returnKeyType={last ? 'done' : 'next'}
+                submitBehavior={last ? 'blurAndSubmit' : 'submit'}
+                onSubmitEditing={() => (last ? save() : fields.current[i + 1]?.focus())}
+              />
+            </FieldBlock>
+          );
+        })
       )}
     </QScreen>
+  );
+}
+
+/** The question's label above its first field, and the links note under the last links slot. */
+function FieldBlock({ first, last, label, children }: { first: boolean; last: boolean; label: string; children: ReactNode }) {
+  return (
+    <>
+      {first ? <QLabel>{label}</QLabel> : null}
+      {children}
+      {last ? <Text style={styles.note}>{s.linksNote}</Text> : null}
+    </>
   );
 }
 

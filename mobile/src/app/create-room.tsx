@@ -3,10 +3,12 @@ import { dynamicTypeSize, labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { PlacePinMap } from '@/components/place-time-cards';
-import { setQrewingRoom } from '@/features/event/qrewing-api';
+import { defaultDraft, type QuestionPayload, validateQuestions } from '@/features/event/entry-questions';
+import { QuestionEditor, questionProblemText } from '@/features/event/question-editor';
+import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api';
 import { QCard, QField, QLabel, QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -50,6 +52,9 @@ export default function CreateRoom() {
   // Qrewing AI (spec 3.2): off by default for every type; entry info is offered for event rooms only.
   const [aiEnabled, setAiEnabled] = useState(false);
   const [entryRequired, setEntryRequired] = useState(false);
+  // Spec 9.4: the host's entry questions, prefilled with the default four.
+  const [questions, setQuestions] = useState(defaultDraft);
+  const [questionProblem, setQuestionProblem] = useState<ReturnType<typeof validateQuestions> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Place and time (0026), all optional: a place name, a pin found from the name (tap the map to move it) and a
@@ -150,6 +155,18 @@ export default function CreateRoom() {
       setError(startProblem === 'afterClose' ? en.createRoom.startAfterClose : en.createRoom.startTooEarly);
       return;
     }
+    const askEntry = aiEnabled && type === 'event' && entryRequired;
+    let payload: QuestionPayload[] = [];
+    if (askEntry) {
+      const checked = validateQuestions(questions);
+      if ('problem' in checked) {
+        setQuestionProblem(checked);
+        const n = questions.findIndex((q) => q.key === checked.key) + 1;
+        setError(questionProblemText(checked.problem, n || null));
+        return;
+      }
+      payload = checked.value;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -168,12 +185,23 @@ export default function CreateRoom() {
       });
       // A failed Qrewing save never blocks the room; the chat screen shows the note once.
       let aiNote: string | undefined;
+      let questionsNote: string | undefined;
       if (aiEnabled) {
-        const res = await setQrewingRoom(room.id, true, type === 'event' && entryRequired);
+        // Spec 9.2 order: questions first, since entry_required needs at least one. If they fail, entry stays off.
+        let entry = askEntry;
+        if (entry) {
+          const saved = await setEntryQuestions(room.id, payload);
+          if ('error' in saved) {
+            entry = false;
+            questionsNote = saved.error === 'locked' ? en.qrewing.create.questionsLocked : en.qrewing.create.questionsSaveFailed;
+          }
+        }
+        const res = await setQrewingRoom(room.id, true, entry);
         if (res.error) aiNote = '1';
       }
       router.replace({ pathname: '/room/[id]', params: aiNote ? { id: room.id, aiNote } : { id: room.id } });
       router.push({ pathname: '/room/[id]/invite', params: { id: room.id } });
+      if (questionsNote) Alert.alert(questionsNote);
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);
@@ -309,6 +337,16 @@ export default function CreateRoom() {
             />
           </QCard>
           <Hint>{en.qrewing.create.entryHint}</Hint>
+          {entryRequired ? (
+            <QuestionEditor
+              value={questions}
+              onChange={(next) => {
+                setQuestions(next);
+                setQuestionProblem(null);
+              }}
+              problem={questionProblem && 'problem' in questionProblem ? questionProblem : null}
+            />
+          ) : null}
         </>
       ) : null}
 
