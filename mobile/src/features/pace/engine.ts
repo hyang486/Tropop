@@ -1,17 +1,17 @@
 import { useSyncExternalStore } from 'react';
 
 import {
+  type ChosenCue,
+  chooseCue,
   closeStationary,
+  type CueSchedule,
   gapCue,
-  newPaceCueState,
+  newCueSchedule,
   newStationaryState,
   newTracker,
   openStationary,
-  OFF_TARGET_EVERY_MS,
-  type PaceCueState,
   type PaceFix,
   type Point,
-  paceCue,
   progressOf,
   recentSecPerKm,
   type Runner,
@@ -34,9 +34,7 @@ export type PaceRun = {
   tracker: Tracker;
   /** My fixes of the last few minutes (stationary check, recent pace). */
   fixes: PaceFix[];
-  cueState: PaceCueState;
-  lastGapCueAtMs: number | null;
-  lastCueAtMs: number | null;
+  cues: CueSchedule;
   stationary: StationaryState;
   lastSavedAtMs: number;
   /** My pace over the last minute, s/km. */
@@ -45,8 +43,6 @@ export type PaceRun = {
 
 const FIX_KEEP_MS = 6 * 60_000;
 const SAVE_EVERY_MS = 30_000;
-/** Two cues never come closer than this, so they do not talk over each other. */
-const MIN_CUE_GAP_MS = 20_000;
 
 const runs = new Map<string, PaceRun>();
 const listeners = new Set<() => void>();
@@ -73,9 +69,7 @@ function getRun(key: string, roomId: string, nowMs: number): PaceRun {
       key,
       tracker: newTracker(roomId, nowMs),
       fixes: [],
-      cueState: newPaceCueState(),
-      lastGapCueAtMs: null,
-      lastCueAtMs: null,
+      cues: newCueSchedule(),
       stationary: newStationaryState(),
       lastSavedAtMs: 0,
       recent: null,
@@ -110,6 +104,19 @@ export type FeedContext = {
   others: { userId: string; point: Point; speedMps: number | null }[];
 };
 
+function cueText(cue: ChosenCue): string {
+  switch (cue.kind) {
+    case 'km':
+      return t.cueKm(cue.km, cue.pace, cue.target);
+    case 'gap':
+      return t.cueGap(cue.gapM, cue.pace);
+    case 'slow':
+      return t.cueSlow(cue.pace, cue.target);
+    case 'fast':
+      return t.cueFast(cue.pace, cue.target);
+  }
+}
+
 /** One new fix of mine: stats, then at most one cue (km first, then the lead-group gap, then off-target). */
 export function feedFix(key: string, fix: PaceFix, ctx: FeedContext) {
   let run = getRun(key, ctx.roomId, ctx.nowMs);
@@ -124,42 +131,23 @@ export function feedFix(key: string, fix: PaceFix, ctx: FeedContext) {
   const recent = recentSecPerKm(fixes, fix.atMs);
   run = { ...run, tracker, fixes, recent };
 
-  const quiet = run.lastCueAtMs != null && ctx.nowMs - run.lastCueAtMs < MIN_CUE_GAP_MS;
-  let text: string | null = null;
-
-  const km = Math.floor(tracker.distanceM / 1000);
-  const paced = paceCue(run.cueState, {
+  // The activity start point: where my session's first fix was.
+  const anchor =
+    ctx.place ?? (run.fixes[0] ? { latitude: run.fixes[0].latitude, longitude: run.fixes[0].longitude } : null);
+  const runners: Runner[] = ctx.others.flatMap((o) => {
+    const progressM = progressOf(o.point, ctx.route, anchor);
+    return progressM == null ? [] : [{ userId: o.userId, progressM, speedMps: o.speedMps }];
+  });
+  const chosen = chooseCue(run.cues, {
     nowMs: ctx.nowMs,
-    km,
+    km: Math.floor(tracker.distanceM / 1000),
     lastSplitS: tracker.splits.length ? tracker.splits[tracker.splits.length - 1] : null,
     recentSecPerKm: recent,
     targetSecPerKm: ctx.targetSecPerKm,
+    gap: gapCue(ctx.userId, runners),
   });
-  if (paced.cue?.kind === 'km') {
-    run = { ...run, cueState: paced.state };
-    text = t.cueKm(paced.cue.km, paced.cue.pace, paced.cue.target);
-  } else if (!quiet) {
-    // The activity start point: where my session's first fix was.
-    const anchor =
-      ctx.place ?? (run.fixes[0] ? { latitude: run.fixes[0].latitude, longitude: run.fixes[0].longitude } : null);
-    const runners: Runner[] = ctx.others.flatMap((o) => {
-      const progressM = progressOf(o.point, ctx.route, anchor);
-      return progressM == null ? [] : [{ userId: o.userId, progressM, speedMps: o.speedMps }];
-    });
-    const gap = gapCue(ctx.userId, runners);
-    const gapDue = run.lastGapCueAtMs == null || ctx.nowMs - run.lastGapCueAtMs >= OFF_TARGET_EVERY_MS;
-    if (gap && gapDue) {
-      run = { ...run, lastGapCueAtMs: ctx.nowMs };
-      text = t.cueGap(gap.gapM, gap.pace);
-    } else if (!gap && paced.cue) {
-      run = { ...run, cueState: paced.state };
-      text =
-        paced.cue.kind === 'slow'
-          ? t.cueSlow(paced.cue.pace, paced.cue.target)
-          : t.cueFast(paced.cue.pace, paced.cue.target);
-    }
-  }
-  if (text) run = { ...run, lastCueAtMs: ctx.nowMs };
+  run = { ...run, cues: chosen.schedule };
+  const text = chosen.cue ? cueText(chosen.cue) : null;
 
   const save = ctx.nowMs - run.lastSavedAtMs >= SAVE_EVERY_MS;
   if (save) run = { ...run, lastSavedAtMs: ctx.nowMs };
@@ -177,7 +165,7 @@ export function checkStationary(key: string, nowMs: number, activityStartMs: num
   put({
     ...run,
     stationary: openStationary(run.stationary, nowMs),
-    lastCueAtMs: nowMs,
+    cues: { ...run.cues, lastCueAtMs: nowMs },
   });
   speak(t.stationaryTitle);
   return true;

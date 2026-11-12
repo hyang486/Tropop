@@ -41,7 +41,7 @@ What to look for on the guest:
 - A "Pick it up" cue early in the slow part, before the guest is 150 m behind.
 - A gap cue (`Lead group … meters ahead. Run … per km to catch them in 3 minutes.`) once the guest is more than 150 m behind, near 3:00. It repeats at most every 2 minutes (near 5:00 and 7:00) while the guest is still more than 150 m behind. While the gap cue applies, it replaces the "Pick it up" and "Ease off" cues.
 - Gap cues stop once the guest is back within 150 m, near 8:10. An "Ease off" cue can follow during the rest of the fast part, up to about 10:17.
-- Pace and gap cues come at least 20 s after the previous cue. Km cues are not held back yet. The voice-cue cadence item (no overlapping speech) is still open, so treat an overlap at a km mark as known.
+- No cue comes within 20 s of the previous one. A km cue due in that window waits and comes right after it. On a build with voice, one cue is spoken at a time, and a cue that arrives during speech is said when the speech ends.
 - The host gets km cues as in `steady`, and no gap cue, because the host is the lead group.
 
 ## stop (host only)

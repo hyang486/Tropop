@@ -325,6 +325,49 @@ export function gapCue(myId: string, runners: Runner[]): GapCue | null {
   return pace ? { gapM, secPerKm, pace } : null;
 }
 
+// --- cue cadence ------------------------------------------------------------------------------------------------
+
+/** Two cues never come closer than this, so they do not talk over each other. */
+export const MIN_CUE_GAP_MS = 20_000;
+
+/** Pace cues (km, slow, fast) and gap cues keep separate clocks; lastCueAtMs is any cue. */
+export type CueSchedule = { pace: PaceCueState; lastGapCueAtMs: number | null; lastCueAtMs: number | null };
+export type ChosenCue = PaceCue | ({ kind: 'gap' } & GapCue);
+
+export function newCueSchedule(): CueSchedule {
+  return { pace: newPaceCueState(), lastGapCueAtMs: null, lastCueAtMs: null };
+}
+
+/**
+ * At most one cue per fix, never within MIN_CUE_GAP_MS of the last one. A km cue that falls in that window waits
+ * (its km is not marked done) and comes on the first fix after it, with the latest split. Order: km, then the
+ * lead-group gap (at most every OFF_TARGET_EVERY_MS on its own clock), then off-target (at most every
+ * OFF_TARGET_EVERY_MS and once per km, through paceCue); off-target stays quiet while I am behind the lead group.
+ */
+export function chooseCue(
+  schedule: CueSchedule,
+  input: {
+    nowMs: number;
+    km: number;
+    lastSplitS: number | null;
+    recentSecPerKm: number | null;
+    targetSecPerKm: number | null;
+    gap: GapCue | null;
+  },
+): { schedule: CueSchedule; cue: ChosenCue | null } {
+  if (schedule.lastCueAtMs != null && input.nowMs - schedule.lastCueAtMs < MIN_CUE_GAP_MS) return { schedule, cue: null };
+  const paced = paceCue(schedule.pace, input);
+  const said = (next: Partial<CueSchedule>, cue: ChosenCue) => ({
+    schedule: { ...schedule, ...next, lastCueAtMs: input.nowMs },
+    cue,
+  });
+  if (paced.cue?.kind === 'km') return said({ pace: paced.state }, paced.cue);
+  const gapDue = schedule.lastGapCueAtMs == null || input.nowMs - schedule.lastGapCueAtMs >= OFF_TARGET_EVERY_MS;
+  if (input.gap && gapDue) return said({ lastGapCueAtMs: input.nowMs }, { kind: 'gap', ...input.gap });
+  if (!input.gap && paced.cue) return said({ pace: paced.state }, paced.cue);
+  return { schedule, cue: null };
+}
+
 // --- stationary -------------------------------------------------------------------------------------------------
 
 export type StationaryState = { openSinceMs: number | null; snoozeUntilMs: number | null };
