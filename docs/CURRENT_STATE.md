@@ -5,7 +5,17 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
-## 2026-11-12: Qrewing on main eeeafd9 — qa PASS on simulators (resume here)
+## 2026-11-12: Entry questions (spec 9) LIVE — 0028 applied, qrewing v3 deployed (resume here)
+- Authority: USER_DECISIONS ~10:20 PST FINAL "Go ahead" (apply 31a482f once, deploy 4c8a83a; no push).
+- Live check 18:11Z: migrations end at 20261112180712 entry_questions; public.entry_questions exists with RLS on and 1 policy.
+- qrewing v3 ACTIVE, verify_jwt false. Deployed index.ts and prompts.ts are byte-identical to 4c8a83a. In core.ts, EMOJI_RE
+  stores raw U+200D/U+FE0F/U+20E3 where the source has \u escapes (an MCP upload artifact); the code points are the same, so it behaves the same.
+- Smoke: GET 405, POST without auth 401. Unit: qrewing + janitor 52/52.
+- Security advisor: no new kind of finding. The new RPCs set_entry_questions and upsert_entry_answers follow the existing
+  SECURITY DEFINER pattern, and entry_questions has the same anonymous-auth policy WARN as the other room tables.
+- Not verified: client app against live 0028 (needs simulator sitting via qa). Not pushed.
+
+## 2026-11-12: Qrewing on main eeeafd9 — qa PASS on simulators
 - main eeeafd9 (local): tsc 0, 449/449, lint 0. Push snapshot 9975963 (qrew-push-snapshot-2) reviewed, NOT pushed (qa's go).
 - qa PASS (LS ~04:00-04:12): real match/triage/recap calls, People to meet, Mute small talk, entry F1/E2.6d/E2.5k, pace stop,
   early end → grace → recap, Photos of me + Save in grace, "Shared by Host". Details: implementation-status.md Qrewing section.

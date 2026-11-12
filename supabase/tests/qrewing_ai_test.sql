@@ -132,6 +132,13 @@ select tests.expect_state($$ select public.set_qrewing_room((select room_id from
   '22023', 'entry_required rejected for a non-event room');
 select tests.expect_state($$ select public.set_qrewing_room((select room_id from tests.made where label = 'E'), false, true) $$,
   '22023', 'entry_required rejected with AI off');
+-- From 0028 on, entry_required needs at least one entry question (entry_questions_test.sql covers that rule).
+do $$ begin
+  if to_regprocedure('public.set_entry_questions(uuid, jsonb)') is not null then
+    perform public.set_entry_questions((select room_id from tests.made where label = 'E'),
+      '[{"kind":"short","prompt":"Headline","required":true}]');
+  end if;
+end $$;
 select tests.expect_ok($$ select public.set_qrewing_room((select room_id from tests.made where label = 'E'), true, true) $$,
   'host turns AI and entry info on (event)');
 select tests.expect_ok($$ select public.set_qrewing_room((select room_id from tests.made where label = 'E'), true, true) $$,

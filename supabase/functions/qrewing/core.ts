@@ -19,6 +19,7 @@ import {
   TRIAGE_SYSTEM,
   triageUser,
   type MatchPerson,
+  type MatchQuestion,
   type TriageItem,
 } from './prompts.ts';
 
@@ -33,8 +34,11 @@ export const RECAP_WINDOW_MS = 60 * 60_000;
 export const RECAP_REFRESH_MESSAGES = 50;
 export const MATCH_MAX_CANDIDATES = 29;
 export const MATCH_STALE_OK_MS = 10 * 60_000;
-/** Spec 8.9: each text field sent to the match model is collapsed and cut to this many characters. */
-export const MATCH_FIELD_MAX = { name: 40, headline: 80, interests: 160, lookingFor: 160 } as const;
+/**
+ * Spec 8.9 and 9.3: each text sent to the match model is collapsed and cut to this many characters (a short answer
+ * is at most 80 by the 0028 rules; a long answer, up to 300, is cut to 160 as interests and looking for were).
+ */
+export const MATCH_FIELD_MAX = { name: 40, prompt: 120, short: 80, long: 160 } as const;
 /** A claim whose caller died (crash, timeout) is retaken after this long. Not in the spec's response shapes. */
 // L7: longer than one model call can take (SDK timeout 60 s, one retry, plus backoff), so a live call is not retaken.
 export const TRIAGE_PENDING_TTL_MS = 3 * 60_000;
@@ -111,7 +115,21 @@ export type RecapRow = {
   updatedAt: string;
   refreshedAt: string | null;
 };
-export type EntryProfile = { userId: string; headline: string; interests: string; lookingFor: string; updatedAt: string };
+/** 0028 entry_questions row. */
+export type EntryQuestion = { id: string; position: number; kind: 'short' | 'long' | 'links'; prompt: string };
+/**
+ * answers: entry_profiles.answers (question id → string, or string[] for links). headline is the derived column.
+ * interests and lookingFor are the pre-0028 columns, read only for a legacy row (answers empty, written by the old
+ * upsert_entry_profile).
+ */
+export type EntryProfile = {
+  userId: string;
+  headline: string;
+  interests: string;
+  lookingFor: string;
+  answers: Record<string, unknown>;
+  updatedAt: string;
+};
 export type StoredMatch = { userId: string; reason: string; score: number };
 export type MatchRow = { inputHash: string; matches: StoredMatch[]; createdAt: string };
 export type Consent = { aiOk: boolean; mute: boolean };
@@ -166,6 +184,8 @@ export interface QrewingStore {
   /** Replaces the content of the done row (state stays done). */
   saveRecapRefresh(roomId: string, r: { title: string; summary: string; highlights: string[] }): Promise<RecapRow | null>;
 
+  /** The room's entry questions (any order; core sorts by position). */
+  entryQuestions(roomId: string): Promise<EntryQuestion[]>;
   entryProfiles(roomId: string): Promise<EntryProfile[]>;
   match(roomId: string, userId: string): Promise<MatchRow | null>;
   /**
@@ -641,11 +661,15 @@ async function match(ctx: Ctx): Promise<Reply> {
 
   const names = await store.displayNames([userId, ...others.map((p) => p.userId)]);
   const nameOf = (id: string) => names.get(id) || 'Member';
-  const person = (p: EntryProfile) => compactPerson(nameOf(p.userId), p);
-  const me = person(mine);
-  const people: MatchPerson[] = others.map((p, i) => ({ id: `p${i + 1}`, ...person(p) }));
+  const { questions, keyOf } = matchLegend(await store.entryQuestions(room.id));
+  const compact = [mine, ...others].map((p) => compactPerson(nameOf(p.userId), p, keyOf));
+  // A legacy row's answers use the h/i/l keys, so their legend lines are added when at least one person needs them.
+  if (compact.some((c) => c.legacy)) questions.push(...LEGACY_QUESTIONS.map(({ key, kind, prompt }) => ({ key, kind, prompt })));
+  const me = { name: compact[0].name, answers: compact[0].answers };
+  const people: MatchPerson[] = compact.slice(1).map((c, i) => ({ id: `p${i + 1}`, name: c.name, answers: c.answers }));
   const byIndex = new Map(people.map((p, i) => [p.id, others[i].userId]));
-  const hash = await sha256Hex(JSON.stringify({ v: PROMPT_VERSION, model: MATCH_MODEL, me, people }));
+  // Spec 9.3: the hash covers the legend and the answers, so editing either one recomputes.
+  const hash = await sha256Hex(JSON.stringify({ v: PROMPT_VERSION, model: MATCH_MODEL, questions, me, people }));
 
   const cachedRow = await store.match(room.id, userId);
   const hydrate = (list: StoredMatch[]) => {
@@ -686,7 +710,7 @@ async function match(ctx: Ctx): Promise<Reply> {
     effort: 'medium',
     maxTokens: 2048,
     system: MATCH_SYSTEM,
-    user: matchUser(me, people),
+    user: matchUser(questions, me, people),
     schema: MATCH_SCHEMA,
   });
   if (!r.ok) {
@@ -727,15 +751,59 @@ export function matchCandidates(profiles: EntryProfile[], userId: string, member
     .sort(byId);
 }
 
-/** Spec 8.9: only the fields matching needs (no links, no ids), whitespace collapsed, each cut to a fixed length. */
-export function compactPerson(name: string, p: Pick<EntryProfile, 'headline' | 'interests' | 'lookingFor'>) {
-  const f = (s: string, n: number) => cut(s.replace(/\s+/g, ' '), n);
-  return {
-    name: f(name, MATCH_FIELD_MAX.name),
-    headline: f(p.headline, MATCH_FIELD_MAX.headline),
-    interests: f(p.interests, MATCH_FIELD_MAX.interests),
-    lookingFor: f(p.lookingFor, MATCH_FIELD_MAX.lookingFor),
-  };
+/**
+ * Spec 9.3: the question legend sent once. Short and long questions in position order get q1, q2, ...; links
+ * questions are left out (links are never sent). keyOf maps a question id to its key.
+ */
+export function matchLegend(rows: EntryQuestion[]): { questions: MatchQuestion[]; keyOf: Map<string, MatchQuestion> } {
+  const questions: MatchQuestion[] = [];
+  const keyOf = new Map<string, MatchQuestion>();
+  for (const q of [...rows].sort((a, b) => a.position - b.position)) {
+    if (q.kind !== 'short' && q.kind !== 'long') continue;
+    const m: MatchQuestion = { key: `q${questions.length + 1}`, kind: q.kind, prompt: flatCut(q.prompt, MATCH_FIELD_MAX.prompt) };
+    questions.push(m);
+    keyOf.set(q.id, m);
+  }
+  return { questions, keyOf };
+}
+
+/**
+ * Legend lines for a legacy row (supervisor advisory on 31a482f): a row the old upsert_entry_profile wrote has
+ * answers '{}', so its pre-0028 columns are sent under these keys instead.
+ */
+export const LEGACY_QUESTIONS: (MatchQuestion & { field: 'headline' | 'interests' | 'lookingFor' })[] = [
+  { key: 'h', kind: 'short', prompt: 'Headline', field: 'headline' },
+  { key: 'i', kind: 'long', prompt: 'Interests', field: 'interests' },
+  { key: 'l', kind: 'long', prompt: 'Looking for', field: 'lookingFor' },
+];
+
+/**
+ * Spec 8.9 + 9.3: only what matching needs: the name and the short and long answers as {q#: text}, in legend order.
+ * Links answers, unknown question ids, non-string and blank values are left out. Whitespace collapsed, cut per kind.
+ * When no answer is usable, the legacy columns are used under the h/i/l keys (legacy: true).
+ */
+export function compactPerson(name: string, p: Pick<EntryProfile, 'answers' | 'headline' | 'interests' | 'lookingFor'>, keyOf: Map<string, MatchQuestion>) {
+  const answers: Record<string, string> = {};
+  for (const [id, q] of keyOf) {
+    const v = p.answers?.[id];
+    const text = typeof v === 'string' ? flatCut(v, MATCH_FIELD_MAX[q.kind]) : '';
+    if (text) answers[q.key] = text;
+  }
+  let legacy = false;
+  if (Object.keys(answers).length === 0) {
+    for (const q of LEGACY_QUESTIONS) {
+      const text = flatCut(p[q.field] ?? '', MATCH_FIELD_MAX[q.kind]);
+      if (text) {
+        answers[q.key] = text;
+        legacy = true;
+      }
+    }
+  }
+  return { name: flatCut(name, MATCH_FIELD_MAX.name), answers, legacy };
+}
+
+function flatCut(s: string, n: number): string {
+  return cut(s.replace(/\s+/g, ' '), n);
 }
 
 export async function sha256Hex(s: string): Promise<string> {
