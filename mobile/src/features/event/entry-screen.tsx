@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
-import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { type ComponentRef, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
@@ -66,6 +66,8 @@ export function EntryScreen() {
   const [error, setError] = useState<string | null>(null);
   // The first answer that fails validateAnswers, shown under its question (spec 9.4 R3).
   const [invalid, setInvalid] = useState<{ questionId: string; text: string } | null>(null);
+  // qa F-EQ1: the inline error is kept in view with its focused field, so it does not end under the Save bar.
+  const errorRef = useRef<ComponentRef<typeof View>>(null);
   const fields = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   // Set after a successful save: prevention turns off first, then the effect below leaves.
   const [saved, setSaved] = useState(false);
@@ -157,6 +159,7 @@ export function EntryScreen() {
     <QScreen
       title={s.title}
       subtitle={s.intro}
+      keepVisible={errorRef}
       actions={
         <>
           {error ? <Hint tone="error">{error}</Hint> : null}
@@ -202,6 +205,7 @@ export function EntryScreen() {
               first={!links || slot === 0}
               end={end}
               error={end && invalid?.questionId === q.id ? invalid.text : null}
+              errorRef={errorRef}
             >
               <QField
                 label={links ? `${q.prompt} ${slot + 1}` : q.prompt}
@@ -237,6 +241,7 @@ function FieldBlock({
   first,
   end,
   error,
+  errorRef,
   children,
 }: {
   q: EntryQuestion;
@@ -244,6 +249,7 @@ function FieldBlock({
   end: boolean;
   error: string | null;
   children: ReactNode;
+  errorRef: RefObject<ComponentRef<typeof View> | null>;
 }) {
   return (
     <>
@@ -261,7 +267,11 @@ function FieldBlock({
       ) : null}
       {children}
       {end && q.kind === 'links' ? <Text style={styles.note}>{s.linksNote}</Text> : null}
-      {error ? <Hint tone="error">{error}</Hint> : null}
+      {error ? (
+        <View ref={errorRef}>
+          <Hint tone="error">{error}</Hint>
+        </View>
+      ) : null}
     </>
   );
 }
