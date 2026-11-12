@@ -6,6 +6,7 @@ import { test } from 'node:test';
 
 import {
   breakTracker,
+  runStopped,
   chooseCue,
   closeStationary,
   mergeSession,
@@ -164,7 +165,7 @@ test('(b) tunnel: 4 minutes with no fix, then 800 m on: counted as the straight 
   // 2300 m at 690 s, no fix until 930 s at 3100 m (3.33 m/s, plausible), then on at 5:00 per km to 4200 m.
   const sim = live(newSim(), [...run(0, 690), ...run(930, 1260, 3100)], 1260);
   const sum = summarize(sim.tracker);
-  assert.ok(sum.distanceM >= 4170 && sum.distanceM <= 4202, `${sum.distanceM} m`);
+  assert.ok(sum.distanceM >= 4185 && sum.distanceM <= 4202, `${sum.distanceM} m`);
   assert.ok(Math.abs(sum.durationS - 1260) <= 10, `moving ${sum.durationS} s`);
   assert.deepEqual(sim.opened, []);
   const after = sim.said.filter((c) => c.s >= 930 && c.s < 1100);
@@ -278,6 +279,24 @@ test('(d) switch off for a 10 m/s bus ride of 600 s: no 6 km, no moving time, no
   );
 });
 
+test('(d) runStopped: only a true -> false change in one mount breaks the run, not re-entering the screen', () => {
+  /** pace-layer's effect: the ref starts null on each mount and follows `running`; returns the breaks. */
+  const breaks = (seq) => {
+    let prev = null;
+    let n = 0;
+    for (const running of seq) {
+      if (runStopped(prev, running)) n++;
+      prev = running;
+    }
+    return n;
+  };
+  assert.equal(breaks([false, true]), 0, 'mount: share loads false, then true');
+  assert.equal(breaks([true]), 0, 'mount already running');
+  assert.equal(breaks([false, true, false]), 1, 'mount, then switch or sharing off');
+  assert.equal(breaks([false, true, false, true]), 1, 'off and on again');
+  assert.equal(breaks([false, false]), 0, 'mount while off');
+});
+
 test('(d) known limit: with the switch on and the screen left, the same bus ride is bridged (under 12 m/s)', () => {
   // Leaving the screen does not break the run (agreed for the background), so a gap no faster than
   // MAX_STEP_SPEED_MPS counts as a straight line; only switching off or sharing off re-anchors.
@@ -307,7 +326,7 @@ test('(e) walking 1.2 m/s with a 60 s light every 2 minutes (accuracy 20 m): the
   const sum = summarize(live(newSim(), fixes, s).tracker);
   // The final 40 m may still be within noise of the anchor (ends standing).
   assert.ok(sum.distanceM >= 680 && sum.distanceM <= 722, `${sum.distanceM} m`);
-  assert.ok(Math.abs(sum.durationS - 600) <= 60, `moving ${sum.durationS} s`);
+  assert.ok(Math.abs(sum.durationS - 600) <= 10, `moving ${sum.durationS} s`);
 });
 
 test('(e) a 4-minute stop mid-run loses no distance and adds no moving time', () => {
@@ -317,4 +336,34 @@ test('(e) a 4-minute stop mid-run loses no distance and adds no moving time', ()
   const sum = summarize(sim.tracker);
   assert.ok(sum.distanceM >= 2970 && sum.distanceM <= 3002, `${sum.distanceM} m`);
   assert.ok(Math.abs(sum.durationS - 900) <= 10, `moving ${sum.durationS} s`);
+});
+
+test('(e) the step out of a stop faster than 12 m/s since the noise fix is a pause, not a burst (km split stays 5:00)', () => {
+  // 966 m at 290 s, standing 120 s, a noise fix 14 m east, a fix 40 m ahead 0.5 s later, then running on.
+  const stop = [];
+  for (let s = 295; s <= 410; s += 5) stop.push(at(966.67, s));
+  const fixes = [
+    ...run(0, 290),
+    ...stop,
+    { ...at(966.67, 410.5, 5, 14) },
+    at(1006.67, 411),
+    ...run(416, 716, 1006.67 + (5 * 1000) / 300),
+  ];
+  const sim = live(newSim(), fixes, 716);
+  const sum = summarize(sim.tracker);
+  assert.ok(sum.splits.length >= 1);
+  assert.ok(sum.splits[0] >= 295 && sum.splits[0] <= 305, `split ${sum.splits[0]}`);
+});
+
+test('(e) known limit: one outlier at the end of a stop adds its offset once (31 m, was 62), not twice', () => {
+  // Standing 180 s, a noise fix 14 m west, an outlier 31 m east 1 s later, then back at the point. The outlier is
+  // over 12 m/s from the noise fix, so it is a pause (no 45 m credit), but it becomes the anchor and the step back
+  // (31 m in 3 s) counts.
+  const fixes = [];
+  for (let s = 0; s <= 180; s += 5) fixes.push(at(0, s));
+  fixes.push(at(0, 181, 5, -14), at(0, 182, 5, 31));
+  for (let s = 185; s <= 300; s += 5) fixes.push(at(0, s));
+  const sum = summarize(live(newSim(), fixes, 300).tracker);
+  assert.ok(sum.distanceM <= 32, `${sum.distanceM} m`);
+  assert.ok(sum.durationS <= 5, `moving ${sum.durationS} s`);
 });

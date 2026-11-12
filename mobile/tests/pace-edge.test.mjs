@@ -148,7 +148,7 @@ test('back from the background after standing still: no distance, no moving time
   // 300 s before and 300 s after; the 600 s gap is left out. The 10 m drift is within the noise floor, so it is
   // counted with the first step out (a few metres and seconds); the last fixes may still be within noise.
   assert.ok(near(sum.durationS, 600, 5), `moving ${sum.durationS} s`);
-  assert.ok(near(sum.distanceM, 2000, 30), `${sum.distanceM} m`);
+  assert.ok(near(sum.distanceM, 2000, 15), `${sum.distanceM} m`);
 });
 
 test('back from the background: the gap is not read as 3 minutes standing still', () => {

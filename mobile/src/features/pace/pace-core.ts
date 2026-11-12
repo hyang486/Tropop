@@ -164,6 +164,15 @@ export function breakTracker(t: Tracker): Tracker {
   return t.lastFix && !t.broken ? { ...t, broken: true } : t;
 }
 
+/**
+ * Whether `running` changing from `prev` to `next` is a real stop (switch or sharing turned off): only an observed
+ * true -> false within one mount. A mount starts with prev null, and the share state loads as false first, so
+ * re-entering the screen (null/false -> true) never breaks the run.
+ */
+export function runStopped(prev: boolean | null, next: boolean): boolean {
+  return prev === true && !next;
+}
+
 function plausibleStep(a: PaceFix, b: PaceFix): boolean {
   const dt = (b.atMs - a.atMs) / 1000;
   return dt > 0 && distanceM(a, b) / dt <= MAX_STEP_SPEED_MPS;
@@ -217,7 +226,8 @@ function stepFixRaw(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean
     const n = t.noiseFix;
     const sinceS = n ? (fix.atMs - n.atMs) / 1000 : 0;
     const speed = n && sinceS > 0 ? distanceM(n, fix) / sinceS : 0;
-    if (speed < PAUSE_SPEED_MPS) {
+    // Over MAX_STEP_SPEED_MPS since the noise fix (an outlier at the end of a stop): a pause, as before.
+    if (speed < PAUSE_SPEED_MPS || speed > MAX_STEP_SPEED_MPS) {
       return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, noiseFix: null, rejects: [] }, kept: true };
     }
     dt = step / speed;
