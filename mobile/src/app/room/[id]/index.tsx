@@ -36,6 +36,7 @@ import { showEndsSoon } from '@/lib/expiry-plan';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useKeyboardOpen } from '@/lib/use-keyboard-open';
+import { memberName } from '@/lib/member-name';
 import { useNow } from '@/lib/use-now';
 
 type State =
@@ -376,7 +377,7 @@ function ChatRoom({
                   <MessageRow
                     item={item}
                     mine={item.sender_id === userId}
-                    name={item.sender_id ? (names.get(item.sender_id) ?? en.chat.formerMember) : ''}
+                    name={item.sender_id ? memberName(names, item.sender_id, room.host_id, en.chat) : ''}
                     onFailedPress={onFailedPress}
                     onMediaPress={openPhotos}
                   />

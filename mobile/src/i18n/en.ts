@@ -288,6 +288,8 @@ export const en = {
     retry: 'Retry',
     discard: 'Delete',
     formerMember: 'Former member',
+    // Grace: the host's row is not readable, but the room's host_id is (src/lib/member-name.ts).
+    host: 'Host',
     you: 'You',
     // #8: the uploader's line; `body` is the stored "shared 3 photos".
     shared: (who: string, body: string) => `${who} ${body}`,

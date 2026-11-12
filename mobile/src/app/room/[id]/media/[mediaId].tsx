@@ -17,6 +17,7 @@ import { authHeaders, discardDownload, downloadOriginal, formatBytes, getMedia, 
 import { mediaTitle, noteSaved, sharedAge } from '@/lib/media-plan';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
+import { memberName } from '@/lib/member-name';
 import { useNow } from '@/lib/use-now';
 import { useRoomOver } from '@/lib/use-room-over';
 import { screenActions } from '@/features/recap/grace-plan';
@@ -48,13 +49,15 @@ export default function MediaScreen() {
         setState({ status: 'missing' });
         return;
       }
-      let uploader: string = en.chat.formerMember;
+      let uploader: string;
       if (media.uploader_id === userId) {
         uploader = en.media.you;
       } else {
-        // Spec 7.1: no members list in grace, so a failed read keeps "former member".
+        // Spec 7.1: in grace only my own member row is readable, so the host shows as "Host" (room.host_id) and
+        // anyone else missing as "Former member".
         const members = await listMembers(id).catch(() => []);
-        uploader = members.find((m) => m.user_id === media.uploader_id)?.display_name ?? uploader;
+        const names = new Map(members.map((m) => [m.user_id, m.display_name]));
+        uploader = memberName(names, media.uploader_id, room.host_id, en.chat);
       }
       // "Not me" is offered only for a photo currently in my Photos of me.
       const matchEnrollment =
