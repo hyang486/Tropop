@@ -56,8 +56,13 @@ output to the developer and qa. If a confirm prompt that should appear does not,
 
 - `GET  /functions/v1/qrewing` → 405.
 - `POST /functions/v1/qrewing` with no Authorization header → 401 `unauthorized`.
-- Optional: `POST {action:'probe'}` with a signed-in simulator user's JWT → 503 `ai_not_configured`. Do not create a new
-  account for this (human rule: ask before creating any live account). Skip it if no existing session token is at hand.
+- Optional: `POST {action:'probe'}` with a signed-in simulator user's JWT. The human has set ANTHROPIC_API_KEY
+  (USER_DECISIONS 2026-11-12 (1)), so expect 200 now (503 `ai_not_configured` would mean the secret is missing). Probe
+  makes no model call. Do not create a new account for this (human rule: ask before creating any live account). Skip
+  it if no existing session token is at hand.
+- Janitor filter parse (supervisor N3): `GET /rest/v1/rooms?select=id&or=(and(or(expires_at.lte.<now>,deleted_at.not.is.null),or(grace_until.is.null,grace_until.lte.<now>)))`
+  with the publishable key → HTTP 200 and `[]` (RLS hides rooms from anon). HTTP 400 means the one-parameter logic
+  tree does not parse: stop and report. The janitor run below being `ok` is the second proof (a filter error throws).
 - Wait for the next `*/5` run, then check room-janitor:
   ```sql
   select * from private.janitor_health() limit 3;

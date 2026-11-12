@@ -49,9 +49,12 @@ export function isRoomDue(r: RoomClock, now: Date): boolean {
   return closed && graceOver;
 }
 
-/** The same rule as two PostgREST or-filters (chained .or() calls are ANDed). */
-export function dueRoomFilters(nowIso: string): [string, string] {
-  return [`expires_at.lte.${nowIso},deleted_at.not.is.null`, `grace_until.is.null,grace_until.lte.${nowIso}`];
+/**
+ * The same rule as ONE PostgREST logic tree for `.or()`: or=(and(or(closed),or(graceOver))). One parameter, so it
+ * does not depend on how PostgREST combines a repeated `or` parameter (supervisor N3).
+ */
+export function dueRoomFilter(nowIso: string): string {
+  return `and(or(expires_at.lte.${nowIso},deleted_at.not.is.null),or(grace_until.is.null,grace_until.lte.${nowIso}))`;
 }
 
 /** Objects a job is allowed to delete: exact-path jobs delete that object; prefix jobs only objects that existed when queued. */

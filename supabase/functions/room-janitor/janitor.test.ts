@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { dueRoomFilters, isRoomDue, runJanitor, type CleanupJob, type JanitorStore, type StoredObject } from './core.ts';
+import { dueRoomFilter, isRoomDue, runJanitor, type CleanupJob, type JanitorStore, type StoredObject } from './core.ts';
 
 const NOW = new Date('2026-11-04T12:00:00Z');
 const iso = (minAgo: number) => new Date(NOW.getTime() - minAgo * 60_000).toISOString();
@@ -143,8 +143,8 @@ test('7.1 grace: due only when expired or ended AND no grace or grace over', () 
 
 test('7.1 grace: PostgREST filters encode the same rule', () => {
   const nowIso = NOW.toISOString();
-  assert.deepEqual(dueRoomFilters(nowIso), [
-    `expires_at.lte.${nowIso},deleted_at.not.is.null`,
-    `grace_until.is.null,grace_until.lte.${nowIso}`,
-  ]);
+  assert.equal(
+    dueRoomFilter(nowIso),
+    `and(or(expires_at.lte.${nowIso},deleted_at.not.is.null),or(grace_until.is.null,grace_until.lte.${nowIso}))`,
+  );
 });
