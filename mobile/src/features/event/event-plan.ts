@@ -47,14 +47,23 @@ function escapeRegExp(s: string) {
  * host messages come back important from the server for everyone.
  */
 export function mentionsName(body: string | null | undefined, displayName: string | null | undefined): boolean {
-  const name = displayName?.normalize('NFC').trim().replace(/\s+/g, ' ');
-  if (!body || !name) return false;
+  if (!body || !displayName) return false;
+  const re = mentionRegExp(displayName);
+  return re !== null && re.test(body.normalize('NFC'));
+}
+
+// One RegExp per display name (the chat checks every row); the last name only, since a phone has one user.
+let mentionCache: { key: string; re: RegExp | null } | null = null;
+function mentionRegExp(displayName: string): RegExp | null {
+  if (mentionCache?.key === displayName) return mentionCache.re;
+  const name = displayName.normalize('NFC').trim().replace(/\s+/g, ' ');
   const first = name.split(' ')[0];
   const names = [...new Set([name, first])].filter((n) => n.length >= 2);
-  if (names.length === 0) return false;
-  const alt = names.map(escapeRegExp).join('|');
-  const re = new RegExp(`(^|[^\\p{L}\\p{N}_.@])@(?:${alt})(?=$|[^\\p{L}\\p{N}_])`, 'iu');
-  return re.test(body.normalize('NFC'));
+  const re = names.length
+    ? new RegExp(`(^|[^\\p{L}\\p{N}_.@])@(?:${names.map(escapeRegExp).join('|')})(?=$|[^\\p{L}\\p{N}_])`, 'iu')
+    : null;
+  mentionCache = { key: displayName, re };
+  return re;
 }
 
 export type ChatLike = { id: string; kind: string; sender_id: string | null; body: string | null };

@@ -21,7 +21,7 @@ export const eventStrings = {
     title: 'Qrewing AI is on in this room',
     body: [
       'In this room, your messages and entry info are sent to Anthropic’s Claude to flag important messages, suggest people to meet and write a recap.',
-      'Host messages and messages with @everyone or @all are highlighted by simple rules in Qrew, without AI. Only other messages, and only from members who agreed, are sent to the AI.',
+      'Host messages and messages with @everyone, @all or @here are highlighted by simple rules in Qrew, without AI. Only other messages, and only from members who agreed, are sent to the AI.',
       'Qrew deletes them, along with everything Qrewing made from them, when the room ends.',
       'If you choose Not now, your messages stay out of every Qrewing request. You can agree later from Room info.',
     ],
@@ -106,6 +106,10 @@ export const eventStrings = {
       'Chat closes now. The recap and photos stay available for 30 minutes, then messages, photos and files are deleted from the server. Anything already saved to a phone stays there.',
     effects: 'Closes now · Deleted after 30 min',
     effectsLabel: 'The room closes now. The recap and photos stay for 30 minutes, then everything is deleted.',
+    // Qrewing AI off (or unknown): no recap is written, so the copy names photos only.
+    deletedNoRecap:
+      'Chat closes now. Photos stay available for 30 minutes, then messages, photos and files are deleted from the server. Anything already saved to a phone stays there.',
+    effectsLabelNoRecap: 'The room closes now. Photos stay for 30 minutes, then everything is deleted.',
   },
   grace: {
     availableUntil: (time: string) => `Recap and photos available until ${time}`,

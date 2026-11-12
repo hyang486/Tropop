@@ -7,6 +7,7 @@ import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
+import { useQrewingRoom } from '@/features/event/qrewing-api';
 import { eventStrings } from '@/features/event/strings';
 import { recapAfterEnd } from '@/features/recap/recap-store';
 import { en } from '@/i18n/en';
@@ -60,7 +61,14 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
   );
 
   // Spec 7.4: the end-room deletion lines come from the event strings until they move into en.ts at merge.
-  const copy = kind === 'activity' ? en.endActivity : { ...en.endRoom, ...eventStrings.endRoom };
+  // The recap is mentioned only when Qrewing AI is on in this room (no recap is written otherwise).
+  const qrewing = useQrewingRoom(id ?? '');
+  const recapOn = qrewing.aiEnabled;
+  const ev = eventStrings.endRoom;
+  const copy =
+    kind === 'activity'
+      ? en.endActivity
+      : { ...en.endRoom, ...ev, effectsLabel: recapOn ? ev.effectsLabel : ev.effectsLabelNoRecap };
   const header = <Stack.Screen options={{ title: copy.title, headerTitle: '', gestureEnabled: !running }} />;
 
   if (load.status === 'loading') {
@@ -149,7 +157,7 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
             new Date(expiresMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
           ),
         ]
-      : [en.endRoom.body, eventStrings.endRoom.deleted];
+      : [en.endRoom.body, recapOn ? ev.deleted : ev.deletedNoRecap];
   const from = kind === 'activity' ? ['mappin.and.ellipse'] : ['bubble.left', 'photo', 'doc'];
   const to = kind === 'activity' ? 'photo' : 'trash';
 

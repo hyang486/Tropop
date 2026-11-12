@@ -98,7 +98,8 @@ export default function Rooms() {
           </View>
         ) : null}
 
-        {rooms && rooms.length > 0 ? <QLabel>{en.home.yourRooms}</QLabel> : null}
+        {/* The label counts only rows that show: a grace row dropping out may leave none. */}
+        {rooms && rooms.some((r) => roomListEntry(r, now).kind !== 'hidden') ? <QLabel>{en.home.yourRooms}</QLabel> : null}
         {rooms?.map((room) => {
           // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
           // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.

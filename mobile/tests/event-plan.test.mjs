@@ -247,3 +247,13 @@ test('invokeFailureKind: HTTP errors are read, relay errors are server failures,
   assert.equal(invokeFailureKind(new TypeError('Network request failed')), 'network');
   assert.equal(invokeFailureKind(new Error('boom')), 'server');
 });
+
+test('mentionsName: cached RegExp gives the same answer on repeat calls and follows a name change', async () => {
+  const { mentionsName } = await import('../src/features/event/event-plan.ts');
+  assert.equal(mentionsName('hi @Bob', 'Bob Lee'), true);
+  assert.equal(mentionsName('hi @Bob', 'Bob Lee'), true, 'no lastIndex carry-over');
+  assert.equal(mentionsName('hi @Bobby', 'Bob Lee'), false);
+  assert.equal(mentionsName('hi @Bob', 'Ann Kim'), false, 'name changed');
+  assert.equal(mentionsName('hi @Ann', 'Ann Kim'), true);
+  assert.equal(mentionsName('hi @A', 'A'), false, 'short names never match');
+});
