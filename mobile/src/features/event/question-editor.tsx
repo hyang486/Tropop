@@ -107,7 +107,6 @@ export function QuestionEditor({
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
                     onPress={() => onChange(updateQuestion(value, q.key, { kind }))}
-                    hitSlop={{ top: 4, bottom: 4 }}
                     style={[styles.chip, selected && { backgroundColor: colors.tint }]}
                   >
                     <Text style={[styles.chipText, selected && { color: colors.onTint }]}>{KIND_LABEL[kind]}</Text>
@@ -145,7 +144,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     paddingHorizontal: 14,
     paddingVertical: 9,
-    minHeight: 36,
+    minHeight: 44,
     justifyContent: 'center',
   },
   chipText: { fontSize: 14, color: colors.label },
