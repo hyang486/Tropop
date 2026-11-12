@@ -15,6 +15,7 @@ export const paceStrings = {
   timePlaceholder: 'h:mm:ss',
   perKm: 'per km',
   save: 'Save target',
+  saved: 'Target saved.',
   invalidPace: 'Enter a pace like 5:30.',
   invalidTime: 'Enter a distance in km and a time like 50:00 or 1:45:00.',
   noTarget: 'No target yet. Run once, or set a target pace.',

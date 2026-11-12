@@ -346,3 +346,39 @@ export function summaryFor(
     ? { distanceM: Math.round(s.distanceM), durationS: s.durationS, avgSecPerKm: Math.round(s.avgSecPerKm) }
     : null;
 }
+
+// --- target input -----------------------------------------------------------------------------------------------
+
+/** "5:30" -> 330 s per km. Minutes 1-30, seconds 0-59. */
+export function parsePace(text: string): number | null {
+  const m = /^\s*(\d{1,2}):([0-5]\d)\s*$/.exec(text);
+  if (!m) return null;
+  const s = Number(m[1]) * 60 + Number(m[2]);
+  return s >= 60 && s <= 30 * 60 ? s : null;
+}
+
+/** "50:00" or "1:45:00" -> seconds; null otherwise. */
+export function parseDuration(text: string): number | null {
+  const m = /^\s*(?:(\d{1,2}):)?(\d{1,3}):([0-5]\d)\s*$/.exec(text);
+  if (!m) return null;
+  const h = m[1] ? Number(m[1]) : 0;
+  const min = Number(m[2]);
+  if (m[1] && min > 59) return null;
+  const s = h * 3600 + min * 60 + Number(m[3]);
+  return s > 0 ? s : null;
+}
+
+/** "10" or "21.1" (or "21,1") km -> meters, 0.1-200 km. */
+export function parseKm(text: string): number | null {
+  const n = Number(text.trim().replace(',', '.'));
+  return Number.isFinite(n) && n >= 0.1 && n <= 200 ? Math.round(n * 1000) : null;
+}
+
+/** "12:05" or "1:02:05" for a duration in seconds. */
+export function formatDuration(totalS: number): string {
+  const s = Math.max(0, Math.round(totalS));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(s % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+}
