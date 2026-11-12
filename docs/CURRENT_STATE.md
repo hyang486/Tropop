@@ -5,6 +5,60 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-12: Qrewing backend (branch qrewing-backend); nothing applied or deployed
+- 00dd3b7 Edge Function qrewing (spec 2, 7.2): node tests 21/21. ddfe985 migration 0027 tables/RPCs.
+- d2fad59 0027 grace (7.1) plus the supervisor's broadcast fix: grace_until, end_room with 30 min grace, is_grace_member,
+  7 select-only grace policies plus a recap-only realtime receive, recap-only broadcast in grace, refreshed_at, cron */5.
+  room-janitor isRoomDue/dueRoomFilters (janitor tests 11/11). SQL test section 7b. Parsed only; NOT run against a DB.
+  Review request sent to supervisor with the policy list and janitor bounds.
+- 107d7b8 expo-speech installed (7.5). No rebuild: one rebuild after all three branches merge.
+- Live sitting script: docs/qrewing-live-sitting.md; dry-run SQL builder scripts/qrewing-dry-run.mjs. Held for the human.
+- 9a4cdb6 triage prefilter (8.8, supervisor PASS), de19608 janitor single or-tree, 71978d0 compact match input (8.9).
+  Rerun: janitor 11/11, qrewing 26/26. Live read-only check: migrations end at 0026; cron = expiry-reminders, room-janitor only.
+  Supervisor PASS on de19608 and 71978d0.
+- 68132d6 review fixes: F1 recap max 2 attempts/room (refreshed_at = retry spent on a failed row), F2 refresh 2048,
+  F3 match in-flight guard (input_hash 'pending:<uuid>' CAS, 2 min TTL; loser gets stale list or 202 = contract change
+  for developer-event), qa Q1-Q3 prefilter (no @name rule, no bare everyone/important, rules for every sender). No SQL.
+  qrewing 32/32, janitor 11/11. Review requested.
+  0027 apply HOLD: waiting for qa on the approval scope (USER_DECISIONS line 219); then rollback test, apply, janitor deploy.
+- Supervisor PASS on 68132d6, plus S1/S2 required before the qrewing deploy. 23e1423: S1 SDK pinned to 1.3.0 (2026-10-23;
+  npm pack typings have output_config.effort and format json_schema; the adapter tsc-checks against them, negative
+  control fails as expected). S2 a stale pending recap is retaken only while refreshed_at is null and sets it; a spent
+  stale pending returns 502 with no call (test added). qrewing 33/33, janitor 11/11, tsc strict clean. No SQL.
+  Deploy order (supervisor): 0027 rollback test → apply → janitor deploy → qrewing deploy → probe smoke (200, no content logged).
+  Still held on qa's approval-scope answer.
+- Sitting (authority: USER_DECISIONS 2026-11-12 FINAL (2) "해도 돼"). Pre-checks passed (0026 last, no drift in end_room /
+  broadcast_room_change, cron */15, advisor baseline saved). Step 1 dry run RAN (human approved the prompt) and FAILED:
+  22023 from private.media_integrity (0015) "original file is missing or empty" — test 7b inserted a ready media row before
+  its Storage object. Rolled back. Test-only fix 32ac0c7. Rerun (qa accepted 10:47Z) FAILED at "grace: A cannot add
+  media" (got 22023): the media_integrity BEFORE trigger fires before RLS and rejected the path '{room}/x/original.jpg'.
+  Test-only fix: explicit id, path under {room}/{id}/, default status. Scan: no other trap (only media has a raising
+  BEFORE trigger live; every RPC under a 42501 test checks host/member first). 0027 byte-identical to 9a4cdb6.
+  Recheck: still 0026, no qrewing tables, no grace_until, janitor */15, no idle transaction. Rerun on supervisor PASS
+  (qa answers the prompts). Steps 2-5 not run.
+- Step 1 rerun on 686a69e: PASS (no FAIL, leftovers 0, still 0026). Step 2 apply: PASS (supervisor f841c2e).
+  0027 IS APPLIED LIVE. Version mapping: MCP apply_migration stored 20261112105302 "qrewing_ai" for the local file
+  supabase/migrations/20261104000027_qrewing_ai.sql (same content). A later CLI db push must treat these as one
+  migration (e.g. `supabase migration repair`), not as drift. Post-apply: 6 public tables + private.qrewing_usage,
+  rooms.grace_until, room-janitor job */5 active.
+- Test file alone (686a69e, verbatim minus comments) on the applied DB: no FAIL raised (every assert raises on
+  failure), ROLLBACK, leftovers 0; after: no tests schema, no QA rooms, 0 idle in transaction. Reported to supervisor.
+  Next (on supervisor PASS): room-janitor deploy → qrewing deploy 23e1423 → smoke (runbook sections 3-4).
+- Supervisor PASS bebc57c. room-janitor v10 ACTIVE (verify_jwt false, source = local). qrewing 23e1423 DEPLOYED
+  (id 8befc29d, v1, ACTIVE, verify_jwt false) ~11:05Z; the supervisor's hold (qa-proxy cost safety, M1/M2) arrived after
+  the call had completed. Reported. No probe/smoke made. Next: M1/M2/L4 (+L5/L8) fix on qrewing-backend → review → redeploy → smoke.
+- d30438f cost fixes (functions/qrewing only, no SQL): M1 match failed:<n> marker, cooldown 2 min/10 min/24 h, old list kept;
+  M2 triage model failures end skipped reason 'model_failed' (final, counted in the cap); L4 esc quotes; L5 recapLine;
+  L7 TTL 3 min; L8 setup inside try. qrewing 36/36, janitor 11/11, tsc strict clean (SDK 1.3.0). Supervisor decided to leave
+  v1 live (option b). Review requested. Next on PASS: deploy d30438f as v2, verify source, probe/smoke (runbook §4).
+- Supervisor PASS d30438f. qrewing v2 DEPLOYED (id 8befc29d, ACTIVE, verify_jwt false, ~11:12Z). Deployed source: index.ts
+  and prompts.ts byte-identical; core.ts differs only in EMOJI_RE, where the deploy encoding wrote U+200D/U+FE0F/U+20E3
+  as literal characters instead of \u escapes (same code points; the deployed files pass qrewing.test.ts 36/36).
+  Smoke (runbook §4): GET 405, POST without auth 401, non-user bearer 401, janitor or-filter 200 []. Janitor runs
+  11:00/11:05/11:10 ok 200, stuck 0. Usage 0 rows (no model call yet), no qrewing rows. Logs: no qrewing request
+  between the v1 deploy and the smoke. Probe with a user JWT NOT run: no session token at hand, and no new account without
+  the human (rule). Real model call still unverified (SDK 1.3.0 output_config acceptance, match max_tokens headroom).
+
 ## 2026-11-09: U6 G-U6-1 — 33264a7 on qrew-u6 (from main e89cf85); local, no push, no rebuild
 - Place and time (0026) closed: qa PASS on qrew-pt 62d8fdd and 28bd04f, merged --no-ff → main e89cf85 (dev: tsc 0, lint 0, 303/303).
   U5 closed earlier: qa PASS, merged --no-ff → main 1d96367 (LS). The U5 and U4 "NOT on a simulator yet" lines below are superseded.
