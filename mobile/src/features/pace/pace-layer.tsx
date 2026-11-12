@@ -57,7 +57,9 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
   const running = room.activity_state === 'active' && settings.on && my.share;
   const live = running && focused;
   const key = runKey(room.id, room.activity_seq);
-  const presence = useLivePresence(room.id, running);
+  // Only while the Map is in front: fixes feed only then, and a hidden tab would refetch every member's row on
+  // each presence change for nothing (the Map's own markers keep their separate read).
+  const presence = useLivePresence(room.id, live);
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const [picking, setPicking] = useState(false);
 
