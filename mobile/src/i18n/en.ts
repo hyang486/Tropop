@@ -675,6 +675,8 @@ export const en = {
     },
     ask: {
       fabLabel: 'Ask Qrewing',
+      done: 'Done',
+      doneLabel: 'Close Ask Qrewing',
       title: 'Ask Qrewing',
       intro: 'Only you see these questions and answers. They stay on this phone and are deleted when the room ends or you leave.',
       empty: 'Ask about this room: the plan, the route, or what people said in the chat.',

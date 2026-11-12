@@ -115,7 +115,16 @@ export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRe
 
 export async function setQrewingMember(roomId: string, aiOk: boolean, mute: boolean): Promise<{ error?: string; offline?: boolean }> {
   const { error } = await supabase.rpc('set_qrewing_member', { p_room_id: roomId, p_ai_ok: aiOk, p_mute: mute });
-  return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
+  if (error) return { error: error.message, offline: saveErrorKind(error) === 'network' };
+  memberChanged(roomId);
+  return {};
+}
+
+// Every mounted useQrewingRoom of a room re-reads after my consent/mute row changes anywhere (e.g. the chat's
+// disclosure sheet), so another reader such as the Ask Qrewing button never keeps a stale `aiOk`.
+const memberListeners = new Set<(roomId: string) => void>();
+function memberChanged(roomId: string) {
+  for (const l of memberListeners) l(roomId);
 }
 
 // --- host-defined entry questions (spec 9.2 contract, migration 0028) -----------------------------------------------
@@ -202,6 +211,16 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
   const [kept, setKept] = useState<KeyedRoomState | null>(null);
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  useEffect(() => {
+    const onChange = (changed: string) => {
+      if (changed === roomId) reload();
+    };
+    memberListeners.add(onChange);
+    return () => {
+      memberListeners.delete(onChange);
+    };
+  }, [roomId, reload]);
 
   useEffect(() => {
     let alive = true;

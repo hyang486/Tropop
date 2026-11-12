@@ -2,7 +2,7 @@
 // room, and the history stays on this phone (ask-store).
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { QField, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
@@ -101,7 +101,18 @@ export function AskScreen() {
         </View>
       }
     >
-      <Stack.Screen options={{ title: s.title, headerTitle: '' }} />
+      <Stack.Screen
+        options={{
+          title: s.title,
+          headerTitle: '',
+          // A visible way out besides the swipe (VoiceOver users cannot discover it).
+          headerRight: () => (
+            <Pressable accessibilityRole="button" accessibilityLabel={s.doneLabel} hitSlop={8} onPress={() => router.back()}>
+              <Text style={styles.done}>{s.done}</Text>
+            </Pressable>
+          ),
+        }}
+      />
       {!loaded ? (
         <ActivityIndicator />
       ) : (
@@ -169,6 +180,7 @@ function Bubble({ text, mine }: { text: string; mine?: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  done: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 6 },
   flex: { flex: 1 },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   field: { maxHeight: 120, paddingTop: 13, paddingBottom: 13 },
