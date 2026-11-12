@@ -572,6 +572,15 @@ export function summaryFor(history: PaceSession[], roomId: string): PaceSummary 
     : null;
 }
 
+/**
+ * The recap's summary with live runs counted: the recap can be built right after the host ends the activity, while
+ * the run is still in memory or its save has not finished. Live sessions replace their saved copy (same room and
+ * start), so nothing is counted twice and history is not written.
+ */
+export function summaryWithLive(history: PaceSession[], live: PaceSession[], roomId: string): PaceSummary | null {
+  return summaryFor(live.reduce(mergeSession, history), roomId);
+}
+
 /** The recap line's parts for a summary ("12:00" moving, "17:00" total, "5:00" pace), or null with no session. */
 export function recapParts(
   summary: PaceSummary | null | undefined,

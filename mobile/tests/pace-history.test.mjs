@@ -7,7 +7,11 @@ import {
   mergeSession,
   paceCue,
   parseHistory,
+  addFix,
+  newTracker,
+  summarize,
   summaryFor,
+  summaryWithLive,
   targetSecPerKm,
   usualPace,
 } from '../src/features/pace/pace-core.ts';
@@ -105,4 +109,38 @@ test('runs under 100 m have no pace and never pull the usual pace', () => {
   h = mergeSession(h, s('r', 2, 50));
   assert.equal(h[0].avgSecPerKm, null);
   assert.equal(usualPace(h), 330);
+});
+
+// The host's recap runs right after end_room, while my run may still be in memory or its save unfinished.
+const liveRun = (roomId) => {
+  let t = newTracker(roomId, 1_000);
+  for (let sec = 0; sec <= 600; sec += 10) t = addFix(t, { latitude: ((sec * 1000) / 300) / 111_320, longitude: 0, atMs: 1_000 + sec * 1000 });
+  return summarize(t);
+};
+
+test('recap with a live run and no save yet still has a pace summary', () => {
+  const live = liveRun('a');
+  assert.equal(summaryFor([], 'a'), null);
+  const sum = summaryWithLive([], [live], 'a');
+  assert.ok(sum);
+  assert.equal(sum.durationS, 600);
+  assert.ok(Math.abs(sum.avgSecPerKm - 300) <= 1);
+});
+
+test('a live run already saved (or the summary built twice) counts once and history is not changed', () => {
+  const live = liveRun('a');
+  const saved = mergeSession([], { ...live, distanceM: 500, durationS: 150, avgSecPerKm: 300 });
+  const before = JSON.stringify(saved);
+  const one = summaryWithLive(saved, [live], 'a');
+  const two = summaryWithLive(saved, [live, live], 'a');
+  assert.deepEqual(one, two);
+  assert.equal(one.distanceM, Math.round(live.distanceM)); // the live copy replaces the older save
+  assert.equal(JSON.stringify(saved), before);
+  assert.equal([live, live].reduce(mergeSession, saved).length, 1);
+});
+
+test('recap: no run in the room gives null; a live run in another room does not count', () => {
+  assert.equal(summaryWithLive([], [], 'a'), null);
+  assert.equal(summaryWithLive([], [liveRun('b')], 'a'), null);
+  assert.equal(summaryWithLive([s('a', 5, 2400)], [liveRun('b')], 'a').distanceM, 2400);
 });

@@ -12,6 +12,7 @@ import {
   newTracker,
   openStationary,
   type PaceFix,
+  type PaceSession,
   type Point,
   progressOf,
   spokenCue,
@@ -102,6 +103,15 @@ export function flushRun(key: string) {
   if (!run || !run.tracker.lastFix) return;
   put({ ...run, lastSavedAtMs: Date.now() });
   saveSession(summarize(run.tracker)).catch(() => {});
+}
+
+/** My in-memory sessions in this room (any activity), for a recap built before or while they are saved. */
+export function liveSessions(roomId: string): PaceSession[] {
+  const out: PaceSession[] = [];
+  for (const run of runs.values()) {
+    if (run.tracker.roomId === roomId && run.tracker.lastFix) out.push(summarize(run.tracker));
+  }
+  return out;
 }
 
 export type FeedContext = {
