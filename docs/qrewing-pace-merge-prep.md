@@ -157,3 +157,12 @@ Device QA (physical iPhone): with the silent switch off, each cue is spoken with
 After applying: `npx tsc --noEmit`, `npm test` (speech-queue tests unchanged), lint. Then rebuild both simulators and run `docs/evidence/qrewing-pace-qa-demo.md` steady to check speech. Without sound, check the banner and the `Spoken` column timing.
 
 Stop on run stop (do this when applying the diff): add `export function stopSpeech()` to `voice.ts`. It calls `speech?.stop()`, drops the queued utterances (reset the queue, clear `budgetTimer`), and makes no vibration. Call it from PaceRunner's flush-on-stop cleanup in `pace-layer.tsx` (the `if (!running) return; return () => { flushRun(key); reloadHistory(); }` effect). That way End activity, switch off, sharing off and leaving the screen stop any cue that is still playing or queued. Device QA: end the activity right after a km cue starts; the cue stops and nothing plays after it. Until then, at most one queued cue can still play after End activity, because cues are at least 20 s apart.
+
+## 6. Merge rehearsal (2026-11-12; throwaway worktree and branch, both deleted)
+
+- Order: `main` (ed5a281), then qrewing-event `73b532d` (fast-forward), then qrewing-pace (`ort`, merged cleanly).
+- Conflicts: none. No file is changed by both branches (`comm` of the two `main` diffs is empty).
+- M2 `en.ts`: neither branch edits it yet, so it has no conflict. The string move stays a post-merge step: `en.qrewing` first, then `en.pace` (§1).
+- M3 `features/recap/recap-store.ts`: rehearsed by importing `getActivitySummary` and `paceRecapLine` from `@/features/pace/summary` and replacing `pace: null` with `paceRecapLine(await getActivitySummary(roomId))`. It was not committed; it is to be applied by whoever owns recap at merge. `getActivitySummary` never rejects, and it counts a live run (2ba6451).
+- After the merge plus M3: `npx tsc --noEmit` exit 0; `npm test` 436/436; `npx expo lint` exit 0.
+- Not done in the rehearsal: `expo-speech` in package.json (needs a native rebuild), the `en.pace` move, and any device run.
