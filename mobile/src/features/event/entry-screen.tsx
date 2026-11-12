@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useNavigation, usePreventRemove, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 
@@ -37,7 +37,6 @@ function problemText(p: EntryProblem): string {
 export function EntryScreen() {
   const { id, gate } = useLocalSearchParams<{ id: string; gate?: string }>();
   const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuth();
   const userId = session?.user.id;
   const [loading, setLoading] = useState(true);
@@ -54,6 +53,8 @@ export function EntryScreen() {
   const [loaded, setLoaded] = useState({ headline: '', interests: '', lookingFor: '', links: ['', '', ''] });
   const fields = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   const focusNext = (i: number) => fields.current[i + 1]?.focus();
+  // Set after a successful save: prevention turns off first, then the effect below leaves.
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -80,15 +81,22 @@ export function EntryScreen() {
   }, [id, userId, loadTick]);
 
   const dirty = !loading && !loadFailed && entryDirty(loaded, { headline, interests, lookingFor, links });
-  const allowLeave = usePreventRemove(dirty && !busy, ({ data }) => {
+  // `repeat` turns prevention off and then runs the blocked action (dispatching alone would be blocked again).
+  usePreventRemove(dirty && !busy && !saved, ({ repeat }) => {
     Alert.alert(s.discardTitle, s.discardBody, [
       { text: s.keepEditing, style: 'cancel' },
-      { text: s.discard, style: 'destructive', onPress: () => navigation.dispatch(data.action) },
+      { text: s.discard, style: 'destructive', onPress: repeat },
     ]);
   });
 
+  useEffect(() => {
+    if (!saved) return;
+    if (gate === '1') router.replace({ pathname: '/room/[id]', params: { id } });
+    else router.back();
+  }, [saved, gate, id, router]);
+
   async function save() {
-    if (busy || loading || loadFailed) return;
+    if (busy || saved || loading || loadFailed) return;
     const checked = validateEntry({ headline, interests, lookingFor, links });
     if ('problem' in checked) {
       setError(problemText(checked.problem));
@@ -102,9 +110,7 @@ export function EntryScreen() {
       setError(res.offline ? en.qrewing.errors.network : s.saveFailed);
       return;
     }
-    allowLeave();
-    if (gate === '1') router.replace({ pathname: '/room/[id]', params: { id } });
-    else router.back();
+    setSaved(true);
   }
 
   return (
