@@ -39,6 +39,12 @@ app ID and keychain group (host 9K6BKSS4U6, guests FAKETEAMID build).
    chat opens.
 6. Room info → Qrewing AI section shows "Your messages are included" and **Edit my entry info**.
 
+7. B1 device check (73b532d), on a guest who has not joined yet (or Guest B in a fresh room): when the disclosure
+   sheet appears, **swipe it down** without tapping Agree or Not now. Expected: the sheet closes, the chat area
+   shows the entry gate (not the message list), and there is no composer (no text field or Send). Tapping the
+   gate's button opens "Introduce yourself". The Mute small talk bar is not shown. FAIL if the message list or
+   composer is usable before Save.
+
 ## 3. Mute small talk and important messages
 
 1. Guest A: turn on **Mute small talk** → "Showing important messages".
@@ -52,6 +58,18 @@ app ID and keychain group (host 9K6BKSS4U6, guests FAKETEAMID build).
 6. Optional: on a member who chose Not now, turning on Mute opens the "Qrewing AI is on in this room" sheet first.
 7. If the AI is down: "Qrewing is not available right now. All messages are shown." Record it with a screenshot.
    It is not a failure of this step.
+
+8. B2 device check (73b532d): no alert from old messages after a failed first load.
+   Setup: Guest A has Mute small talk on; Guest B and the host have posted an "@<Guest A name>" line and an
+   @everyone line. Guest A leaves the room screen.
+   - Making the first load fail needs a network cut on Guest A only. There is no guest-only cut on the simulators
+     without admin rights or a Mac-wide change (see CURRENT_STATE). Do not turn off the Mac's network unless the
+     human approves it through supervisor. Without approval, record "B2 device: NOT VERIFIED (no guest-only network
+     cut); covered by the nextLoadedOnce unit tests".
+   - If approved: cut the network, open the room on Guest A (chat shows the load error and Try again), restore the
+     network, tap Try again. Expected: the old lines load with no "You were mentioned" or "Important: …" banner
+     and no buzz. Then Guest B posts a new "@<Guest A name>" line, and Guest A gets "You were mentioned".
+     FAIL if a banner appears for a line older than the reconnect.
 
 ## 4. People to meet (Guest A)
 
