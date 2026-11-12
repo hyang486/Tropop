@@ -36,7 +36,7 @@ The qrewing function is deployed only after the M1/M2/L4 fix (qa cost-safety dec
 | B0.1 | after the fixed deploy | `GET /functions/v1/qrewing` → 405. `POST` with no auth → 401 `unauthorized`. | `merged-B0.1.txt` (copied from the sitting record) |
 | B0.2 | after the fixed deploy | Probe with an existing session → 200 (503 `ai_not_configured` means the secret is missing). | `merged-B0.2.txt` |
 | B0.3 | sitting log | Janitor filter GET → 200 `[]`. `private.janitor_health()` newest run is `ok`. The cron runs `*/5` and they `succeeded`. | `merged-B0.3.txt` |
-| B0.4 | Mac | The merged checkout: `npx tsc --noEmit`, `npm test` (≥ 437 pass; event daf5b26 added a test), `npx expo lint`, all exit 0. | `merged-B0.4.txt` |
+| B0.4 | Mac | The merged checkout: `npx tsc --noEmit`, `npm test` (≥ 446 pass), `npx expo lint`, all exit 0. | `merged-B0.4.txt` |
 | B0.5 | every sim | The app ID matches the table, the app opens signed in, and Metro has no red box. | `merged-B0.5-<sim>.png` |
 
 ## 1. Event room: create (Host)
@@ -46,6 +46,7 @@ The qrewing function is deployed only after the M1/M2/L4 fix (qa cost-safety dec
 | E1.1–1.3 | Host | Create room, 3 hours, **Qrewing AI** on, **Ask attendees for entry info** on, and the hints are shown. | `merged-E1.3.png` |
 | E1.4 | Host | The room opens with no "Qrewing AI could not be turned on" error. This is the first live client call to `set_qrewing_room`. | `merged-E1.4.png` |
 | E1.5 | Host | Disclosure "Qrewing AI is on in this room" → Agree. | `merged-E1.5.png` |
+| E1.6 | Host | In a room with Qrewing AI **off**: no disclosure, no entry gate, no Mute bar and no People section. No qrewing call is made (unit-covered: `tests/event-plan.test.mjs`, 2d32227). Refs `chat-layer.tsx:22`, `:40`; `info-section.tsx:53`. | `merged-E1.6.png` |
 
 ## 2. Entry form (Guest A, then Guest B)
 
@@ -54,7 +55,9 @@ The qrewing function is deployed only after the M1/M2/L4 fix (qa cost-safety dec
 | E2.1–2.2 | A, B | Join by code, then the disclosure (Agree), then the "Introduce yourself" gate. | `merged-E2.2.png` |
 | E2.3–2.4 | A | An empty headline shows "Add a headline.". `http://x.com` shows the https rule error. | `merged-E2.4.png` |
 | E2.5 | A, B | Save valid entries (different topics), and chat opens. | `merged-E2.5-A.png`, `-B.png` |
+| E2.5k | A | With the keyboard up, the header **Save** is reachable. Return moves to the next field, and Return on the last link saves. Chat then shows the room title, the ends line and the tabs. FAIL if the header area stays blank (fix 70f850d). Refs `entry-screen.tsx:135-146`, `:208`, `:94`; `use-keyboard-open.ts`. | `merged-E2.5k.png` |
 | E2.6 | A | Room info shows "Your messages are included" and **Edit my entry info**. | `merged-E2.6.png` |
+| E2.6d | A | **Edit my entry info** → change a field → Back shows "Discard your entry info?" / "What you typed has not been saved." with **Keep editing** / **Discard**. One tap on Discard leaves. Back with no changes leaves without the prompt. Refs `en.ts:676-679`, `entry-screen.tsx:85-90`. | `merged-E2.6d.png` |
 | E2.7 | Spare (fresh joiner) | **B1:** swipe the disclosure down without answering. The entry gate shows, there is no message list or composer, and no Mute bar. The gate button opens "Introduce yourself". FAIL if chat is usable before Save. | `merged-E2.7.png` |
 
 ## 3. Mute small talk and important messages
