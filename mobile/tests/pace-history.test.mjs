@@ -39,8 +39,9 @@ test('stored history that is not valid JSON or has bad rows is dropped, not thro
   assert.deepEqual(parseHistory(JSON.stringify([good, { roomId: 3 }, null])), [good]);
 });
 
-test('recap summary: the latest session in that room with distance, else null', () => {
-  const h = [s('a', 1, 1500), s('a', 5, 0), s('a', 3, 2400.4), s('b', 9)];
+test('recap summary: the latest session in that room with an average pace, else null', () => {
+  // startedAt 5 has 50 m (no average pace), so 3 is used.
+  const h = [s('a', 1, 1500), s('a', 5, 50), s('a', 3, 2400.4), s('b', 9)];
   assert.deepEqual(summaryFor(h, 'a'), { distanceM: 2400, durationS: 300, avgSecPerKm: 300 });
   assert.equal(summaryFor(h, 'zzz'), null);
 });

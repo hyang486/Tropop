@@ -334,8 +334,15 @@ export function parseHistory(raw: string | null): PaceSession[] {
   }
 }
 
-/** The recap's pace part: the latest session in this room with any distance, or null. */
-export function summaryFor(history: PaceSession[], roomId: string) {
-  const s = [...history].sort((a, b) => b.startedAt - a.startedAt).find((x) => x.roomId === roomId && x.distanceM > 0);
-  return s ? { distanceM: Math.round(s.distanceM), durationS: s.durationS, avgSecPerKm: s.avgSecPerKm } : null;
+/** The recap's pace part: the latest session in this room that has an average pace (100 m or more), or null. */
+export function summaryFor(
+  history: PaceSession[],
+  roomId: string,
+): { distanceM: number; durationS: number; avgSecPerKm: number } | null {
+  const s = [...history]
+    .sort((a, b) => b.startedAt - a.startedAt)
+    .find((x) => x.roomId === roomId && x.avgSecPerKm != null);
+  return s && s.avgSecPerKm != null
+    ? { distanceM: Math.round(s.distanceM), durationS: s.durationS, avgSecPerKm: Math.round(s.avgSecPerKm) }
+    : null;
 }
