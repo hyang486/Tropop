@@ -42,7 +42,6 @@ export const eventStrings = {
     linkPlaceholder: 'https://linkedin.com/in/…',
     linksNote: 'Links are shown to attendees only. Qrewing does not open them.',
     save: 'Save',
-    saved: 'Saved',
     headlineRequired: 'Add a headline.',
     headlineTooLong: (max: number) => `Keep the headline under ${max} characters.`,
     tooLong: (field: string, max: number) => `${field} can be up to ${max} characters.`,
@@ -70,7 +69,6 @@ export const eventStrings = {
     on: 'Showing important messages',
     hidden: (n: number) => (n === 1 ? '1 message hidden' : `${n} messages hidden`),
     showAll: 'Show',
-    needsConsent: 'Agree to Qrewing AI first to mute small talk.',
     banner: (reason: string) => `Important: ${reason}`,
     mentioned: 'You were mentioned',
     dismiss: 'Dismiss',
@@ -89,7 +87,6 @@ export const eventStrings = {
     updating: 'Showing the last list while Qrewing updates it.',
     updatingFinal: 'Showing the last list. Tap Refresh to check again.',
     updateFailed: 'Could not update the list. Tap Refresh to try again.',
-    failed: 'Could not get suggestions. Try again.',
     notConsented: 'Agree to Qrewing AI to get suggestions.',
   },
   recap: {

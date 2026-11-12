@@ -49,7 +49,7 @@ app ID and keychain group (host 9K6BKSS4U6, guests FAKETEAMID build).
 5. Guest B posts "@<Guest A display name> meet at the stage". Guest A (named): banner **"You were mentioned"**.
    Run step 1 on the host too, then confirm the host gets no "You were mentioned" banner.
    (A name without "@" is not a mention, by design.)
-6. Optional: on a member who chose Not now, the Mute switch shows "Agree to Qrewing AI first to mute small talk."
+6. Optional: on a member who chose Not now, turning on Mute opens the "Qrewing AI is on in this room" sheet first.
 7. If the AI is down: "Qrewing is not available right now. All messages are shown." Record it with a screenshot.
    It is not a failure of this step.
 
@@ -63,22 +63,22 @@ app ID and keychain group (host 9K6BKSS4U6, guests FAKETEAMID build).
 4. Tap Refresh again at once → the last list plus "Showing the last list. A new one is available in a few minutes."
 5. Guest with no entry info (if available): "Add your entry info first so Qrewing knows who to suggest."
 
-## 5. Scheduled recap triggers (60 min and 10 min)
+## 5. Recap (supervisor ruling: no live DB edit)
 
-The shortest room is 3 hours, so a "short test room" cannot be made from the app. Options, in order of preference:
-- (a) Keep the step-1 room. The 60-minute trigger fires on the first app open with ≤ 60 min left (about 2 h in);
-  the 10-minute refresh fires on open with ≤ 10 min left. Stay in the room at both times.
-- (b) To shorten it, someone must change `expires_at` on that test room on the live server. That is a live data
-  change: ask the human through supervisor first. Do not do it from this script.
+The shortest room is 3 hours. Main route (c): the host's early end in step 6. end-confirm runs `end_room` and
+then requests the recap right away (`recapAfterEnd`), so recap, grace and R7 are covered without waiting.
+The 60/10-minute scheduled triggers are covered by the `recapStep` unit tests (`tests/recap-plan.test.mjs`).
 
-Expected: with ≤ 60 min left, one recap request (no visible UI change). With ≤ 10 min left, one refresh. After the
-end, the room-ended screen shows **Recap** with title, summary, bullet highlights, and "You in this room" (e.g.
-"3 messages sent", "Arrived at 7:42 PM"), and "Saved on this phone only." A room first opened with ≤ 10 min left
-sends one late call only. If no recap is saved: "No recap was saved for this room."
+Expected recap (after step 6.1): the room-ended screen shows **Recap** with title (header), summary, bullet
+highlights, "You in this room" (e.g. "3 messages sent", "Arrived at 7:42 PM") and "Saved on this phone only."
+If none is saved: "No recap was saved for this room."
 
-## 6. Host ends early → grace
+Optional (a), only if time allows: keep a 3-hour room open and stay in it at ≤ 60 min left (one recap request, no
+visible change) and at ≤ 10 min left (one refresh). After the end, the same Recap card shows.
 
-Use a fresh 3-hour room with the same setup (steps 1-3, shortened) so step 5's room is not consumed.
+## 6. Host ends early → grace (main recap route)
+
+Use the step-1 room.
 1. Host: Room info → End room. The confirmation copy is "Chat closes now. The recap and photos stay available for 30 minutes, then
    messages, photos and files are deleted from the server. Anything already saved to a phone stays there." and the effects
    line "Closes now · Deleted after 30 min". With AI off, the copy names only photos: "Chat closes now. Photos stay available
