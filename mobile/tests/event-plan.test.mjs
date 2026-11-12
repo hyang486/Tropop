@@ -435,3 +435,14 @@ test('first run: an AI-off, loading or unreadable room never calls qrewing', asy
   assert.equal(allowedQrewingCalls(on, false, true).triage, false, 'probe failed');
   assert.equal(allowedQrewingCalls(on, true, false).triage, false, 'not an event room');
 });
+
+test('entryDirty (qa F2): only a change from the loaded form asks before leaving', async () => {
+  const { entryDirty } = await import('../src/features/event/event-plan.ts');
+  const empty = { headline: '', interests: '', lookingFor: '', links: ['', '', ''] };
+  assert.equal(entryDirty(empty, { ...empty }), false, 'untouched new form leaves freely');
+  assert.equal(entryDirty(empty, { ...empty, headline: 'CS junior' }), true);
+  assert.equal(entryDirty(empty, { ...empty, links: ['', 'https://a.b', ''] }), true);
+  const saved = { headline: 'A', interests: 'B', lookingFor: 'C', links: ['https://x.y', '', ''] };
+  assert.equal(entryDirty(saved, { ...saved, links: [...saved.links] }), false, 'loaded entry, no edit');
+  assert.equal(entryDirty(saved, { ...saved, lookingFor: 'D' }), true);
+});

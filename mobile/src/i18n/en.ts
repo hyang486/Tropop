@@ -673,6 +673,10 @@ export const en = {
       loadFailed: 'Could not load your entry info. Check your connection and try again.',
       saveFailed: 'Could not save your entry info. Try again.',
       retry: 'Try again',
+      discardTitle: 'Discard your entry info?',
+      discardBody: 'What you typed has not been saved.',
+      discard: 'Discard',
+      keepEditing: 'Keep editing',
     },
     info: {
       section: 'Qrewing AI',
