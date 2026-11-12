@@ -50,12 +50,14 @@ export function mentionsName(body: string | null | undefined, displayName: strin
 }
 
 export type ChatLike = { id: string; kind: string; sender_id: string | null; body: string | null };
-export type Importance = { important: boolean; reason: string | null };
+/** A message's triage result. Only `done` rows are judged; `pending` and `skipped` (sender not consented, daily cap) are not. */
+export type Importance = { state: 'done' | 'pending' | 'skipped'; important: boolean; reason: string | null };
 
 /**
- * Whether a row stays visible while Mute small talk is on. Only text from someone else can be hidden; it stays
- * when it is flagged important or mentions me. Notices (arrival, status, emergency, media, system) and my own
- * messages always show.
+ * Whether a row stays visible while Mute small talk is on. Only text from someone else that triage judged
+ * (`done`) and found not important is hidden, unless it mentions me. Unjudged, pending and skipped rows stay
+ * visible, so a muted member still sees senders who did not consent. Notices (arrival, status, emergency, media,
+ * system) and my own messages always show.
  */
 export function staysVisible(
   item: ChatLike,
@@ -65,7 +67,8 @@ export function staysVisible(
 ): boolean {
   if (item.kind !== 'text') return true;
   if (!item.sender_id || item.sender_id === userId) return true;
-  if (flags.get(item.id)?.important) return true;
+  const flag = flags.get(item.id);
+  if (!flag || flag.state !== 'done' || flag.important) return true;
   return mentionsName(item.body, myName);
 }
 
@@ -185,7 +188,7 @@ export function pickBanner(
     if (best && t <= best.createdMs) continue;
     const mention = mentionsName(m.body, opts.myName);
     const flag = opts.flags.get(m.id);
-    if (!mention && !flag?.important) continue;
+    if (!mention && !(flag?.state === 'done' && flag.important)) continue;
     best = { messageId: m.id, reason: mention ? null : (flag?.reason ?? null), mention, createdMs: t };
   }
   return best;

@@ -25,7 +25,7 @@ const PENDING_RECHECK_MS = 3_000;
 export type { ImportantBanner };
 
 type Item = ChatLike & { created_at: string; pending?: unknown };
-type Flag = { id: string; important: boolean | null; reason: string | null; state: string };
+type Flag = { id: string; important: boolean | null; reason: string | null; state: Importance['state'] };
 
 async function readTriage(ids: string[]): Promise<Flag[]> {
   if (ids.length === 0) return [];
@@ -72,7 +72,7 @@ export function useSmallTalk({
     if (done.length === 0) return;
     setFlags((cur) => {
       const next = new Map(cur);
-      for (const r of done) next.set(r.id, { important: r.important === true, reason: r.reason });
+      for (const r of done) next.set(r.id, { state: r.state, important: r.important === true, reason: r.reason });
       return next;
     });
   }, []);

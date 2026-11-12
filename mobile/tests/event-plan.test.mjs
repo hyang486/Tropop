@@ -69,15 +69,22 @@ test('mentionsName: whole word, case-insensitive, optional @', () => {
 const ME = 'u-me';
 const msg = (id, o = {}) => ({ id, kind: 'text', sender_id: 'u-other', body: 'hi', ...o });
 
-test('staysVisible: only others\' plain text can hide', () => {
-  const flags = new Map([['m2', { important: true, reason: 'Room moved' }], ['m3', { important: false, reason: null }]]);
-  assert.equal(staysVisible(msg('m1'), ME, 'Jay', flags), false);
-  assert.equal(staysVisible(msg('m2'), ME, 'Jay', flags), true);
-  assert.equal(staysVisible(msg('m3'), ME, 'Jay', flags), false);
-  assert.equal(staysVisible(msg('m4', { sender_id: ME }), ME, 'Jay', flags), true);
-  assert.equal(staysVisible(msg('m5', { kind: 'arrival' }), ME, 'Jay', flags), true);
-  assert.equal(staysVisible(msg('m6', { kind: 'emergency' }), ME, 'Jay', flags), true);
-  assert.equal(staysVisible(msg('m7', { body: 'Jay come here' }), ME, 'Jay', flags), true);
+test('staysVisible: only others\' text judged done and not important can hide', () => {
+  const flags = new Map([
+    ['done-true', { state: 'done', important: true, reason: 'Room moved' }],
+    ['done-false', { state: 'done', important: false, reason: null }],
+    ['pending', { state: 'pending', important: false, reason: null }],
+    ['skipped', { state: 'skipped', important: false, reason: null }],
+  ]);
+  assert.equal(staysVisible(msg('done-false'), ME, 'Jay', flags), false, 'done + not important hides');
+  assert.equal(staysVisible(msg('done-true'), ME, 'Jay', flags), true, 'done + important stays');
+  assert.equal(staysVisible(msg('no-flag'), ME, 'Jay', flags), true, 'never judged stays');
+  assert.equal(staysVisible(msg('pending'), ME, 'Jay', flags), true, 'pending stays');
+  assert.equal(staysVisible(msg('skipped'), ME, 'Jay', flags), true, 'skipped (not consented, cap) stays');
+  assert.equal(staysVisible(msg('done-false', { body: 'Jay come here' }), ME, 'Jay', flags), true, 'mention stays');
+  assert.equal(staysVisible(msg('done-false', { sender_id: ME }), ME, 'Jay', flags), true);
+  assert.equal(staysVisible(msg('done-false', { kind: 'arrival' }), ME, 'Jay', flags), true);
+  assert.equal(staysVisible(msg('done-false', { kind: 'emergency' }), ME, 'Jay', flags), true);
 });
 
 test('collapseSmallTalk: runs collapse into one row and can expand', () => {
@@ -167,7 +174,10 @@ test('pickBanner: newest important or mention after since, not mine, not dismiss
     row('mention', 'u', 'hey @Sam', 3),
     row('old', 'u', 'Sam before', 0),
   ];
-  const flags = new Map([['flag', { important: true, reason: 'Location change' }], ['plain', { important: false, reason: null }]]);
+  const flags = new Map([
+    ['flag', { state: 'done', important: true, reason: 'Location change' }],
+    ['plain', { state: 'done', important: false, reason: null }],
+  ]);
   const base = { since, userId: 'me', myName: 'Sam', flags, dismissed: new Set() };
   assert.deepEqual(pickBanner(items, base), {
     messageId: 'flag',
