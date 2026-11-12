@@ -1,5 +1,5 @@
 // Shared client API for Qrewing AI (planning/QREWING_AI_SPEC_EN.md section 3.1). Shapes mirror section 2.
-import { FunctionsHttpError, type SupabaseClient } from '@supabase/supabase-js';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
@@ -14,16 +14,11 @@ import {
   roomStateFrom,
   saveErrorKind,
 } from './qrewing-plan';
-import type { MatchResult, QrewingError, QrewingMemberRow, QrewingRoomRow, RecapResult, TriageResult } from './types';
+import type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 
 export type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 export { isQrewingError } from './qrewing-plan';
 
-/**
- * The five Qrewing tables and their RPCs are not in `database.types.ts` until migration 0027 is applied and
- * the types are regenerated, so these calls go through an untyped view of the same client.
- */
-const db = supabase as unknown as SupabaseClient;
 
 type Invoke<T> = { data: T } | { error: QrewingError };
 
@@ -79,7 +74,7 @@ export async function requestMatches(roomId: string): Promise<MatchResult | { st
 }
 
 export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRequired: boolean): Promise<{ error?: string; offline?: boolean }> {
-  const { error } = await db.rpc('set_qrewing_room', {
+  const { error } = await supabase.rpc('set_qrewing_room', {
     p_room_id: roomId,
     p_ai_enabled: aiEnabled,
     p_entry_required: entryRequired,
@@ -88,7 +83,7 @@ export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRe
 }
 
 export async function setQrewingMember(roomId: string, aiOk: boolean, mute: boolean): Promise<{ error?: string; offline?: boolean }> {
-  const { error } = await db.rpc('set_qrewing_member', { p_room_id: roomId, p_ai_ok: aiOk, p_mute: mute });
+  const { error } = await supabase.rpc('set_qrewing_member', { p_room_id: roomId, p_ai_ok: aiOk, p_mute: mute });
   return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
 }
 
@@ -111,9 +106,9 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id;
       const [room, member] = await Promise.all([
-        db.from('qrewing_rooms').select('*').eq('room_id', roomId).maybeSingle<QrewingRoomRow>(),
+        supabase.from('qrewing_rooms').select('*').eq('room_id', roomId).maybeSingle(),
         userId
-          ? db.from('qrewing_members').select('*').eq('room_id', roomId).eq('user_id', userId).maybeSingle<QrewingMemberRow>()
+          ? supabase.from('qrewing_members').select('*').eq('room_id', roomId).eq('user_id', userId).maybeSingle()
           : Promise.resolve({ data: null, error: null }),
       ]);
       if (alive) setState(roomStateFrom(room, member));

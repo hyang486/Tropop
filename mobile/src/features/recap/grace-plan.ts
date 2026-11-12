@@ -5,11 +5,10 @@
 // During grace only the recap, Photos of me and Photos & files (view and download) work; then the janitor deletes
 // the room. A room that reaches expires_at has no grace (grace_until stays null).
 
-/**
- * The room fields grace reads. TODO(qrewing): hand-written `grace_until`; replace with the generated Room type once
- * database.types.ts is regenerated after migration 0027 is applied.
- */
-export type GraceRoomFields = { deleted_at: string | null; expires_at: string; grace_until?: string | null };
+import type { Tables } from '@/lib/database.types';
+
+/** The room fields grace reads (generated types, 0027 applied). */
+export type GraceRoomFields = Pick<Tables<'rooms'>, 'deleted_at' | 'expires_at' | 'grace_until'>;
 
 export type RoomPhase = 'open' | 'grace' | 'ended';
 

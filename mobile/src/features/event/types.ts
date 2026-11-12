@@ -1,8 +1,9 @@
 /**
- * Hand-written row and response types for Qrewing AI (planning/QREWING_AI_SPEC_EN.md sections 1 and 2).
- * Replace the row types with `Tables<'...'>` from `@/lib/database.types` once developer regenerates it after
- * migration 0027 is applied.
+ * Row and response types for Qrewing AI (planning/QREWING_AI_SPEC_EN.md sections 1 and 2). Rows come from the
+ * generated `database.types.ts` (0027 applied); the 2.x response types are the Edge Function contract, not DB.
  */
+
+import type { Tables } from '@/lib/database.types';
 
 export type QrewingError =
   | 'ai_not_configured'
@@ -15,54 +16,22 @@ export type QrewingError =
   | 'network';
 
 /** 1.1 public.qrewing_rooms */
-export type QrewingRoomRow = {
-  room_id: string;
-  ai_enabled: boolean;
-  entry_required: boolean;
-  updated_at: string;
-};
+export type QrewingRoomRow = Tables<'qrewing_rooms'>;
 
 /** 1.2 public.qrewing_members */
-export type QrewingMemberRow = {
-  room_id: string;
-  user_id: string;
-  ai_ok_at: string | null;
-  mute_small_talk: boolean;
-  updated_at: string;
-};
+export type QrewingMemberRow = Tables<'qrewing_members'>;
 
 /** 1.3 public.entry_profiles */
-export type EntryProfileRow = {
-  room_id: string;
-  user_id: string;
-  headline: string;
-  interests: string;
-  looking_for: string;
-  links: string[];
-  updated_at: string;
-};
+export type EntryProfileRow = Tables<'entry_profiles'>;
 
-/** 1.4 public.message_triage */
-export type MessageTriageRow = {
-  message_id: string;
-  room_id: string;
+/** 1.4 public.message_triage. `state` is a text column with a check constraint, so it is narrowed here. */
+export type MessageTriageRow = Omit<Tables<'message_triage'>, 'state' | 'source'> & {
   state: 'pending' | 'done' | 'skipped';
-  important: boolean | null;
-  reason: string | null;
-  created_at: string;
-  updated_at: string;
+  source: 'model' | 'rule';
 };
 
-/** 1.5 public.room_recaps */
-export type RoomRecapRow = {
-  room_id: string;
-  state: 'pending' | 'done' | 'failed';
-  title: string | null;
-  summary: string | null;
-  highlights: string[] | null;
-  created_at: string;
-  updated_at: string;
-};
+/** 1.5 public.room_recaps. `state` is a text column with a check constraint, so it is narrowed here. */
+export type RoomRecapRow = Omit<Tables<'room_recaps'>, 'state'> & { state: 'pending' | 'done' | 'failed' };
 
 /** 2.1 triage response item */
 export type TriageResult = {

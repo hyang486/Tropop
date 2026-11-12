@@ -1,7 +1,6 @@
 // Recap fetch and on-device save (spec 3.3): `{ server recap, per-user part, savedAt }` under
 // `qrewing.recap.v1.<roomId>`, so the Room ended screen can show it after the server deleted the room.
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { requestRecap } from '@/features/event/qrewing-api';
 import { isOfflineError } from '@/features/event/qrewing-plan';
@@ -27,8 +26,6 @@ import {
   withTimeout,
 } from './recap-plan';
 
-// Untyped until database.types.ts is regenerated after migration 0027 (see qrewing-api.ts).
-const db = supabase as unknown as SupabaseClient;
 
 export async function loadSavedRecap(roomId: string): Promise<SavedRecap | null> {
   try {
@@ -129,7 +126,7 @@ export async function fetchAndSaveRecap(roomId: string, userId: string, opts?: {
 /** Trigger C: after a `room_recaps` notice, read the row through RLS and save it when done. */
 export async function readAndSaveRecap(roomId: string, userId: string): Promise<SavedRecap | null> {
   try {
-    const { data } = await db.from('room_recaps').select('*').eq('room_id', roomId).maybeSingle<RoomRecapRow>();
+    const { data } = await supabase.from('room_recaps').select('*').eq('room_id', roomId).maybeSingle<RoomRecapRow>();
     if (!data || data.state !== 'done' || !data.title || !data.summary) return null;
     return save(roomId, userId, {
       title: data.title,
@@ -169,7 +166,7 @@ export async function recapForEndedRoom(
   opts: { ask: boolean },
 ): Promise<{ saved: SavedRecap } | { miss: RecapMiss }> {
   try {
-    const { data, error } = await db.from('room_recaps').select('*').eq('room_id', roomId).maybeSingle<RoomRecapRow>();
+    const { data, error } = await supabase.from('room_recaps').select('*').eq('room_id', roomId).maybeSingle<RoomRecapRow>();
     if (error) return { miss: isOfflineError(error) ? 'offline' : 'gone' };
     if (data?.state === 'done' && data.title && data.summary) {
       return {

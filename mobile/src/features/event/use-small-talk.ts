@@ -1,6 +1,5 @@
 // Mute small talk (spec 3.2): collapse rows that are not important, triage new text from others in batches,
 // vibrate and show a banner for important ones. In-app only.
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Vibration } from 'react-native';
 
@@ -20,7 +19,6 @@ import {
 import { triageMessages } from './qrewing-api';
 import type { MessageTriageRow, QrewingError } from './types';
 
-const db = supabase as unknown as SupabaseClient;
 const PENDING_RECHECK_MS = 3_000;
 
 export type { ImportantBanner };
@@ -30,7 +28,7 @@ type Flag = { id: string; important: boolean | null; reason: string | null; stat
 
 async function readTriage(ids: string[]): Promise<Flag[]> {
   if (ids.length === 0) return [];
-  const { data } = await db.from('message_triage').select('*').in('message_id', ids);
+  const { data } = await supabase.from('message_triage').select('*').in('message_id', ids);
   return ((data ?? []) as MessageTriageRow[]).map((r) => ({ id: r.message_id, important: r.important, reason: r.reason, state: r.state }));
 }
 

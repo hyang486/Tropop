@@ -63,6 +63,13 @@ The developer regenerates `mobile/src/lib/database.types.ts` after the live sitt
 
 Check after the switch: `npx tsc --noEmit` should flag any name drift between the hand-written rows and the SQL (for example `ai_ok_at`, `mute_small_talk`, `entry_required`, `state` enum values `pending/done/failed`, `skipped` on message_triage). Then run `npm test`; the tests use plain objects and need no change.
 
+### 6c applied on this branch (2026-11-12, supervisor assignment)
+
+- `mobile/src/lib/database.types.ts`: generated from the live project after 0027 using the read-only Supabase MCP `generate_typescript_types`. The generator drops the earlier hand-written `| null` on the `preview_room` return (`place_lat`, `place_lng`, `place_name`, `starts_at`), so those four were put back. The only other change to existing types is that `media.created_at` moved to its alphabetical position. At merge, developer's file wins; diff it against this one.
+- Done as in the table above, with two exceptions:
+  - `message_triage.state` and `room_recaps.state` are `text` with a check constraint, so they generate as `string`. `MessageTriageRow` and `RoomRecapRow` keep the narrowed unions (`Omit<Tables<…>, 'state'> & {state: …}`). The `use-small-talk.ts` cast and the `recap-store.ts` `.maybeSingle<RoomRecapRow>()` generics stay for that reason.
+  - `grace-plan.ts` imports `Tables` from `@/lib/database.types` instead of `Room` from `lib/rooms.ts`, which keeps the module free of React Native imports.
+
 ### 6c pre-check against qrewing-backend `686a69e` (read-only, 2026-11-12)
 
 Backend changes no mobile client file (only `package.json`: `expo-speech`), so 6c touches only the event files above.
