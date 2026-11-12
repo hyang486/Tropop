@@ -4,9 +4,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { QCard, QLabel } from '@/components/q-screen';
 import { colors } from '@/components/ui';
 import { eventStrings } from '@/features/event/strings';
+import { useAuth } from '@/lib/auth';
 
 import type { RecapMark, SavedRecap } from './recap-plan';
-import { loadMark, loadSavedRecap } from './recap-store';
+import { fetchAndSaveRecap, loadMark, loadSavedRecap, readAndSaveRecap } from './recap-store';
 
 const s = eventStrings.recap;
 
@@ -14,19 +15,29 @@ type Loaded = { roomId: string; saved: SavedRecap | null; mark: RecapMark | null
 
 /**
  * The saved recap on the Room ended screen (spec 3.3), read from this phone. "No recap was saved" only for rooms
- * this phone knows had Qrewing AI on; other rooms show nothing.
+ * this phone knows had Qrewing AI on; other rooms show nothing. After the server deleted the room both reads fail
+ * quietly, so only the phone's copy remains.
  */
 export function SavedRecapCard({ roomId }: { roomId: string }) {
+  const { session } = useAuth();
+  const userId = session?.user.id;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   useEffect(() => {
     let alive = true;
-    Promise.all([loadSavedRecap(roomId), loadMark(roomId)]).then(([saved, mark]) => {
+    (async () => {
+      const [stored, mark] = await Promise.all([loadSavedRecap(roomId), loadMark(roomId)]);
+      let saved = stored;
+      // Early end (spec 7): the room is readable for 30 minutes, but room notices stop at the end, so a member
+      // who missed the recap reads the row (grace read policy), and asks once if there is none yet.
+      if (!saved && mark?.ai && userId) {
+        saved = (await readAndSaveRecap(roomId, userId)) ?? (await fetchAndSaveRecap(roomId, userId));
+      }
       if (alive) setLoaded({ roomId, saved, mark });
-    });
+    })().catch(() => {});
     return () => {
       alive = false;
     };
-  }, [roomId]);
+  }, [roomId, userId]);
 
   if (!loaded || loaded.roomId !== roomId) return null;
   const { saved, mark } = loaded;
