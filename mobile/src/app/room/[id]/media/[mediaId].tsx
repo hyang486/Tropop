@@ -19,6 +19,8 @@ import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 import { useRoomOver } from '@/lib/use-room-over';
+import { screenActions } from '@/features/recap/grace-plan';
+import { useGrace } from '@/features/recap/use-grace';
 
 type State =
   | { status: 'loading' }
@@ -50,7 +52,8 @@ export default function MediaScreen() {
       if (media.uploader_id === userId) {
         uploader = en.media.you;
       } else {
-        const members = await listMembers(id);
+        // Spec 7.1: no members list in grace, so a failed read keeps "former member".
+        const members = await listMembers(id).catch(() => []);
         uploader = members.find((m) => m.user_id === media.uploader_id)?.display_name ?? uploader;
       }
       // "Not me" is offered only for a photo currently in my Photos of me.
@@ -73,6 +76,9 @@ export default function MediaScreen() {
     if (event.table === 'rooms' || event.table === 'room_members') load();
   });
   const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+  // Spec 7.3: in the early-end grace window Save original and Share stay; "Not me" (a write) is hidden.
+  const grace = useGrace(state.status === 'ready' ? state.room : null);
+  const can = screenActions('media', grace.grace ? 'grace' : 'open');
 
   if (state.status === 'loading') {
     return (
@@ -82,7 +88,7 @@ export default function MediaScreen() {
     );
   }
   // No Save original or Share once the room is over: the server copy is deleted with it.
-  if (state.status === 'gone' || ended.over) {
+  if (state.status === 'gone' || (ended.over && !grace.grace)) {
     return (
       <>
         <Stack.Screen options={{ title: '' }} />
@@ -104,7 +110,7 @@ export default function MediaScreen() {
       media={state.media}
       uploader={state.uploader}
       token={token}
-      matchEnrollment={state.matchEnrollment}
+      matchEnrollment={can.notMe ? state.matchEnrollment : null}
       onExcluded={() => setState({ ...state, matchEnrollment: null })}
     />
   );

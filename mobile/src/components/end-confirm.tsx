@@ -7,6 +7,10 @@ import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
+import { useQrewingRoom } from '@/features/event/qrewing-api';
+import { endCopyHasRecap } from '@/features/event/qrewing-plan';
+import { eventStrings } from '@/features/event/strings';
+import { recapAfterEnd } from '@/features/recap/recap-store';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { endsDay } from '@/lib/chat-plan';
@@ -57,7 +61,16 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
     }, [reload]),
   );
 
-  const copy = kind === 'activity' ? en.endActivity : en.endRoom;
+  // Spec 7.4: the end-room deletion lines come from the event strings until they move into en.ts at merge.
+  // The recap is left out only when a read answered that Qrewing AI is off (still loading or a failed read keeps
+  // the recap wording, review R6). No id: no read, recap wording.
+  const qrewing = useQrewingRoom(id ?? '');
+  const recapOn = endCopyHasRecap(qrewing);
+  const ev = eventStrings.endRoom;
+  const copy =
+    kind === 'activity'
+      ? en.endActivity
+      : { ...en.endRoom, ...ev, effectsLabel: recapOn ? ev.effectsLabel : ev.effectsLabelNoRecap };
   const header = <Stack.Screen options={{ title: copy.title, headerTitle: '', gestureEnabled: !running }} />;
 
   if (load.status === 'loading') {
@@ -119,6 +132,8 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
           await setActivityState(room.id, 'ended');
         } else {
           await endRoom(room.id);
+          // Spec 7.3: end_room first, then the recap in the background (15 s limit, never blocks leaving).
+          recapAfterEnd(room.id, userId);
           cancelExpiryReminder(room.id);
           clearRoomCache(room.id);
         }
@@ -144,7 +159,7 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
             new Date(expiresMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
           ),
         ]
-      : [en.endRoom.body, en.endRoom.deleted];
+      : [en.endRoom.body, recapOn ? ev.deleted : ev.deletedNoRecap];
   const from = kind === 'activity' ? ['mappin.and.ellipse'] : ['bubble.left', 'photo', 'doc'];
   const to = kind === 'activity' ? 'photo' : 'trash';
 
