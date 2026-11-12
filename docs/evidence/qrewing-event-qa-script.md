@@ -62,14 +62,9 @@ app ID and keychain group (host 9K6BKSS4U6, guests FAKETEAMID build).
 8. B2 device check (73b532d): no alert from old messages after a failed first load.
    Setup: Guest A has Mute small talk on; Guest B and the host have posted an "@<Guest A name>" line and an
    @everyone line. Guest A leaves the room screen.
-   - Making the first load fail needs a network cut on Guest A only. There is no guest-only cut on the simulators
-     without admin rights or a Mac-wide change (see CURRENT_STATE). Do not turn off the Mac's network unless the
-     human approves it through supervisor. Without approval, record "B2 device: NOT VERIFIED (no guest-only network
-     cut); covered by the nextLoadedOnce unit tests".
-   - If approved: cut the network, open the room on Guest A (chat shows the load error and Try again), restore the
-     network, tap Try again. Expected: the old lines load with no "You were mentioned" or "Important: …" banner
-     and no buzz. Then Guest B posts a new "@<Guest A name>" line, and Guest A gets "You were mentioned".
-     FAIL if a banner appears for a line older than the reconnect.
+   - Supervisor ruling: **NOT VERIFIED on device**. Do not cut the Mac's network. There is no guest-only network
+     cut on the simulators. Record "B2 device: NOT VERIFIED (no guest-only network cut); covered by the
+     nextLoadedOnce unit tests (tests/event-plan.test.mjs)".
 
 ## 4. People to meet (Guest A)
 
