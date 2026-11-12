@@ -162,7 +162,7 @@ export const en = {
     reminderTitle: 'Room ends soon',
     // #9: one compact line in chat; the full note is in Info.
     endsSoonLine: 'Room ends soon · photos and files are deleted',
-    endsSoonInfo: "Photos, files and chat are deleted when the room ends. Download anything you'd like to keep.",
+    endsSoonInfo: "Photos, files and chat are deleted when the room ends, or 30 minutes after the host ends it early. Download anything you'd like to keep.",
     reminderBody: (name: string, remaining: string) =>
       `${name} disappears in ${remaining}. Download any photos and files you'd like to keep.`,
     members: 'Members',
@@ -223,7 +223,7 @@ export const en = {
       'You add one reference photo of your face. It is used only in this room and is never shown in the shared gallery.',
       'Photos in this room (not videos) are compared with it by an external face-matching service (Amazon Rekognition).',
       'Results are estimates and can be wrong. You can hide any photo with “Not me”.',
-      'Your reference and results are deleted from the server when you stop, leave the room, or the room ends.',
+      'Your reference and results are deleted from the server when you stop or leave the room. Otherwise they are deleted when the room ends, or 30 minutes after the host ends it early.',
       'This is optional. Everything else in the room works without it.',
     ],
     takePhoto: 'Take photo',
@@ -316,7 +316,7 @@ export const en = {
     empty: 'Nothing shared yet.',
     emptyMine: 'You have not shared anything yet.',
     emptyOthers: 'Nobody else has shared anything yet.',
-    emptyHint: 'Photos, videos, and files are shared at original quality and deleted when the room ends.',
+    emptyHint: 'Photos, videos, and files are shared at original quality and deleted when the room ends, or 30 minutes after the host ends it early.',
     loadError: 'Photos and files could not be loaded.',
     uploading: (pct: number) => `Uploading ${pct}%`,
     uploadFailed: 'Upload failed',
@@ -645,7 +645,7 @@ export const en = {
       body: [
         'In this room, your messages and entry info are sent to Anthropic’s Claude to flag important messages, suggest people to meet and write a recap.',
         'Host messages and messages with @everyone, @all or @here are highlighted by simple rules in Qrew, without AI. Only other messages, and only from members who agreed, are sent to the AI.',
-        'Qrew deletes them, along with everything Qrewing made from them, when the room ends.',
+        'Qrew deletes them, along with everything Qrewing made from them, when the room ends, or 30 minutes after the host ends it early.',
         'If you choose Not now, your messages stay out of every Qrewing request. You can agree later from Room info.',
       ],
       agree: 'Agree',
@@ -654,7 +654,7 @@ export const en = {
     },
     entry: {
       title: 'Introduce yourself',
-      intro: 'The host asks attendees for a short intro. Everyone in this room can see it, and it is deleted when the room ends.',
+      intro: 'The host asks attendees for a short intro. Everyone in this room can see it, and it is deleted when the room ends, or 30 minutes after the host ends it early.',
       headline: 'Headline',
       headlinePlaceholder: 'CS junior at SJSU',
       interests: 'Interests',
