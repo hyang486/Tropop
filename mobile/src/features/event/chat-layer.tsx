@@ -9,6 +9,7 @@ import { Button, colors, Hint } from '@/components/ui';
 import { getEntryProfile } from './entry-api';
 import { chatGates } from './event-plan';
 import { probeQrewing, setQrewingMember, useQrewingRoom } from './qrewing-api';
+import { allowedQrewingCalls } from './qrewing-plan';
 import type { QrewingError } from './types';
 import { en } from '@/i18n/en';
 import type { ImportantBanner as Banner } from './use-small-talk';
@@ -36,7 +37,7 @@ export function useQrewingChat(roomId: string, roomType: string, userId: string 
   );
 
   useEffect(() => {
-    if (!aiEnabled) return;
+    if (!allowedQrewingCalls({ aiEnabled, me: null }, false, false).probe) return;
     let alive = true;
     probeQrewing(roomId).then(
       (r) => alive && setProbe({ roomId, ok: 'ok' in r, error: 'error' in r ? r.error : undefined }),

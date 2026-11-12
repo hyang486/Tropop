@@ -127,3 +127,16 @@ export function roomStateFrom(
 export function endCopyHasRecap(state: Pick<QrewingRoomState, 'aiEnabled' | 'readFailed' | 'loaded'>): boolean {
   return state.aiEnabled || !state.loaded || state.readFailed;
 }
+
+/**
+ * Which Qrewing function calls a room state allows. An AI-off room, a room still loading, or a failed read makes
+ * none: no probe, no triage, no recap. Triage also needs a passing probe, an event room, and my Agree plus Mute.
+ */
+export function allowedQrewingCalls(
+  state: Pick<QrewingRoomState, 'aiEnabled' | 'me'>,
+  probeOk: boolean,
+  isEvent: boolean,
+): { probe: boolean; triage: boolean; recap: boolean } {
+  const on = state.aiEnabled;
+  return { probe: on, triage: on && probeOk && isEvent && !!state.me?.aiOk && !!state.me?.mute, recap: on };
+}
