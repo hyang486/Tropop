@@ -413,6 +413,22 @@ function createStore(admin: any): QrewingStore {
         'usage',
       );
     },
+    async usageCountSince(roomId, action, since) {
+      const n = must(await admin.rpc('qrewing_usage_count', { p_room_id: roomId, p_action: action, p_since: since }), 'usage_count');
+      return typeof n === 'number' ? n : 0;
+    },
+    async roomExtras(roomId) {
+      const r = must(await admin.from('rooms').select('activity_state, route').eq('id', roomId).maybeSingle(), 'room_extras');
+      const labels = must(
+        await admin.from('status_definitions').select('label').eq('room_id', roomId).order('sort'),
+        'status_labels',
+      );
+      return {
+        activityState: r?.activity_state ?? 'idle',
+        route: Array.isArray(r?.route) ? r.route : [],
+        statusLabels: (labels ?? []).map((x: { label: string }) => x.label),
+      };
+    },
   };
 }
 

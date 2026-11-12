@@ -2,6 +2,10 @@
 // index.ts handles 405/401 and builds the real store (service role) and model (Anthropic SDK); everything after
 // "who is the caller" lives here so it can be unit tested with a fake store and a fake model (qrewing.test.ts).
 import {
+  ASK_MODEL,
+  ASK_SCHEMA,
+  ASK_SYSTEM,
+  askUser,
   cut,
   MATCH_MODEL,
   MATCH_SCHEMA,
@@ -18,6 +22,8 @@ import {
   TRIAGE_SCHEMA,
   TRIAGE_SYSTEM,
   triageUser,
+  type AskFacts,
+  type AskPace,
   type MatchPerson,
   type MatchQuestion,
   type TriageItem,
@@ -45,6 +51,22 @@ export const TRIAGE_PENDING_TTL_MS = 3 * 60_000;
 export const RECAP_PENDING_TTL_MS = 5 * 60_000;
 /** F3: a match claim older than this is treated as abandoned (its caller died) and may be retaken. */
 export const MATCH_PENDING_TTL_MS = 3 * 60_000;
+/** Bot (spec 10, draft): per room per rolling 24 h, counted from private.qrewing_usage rows with action 'ask'. */
+export const ASK_DAILY_CAP = 100;
+export const ASK_WINDOW_MS = 24 * 60 * 60_000;
+export const ASK_QUESTION_MAX = 500;
+export const ASK_CHAT_LINES = 60;
+export const ASK_LINE_MAX = 300;
+export const ASK_ENTRY_PEOPLE = 30;
+export const ASK_ANSWER_MAX = 600;
+/** Client pace snapshot: only these numeric fields, in these closed ranges. Never coordinates. */
+export const ASK_PACE_RANGES = {
+  distanceKm: [0, 1000],
+  elapsedSec: [0, 7 * 24 * 3600],
+  paceSecPerKm: [0, 3600],
+  speedKmh: [0, 200],
+  remainingKm: [0, 1000],
+} as const;
 /** input_hash prefix of a qrewing_matches row that a caller is computing (no new column; 0027 is frozen). */
 export const MATCH_PENDING_PREFIX = 'pending:';
 /**
@@ -134,6 +156,9 @@ export type StoredMatch = { userId: string; reason: string; score: number };
 export type MatchRow = { inputHash: string; matches: StoredMatch[]; createdAt: string };
 export type Consent = { aiOk: boolean; mute: boolean };
 export type TriageSource = 'model' | 'rule';
+export type UsageAction = 'triage' | 'recap' | 'match' | 'ask';
+/** Room columns only the bot reads. route: rooms.route points (lat/lng are used for the distance only, never sent). */
+export type RoomExtras = { activityState: string; route: { lat: number; lng: number }[]; statusLabels: string[] };
 
 export interface QrewingStore {
   room(roomId: string): Promise<RoomInfo | null>;
@@ -199,7 +224,10 @@ export interface QrewingStore {
   /** M1, model failure: sets input_hash = `marker` and created_at = now where input_hash still equals `claim` (matches kept). */
   failMatch(roomId: string, userId: string, claim: string, marker: string): Promise<void>;
 
-  logUsage(roomId: string, action: 'triage' | 'recap' | 'match', model: string, inputTokens: number, outputTokens: number): Promise<void>;
+  logUsage(roomId: string, action: UsageAction, model: string, inputTokens: number, outputTokens: number): Promise<void>;
+  /** private.qrewing_usage rows of the room with this action created at or after `since` (0029 RPC). */
+  usageCountSince(roomId: string, action: UsageAction, since: string): Promise<number>;
+  roomExtras(roomId: string): Promise<RoomExtras>;
 }
 
 export type Deps = {
@@ -215,7 +243,22 @@ type Body =
   | { action: 'probe'; roomId: string | null }
   | { action: 'triage'; roomId: string; messageIds: string[] }
   | { action: 'recap'; roomId: string; refresh: boolean }
-  | { action: 'match'; roomId: string };
+  | { action: 'match'; roomId: string }
+  | { action: 'ask'; roomId: string; question: string; pace: AskPace | null };
+
+/** null = invalid. Absent pace = null. Unknown keys are dropped (never forwarded); a known key must be in range. */
+export function parsePace(raw: unknown): AskPace | null | undefined {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const out: AskPace = {};
+  for (const [k, [lo, hi]] of Object.entries(ASK_PACE_RANGES)) {
+    const v = (raw as Record<string, unknown>)[k];
+    if (v === undefined || v === null) continue;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < lo || v > hi) return undefined;
+    out[k as keyof AskPace] = v;
+  }
+  return out;
+}
 
 export function parseBody(raw: unknown): Body | null {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -237,6 +280,14 @@ export function parseBody(raw: unknown): Body | null {
       return { action: 'recap', roomId: b.roomId as string, refresh: b.refresh === true };
     case 'match':
       return roomOk ? { action: 'match', roomId: b.roomId as string } : null;
+    case 'ask': {
+      if (!roomOk || typeof b.question !== 'string') return null;
+      const question = b.question.trim();
+      if (!question || Array.from(question).length > ASK_QUESTION_MAX) return null;
+      const pace = parsePace(b.pace);
+      if (pace === undefined) return null;
+      return { action: 'ask', roomId: b.roomId as string, question, pace };
+    }
     default:
       return null;
   }
@@ -272,6 +323,8 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
       return body.refresh ? recapRefresh(ctx) : recap(ctx);
     case 'match':
       return match(ctx);
+    case 'ask':
+      return ask(ctx, body.question, body.pace);
   }
 }
 
@@ -282,7 +335,7 @@ const AI_FAILED: Reply = { status: 502, body: { error: 'ai_failed' } };
 /** One model call with the shared rules: usage logged, refusal/max_tokens/invalid JSON = failure (no retry). */
 async function callModel(
   ctx: Ctx,
-  action: 'triage' | 'recap' | 'match',
+  action: UsageAction,
   req: ModelRequest,
 ): Promise<{ ok: true; data: unknown } | { ok: false; kind: 'error' | 'refusal' | 'max_tokens' | 'bad_output' }> {
   let res: ModelResult;
@@ -800,6 +853,97 @@ export function compactPerson(name: string, p: Pick<EntryProfile, 'answers' | 'h
     }
   }
   return { name: flatCut(name, MATCH_FIELD_MAX.name), answers, legacy };
+}
+
+// ---------------------------------------------------------------------------------------------- ask (bot, spec 10 draft)
+
+/**
+ * One private question to the bot. Nothing about the conversation is stored (history stays on the device); only the
+ * usage row (token counts) is written. Context: room facts, chat of consenting members, entry answers of consenting
+ * members (links never), and the asker's own pace snapshot. Never user ids, coordinates or links.
+ */
+async function ask(ctx: Ctx, question: string, pace: AskPace | null): Promise<Reply> {
+  const { store, room, now } = ctx;
+  const consents = await store.consents(room.id);
+  if (consents.get(ctx.userId)?.aiOk !== true) return { status: 403, body: { error: 'not_consented' } };
+
+  const since = new Date(now.getTime() - ASK_WINDOW_MS).toISOString();
+  const used = await store.usageCountSince(room.id, 'ask', since);
+  if (used >= ASK_DAILY_CAP) return { status: 429, body: { error: 'cap_reached' } };
+
+  const ok = (id: string | null) => !!id && consents.get(id)?.aiOk === true;
+  const [extras, members, msgsRaw, questionRows, profiles] = await Promise.all([
+    store.roomExtras(room.id),
+    store.memberIds(room.id),
+    store.latestText(room.id, ASK_CHAT_LINES * 2),
+    store.entryQuestions(room.id),
+    store.entryProfiles(room.id),
+  ]);
+  const memberSet = new Set(members);
+  const msgs = msgsRaw.filter((m) => ok(m.senderId) && m.body?.trim()).slice(0, ASK_CHAT_LINES).reverse();
+  const people = profiles
+    .filter((p) => memberSet.has(p.userId) && ok(p.userId))
+    .sort((a, b) =>
+      a.userId === ctx.userId ? -1 : b.userId === ctx.userId ? 1 : a.updatedAt !== b.updatedAt ? (a.updatedAt > b.updatedAt ? -1 : 1) : a.userId < b.userId ? -1 : 1,
+    )
+    .slice(0, ASK_ENTRY_PEOPLE);
+  const names = await store.displayNames([...new Set([ctx.userId, ...msgs.map((m) => m.senderId!), ...people.map((p) => p.userId)])]);
+  const nameOf = (id: string) => names.get(id) ?? 'Member';
+  const { questions, keyOf } = matchLegend(questionRows);
+  const compact = people.map((p) => compactPerson(nameOf(p.userId), p, keyOf));
+  if (compact.some((c) => c.legacy)) questions.push(...LEGACY_QUESTIONS.map(({ key, kind, prompt }) => ({ key, kind, prompt })));
+
+  const facts: AskFacts = {
+    roomName: room.name,
+    roomType: room.type,
+    placeName: room.placeName,
+    startsAt: room.startsAt,
+    endsAt: room.expiresAt,
+    now: now.toISOString(),
+    routeKm: routeKm(extras.route),
+    memberCount: members.length,
+    statusLabels: extras.statusLabels,
+    activityState: extras.activityState,
+  };
+  const r = await callModel(ctx, 'ask', {
+    model: ASK_MODEL,
+    effort: 'low',
+    maxTokens: 300,
+    system: ASK_SYSTEM,
+    user: askUser({
+      facts,
+      asker: flatCut(nameOf(ctx.userId), MATCH_FIELD_MAX.name),
+      askerIsHost: room.hostId === ctx.userId,
+      pace,
+      questions,
+      people: compact.map(({ name, answers }) => ({ name, answers })),
+      lines: msgs.map((m) => ({ sender: flatCut(nameOf(m.senderId!), MATCH_FIELD_MAX.name), text: cut(m.body!, ASK_LINE_MAX) })),
+      question,
+    }),
+    schema: ASK_SCHEMA,
+  });
+  if (!r.ok) return AI_FAILED;
+  const answer = (r.data as { answer?: unknown } | null)?.answer;
+  if (typeof answer !== 'string' || !answer.trim()) {
+    ctx.log('model_bad_output', { action: 'ask' });
+    return AI_FAILED;
+  }
+  return { status: 200, body: { answer: cut(answer, ASK_ANSWER_MAX), remaining: Math.max(0, ASK_DAILY_CAP - used - 1) } };
+}
+
+/** Route length in km (haversine), 1 decimal; null with fewer than 2 valid points. */
+export function routeKm(points: { lat: number; lng: number }[]): number | null {
+  const pts = points.filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lng));
+  if (pts.length < 2) return null;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  let m = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+    m += 2 * 6_371_000 * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  return Math.round(m / 100) / 10;
 }
 
 function flatCut(s: string, n: number): string {
