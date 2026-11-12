@@ -152,4 +152,6 @@ Before applying:
 - `grep -rn canSpeak mobile/src`. It is exported today, so remove or replace any use. At 7d8eb4e it has no importer outside voice.ts; check again after the merge.
 - Chat and Map can both mount the layer. Popping Map back to chat unmounts one runner, and `stopSpeech` cuts a cue in progress. This is acceptable because only the focused screen gives cues.
 
+Device QA (physical iPhone): with the silent switch off, each cue is spoken with the `Spoken` wording and the banner shows. With the silent switch on, check what happens and record it. With this diff, vibration comes only from `onError` or a thrown `speak`. If iOS stays silent and reports `onDone`, the cue is banner-only with no vibration. If that happens, a follow-up should vibrate on every cue (or check the ringer state) so a silent phone still signals the cue.
+
 After applying: `npx tsc --noEmit`, `npm test` (speech-queue tests unchanged), lint. Then rebuild both simulators and run `docs/evidence/qrewing-pace-qa-demo.md` steady to check speech. Without sound, check the banner and the `Spoken` column timing.
