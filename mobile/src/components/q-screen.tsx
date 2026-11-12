@@ -55,6 +55,7 @@ export function QScreen({
   bottomAlign = 'end',
   refreshControl,
   keepVisible,
+  revealRef,
 }: {
   title?: string;
   /** Small gray line right under the title. */
@@ -72,6 +73,12 @@ export function QScreen({
   refreshControl?: ReactElement<RefreshControlProps>;
   /** Kept in view together with the focused field when both fit (K2: a form's submit button under the fields). */
   keepVisible?: RefObject<ComponentRef<typeof View> | null>;
+  /**
+   * Opt-in (qa F-EQ1): QScreen fills this with a function that scrolls `target` (plus `extra`, when both fit) into
+   * view above the pinned actions, with or without a keyboard (a hardware keyboard sends no keyboard events).
+   * Screens that do not pass it behave as before.
+   */
+  revealRef?: RefObject<QScreenReveal | null>;
 }) {
   const insets = useSafeAreaInsets();
   // Pad the top by the header overlap ourselves instead of contentInsetAdjustmentBehavior "automatic": that
@@ -80,7 +87,14 @@ export function QScreen({
   // is the keyboard avoider's offset, so an opaque header also lays out right. A screen without a header
   // (Welcome) still clears the status bar.
   const { rootRef, onLayout, overlap } = useHeaderOverlap();
-  const { scrollRef, keyboardPad, scrollProps } = useKeyboardReveal(overlap, keepVisible);
+  const { scrollRef, keyboardPad, scrollProps, revealView } = useKeyboardReveal(overlap, keepVisible);
+  useLayoutEffect(() => {
+    if (!revealRef) return;
+    revealRef.current = revealView;
+    return () => {
+      revealRef.current = null;
+    };
+  }, [revealRef, revealView]);
   return (
     <View style={[styles.root, { paddingBottom: keyboardPad }]}>
       <View ref={rootRef} onLayout={onLayout} style={styles.flex}>
@@ -116,6 +130,10 @@ export function QScreen({
   );
 }
 
+type Measurable = { measureInWindow: ComponentRef<typeof View>['measureInWindow'] };
+/** See QScreen `revealRef`. */
+export type QScreenReveal = (target: Measurable, extra?: Measurable | null) => void;
+
 /** QScreen's keyboard handling (see the QScreen comment). iOS events; Android adds did-show/hide later. */
 function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef<typeof View> | null>) {
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -136,10 +154,13 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
     keepRef.current = keepVisible;
   }, [overlap, focused, keepVisible]);
 
-  const reveal = useCallback(() => {
+  // A revealView request, repeated at the next layout and content-size changes (the target may have just been
+  // rendered, so the scroll range is not updated yet) for one second. A drag by the person cancels it.
+  const pending = useRef<{ target: Measurable; extra: Measurable | null; until: number } | null>(null);
+
+  const scrollIntoView = useCallback((field: Measurable, extra: Measurable | null) => {
     const scroll = scrollRef.current;
-    const field = TextInput.State.currentlyFocusedInput();
-    if (!focusedRef.current || !keyboardUp.current || !scroll || !field) return;
+    if (!focusedRef.current || !scroll) return;
     scroll.measureInWindow((_sx, sy, _sw, sh) => {
       field.measureInWindow((_fx, fy, _fw, fh) => {
         const visible: Span = { top: sy + overlapRef.current, bottom: sy + sh };
@@ -149,12 +170,25 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
           const y = revealScrollY(scrollY.current, fieldSpan, visible, maxY.current, extra);
           if (y !== null) scroll.scrollTo({ y, animated: true });
         };
-        const keep = keepRef.current?.current;
-        if (keep) keep.measureInWindow((_kx, ky, _kw, kh) => go(kh > 0 ? { top: ky, bottom: ky + kh } : null));
+        if (extra) extra.measureInWindow((_kx, ky, _kw, kh) => go(kh > 0 ? { top: ky, bottom: ky + kh } : null));
         else go(null);
       });
     });
   }, []);
+
+  const reveal = useCallback(() => {
+    const field = TextInput.State.currentlyFocusedInput();
+    if (keyboardUp.current && field) scrollIntoView(field, keepRef.current?.current ?? null);
+    else if (pending.current && Date.now() < pending.current.until) scrollIntoView(pending.current.target, pending.current.extra);
+  }, [scrollIntoView]);
+
+  const revealView = useCallback<QScreenReveal>(
+    (target, extra) => {
+      pending.current = { target, extra: extra ?? null, until: Date.now() + 1000 };
+      scrollIntoView(target, extra ?? null);
+    },
+    [scrollIntoView],
+  );
 
   useEffect(() => {
     const move = (e: KeyboardEvent) => {
@@ -188,6 +222,9 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
   };
   const scrollProps = {
     scrollEventThrottle: 16,
+    onScrollBeginDrag: () => {
+      pending.current = null;
+    },
     onScroll: (e: { nativeEvent: { contentOffset: { y: number } } }) => {
       scrollY.current = e.nativeEvent.contentOffset.y;
     },
@@ -204,7 +241,7 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
     },
   };
 
-  return { scrollRef, keyboardPad, scrollProps };
+  return { scrollRef, keyboardPad, scrollProps, revealView };
 }
 
 /** The small centered gray line under the pinned actions (Q 01.04 "Guest name comes next."). */

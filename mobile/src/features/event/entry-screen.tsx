@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-r
 import { type ComponentRef, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { QField, QLabel, QScreen } from '@/components/q-screen';
+import { QField, QLabel, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 
@@ -66,8 +66,10 @@ export function EntryScreen() {
   const [error, setError] = useState<string | null>(null);
   // The first answer that fails validateAnswers, shown under its question (spec 9.4 R3).
   const [invalid, setInvalid] = useState<{ questionId: string; text: string } | null>(null);
-  // qa F-EQ1: the inline error is kept in view with its focused field, so it does not end under the Save bar.
+  // qa F-EQ1: the failing question's field and its inline error are scrolled above the Save bar, with or without
+  // a keyboard (a hardware keyboard sends no keyboard events, so the focus alone does not scroll).
   const errorRef = useRef<ComponentRef<typeof View>>(null);
+  const revealRef = useRef<QScreenReveal>(null);
   const fields = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   // Set after a successful save: prevention turns off first, then the effect below leaves.
   const [saved, setSaved] = useState(false);
@@ -101,6 +103,13 @@ export function EntryScreen() {
       ),
     [questions],
   );
+
+  // After the inline error is rendered: bring its question's first field and the error into view.
+  useEffect(() => {
+    if (!invalid) return;
+    const field = fields.current[list.findIndex((f) => f.q.id === invalid.questionId)];
+    if (field) revealRef.current?.(field, errorRef.current);
+  }, [invalid, list]);
 
   // `repeat` turns prevention off and then runs the blocked action (dispatching alone would be blocked again).
   usePreventRemove(dirty && !busy && !saved, ({ repeat }) => {
@@ -136,7 +145,7 @@ export function EntryScreen() {
     if (busy || saved || !ready) return;
     const checked = validateAnswers(questions, current);
     if ('problem' in checked) {
-      // Inline under that question; focusing its first field scrolls it into view (QScreen keyboard reveal).
+      // Inline under that question, scrolled into view by the effect above; focus goes to its first field.
       const q = questions.find((x) => x.id === checked.questionId);
       setInvalid({ questionId: checked.questionId, text: problemText(checked.problem, q) });
       setError(null);
@@ -160,6 +169,7 @@ export function EntryScreen() {
       title={s.title}
       subtitle={s.intro}
       keepVisible={errorRef}
+      revealRef={revealRef}
       actions={
         <>
           {error ? <Hint tone="error">{error}</Hint> : null}
