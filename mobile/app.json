@@ -82,11 +82,17 @@
           "isAndroidBackgroundLocationEnabled": false
         }
       ],
-      "expo-maps"
+      "expo-maps",
+      "expo-app-intents"
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": true,
+      "inlineModules": {
+        "watchedDirectories": [
+          "app-intents"
+        ]
+      }
     }
   }
 }
