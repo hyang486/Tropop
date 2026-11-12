@@ -3,17 +3,48 @@ import { useEffect, useRef } from 'react';
 
 import { useRoomEvents } from '@/lib/room-channel';
 
-import { recapStep, stepCall } from './recap-plan';
-import { fetchAndSaveRecap, loadMark, readAndSaveRecap, saveMark } from './recap-store';
+import { recapStep, SEND_SAVE_DEBOUNCE_MS, stepCall } from './recap-plan';
+import {
+  fetchAndSaveRecap,
+  loadMark,
+  readAndSaveRecap,
+  saveMark,
+  saveMessageCountWhileOpen,
+  saveMyPartWhileOpen,
+} from './recap-store';
+import { onMessageSent } from './sent-signal';
 
 /**
  * In an AI room: remembers the room had Qrewing on, asks for the recap once at 60 minutes left and once more with
  * `refresh` in the last 10 minutes (each once per device, kept in AsyncStorage), and saves a recap announced on
- * the room channel. Never blocks the screen; every failure is silent (the Room ended screen says when nothing
+ * the room channel. Saves my part (counts only) once on open and about 10 s after my last send, so grace keeps
+ * the last open count even with no server recap yet. Never blocks the screen; every failure is silent (the Room ended screen says when nothing
  * was saved).
  */
 export function useRecapTriggers(roomId: string, userId: string | undefined, aiEnabled: boolean, remainingMs: number) {
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    if (!aiEnabled || !userId) return;
+    saveMyPartWhileOpen(roomId, userId);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const off = onMessageSent((id) => {
+      if (id !== roomId) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        saveMessageCountWhileOpen(roomId, userId);
+      }, SEND_SAVE_DEBOUNCE_MS);
+    });
+    return () => {
+      off();
+      // Leaving within the debounce: count now (kept only if the room is still open).
+      if (timer) {
+        clearTimeout(timer);
+        saveMessageCountWhileOpen(roomId, userId);
+      }
+    };
+  }, [roomId, userId, aiEnabled]);
 
   useEffect(() => {
     if (!aiEnabled || !userId || inFlight.current) return;

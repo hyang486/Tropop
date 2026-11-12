@@ -13,14 +13,18 @@ import { supabase } from '@/lib/supabase';
 import {
   EMPTY_MARK,
   END_RECAP_TIMEOUT_MS,
+  EMPTY_MY_PART,
   mergeMyPart,
   myPartAfterRoomCheck,
+  myPartForSave,
   type MyPart,
   parseMark,
+  parseMyPart,
   parseSavedRecap,
   type RecapMark,
   recapKey,
   recapMarkKey,
+  recapMeKey,
   isStalePending,
   type RecapMiss,
   recapMissForError,
@@ -110,9 +114,53 @@ async function isRoomOpen(roomId: string): Promise<boolean> {
   }
 }
 
+async function loadOpenMyPart(roomId: string): Promise<MyPart | null> {
+  try {
+    return parseMyPart(await AsyncStorage.getItem(recapMeKey(roomId)));
+  } catch {
+    return null;
+  }
+}
+
+async function storeOpenMyPart(roomId: string, part: MyPart): Promise<void> {
+  const next = mergeMyPart(await loadOpenMyPart(roomId), part);
+  try {
+    await AsyncStorage.setItem(recapMeKey(roomId), JSON.stringify(next));
+  } catch {
+    // Not saved; the end-time read is the fallback.
+  }
+}
+
+/** While the room is open (room screen open): saves the per-user part, no AI call. Never rejects. */
+export async function saveMyPartWhileOpen(roomId: string, userId: string): Promise<void> {
+  try {
+    await storeOpenMyPart(roomId, await readMyPart(roomId, userId));
+  } catch {
+    // Silent: the next save or the end-time read covers it.
+  }
+}
+
+/** After a send: one head count of my text messages, kept only if the room is still open after it. Never rejects. */
+export async function saveMessageCountWhileOpen(roomId: string, userId: string): Promise<void> {
+  try {
+    const messages = await countOrNull(
+      supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('room_id', roomId)
+        .eq('sender_id', userId)
+        .eq('kind', 'text'),
+    );
+    const part = myPartAfterRoomCheck({ ...EMPTY_MY_PART, messages }, await isRoomOpen(roomId));
+    if (part.messages !== null) await storeOpenMyPart(roomId, part);
+  } catch {
+    // Silent.
+  }
+}
+
 async function save(roomId: string, userId: string, server: ServerRecap): Promise<SavedRecap> {
   const prev = await loadSavedRecap(roomId);
-  const me = mergeMyPart(prev?.me, await readMyPart(roomId, userId));
+  const me = myPartForSave(prev?.me, await loadOpenMyPart(roomId), await readMyPart(roomId, userId));
   const saved: SavedRecap = { server, me, savedAt: new Date().toISOString() };
   try {
     await AsyncStorage.setItem(recapKey(roomId), JSON.stringify(saved));
