@@ -5,6 +5,15 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-12: Qrewing backend (branch qrewing-backend); nothing applied or deployed
+- 00dd3b7 Edge Function qrewing (spec 2, 7.2): node tests 21/21. ddfe985 migration 0027 tables/RPCs.
+- d2fad59 0027 grace (7.1) plus the supervisor's broadcast fix: grace_until, end_room with 30 min grace, is_grace_member,
+  7 select-only grace policies plus a recap-only realtime receive, recap-only broadcast in grace, refreshed_at, cron */5.
+  room-janitor isRoomDue/dueRoomFilters (janitor tests 11/11). SQL test section 7b. Parsed only; NOT run against a DB.
+  Review request sent to supervisor with the policy list and janitor bounds.
+- 107d7b8 expo-speech installed (7.5). No rebuild: one rebuild after all three branches merge.
+- Live sitting script: docs/qrewing-live-sitting.md; dry-run SQL builder scripts/qrewing-dry-run.mjs. Held for the human.
+
 ## 2026-11-09: U6 G-U6-1 — 33264a7 on qrew-u6 (from main e89cf85); local, no push, no rebuild
 - Place and time (0026) closed: qa PASS on qrew-pt 62d8fdd and 28bd04f, merged --no-ff → main e89cf85 (dev: tsc 0, lint 0, 303/303).
   U5 closed earlier: qa PASS, merged --no-ff → main 1d96367 (LS). The U5 and U4 "NOT on a simulator yet" lines below are superseded.
