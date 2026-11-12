@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 
 import { HAND_FONTS } from '@/components/hand-title';
+import { startSiriMirror } from '@/features/event/siri-mirror';
 import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -106,6 +107,8 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  // Spec 10.5: mirrors the access token and active room into the Keychain item the Siri intent reads.
+  useEffect(() => startSiriMirror(), []);
   return (
     <AuthProvider>
       <RootNavigator />
