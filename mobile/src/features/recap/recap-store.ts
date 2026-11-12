@@ -156,15 +156,20 @@ export function recapAfterEnd(roomId: string, userId: string | undefined): void 
 }
 
 /**
- * Room ended without a copy on this phone (spec 7.3 grace): read the shared row, then ask once. Says why there is
- * no recap, so the card can tell "still writing" and "offline" apart from "no recap was saved".
+ * Room ended without a copy on this phone (spec 7.3 grace): read the shared row (RLS allows it in grace), then,
+ * only when `ask` (this phone knows the room had Qrewing on), ask once. Says why there is no recap, so the card can
+ * tell "still writing" and "offline" apart from "no recap was saved". Without `ask`, a missing row (AI off, or no
+ * recap yet) is `gone`; the room_recaps notice re-runs this when the row arrives.
  */
-export async function recapForEndedRoom(roomId: string, userId: string): Promise<{ saved: SavedRecap } | { miss: RecapMiss }> {
-  let offline = false;
+export async function recapForEndedRoom(
+  roomId: string,
+  userId: string,
+  opts: { ask: boolean },
+): Promise<{ saved: SavedRecap } | { miss: RecapMiss }> {
   try {
     const { data, error } = await db.from('room_recaps').select('*').eq('room_id', roomId).maybeSingle<RoomRecapRow>();
-    if (error) offline = isOfflineError(error);
-    else if (data?.state === 'done' && data.title && data.summary) {
+    if (error) return { miss: isOfflineError(error) ? 'offline' : 'gone' };
+    if (data?.state === 'done' && data.title && data.summary) {
       return {
         saved: await save(roomId, userId, {
           title: data.title,
@@ -174,10 +179,11 @@ export async function recapForEndedRoom(roomId: string, userId: string): Promise
         }),
       };
     }
-  } catch {
-    offline = true;
+    if (data?.state === 'pending') return { miss: 'pending' };
+  } catch (e) {
+    return { miss: isOfflineError(e) ? 'offline' : 'gone' };
   }
-  if (offline) return { miss: 'offline' };
+  if (!opts.ask) return { miss: 'gone' };
   const res = await requestRecap(roomId);
   if ('error' in res) return { miss: res.error === 'network' ? 'offline' : 'gone' };
   if (res.state !== 'done') return { miss: 'pending' };

@@ -217,13 +217,33 @@ test('linksByUser keeps up to 3 https links per member and skips empty ones', ()
   assert.equal(map.has('c'), false);
 });
 
-test('isOfflineError: a failed fetch has no code; server errors do', async () => {
+test('isOfflineError: only a request that never got an answer is offline', async () => {
   const { isOfflineError, saveErrorKind } = await import('../src/features/event/qrewing-plan.ts');
-  assert.equal(isOfflineError({ message: 'TypeError: Network request failed', code: '' }), true);
+  // Offline: the fetch error itself, or a supabase-js error built from it (message "<name>: <message>").
   assert.equal(isOfflineError(new TypeError('Network request failed')), true);
+  assert.equal(isOfflineError({ message: 'TypeError: Network request failed', code: '' }), true);
+  assert.equal(isOfflineError({ message: 'AbortError: The user aborted a request.', code: '' }), true);
+  assert.equal(isOfflineError({ name: 'AbortError', message: 'Aborted' }), true);
+  assert.equal(isOfflineError({ name: 'FunctionsFetchError', message: 'Failed to send a request to the Edge Function' }), true);
+  // Server failures: gateway 5xx and non-JSON bodies also come back with an empty code.
+  assert.equal(isOfflineError({ message: '<html>502 Bad Gateway</html>', code: '' }), false);
+  assert.equal(isOfflineError({ message: 'Service Unavailable', code: '' }), false);
+  assert.equal(isOfflineError({ message: 'upstream connect error', code: '' }), false);
+  assert.equal(isOfflineError({ name: 'FunctionsRelayError', message: 'Relay Error invoking the Edge Function' }), false);
   assert.equal(isOfflineError({ message: 'relation does not exist', code: '42P01' }), false);
   assert.equal(isOfflineError({ message: 'missing table', code: 'PGRST205' }), false);
+  assert.equal(isOfflineError(new Error('boom')), false);
   assert.equal(isOfflineError(null), false);
-  assert.equal(saveErrorKind({ code: '' }), 'network');
+  assert.equal(saveErrorKind({ message: 'TypeError: Network request failed', code: '' }), 'network');
+  assert.equal(saveErrorKind({ message: '502 Bad Gateway', code: '' }), 'failed');
   assert.equal(saveErrorKind({ code: 'P0001', message: 'not a member' }), 'failed');
+});
+
+test('invokeFailureKind: HTTP errors are read, relay errors are server failures, fetch errors are offline', async () => {
+  const { invokeFailureKind } = await import('../src/features/event/qrewing-plan.ts');
+  assert.equal(invokeFailureKind({ name: 'FunctionsHttpError', message: 'Edge Function returned a non-2xx status code' }), 'http');
+  assert.equal(invokeFailureKind({ name: 'FunctionsRelayError', message: 'Relay Error' }), 'server');
+  assert.equal(invokeFailureKind({ name: 'FunctionsFetchError', message: 'Failed to send a request to the Edge Function' }), 'network');
+  assert.equal(invokeFailureKind(new TypeError('Network request failed')), 'network');
+  assert.equal(invokeFailureKind(new Error('boom')), 'server');
 });

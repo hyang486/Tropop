@@ -75,10 +75,11 @@ export function RoomEnded({
           <Text style={styles.line}>{g.closedNote}</Text>
         </>
       ) : null}
-      {reminder ? <Text style={styles.line}>{en.room.reminderGoneHint}</Text> : null}
+      {/* E4: a stale reminder can open a room still in grace, where nothing is deleted yet. */}
+      {reminder && !grace.grace ? <Text style={styles.line}>{en.room.reminderGoneHint}</Text> : null}
       {!reminder && !grace.grace ? <Text style={styles.line}>{en.room.savedStay}</Text> : null}
       {!reminder && closedMs === null ? <Text style={styles.line}>{en.room.goneHint}</Text> : null}
-      {hasId ? <SavedRecapCard roomId={id} /> : null}
+      {hasId ? <SavedRecapCard roomId={id} grace={grace.grace} /> : null}
     </QScreen>
   );
 }

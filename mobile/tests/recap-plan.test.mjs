@@ -75,11 +75,14 @@ test('withTimeout resolves the value, the fallback on timeout, and the fallback 
   assert.equal(await withTimeout(Promise.reject(new Error('x')), 1000, 'late'), 'late');
 });
 
-test('recapCardView: saved wins; no line without the AI mark; pending and offline are not "none"', async () => {
+test('recapCardView: saved wins; without the AI mark only pending shows; pending and offline are not "none"', async () => {
   const { recapCardView } = await import('../src/features/recap/recap-plan.ts');
   assert.equal(recapCardView(true, false, null), 'recap');
   assert.equal(recapCardView(true, true, 'offline'), 'recap');
   assert.equal(recapCardView(false, false, 'offline'), 'hidden');
+  assert.equal(recapCardView(false, false, 'gone'), 'hidden', 'no mark, no row (AI off)');
+  assert.equal(recapCardView(false, false, null), 'hidden');
+  assert.equal(recapCardView(false, false, 'pending'), 'pending', 'no mark, row being written in grace');
   assert.equal(recapCardView(false, true, 'pending'), 'pending');
   assert.equal(recapCardView(false, true, 'offline'), 'offline');
   assert.equal(recapCardView(false, true, 'gone'), 'none');

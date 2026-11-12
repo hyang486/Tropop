@@ -150,14 +150,17 @@ export function withTimeout<T, F>(p: Promise<T>, ms: number, fallback: F, setTim
 /**
  * What the Room ended recap card shows (spec 3.3, 7.3). `miss` is why the server read gave no recap: `pending`
  * (another member's call is writing it), `offline` (the request never got an answer) or `gone` (any other answer,
- * including the room deleted after grace). Only rooms this phone knows had Qrewing on show a line at all.
+ * including the room deleted after grace). Rooms this phone does not know had Qrewing on show only a recap or
+ * "still writing" (read in grace).
  */
 export type RecapMiss = 'pending' | 'offline' | 'gone';
 export type RecapCardView = 'recap' | 'hidden' | 'none' | 'pending' | 'offline';
 
 export function recapCardView(hasSaved: boolean, markAi: boolean, miss: RecapMiss | null): RecapCardView {
   if (hasSaved) return 'recap';
-  if (!markAi) return 'hidden';
+  // Without the mark (the chat was never opened on this phone), only a row read in grace can say anything:
+  // a recap being written shows "still writing"; no row (AI off) or a failed read shows nothing.
+  if (!markAi) return miss === 'pending' ? 'pending' : 'hidden';
   if (miss === 'pending') return 'pending';
   if (miss === 'offline') return 'offline';
   return 'none';

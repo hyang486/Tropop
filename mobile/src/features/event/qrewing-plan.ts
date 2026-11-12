@@ -28,17 +28,35 @@ export function isQrewingError<T extends object>(value: T | { error: QrewingErro
   return 'error' in value && typeof (value as { error?: unknown }).error === 'string';
 }
 
+const OFFLINE_NAMES = new Set(['TypeError', 'AbortError', 'TimeoutError', 'FetchError', 'FunctionsFetchError']);
+const OFFLINE_MESSAGE = /^(TypeError|AbortError|TimeoutError|FetchError): |network request failed|failed to fetch|network connection was lost|internet connection appears to be offline/i;
+
 /**
- * A supabase-js read or RPC error that never reached the server (fetch failed: offline, timeout). PostgREST and
- * Postgres errors carry a code; a failed fetch comes back with an empty one.
+ * True only when the request itself never got an answer (offline, timeout, aborted): a thrown fetch error
+ * (`TypeError: Network request failed`, `AbortError`, `FunctionsFetchError`) or a supabase-js error built from
+ * one (its message starts with the fetch error's name). Anything that came back from a server, including a
+ * gateway 5xx or a non-JSON body (supabase-js also leaves `code` empty for those) and a FunctionsRelayError, is a
+ * server failure, not offline.
  */
 export function isOfflineError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
-  const code = (error as { code?: unknown }).code;
-  return code === undefined || code === null || code === '';
+  const { name, message } = error as { name?: unknown; message?: unknown };
+  if (typeof name === 'string' && OFFLINE_NAMES.has(name)) return true;
+  return typeof message === 'string' && OFFLINE_MESSAGE.test(message);
 }
 
 /** Short text for a failed save or read in a Qrewing screen; never the raw server message. */
 export function saveErrorKind(error: unknown): 'network' | 'failed' {
   return isOfflineError(error) ? 'network' : 'failed';
+}
+
+/**
+ * A failed `functions.invoke('qrewing')`: `http` (FunctionsHttpError: read the status and body), `network` (the
+ * request never got an answer) or `server` (FunctionsRelayError or anything else that did reach Supabase).
+ */
+export function invokeFailureKind(error: unknown): 'http' | 'network' | 'server' {
+  const name = error && typeof error === 'object' ? (error as { name?: unknown }).name : undefined;
+  if (name === 'FunctionsHttpError') return 'http';
+  if (name === 'FunctionsRelayError') return 'server';
+  return isOfflineError(error) ? 'network' : 'server';
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
-import { classifyQrewingError, isOfflineError, saveErrorKind } from './qrewing-plan';
+import { classifyQrewingError, invokeFailureKind, isOfflineError, saveErrorKind } from './qrewing-plan';
 import type { MatchResult, QrewingError, QrewingMemberRow, QrewingRoomRow, RecapResult, TriageResult } from './types';
 
 export type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
@@ -22,14 +22,16 @@ async function invokeQrewing<T>(body: Record<string, unknown>): Promise<Invoke<T
   try {
     const { data, error } = await supabase.functions.invoke('qrewing', { body });
     if (!error) return { data: data as T };
-    if (error instanceof FunctionsHttpError) {
+    const kind = error instanceof FunctionsHttpError ? 'http' : invokeFailureKind(error);
+    if (kind === 'http') {
       const res = error.context as Response;
       const json = await res.json().catch(() => null);
       return { error: classifyQrewingError(res.status, json?.error) };
     }
-    return { error: 'network' };
-  } catch {
-    return { error: 'network' };
+    // A relay error or other answer from Supabase is a server failure, not "No connection".
+    return { error: kind === 'network' ? 'network' : 'ai_failed' };
+  } catch (e) {
+    return { error: isOfflineError(e) ? 'network' : 'ai_failed' };
   }
 }
 
