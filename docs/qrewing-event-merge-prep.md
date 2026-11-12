@@ -63,6 +63,15 @@ The developer regenerates `mobile/src/lib/database.types.ts` after the live sitt
 
 Check after the switch: `npx tsc --noEmit` should flag any name drift between the hand-written rows and the SQL (for example `ai_ok_at`, `mute_small_talk`, `entry_required`, `state` enum values `pending/done/failed`, `skipped` on message_triage). Then run `npm test`; the tests use plain objects and need no change.
 
+## 6d. Pace line in the recap (after the pace branch is in)
+
+- `features/recap/recap-store.ts` `readMyPart` (line ~98, `pace: null` with the merge comment): set
+  `pace: paceRecapLine(await getActivitySummary(roomId))`, importing both from `@/features/pace/summary`. Nothing else.
+- No flush or await on pace internals: pace `2ba6451` (supervisor PASS) makes `getActivitySummary` count the
+  in-memory run, so a recap read right after `end_room` still gets the line (cross-review F1). Do not edit pace files.
+- `getActivitySummary` never rejects; `mergeMyPart` already keeps an earlier non-null pace.
+- Check after: `npx tsc --noEmit`, `npm test`; device check is QA script step 5/6 (recap shows "Pace maker: …").
+
 ## Open device items (not part of this unit)
 
 - Dark mode on device: qa runs it after the single rebuild (f7baf8f was a code-only pass).
