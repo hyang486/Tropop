@@ -7,7 +7,6 @@ import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-nati
 
 import { PlacePinMap } from '@/components/place-time-cards';
 import { setQrewingRoom } from '@/features/event/qrewing-api';
-import { eventStrings } from '@/features/event/strings';
 import { QCard, QField, QLabel, QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -295,21 +294,21 @@ export default function CreateRoom() {
       <Hint>{en.createRoom.locationHint}</Hint>
 
       <QCard row>
-        <Text style={styles.cardTitle}>{eventStrings.create.aiLabel}</Text>
-        <Switch value={aiEnabled} onValueChange={setAiEnabled} accessibilityLabel={eventStrings.create.aiLabel} />
+        <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
+        <Switch value={aiEnabled} onValueChange={setAiEnabled} accessibilityLabel={en.qrewing.create.aiLabel} />
       </QCard>
-      <Hint>{eventStrings.create.aiHint}</Hint>
+      <Hint>{en.qrewing.create.aiHint}</Hint>
       {aiEnabled && type === 'event' ? (
         <>
           <QCard row>
-            <Text style={styles.cardTitle}>{eventStrings.create.entryLabel}</Text>
+            <Text style={styles.cardTitle}>{en.qrewing.create.entryLabel}</Text>
             <Switch
               value={entryRequired}
               onValueChange={setEntryRequired}
-              accessibilityLabel={eventStrings.create.entryLabel}
+              accessibilityLabel={en.qrewing.create.entryLabel}
             />
           </QCard>
-          <Hint>{eventStrings.create.entryHint}</Hint>
+          <Hint>{en.qrewing.create.entryHint}</Hint>
         </>
       ) : null}
 

@@ -3,14 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { QCard, QLabel } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
-import { eventStrings } from '@/features/event/strings';
+import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { useRoomEvents } from '@/lib/room-channel';
 
 import { type RecapMark, type RecapMiss, recapCardView, rereadOnSubscribe, type SavedRecap } from './recap-plan';
 import { loadMark, loadSavedRecap, readAndSaveRecap, recapForEndedRoom } from './recap-store';
 
-const s = eventStrings.recap;
+const s = en.qrewing.recap;
 
 type Loaded = { roomId: string; saved: SavedRecap | null; mark: RecapMark | null; miss: RecapMiss | null };
 

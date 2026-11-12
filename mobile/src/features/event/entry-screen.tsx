@@ -8,9 +8,9 @@ import { useAuth } from '@/lib/auth';
 
 import { getEntryProfile, saveEntryProfile } from './entry-api';
 import { ENTRY_LIMITS, type EntryProblem, validateEntry } from './event-plan';
-import { eventStrings } from './strings';
+import { en } from '@/i18n/en';
 
-const s = eventStrings.entry;
+const s = en.qrewing.entry;
 
 function problemText(p: EntryProblem): string {
   switch (p) {
@@ -78,7 +78,7 @@ export function EntryScreen() {
     const res = await saveEntryProfile(id, checked.value);
     setBusy(false);
     if (res.error) {
-      setError(res.offline ? eventStrings.errors.network : s.saveFailed);
+      setError(res.offline ? en.qrewing.errors.network : s.saveFailed);
       return;
     }
     if (gate === '1') router.replace({ pathname: '/room/[id]', params: { id } });

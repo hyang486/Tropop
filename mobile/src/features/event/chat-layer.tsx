@@ -10,7 +10,7 @@ import { getEntryProfile } from './entry-api';
 import { chatGates } from './event-plan';
 import { probeQrewing, setQrewingMember, useQrewingRoom } from './qrewing-api';
 import type { QrewingError } from './types';
-import { eventStrings } from './strings';
+import { en } from '@/i18n/en';
 import type { ImportantBanner as Banner } from './use-small-talk';
 
 /** While the room read or the probe failed offline, both are tried again this often (no model call). */
@@ -72,7 +72,7 @@ export function useQrewingChat(roomId: string, roomType: string, userId: string 
   return { ...q, available, gates };
 }
 
-const m = eventStrings.mute;
+const m = en.qrewing.mute;
 
 export function MuteBar({
   roomId,
@@ -121,7 +121,7 @@ export function MuteBar({
       {on && unavailable ? <Text style={styles.note}>{m.unavailable}</Text> : null}
       {failed ? (
         <Text style={styles.note} accessibilityRole="alert">
-          {failed === 'network' ? eventStrings.errors.network : m.saveFailed}
+          {failed === 'network' ? en.qrewing.errors.network : m.saveFailed}
         </Text>
       ) : null}
     </View>
@@ -159,10 +159,10 @@ export function EntryGate({ roomId }: { roomId: string }) {
   const router = useRouter();
   return (
     <View style={styles.gate}>
-      <Text style={styles.gateTitle}>{eventStrings.entry.title}</Text>
-      <Hint>{eventStrings.entry.intro}</Hint>
+      <Text style={styles.gateTitle}>{en.qrewing.entry.title}</Text>
+      <Hint>{en.qrewing.entry.intro}</Hint>
       <Button
-        title={eventStrings.info.addEntry}
+        title={en.qrewing.info.addEntry}
         onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id: roomId, gate: '1' } })}
       />
     </View>

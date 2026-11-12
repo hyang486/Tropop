@@ -6,9 +6,9 @@ import { HandTitle } from '@/components/hand-title';
 import { Button, colors, Hint } from '@/components/ui';
 
 import { setQrewingMember } from './qrewing-api';
-import { eventStrings } from './strings';
+import { en } from '@/i18n/en';
 
-const s = eventStrings.disclosure;
+const s = en.qrewing.disclosure;
 
 /**
  * Qrewing AI disclosure (spec 3.2), shown on a member's first open of an AI room. Both answers create the
@@ -38,7 +38,7 @@ export function DisclosureSheet({
     const res = await setQrewingMember(roomId, agree, false);
     setBusy(null);
     if (res.error) {
-      setError(res.offline ? eventStrings.errors.network : s.failed);
+      setError(res.offline ? en.qrewing.errors.network : s.failed);
       return;
     }
     onDone();

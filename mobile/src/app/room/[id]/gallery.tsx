@@ -48,7 +48,6 @@ import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useNow } from '@/lib/use-now';
 import { useRoomOver } from '@/lib/use-room-over';
-import { eventStrings } from '@/features/event/strings';
 import { screenActions } from '@/features/recap/grace-plan';
 import { graceTime, useGrace } from '@/features/recap/use-grace';
 
@@ -168,7 +167,7 @@ export default function GalleryScreen() {
   const closesIn = room && can.upload ? closesSoonMinutes(room.expires_at, now) : null;
   const originalsLine =
     grace.grace && grace.untilMs !== null
-      ? eventStrings.grace.readOnly(graceTime(grace.untilMs))
+      ? en.qrewing.grace.readOnly(graceTime(grace.untilMs))
       : room && Number.isFinite(expiresMs) && expiresMs > now
       ? en.media.originalsUntil(
           endsDay(expiresMs, now),
@@ -376,7 +375,7 @@ function UploadRow({
   const size = formatBytes(job.item.size);
   const status = failed
     ? closed
-      ? `${en.media.uploadFailed}: ${eventStrings.grace.writeClosed}`
+      ? `${en.media.uploadFailed}: ${en.qrewing.grace.writeClosed}`
       : `${en.media.uploadFailed}: ${job.error ?? ''}`
     : job.state === 'queued'
       ? en.media.waiting

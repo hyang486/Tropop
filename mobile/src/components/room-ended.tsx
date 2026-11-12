@@ -4,7 +4,6 @@ import { StyleSheet, Text } from 'react-native';
 import { InkArt } from '@/components/ink-art';
 import { QScreen } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
-import { eventStrings } from '@/features/event/strings';
 import type { GraceRoomFields } from '@/features/recap/grace-plan';
 import { SavedRecapCard } from '@/features/recap/recap-card';
 import { graceTime, useGrace } from '@/features/recap/use-grace';
@@ -84,7 +83,7 @@ export function RoomEnded({
   );
 }
 
-const g = eventStrings.grace;
+const g = en.qrewing.grace;
 
 const styles = StyleSheet.create({
   until: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.label },
