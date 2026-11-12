@@ -17,7 +17,8 @@ import {
 } from './pace-core';
 import { paceApplies } from './pace-layer';
 import { saveTarget, setOn, usePaceSettings } from './settings';
-import { paceStrings as t } from './strings';
+import { en } from '@/i18n/en';
+const t = en.pace;
 
 /** Map screen card (spec 3.4): the Pace maker switch (per room, default off), the target, and my live stats. */
 export function PaceCard({ room, share }: { room: Room; share: boolean }) {

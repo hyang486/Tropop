@@ -17,8 +17,8 @@ import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { breakRun, checkStationary, closeStationaryPrompt, feedFix, flushRun, runKey } from './engine';
 import { runStopped, targetSecPerKm, usualPace } from './pace-core';
 import { reloadHistory, usePaceSettings } from './settings';
-import { paceStrings as t } from './strings';
-import { onCue } from './voice';
+import { onCue, stopSpeech } from './voice';
+const t = en.pace;
 
 const STATIONARY_TICK_MS = 10_000;
 const CUE_SHOWN_MS = 12_000;
@@ -118,10 +118,12 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
     wasRunning.current = running;
   }, [running, key]);
 
-  // Save to history when the session stops (switch off, activity ended, sharing off, screen left).
+  // Save to history and stop any cue being spoken when the session stops (switch off, activity ended, sharing off,
+  // screen left).
   useEffect(() => {
     if (!running) return;
     return () => {
+      stopSpeech();
       flushRun(key);
       reloadHistory();
     };

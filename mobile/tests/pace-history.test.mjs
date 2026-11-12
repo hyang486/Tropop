@@ -61,7 +61,8 @@ test('recap summary: the latest session in that room with an average pace, else 
 
 test('recap hand-off: no session in the room gives null and no line; a session gives one line', async () => {
   const { recapParts } = await import('../src/features/pace/pace-core.ts');
-  const { paceStrings } = await import('../src/features/pace/strings.ts');
+  const { en } = await import('../src/i18n/en.ts');
+  const paceStrings = en.pace;
   assert.equal(summaryFor([], 'a'), null);
   assert.equal(summaryFor(parseHistory(null), 'a'), null);
   assert.equal(summaryFor([s('a', 1, 50)], 'a'), null);
