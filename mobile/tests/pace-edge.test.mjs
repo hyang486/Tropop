@@ -8,7 +8,7 @@ import {
   newStationaryState,
   newTracker,
   paceCue,
-  recentSecPerKm,
+  recentPace,
   stationaryDue,
   stepFix,
   summarize,
@@ -48,7 +48,7 @@ test('a single GPS jump is not kept, so it reaches neither recent pace nor the s
   assert.equal(kept.some((f) => f.atMs === 55_000), false);
   assert.ok(near(summarize(tracker).distanceM, 400, 2));
   // Recent pace from the kept fixes stays 5:00, not a 2-minute "ease off" from the jump.
-  assert.ok(near(recentSecPerKm(kept, 120_000), 300, 2));
+  assert.ok(near(recentPace(tracker, 120_000), 300, 2));
 });
 
 test('a wrong first fix does not freeze the session: 3 agreeing fixes re-anchor without adding distance', () => {
@@ -156,10 +156,10 @@ test('back from the background: the gap is not read as 3 minutes standing still'
 });
 
 test('back from the background: recent pace ignores fixes from before the gap', () => {
-  const kept = feed([...run(0, 300), ...run(900, 920, 3000)]).kept;
-  assert.ok(near(recentSecPerKm(kept, 920_000), 300, 2));
+  const { tracker } = feed([...run(0, 300), ...run(900, 920, 3000)]);
+  assert.ok(near(recentPace(tracker, 920_000), 300, 2));
   // One fresh fix only: no recent pace yet, so no off-target cue on return.
-  assert.equal(recentSecPerKm(feed([...run(0, 300), at(3000, 900)]).kept, 900_000), null);
+  assert.equal(recentPace(feed([...run(0, 300), at(3000, 900)]).tracker, 900_000), null);
 });
 
 test('back from the background past several km: one km cue for the latest km, not one per km', () => {

@@ -13,11 +13,11 @@ import {
   type PaceFix,
   type Point,
   progressOf,
-  recentSecPerKm,
+  recentPace,
   type Runner,
   type StationaryState,
   stationaryDue,
-  stepFix,
+  stepFixes,
   summarize,
   type Tracker,
 } from './pace-core';
@@ -119,16 +119,21 @@ function cueText(cue: ChosenCue): string {
 
 /** One new fix of mine: stats, then at most one cue (km first, then the lead-group gap, then off-target). */
 export function feedFix(key: string, fix: PaceFix, ctx: FeedContext) {
+  feedFixes(key, [fix], ctx);
+}
+
+/** Fixes of mine, possibly several delayed ones at once: taken in time order, repeats once, then at most one cue. */
+export function feedFixes(key: string, batch: PaceFix[], ctx: FeedContext) {
   let run = getRun(key, ctx.roomId, ctx.nowMs);
-  const stepped = stepFix(run.tracker, fix);
-  // A repeat, an older fix or a GPS jump: nothing to update (the tracker keeps its count of dropped jumps).
-  if (!stepped.kept) {
+  const stepped = stepFixes(run.tracker, batch);
+  // Repeats, older fixes or GPS jumps only: nothing to update (the tracker keeps its count of dropped jumps).
+  if (!stepped.kept.length) {
     if (stepped.tracker !== run.tracker) put({ ...run, tracker: stepped.tracker });
     return;
   }
   const tracker = stepped.tracker;
-  const fixes = [...run.fixes.filter((f) => f.atMs >= ctx.nowMs - FIX_KEEP_MS), fix];
-  const recent = recentSecPerKm(fixes, fix.atMs);
+  const fixes = [...run.fixes, ...stepped.kept].filter((f) => f.atMs >= ctx.nowMs - FIX_KEEP_MS);
+  const recent = recentPace(tracker, tracker.seenAtMs);
   run = { ...run, tracker, fixes, recent };
 
   // The activity start point: where my session's first fix was.

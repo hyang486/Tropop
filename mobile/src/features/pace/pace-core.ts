@@ -2,8 +2,8 @@
 // No model and no server: stats come from the user's own fixes, the lead group from live_presence rows.
 
 export type Point = { latitude: number; longitude: number };
-/** One position of mine, with its device time. */
-export type PaceFix = Point & { atMs: number };
+/** One position of mine, with its device time and, when known, its horizontal accuracy (live_presence.accuracy_m). */
+export type PaceFix = Point & { atMs: number; accuracyM?: number | null };
 
 /** A finished or running session as stored in history (AsyncStorage `qrewing.pace.v1.history`). */
 export type PaceSession = {
@@ -99,6 +99,8 @@ export type Tracker = {
   lastFix: PaceFix | null;
   /** Device time of lastFix (or startedAt before the first fix): steps are measured from both together. */
   lastAtMs: number;
+  /** Device time of the newest kept fix, including fixes within GPS noise of lastFix (order, elapsed time). */
+  seenAtMs: number;
   /** Device time of the first accepted fix (elapsed time counts from it). */
   firstAtMs: number | null;
   distanceM: number;
@@ -109,12 +111,23 @@ export type Tracker = {
   lastSplitMovingMs: number;
   /** Consecutive fixes dropped as GPS jumps since the last accepted one. */
   rejects: PaceFix[];
+  /** Session distance and moving time at each kept fix of the last RECENT_WINDOW_MS or so (recent pace). */
+  trail: { atMs: number; distanceM: number; movingMs: number }[];
 };
 
 /** A step slower than this (heartbeats while standing, GPS drift) is a pause: no distance and no moving time. */
 export const PAUSE_SPEED_MPS = 0.5;
 /** After this many consecutive dropped fixes that agree with each other, the old position was the outlier. */
 export const REANCHOR_AFTER = 3;
+/** Per-fix cap on the accuracy used as GPS noise, so one coarse fix does not hide a real move. */
+export const MAX_NOISE_ACCURACY_M = 50;
+
+/** How far two fixes can be apart from GPS error alone: the sum of their accuracies (0 when unknown). */
+export function noiseM(a: PaceFix, b: PaceFix): number {
+  const acc = (f: PaceFix) =>
+    f.accuracyM != null && Number.isFinite(f.accuracyM) && f.accuracyM > 0 ? Math.min(f.accuracyM, MAX_NOISE_ACCURACY_M) : 0;
+  return acc(a) + acc(b);
+}
 
 export function newTracker(roomId: string, startedAt: number): Tracker {
   return {
@@ -122,12 +135,14 @@ export function newTracker(roomId: string, startedAt: number): Tracker {
     startedAt,
     lastFix: null,
     lastAtMs: startedAt,
+    seenAtMs: startedAt,
     firstAtMs: null,
     distanceM: 0,
     movingMs: 0,
     splits: [],
     lastSplitMovingMs: 0,
     rejects: [],
+    trail: [],
   };
 }
 
@@ -146,24 +161,35 @@ function plausibleStep(a: PaceFix, b: PaceFix): boolean {
  * - A long gap (the screen was closed) counts as the straight line between the fixes when it was movement.
  */
 export function stepFix(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean } {
+  const r = stepFixRaw(t, fix);
+  if (!r.kept) return r;
+  const tr = r.tracker;
+  const trail = [...tr.trail.filter((p) => p.atMs >= tr.seenAtMs - 2 * RECENT_WINDOW_MS), { atMs: tr.seenAtMs, distanceM: tr.distanceM, movingMs: tr.movingMs }];
+  return { tracker: { ...tr, trail }, kept: true };
+}
+
+function stepFixRaw(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean } {
   if (!t.lastFix) {
     const atMs = Math.max(t.lastAtMs, fix.atMs);
-    return { tracker: { ...t, lastFix: fix, lastAtMs: atMs, firstAtMs: atMs, rejects: [] }, kept: true };
+    return { tracker: { ...t, lastFix: fix, lastAtMs: atMs, seenAtMs: atMs, firstAtMs: atMs, rejects: [] }, kept: true };
   }
-  const newest = t.rejects.length ? t.rejects[t.rejects.length - 1].atMs : t.lastAtMs;
-  if (fix.atMs <= Math.max(t.lastAtMs, newest)) return { tracker: t, kept: false };
+  const newest = t.rejects.length ? t.rejects[t.rejects.length - 1].atMs : t.seenAtMs;
+  if (fix.atMs <= Math.max(t.seenAtMs, newest)) return { tracker: t, kept: false };
   const dt = (fix.atMs - t.lastAtMs) / 1000;
   const step = distanceM(t.lastFix, fix);
+  // Within GPS noise of lastFix (standing still with a wandering fix): kept, but no distance or time, and lastFix
+  // stays, so a run of noisy fixes never adds up; the next real move is measured from lastFix.
+  if (step < noiseM(t.lastFix, fix)) return { tracker: { ...t, seenAtMs: fix.atMs, rejects: [] }, kept: true };
   if (step / dt > MAX_STEP_SPEED_MPS) {
     const prev = t.rejects[t.rejects.length - 1];
     const rejects = prev && plausibleStep(prev, fix) ? [...t.rejects, fix] : [fix];
     if (rejects.length >= REANCHOR_AFTER) {
-      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, rejects: [] }, kept: true };
+      return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, rejects: [] }, kept: true };
     }
     return { tracker: { ...t, rejects }, kept: false };
   }
   if (step / dt < PAUSE_SPEED_MPS) {
-    return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, rejects: [] }, kept: true };
+    return { tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, seenAtMs: fix.atMs, rejects: [] }, kept: true };
   }
   const before = t.distanceM;
   const after = before + step;
@@ -177,9 +203,34 @@ export function stepFix(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boo
     lastSplitMovingMs = crossedAt;
   }
   return {
-    tracker: { ...t, lastFix: fix, lastAtMs: fix.atMs, distanceM: after, movingMs, splits, lastSplitMovingMs, rejects: [] },
+    tracker: {
+      ...t,
+      lastFix: fix,
+      lastAtMs: fix.atMs,
+      seenAtMs: fix.atMs,
+      distanceM: after,
+      movingMs,
+      splits,
+      lastSplitMovingMs,
+      rejects: [],
+    },
     kept: true,
   };
+}
+
+/**
+ * Several fixes at once (delayed fixes delivered together after the app was in the background): in time order,
+ * repeats once. Returns the fixes that were kept, in order.
+ */
+export function stepFixes(t: Tracker, fixes: PaceFix[]): { tracker: Tracker; kept: PaceFix[] } {
+  const ordered = [...fixes].filter((f) => Number.isFinite(f.atMs)).sort((a, b) => a.atMs - b.atMs);
+  const kept: PaceFix[] = [];
+  for (const f of ordered) {
+    const r = stepFix(t, f);
+    t = r.tracker;
+    if (r.kept) kept.push(f);
+  }
+  return { tracker: t, kept };
 }
 
 export function addFix(t: Tracker, fix: PaceFix): Tracker {
@@ -190,7 +241,7 @@ export function addFix(t: Tracker, fix: PaceFix): Tracker {
 export function summarize(t: Tracker): PaceSession {
   const durationS = Math.max(0, Math.round(t.movingMs / 1000));
   const avgSecPerKm = t.distanceM >= MIN_PACE_DISTANCE_M && durationS > 0 ? durationS / (t.distanceM / 1000) : null;
-  const elapsedS = t.firstAtMs == null ? 0 : Math.max(durationS, Math.round((t.lastAtMs - t.firstAtMs) / 1000));
+  const elapsedS = t.firstAtMs == null ? 0 : Math.max(durationS, Math.round((t.seenAtMs - t.firstAtMs) / 1000));
   return {
     roomId: t.roomId,
     startedAt: t.startedAt,
@@ -202,15 +253,20 @@ export function summarize(t: Tracker): PaceSession {
   };
 }
 
-/** My pace over the last minute of fixes (path length), or null with too little movement. */
-export function recentSecPerKm(fixes: PaceFix[], nowMs: number, windowMs = RECENT_WINDOW_MS): number | null {
-  const inWindow = fixes.filter((f) => f.atMs >= nowMs - windowMs && f.atMs <= nowMs);
+/**
+ * My pace over the last minute of fixes: the session distance gained over the moving time it took (GPS noise and
+ * pauses add neither, so stopping does not read as running slow); null with fewer than 2 fixes in the window or
+ * under 20 m gained.
+ */
+export function recentPace(t: Tracker, nowMs: number, windowMs = RECENT_WINDOW_MS): number | null {
+  const inWindow = t.trail.filter((p) => p.atMs >= nowMs - windowMs && p.atMs <= nowMs);
   if (inWindow.length < 2) return null;
-  let path = 0;
-  for (let i = 1; i < inWindow.length; i++) path += distanceM(inWindow[i - 1], inWindow[i]);
-  const dt = (inWindow[inWindow.length - 1].atMs - inWindow[0].atMs) / 1000;
-  if (path < MIN_RECENT_DISTANCE_M || dt <= 0) return null;
-  return dt / (path / 1000);
+  const first = inWindow[0];
+  const last = inWindow[inWindow.length - 1];
+  const gained = last.distanceM - first.distanceM;
+  const dt = (last.movingMs - first.movingMs) / 1000;
+  if (gained < MIN_RECENT_DISTANCE_M || dt <= 0) return null;
+  return dt / (gained / 1000);
 }
 
 // --- cues -------------------------------------------------------------------------------------------------------
@@ -376,14 +432,19 @@ export function newStationaryState(): StationaryState {
   return { openSinceMs: null, snoozeUntilMs: null };
 }
 
+/** Every fix within radiusM of the fixes' centroid (a fix wandering around a standing point stays inside). */
 export function withinStationaryRadius(fixes: Point[], radiusM = STATIONARY_RADIUS_M): boolean {
   if (fixes.length === 0) return false;
-  return fixes.every((f) => distanceM(fixes[0], f) <= radiusM);
+  const center = {
+    latitude: fixes.reduce((s, f) => s + f.latitude, 0) / fixes.length,
+    longitude: fixes.reduce((s, f) => s + f.longitude, 0) / fixes.length,
+  };
+  return fixes.every((f) => distanceM(center, f) <= radiusM);
 }
 
 /**
  * Whether to ask "Everything okay?": during the activity, my fixes covered the last 3 minutes (one at or
- * before its start, no long gaps, the newest fresh) and all stayed within 25 m. Not while the prompt is open
+ * before its start, no long gaps, the newest fresh) and all stayed within 25 m of their centroid. Not while the prompt is open
  * or snoozed after Dismiss. It only opens the status sheet; it never sets a status by itself.
  */
 export function stationaryDue(

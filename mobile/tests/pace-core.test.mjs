@@ -13,7 +13,7 @@ import {
   newTracker,
   paceCue,
   progressAlongRoute,
-  recentSecPerKm,
+  recentPace,
   stationaryDue,
   STATIONARY_SNOOZE_MS,
   summarize,
@@ -84,12 +84,12 @@ test('a session under 100 m has no average pace', () => {
   assert.equal(summarize(t).avgSecPerKm, null);
 });
 
-test('recent pace uses the fixes of the last minute', () => {
-  const fixes = [north(0, 0), north(100, 60_000), north(300, 120_000)];
+test('recent pace uses the distance gained over the last minute', () => {
+  const t = [north(0, 0), north(100, 60_000), north(300, 120_000)].reduce(addFix, newTracker('r', 0));
   // Last 60 s: 200 m in 60 s = 300 s/km.
-  assert.ok(near(recentSecPerKm(fixes, 120_000), 300, 1));
+  assert.ok(near(recentPace(t, 120_000), 300, 1));
   // Too little movement: null.
-  assert.equal(recentSecPerKm([north(0, 0), north(5, 60_000)], 60_000), null);
+  assert.equal(recentPace([north(0, 0), north(5, 60_000)].reduce(addFix, newTracker('r', 0)), 60_000), null);
 });
 
 // --- target and cues ------------------------------------------------------------------------------------------
@@ -187,9 +187,11 @@ test('gap cue without group speeds uses the gap alone', () => {
 
 // --- stationary -----------------------------------------------------------------------------------------------
 
-test('within the stationary radius: every fix within 25 m of the first', () => {
+test('within the stationary radius: every fix within 25 m of the centroid', () => {
   assert.equal(withinStationaryRadius([north(0), north(10), north(24)]), true);
-  assert.equal(withinStationaryRadius([north(0), north(10), north(26)]), false);
+  // 30 m apart, wandering around a point 15 m north: still standing.
+  assert.equal(withinStationaryRadius([north(0), north(30), north(15), north(0), north(30)]), true);
+  assert.equal(withinStationaryRadius([north(0), north(10), north(60)]), false);
 });
 
 test('3 minutes within 25 m opens the prompt once; heartbeats every 30 s are enough', () => {

@@ -78,7 +78,7 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
     if (!Number.isFinite(atMs)) return;
     feedFix(
       key,
-      { latitude: mine.lat, longitude: mine.lng, atMs },
+      { latitude: mine.lat, longitude: mine.lng, atMs, accuracyM: mine.accuracy_m },
       {
         roomId: r.id,
         userId,
