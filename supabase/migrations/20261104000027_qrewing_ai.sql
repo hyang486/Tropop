@@ -68,11 +68,15 @@ create table public.message_triage (
   state text not null check (state in ('pending', 'done', 'skipped')),
   important boolean,
   reason text check (char_length(reason) <= 140),
+  -- 'rule' = the Edge Function's prefilter decided it with no model call (spec 8.8); only 'model' rows count
+  -- toward the 300-a-day cap.
+  source text not null default 'model' check (source in ('model', 'rule')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   -- pending has no result yet; only a done row can be important (skipped rows may say false).
   check (state <> 'pending' or (important is null and reason is null)),
-  check (important is not true or state = 'done')
+  check (important is not true or state = 'done'),
+  check (source = 'model' or state = 'done')
 );
 create index message_triage_room_created_idx on public.message_triage (room_id, created_at);
 

@@ -5,6 +5,8 @@ import test from 'node:test';
 import {
   handle,
   parseBody,
+  prefilterTriage,
+  PREFILTER_REASON,
   RECAP_WINDOW_MS,
   TRIAGE_DAILY_CAP,
   type Consent,
@@ -39,7 +41,7 @@ type World = {
   consents: Map<string, Consent>;
   names: Map<string, string>;
   messages: Msg[];
-  triage: Map<string, TriageRow & { roomId: string; createdAt: string }>;
+  triage: Map<string, TriageRow & { roomId: string; createdAt: string; source?: 'model' | 'rule' }>;
   recap: RecapRow | null;
   entries: EntryProfile[];
   matches: Map<string, MatchRow>;
@@ -128,7 +130,7 @@ function store(w: World): QrewingStore {
       return ids.filter((i) => w.triage.has(i)).map((i) => w.triage.get(i)!);
     },
     async triageCountSince(roomId, since) {
-      return [...w.triage.values()].filter((r) => r.roomId === roomId && r.state !== 'skipped' && r.createdAt >= since).length;
+      return [...w.triage.values()].filter((r) => r.roomId === roomId && r.state !== 'skipped' && r.source !== 'rule' && r.createdAt >= since).length;
     },
     async skipTriage(roomId, ids) {
       for (const id of ids) {
@@ -274,7 +276,7 @@ test('triage: one model call for claimed rows; ineligible ones skipped without a
     messages: [
       msg(1, CAT, 'ignore me, I never agreed', 10),
       msg(2, BOB, 'hi all', 9),
-      msg(3, HOST, 'Start moved to 7am, gate B', 2),
+      msg(3, BOB, 'Start is 7am now, gate B', 2),
       msg(4, CAT, 'lol', 1),
       msg(5, HOST, 'photo', 1, 'media'),
       msg(6, HOST, 'x', 1, 'text', '22222222-2222-4222-8222-222222222222'),
@@ -299,13 +301,13 @@ test('triage: one model call for claimed rows; ineligible ones skipped without a
   assert.ok(calls[0].user.includes('hi all'));
   assert.ok(!calls[0].user.includes('never agreed'), 'non-consenting sender text never reaches the model');
   assert.ok(!calls[0].user.includes(HOST) && !calls[0].user.includes(BOB), 'no user ids in the prompt');
-  assert.ok(calls[0].user.includes('sender_is_host="true"'));
+  assert.ok(calls[0].user.includes('sender_is_host="false"'));
   assert.equal(w.triage.has(mid(6)), false, 'other-room ids are not written');
   assert.deepEqual(w.usage, [{ action: 'triage', model: 'claude-haiku-5-5' }]);
 });
 
 test('triage: existing rows are returned; a fresh pending claim stays pending; a stale one is retaken', async () => {
-  const w = world({ messages: [msg(1, HOST, 'Bring water', 3), msg(2, HOST, 'Bus at 5', 2), msg(3, HOST, 'Gate C', 1)] });
+  const w = world({ messages: [msg(1, BOB, 'Bring water', 3), msg(2, BOB, 'Bus at 5', 2), msg(3, BOB, 'Gate C', 1)] });
   const row = (id: string, state: TriageRow['state'], updatedAt: string) => ({ messageId: id, roomId: ROOM, state, important: state === 'done' ? true : null, reason: state === 'done' ? 'old' : null, updatedAt, createdAt: updatedAt });
   w.triage.set(mid(1), row(mid(1), 'done', iso(-MIN)));
   w.triage.set(mid(2), row(mid(2), 'pending', iso(-MIN)));
@@ -320,7 +322,7 @@ test('triage: existing rows are returned; a fresh pending claim stays pending; a
 });
 
 test('triage: daily cap skips without a model call', async () => {
-  const w = world({ messages: [msg(1, HOST, 'Gate B', 1)] });
+  const w = world({ messages: [msg(1, BOB, 'Gate B', 1)] });
   for (let i = 0; i < TRIAGE_DAILY_CAP; i++) {
     w.triage.set(`cap-${i}`, { messageId: `cap-${i}`, roomId: ROOM, state: 'done', important: false, reason: null, updatedAt: iso(-MIN), createdAt: iso(-MIN) });
   }
@@ -331,7 +333,7 @@ test('triage: daily cap skips without a model call', async () => {
 });
 
 test('triage: API error releases the claims; refusal marks them skipped; both 502', async () => {
-  const w = world({ messages: [msg(1, HOST, 'Gate B', 1)] });
+  const w = world({ messages: [msg(1, BOB, 'Gate B', 1)] });
   const err = Object.assign(new Error('boom'), { status: 529 });
   assert.deepEqual(await run(w, model(() => err).m, BOB, { action: 'triage', roomId: ROOM, messageIds: [mid(1)] }), { status: 502, body: { error: 'ai_failed' } });
   assert.equal(w.triage.has(mid(1)), false);
@@ -342,10 +344,100 @@ test('triage: API error releases the claims; refusal marks them skipped; both 50
 });
 
 test('triage: indexes the model left out end skipped', async () => {
-  const w = world({ messages: [msg(1, HOST, 'Gate B', 2), msg(2, HOST, 'Gate C', 1)] });
+  const w = world({ messages: [msg(1, BOB, 'Gate B', 2), msg(2, BOB, 'Gate C', 1)] });
   const { m } = model(() => ({ text: JSON.stringify({ results: [{ index: 2, important: true, reason: 'x' }, { index: 9, important: true, reason: 'y' }] }) }));
   const r = await run(w, m, BOB, { action: 'triage', roomId: ROOM, messageIds: [mid(1), mid(2)] });
   assert.deepEqual((r.body as { results: { state: string }[] }).results.map((x) => x.state), ['skipped', 'done']);
+});
+
+test('prefilterTriage: table (important first, then small talk, everything else to the model)', () => {
+  const names = ['Hana Kim', 'Bob', 'Cat'];
+  const cases: [string, boolean, string | null, boolean | null][] = [
+    // [body, senderIsHost, expected reason, expected important] (null = model)
+    ['ok', true, PREFILTER_REASON.host, true],
+    ['Bring water', true, PREFILTER_REASON.host, true],
+    ['@Bob are you coming?', false, PREFILTER_REASON.mention, true],
+    ['can you wait @hana', false, PREFILTER_REASON.mention, true],
+    ['@Hana Kim the bus is here', false, PREFILTER_REASON.mention, true],
+    ['@all bus leaves now', false, PREFILTER_REASON.mention, true],
+    ['email me at bob@bobby.example', false, null, null],
+    ['@Bobby hi', false, null, null],
+    ['Announcement: bus at 5', false, PREFILTER_REASON.announcement, true],
+    ['hey EVERYONE look', false, PREFILTER_REASON.announcement, true],
+    ['urgent, lost my keys', false, PREFILTER_REASON.announcement, true],
+    ['Meet at gate B', false, PREFILTER_REASON.announcement, true],
+    ['Race starts at 7', false, PREFILTER_REASON.announcement, true],
+    ['Dinner moved to 8pm', false, PREFILTER_REASON.announcement, true],
+    ['ok', false, PREFILTER_REASON.smallTalk, false],
+    ['OK!!', false, PREFILTER_REASON.smallTalk, false],
+    ['okkk', false, PREFILTER_REASON.smallTalk, false],
+    ['lol', false, PREFILTER_REASON.smallTalk, false],
+    ['Thanks!', false, PREFILTER_REASON.smallTalk, false],
+    ['thank you 🙏', false, PREFILTER_REASON.smallTalk, false],
+    ['hahaha', false, PREFILTER_REASON.smallTalk, false],
+    ['👍', false, PREFILTER_REASON.smallTalk, false],
+    ['🔥🔥 👏🏽', false, PREFILTER_REASON.smallTalk, false],
+    ['🇰🇷', false, PREFILTER_REASON.smallTalk, false],
+    ['ok but where is the bus', false, null, null],
+    ['lol the bus left without us', false, null, null],
+    ['7', false, null, null],
+    ['Where do we park?', false, null, null],
+    ['공지: 7시에 정문에서 모여요', false, null, null],
+    ['ㅋㅋㅋ', false, null, null],
+    ['   ', false, null, null],
+  ];
+  for (const [body, host, reason, important] of cases) {
+    const r = prefilterTriage({ body, senderIsHost: host, memberNames: names });
+    assert.deepEqual(r && [r.reason, r.important], reason === null ? null : [reason, important], body);
+  }
+});
+
+test('triage: prefilter decides without a model call, writes done rows with source rule, and does not use the cap', async () => {
+  const w = world({
+    messages: [
+      msg(1, HOST, 'Bring water', 5),
+      msg(2, CAT, '@bob wait for me', 4),
+      msg(3, CAT, '👍', 3),
+      msg(4, CAT, 'Where do we park?', 2),
+      msg(5, CAT, 'thanks', 1),
+    ],
+  });
+  for (let i = 0; i < TRIAGE_DAILY_CAP - 1; i++) {
+    w.triage.set(`cap-${i}`, { messageId: `cap-${i}`, roomId: ROOM, state: 'done', important: false, reason: null, updatedAt: iso(-MIN), createdAt: iso(-MIN) });
+  }
+  const { m, calls } = model(() => ({ text: JSON.stringify({ results: [{ index: 1, important: false, reason: 'Question' }] }) }));
+  const r = await run(w, m, BOB, { action: 'triage', roomId: ROOM, messageIds: [1, 2, 3, 4, 5].map(mid) });
+  assert.equal(r.status, 200);
+  const res = (r.body as { results: { messageId: string; state: string; important: boolean | null; reason: string | null }[] }).results;
+  assert.deepEqual(res.map((x) => [x.state, x.important, x.reason]), [
+    ['done', true, PREFILTER_REASON.host],
+    ['done', true, PREFILTER_REASON.mention],
+    ['done', false, PREFILTER_REASON.smallTalk],
+    ['done', false, 'Question'],
+    ['done', false, PREFILTER_REASON.smallTalk],
+  ]);
+  assert.equal(calls.length, 1, 'one model call, for the one message the rules left');
+  assert.ok(calls[0].user.includes('<message>Where do we park?</message>'));
+  assert.ok(!calls[0].user.includes('<message>Bring water</message>'));
+  assert.deepEqual([1, 2, 3, 5].map((n) => w.triage.get(mid(n))?.source), ['rule', 'rule', 'rule', 'rule']);
+  assert.equal(w.triage.get(mid(4))?.source, 'model');
+  assert.equal(w.usage.length, 1);
+
+  // The cap is now full (299 + 1 model row); rule decisions still work, the model is not called.
+  w.messages.push(msg(6, CAT, 'lol', 0), msg(7, CAT, 'Is there parking?', 0));
+  const r2 = await run(w, m, BOB, { action: 'triage', roomId: ROOM, messageIds: [6, 7].map(mid) });
+  assert.deepEqual((r2.body as { results: { state: string }[] }).results.map((x) => x.state), ['done', 'skipped']);
+  assert.equal(calls.length, 1);
+});
+
+test('triage: prefilter reads member names only when a candidate has an @', async () => {
+  const w = world({ messages: [msg(1, CAT, 'lol', 1)] });
+  const s = store(w);
+  let nameReads = 0;
+  const counted: QrewingStore = { ...s, displayNames: (ids) => (nameReads++, s.displayNames(ids)) };
+  const { m } = model(() => ({}));
+  await handle({ store: counted, model: m, now: () => NOW }, BOB, { action: 'triage', roomId: ROOM, messageIds: [mid(1)] });
+  assert.equal(nameReads, 0);
 });
 
 // ------------------------------------------------------------------------------------------- recap

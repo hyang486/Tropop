@@ -74,6 +74,7 @@ export type EntryProfile = { userId: string; headline: string; interests: string
 export type StoredMatch = { userId: string; reason: string; score: number };
 export type MatchRow = { inputHash: string; matches: StoredMatch[]; createdAt: string };
 export type Consent = { aiOk: boolean; mute: boolean };
+export type TriageSource = 'model' | 'rule';
 
 export interface QrewingStore {
   room(roomId: string): Promise<RoomInfo | null>;
@@ -96,7 +97,7 @@ export interface QrewingStore {
   mediaCounts(roomId: string): Promise<{ photos: number; videos: number }>;
 
   triageRows(messageIds: string[]): Promise<TriageRow[]>;
-  /** message_triage rows of the room created since `since` with state <> 'skipped' (the daily cap). */
+  /** message_triage rows of the room created since `since` with state <> 'skipped' and source 'model' (the daily cap). */
   triageCountSince(roomId: string, since: string): Promise<number>;
   /** Writes 'skipped' rows (important false) for ids that have no row yet; existing rows are untouched. */
   skipTriage(roomId: string, messageIds: string[]): Promise<void>;
@@ -105,7 +106,8 @@ export interface QrewingStore {
    * Returns only the ids this call now owns.
    */
   claimTriage(roomId: string, messageIds: string[], staleBefore: string): Promise<string[]>;
-  finishTriage(messageId: string, r: { state: 'done' | 'skipped'; important: boolean; reason: string | null }): Promise<void>;
+  /** source 'rule' = decided by prefilterTriage with no model call (does not count toward the daily cap). */
+  finishTriage(messageId: string, r: { state: 'done' | 'skipped'; important: boolean; reason: string | null; source: TriageSource }): Promise<void>;
   /** Deletes this call's still-pending claims so a later call can try again (API error path). */
   releaseTriage(messageIds: string[]): Promise<void>;
 
@@ -270,13 +272,26 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
     else toSkip.push(id);
   }
 
-  // Daily cap per room: rows that were (or are being) sent to the model in the last 24 hours.
+  // Spec 8.8: the rule prefilter decides clear cases with no model call; only the rest is capped and sent.
+  const ruled = new Map<string, Prefiltered>();
   if (candidates.length > 0) {
+    const needNames = candidates.some((id) => msgs.get(id)!.body!.includes('@'));
+    const memberNames = needNames ? [...(await store.displayNames(await store.memberIds(room.id))).values()] : [];
+    for (const id of candidates) {
+      const m = msgs.get(id)!;
+      const r = prefilterTriage({ body: m.body!, senderIsHost: m.senderId === room.hostId, memberNames });
+      if (r) ruled.set(id, r);
+    }
+  }
+  const toModel = candidates.filter((id) => !ruled.has(id));
+
+  // Daily cap per room: rows that were (or are being) sent to the model in the last 24 hours.
+  if (toModel.length > 0) {
     const used = await store.triageCountSince(room.id, new Date(now.getTime() - 24 * 3600_000).toISOString());
     const left = Math.max(0, TRIAGE_DAILY_CAP - used);
-    if (candidates.length > left) {
+    if (toModel.length > left) {
       ctx.log('triage_cap', { room_used: used });
-      toSkip.push(...candidates.splice(left));
+      toSkip.push(...toModel.splice(left));
     }
   }
   if (toSkip.length > 0) {
@@ -290,16 +305,82 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
     }
   }
 
-  const claimed = candidates.length > 0 ? await store.claimTriage(room.id, candidates, staleBefore) : [];
-  for (const id of candidates) {
+  const toClaim = [...ruled.keys(), ...toModel];
+  const claimed = toClaim.length > 0 ? await store.claimTriage(room.id, toClaim, staleBefore) : [];
+  for (const id of toClaim) {
     if (!claimed.includes(id)) out.set(id, { messageId: id, state: 'pending', important: null, reason: null });
   }
+  for (const id of claimed) {
+    const r = ruled.get(id);
+    if (!r) continue;
+    await store.finishTriage(id, { state: 'done', important: r.important, reason: r.reason, source: 'rule' });
+    out.set(id, { messageId: id, state: 'done', important: r.important, reason: r.reason });
+  }
 
-  if (claimed.length > 0) {
-    const failed = await runTriageModel(ctx, claimed.map((id) => msgs.get(id)!), consents, out);
+  const claimedForModel = claimed.filter((id) => !ruled.has(id));
+  if (claimedForModel.length > 0) {
+    const failed = await runTriageModel(ctx, claimedForModel.map((id) => msgs.get(id)!), consents, out);
     if (failed) return AI_FAILED;
   }
   return { status: 200, body: { results: ids.map((id) => out.get(id)!) } };
+}
+
+// ---------------------------------------------------------------------------------------------- triage prefilter
+
+/**
+ * Spec 8.8: clear cases are decided by rule, with no model call. Important: a message from the host, one that
+ * @-mentions a current member (or @all / @everyone), or one with announcement words. Not important: emoji-only
+ * or a short acknowledgement. Everything else (including any non-English text) returns null and goes to the model.
+ * The important rules are checked first, so the host's "ok" is important (the spec's order).
+ */
+export type Prefiltered = { important: boolean; reason: string };
+export type PrefilterInput = { body: string; senderIsHost: boolean; memberNames: string[] };
+
+export const PREFILTER_REASON = {
+  host: 'From the host',
+  mention: 'Mentions a member',
+  announcement: 'Announcement',
+  smallTalk: 'Small talk',
+} as const;
+
+const ANNOUNCE_RE =
+  /\b(?:announcements?|announcing|everyone|everybody|important|urgent|heads up|meet(?:ing)? at|starts? at|starting at|moved to|cancel(?:l)?ed)\b/i;
+const ALL_MENTION_RE = /(?:^|[^\p{L}\p{N}_])@(?:all|everyone|here)(?![\p{L}\p{N}_])/iu;
+const EMOJI_RE = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}‍️⃣]/gu;
+const ACKS = new Set(['ok', 'okay', 'okk', 'k', 'kk', 'lol', 'lmao', 'thanks', 'thank you', 'thanks all', 'thx', 'ty', 'nice', 'cool', 'got it']);
+const LAUGH_RE = /^(?:(?:ha){2,}h?|(?:he){2,}|lo+l|o+k+)$/;
+/** Longer text is never treated as an acknowledgement. */
+const ACK_MAX = 20;
+
+function mentionsMember(body: string, names: string[]): boolean {
+  const lower = body.toLowerCase();
+  for (const name of names) {
+    const full = name.trim().toLowerCase();
+    for (const n of new Set([full, full.split(/\s+/)[0]])) {
+      if ([...n].length < 2) continue;
+      let at = lower.indexOf('@' + n);
+      while (at !== -1) {
+        const before = at === 0 ? '' : lower[at - 1];
+        const after = lower.slice(at + 1 + n.length);
+        if (!/[\p{L}\p{N}_]/u.test(before) && !/^[\p{L}\p{N}_]/u.test(after)) return true;
+        at = lower.indexOf('@' + n, at + 1);
+      }
+    }
+  }
+  return false;
+}
+
+export function prefilterTriage(input: PrefilterInput): Prefiltered | null {
+  const body = input.body.trim();
+  if (!body) return null;
+  if (input.senderIsHost) return { important: true, reason: PREFILTER_REASON.host };
+  if (ALL_MENTION_RE.test(body) || mentionsMember(body, input.memberNames)) return { important: true, reason: PREFILTER_REASON.mention };
+  if (ANNOUNCE_RE.test(body)) return { important: true, reason: PREFILTER_REASON.announcement };
+
+  const words = body.replace(EMOJI_RE, ' ').replace(/[!.?,~]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (words === '') return { important: false, reason: PREFILTER_REASON.smallTalk }; // emoji (and punctuation) only
+  if ([...body].length <= ACK_MAX && (ACKS.has(words) || LAUGH_RE.test(words))) return { important: false, reason: PREFILTER_REASON.smallTalk };
+  return null;
 }
 
 /** Returns true when the call failed (rows already marked/released). */
@@ -339,7 +420,7 @@ async function runTriageModel(ctx: Ctx, targets: Msg[], consents: Map<string, Co
   });
   if (!r.ok) {
     if (r.kind === 'error') await store.releaseTriage(targets.map((m) => m.id));
-    else for (const m of targets) await store.finishTriage(m.id, { state: 'skipped', important: false, reason: null });
+    else for (const m of targets) await store.finishTriage(m.id, { state: 'skipped', important: false, reason: null, source: 'model' });
     return true;
   }
 
@@ -358,7 +439,7 @@ async function runTriageModel(ctx: Ctx, targets: Msg[], consents: Map<string, Co
     const res = v
       ? { state: 'done' as const, important: v.important, reason: cut(v.reason, 140) || null }
       : { state: 'skipped' as const, important: false, reason: null }; // the model left it out
-    await store.finishTriage(it.msg.id, res);
+    await store.finishTriage(it.msg.id, { ...res, source: 'model' });
     out.set(it.msg.id, { messageId: it.msg.id, ...res });
   }
   return false;

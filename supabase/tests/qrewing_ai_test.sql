@@ -201,6 +201,12 @@ values ('c2710000-0000-4000-8000-0000000000a1', (select room_id from tests.made 
 select tests.expect_state($$ insert into public.message_triage (message_id, room_id, state, important)
   values ('c2710000-0000-4000-8000-0000000000a1', (select room_id from tests.made where label = 'E'), 'pending', null) $$,
   '23505', 'a message is claimed once');
+select tests.expect_true($$ (select source from public.message_triage
+  where message_id = 'c2710000-0000-4000-8000-0000000000a1') = 'model' $$, 'triage source defaults to model');
+select tests.expect_state($$ update public.message_triage set source = 'rule', state = 'skipped', important = false
+  where message_id = 'c2710000-0000-4000-8000-0000000000a1' $$, '23514', 'a rule row is always done');
+select tests.expect_state($$ update public.message_triage set source = 'guess'
+  where message_id = 'c2710000-0000-4000-8000-0000000000a1' $$, '23514', 'triage source is model or rule');
 insert into public.room_recaps (room_id, state, title, summary, highlights)
 values ((select room_id from tests.made where label = 'E'), 'done', 'QA night', 'Summary', array['One']);
 select tests.expect_state($$ insert into public.room_recaps (room_id, state, highlights)

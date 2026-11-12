@@ -173,6 +173,7 @@ function createStore(admin: any): QrewingStore {
         .select('message_id', { count: 'exact', head: true })
         .eq('room_id', roomId)
         .neq('state', 'skipped')
+        .eq('source', 'model')
         .gte('created_at', since);
       must(res, 'triage_count');
       return res.count ?? 0;
@@ -220,7 +221,7 @@ function createStore(admin: any): QrewingStore {
     },
     async finishTriage(messageId, r) {
       must(
-        await admin.from('message_triage').update({ state: r.state, important: r.important, reason: r.reason }).eq('message_id', messageId).eq('state', 'pending'),
+        await admin.from('message_triage').update({ state: r.state, important: r.important, reason: r.reason, source: r.source }).eq('message_id', messageId).eq('state', 'pending'),
         'triage_finish',
       );
     },
