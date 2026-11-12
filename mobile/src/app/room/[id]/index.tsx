@@ -23,6 +23,7 @@ import { DisclosureSheet } from '@/features/event/disclosure-sheet';
 import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
 import { eventStrings } from '@/features/event/strings';
 import { useSmallTalk } from '@/features/event/use-small-talk';
+import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
@@ -167,6 +168,7 @@ function ChatRoom({
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
   // Qrewing AI (spec 3.2): disclosure, entry gate, Mute small talk with important-message alerts.
   const qrewing = useQrewingChat(room.id, room.type, userId);
+  useRecapTriggers(room.id, userId, qrewing.aiEnabled, remainingMs);
   const [disclosureClosed, setDisclosureClosed] = useState(false);
   const [askConsent, setAskConsent] = useState(false);
   const showDisclosure = (qrewing.gate === 'disclosure' && !disclosureClosed) || askConsent;

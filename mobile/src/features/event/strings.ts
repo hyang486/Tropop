@@ -70,6 +70,16 @@ export const eventStrings = {
     failed: 'Could not get suggestions. Try again.',
     notConsented: 'Agree to Qrewing AI to get suggestions.',
   },
+  recap: {
+    title: 'Recap',
+    none: 'No recap was saved for this room.',
+    you: 'You in this room',
+    messages: (n: number) => (n === 1 ? '1 message sent' : `${n} messages sent`),
+    media: (n: number) => (n === 1 ? '1 photo or file shared' : `${n} photos and files shared`),
+    photosOfMe: (n: number) => (n === 1 ? '1 photo of you' : `${n} photos of you`),
+    arrived: (time: string) => `Arrived at ${time}`,
+    savedHere: 'Saved on this phone only.',
+  },
   errors: {
     ai_not_configured: 'Qrewing is not set up yet.',
     ai_off: 'Qrewing AI is off in this room.',

@@ -44,8 +44,16 @@ export async function triageMessages(roomId: string, messageIds: string[]): Prom
   return Array.isArray(res.data?.results) ? res.data.results : { error: 'ai_failed' };
 }
 
-export async function requestRecap(roomId: string): Promise<RecapResult | { state: 'pending' } | { error: QrewingError }> {
-  const res = await invokeQrewing<RecapResult | { state: 'pending' }>({ action: 'recap', roomId });
+/** `refresh` (spec 7.2): one cheap update with newer messages; the server returns the cached row otherwise. */
+export async function requestRecap(
+  roomId: string,
+  opts?: { refresh?: boolean },
+): Promise<RecapResult | { state: 'pending' } | { error: QrewingError }> {
+  const res = await invokeQrewing<RecapResult | { state: 'pending' }>({
+    action: 'recap',
+    roomId,
+    ...(opts?.refresh ? { refresh: true } : {}),
+  });
   if ('error' in res) return res;
   if (res.data?.state === 'done' || res.data?.state === 'pending') return res.data;
   return { error: 'ai_failed' };

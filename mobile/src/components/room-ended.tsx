@@ -1,9 +1,10 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
 import { QScreen } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
+import { SavedRecapCard } from '@/features/recap/recap-card';
 import { en } from '@/i18n/en';
 import { type EndedRoomFields, roomClosedAtMs, sameLocalDay } from '@/lib/room-ended';
 
@@ -24,6 +25,8 @@ export function RoomEnded({
   reminder?: boolean;
 }) {
   const router = useRouter();
+  // Every room screen is under room/[id]; the saved recap (spec 3.3) is read from this phone by that id.
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const closedMs = roomClosedAtMs(room, nowMs ?? 0);
   let closedLine: string | undefined;
   if (room && closedMs !== null) {
@@ -44,6 +47,7 @@ export function RoomEnded({
       {reminder ? <Text style={styles.line}>{en.room.reminderGoneHint}</Text> : null}
       {!reminder ? <Text style={styles.line}>{en.room.savedStay}</Text> : null}
       {!reminder && closedMs === null ? <Text style={styles.line}>{en.room.goneHint}</Text> : null}
+      {typeof id === 'string' && id ? <SavedRecapCard roomId={id} /> : null}
     </QScreen>
   );
 }

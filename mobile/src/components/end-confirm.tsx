@@ -7,6 +7,7 @@ import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
+import { recapAfterEnd } from '@/features/recap/recap-store';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { endsDay } from '@/lib/chat-plan';
@@ -119,6 +120,8 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
           await setActivityState(room.id, 'ended');
         } else {
           await endRoom(room.id);
+          // Spec 7.3: end_room first, then the recap in the background (15 s limit, never blocks leaving).
+          recapAfterEnd(room.id, userId);
           cancelExpiryReminder(room.id);
           clearRoomCache(room.id);
         }
