@@ -22,29 +22,31 @@ No `cache_control` is sent, so there are no cache write or read charges. Thinkin
 | Recap | effort medium, `max_tokens` 2048, ≤150 messages (`core.ts:29, 535`) | pending (qa run) | est. $0.014 (5K in / 400 out, assumed) | ≈ $0.04 (≈10K in est. + 2048 out) |
 | Recap refresh | ≤50 newer messages, once (`core.ts:33, 576`) | pending | included above | ≈ $0.03 |
 
-The measured match row came from a small test room. With 29 candidates the input grows to about 4K tokens, so measured match cost understates large rooms (expect ≈ $0.009 per call there).
+The measured match row came from a small test room. With 29 candidates the input grows to about 4K tokens, so measured match cost understates large rooms (expect ≈ $0.009 per call at 29 candidates, ≈ $0.006 at 19).
 
 ## Per room
 
 Assumptions: about half of the messages from muted members reach the model in batches of 2; one recap plus one refresh per room; each member's match runs twice (first view and one refresh after the 10-minute reuse window, `core.ts:35`). The triage cap is 300 model-triaged messages per room per day (`core.ts:27`).
 
-| Room | Triage calls | Match calls | Recap calls | Measured | Worst case |
-|---|---|---|---|---|---|
-| 20 people, 3 hours | 75 | 30 | 2 | $0.09 | $0.99 |
-| 50-person event day | 150 (cap) | 100 | 2 | $0.24 | $3.08 |
-| 200-person school event | 150 (cap) | 400 | 2 | $0.84 | $11.78 |
+"At small-room rates" prices every match call at the measured $0.002; "Expected" prices it for the room's candidate count ($0.006 at 19 candidates, $0.009 at 29, both estimates).
 
-Match dominates in every case; triage stays under $0.11 per room even at the cap with single-message calls ($0.21 at 300 calls).
+| Room | Triage calls | Match calls | Recap calls | At small-room rates | Expected | Worst case |
+|---|---|---|---|---|---|---|
+| 20 people, 3 hours | 75 | 40 | 2 | $0.11 | $0.27 | $1.28 |
+| 50-person event day | 150 (cap) | 100 | 2 | $0.24 | $0.94 | $3.08 |
+| 200-person school event | 150 (cap) | 400 | 2 | $0.84 | $3.64 | $11.78 |
+
+Match dominates in every case; worst-case triage is about $0.11 per room at the cap in batches of 2 (150 calls) and $0.21 with single-message calls (300 calls).
 
 ## Monthly totals
 
-Every room of one size, using the per-room figures above.
+Every room of one size, using the per-room figures above (small-room rates / expected / worst case).
 
-| Rooms per month | 20 people (measured / worst) | 50 people | 200 people |
+| Rooms per month | 20 people | 50 people | 200 people |
 |---|---|---|---|
-| 100 | $9 / $99 | $24 / $308 | $84 / $1,178 |
-| 1,000 | $94 / $990 | $240 / $3,080 | $840 / $11,780 |
-| 10,000 | $940 / $9,900 | $2,400 / $30,800 | $8,400 / $117,800 |
+| 100 | $11 / $27 / $128 | $24 / $94 / $308 | $84 / $364 / $1,178 |
+| 1,000 | $114 / $270 / $1,280 | $240 / $940 / $3,080 | $840 / $3,640 / $11,780 |
+| 10,000 | $1,140 / $2,700 / $12,800 | $2,400 / $9,400 / $30,800 | $8,400 / $36,400 / $117,800 |
 
 ## Not verified
 
