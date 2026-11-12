@@ -1806,3 +1806,6 @@ NOT RUN visually: app splash (dev builds show the Expo dev-launcher loading scre
 - Re-ran 389/389, tsc 0. 372d69a: PaceRunner reads presence only while `live` (running && focused, pace-layer.tsx:58), so a hidden Map tab no longer refetches every member's row. Cleanup claims (stationary interval, flush on stop/off/unmount, banner timer, voice budget) accepted as reported.
 - Open, merge-time: a cue already queued can play once after End activity. Call Speech.stop on run stop when expo-speech is wired.
 - d67e7f7: pace-demo-replay test replays the demo legs through the core; the QA doc now gives replayed times (~0:15/~2:15, Ease off ~8:30). Accepted.
+
+### developer-event 73b532d (B1/B2): PASS (supervisor, 2026-11-12)
+- Re-ran 355/355, tsc 0. B1: chatGates returns independent {disclosure, entry}. EntryGate (index.tsx:337) and composer hiding (:390) depend only on gates.entry, so swiping the sheet away still leaves entry required. The mute bar shows only when neither gate is up (:312). B2: nextLoadedOnce latches on the first successful load (no error), so a failed empty first page never sets the baseline. Using the server's newestMs avoids client clock skew. Tests cover failed-first-load, retry history, later mention, and an empty room. B1 and B2 closed. M1 and M2 are in the event merge-prep doc.
