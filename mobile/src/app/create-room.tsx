@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { PlacePinMap } from '@/components/place-time-cards';
+import { setQrewingRoom } from '@/features/event/qrewing-api';
+import { eventStrings } from '@/features/event/strings';
 import { QCard, QField, QLabel, QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -46,6 +48,9 @@ export default function CreateRoom() {
   const hours = pickedHours ?? defaultRoomHours(type);
   const [locationAllowed, setLocationAllowed] = useState(true);
   const [statuses, setStatuses] = useState<string>(en.createRoom.statusesDefault);
+  // Qrewing AI (spec 3.2): off by default for every type; entry info is offered for event rooms only.
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [entryRequired, setEntryRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Place and time (0026), all optional: a place name, a pin found from the name (tap the map to move it) and a
@@ -162,7 +167,13 @@ export default function CreateRoom() {
           .map((s) => s.trim())
           .filter(Boolean),
       });
-      router.replace({ pathname: '/room/[id]', params: { id: room.id } });
+      // A failed Qrewing save never blocks the room; the chat screen shows the note once.
+      let aiNote: string | undefined;
+      if (aiEnabled) {
+        const res = await setQrewingRoom(room.id, true, type === 'event' && entryRequired);
+        if (res.error) aiNote = '1';
+      }
+      router.replace({ pathname: '/room/[id]', params: aiNote ? { id: room.id, aiNote } : { id: room.id } });
       router.push({ pathname: '/room/[id]/invite', params: { id: room.id } });
     } catch (e) {
       setError(errorMessage(e));
@@ -282,6 +293,25 @@ export default function CreateRoom() {
         />
       </QCard>
       <Hint>{en.createRoom.locationHint}</Hint>
+
+      <QCard row>
+        <Text style={styles.cardTitle}>{eventStrings.create.aiLabel}</Text>
+        <Switch value={aiEnabled} onValueChange={setAiEnabled} accessibilityLabel={eventStrings.create.aiLabel} />
+      </QCard>
+      <Hint>{eventStrings.create.aiHint}</Hint>
+      {aiEnabled && type === 'event' ? (
+        <>
+          <QCard row>
+            <Text style={styles.cardTitle}>{eventStrings.create.entryLabel}</Text>
+            <Switch
+              value={entryRequired}
+              onValueChange={setEntryRequired}
+              accessibilityLabel={eventStrings.create.entryLabel}
+            />
+          </QCard>
+          <Hint>{eventStrings.create.entryHint}</Hint>
+        </>
+      ) : null}
 
       <QCard>
         <Text style={styles.cardTitle}>{en.createRoom.statusesLabel}</Text>
