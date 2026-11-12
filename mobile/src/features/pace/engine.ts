@@ -16,6 +16,7 @@ import {
   type Point,
   progressOf,
   spokenCue,
+  standingStill,
   recentPace,
   type Runner,
   type StationaryState,
@@ -132,7 +133,7 @@ function cueText(cue: ChosenCue): string {
     case 'km':
       return t.cueKm(cue.km, cue.pace, cue.target);
     case 'gap':
-      return t.cueGap(cue.gapM, cue.pace);
+      return cue.pace == null ? t.cueGapKeep(cue.gapM) : t.cueGap(cue.gapM, cue.pace);
     case 'slow':
       return t.cueSlow(cue.pace, cue.target);
     case 'fast':
@@ -171,7 +172,8 @@ export function feedFixes(key: string, batch: PaceFix[], ctx: FeedContext) {
     lastSplitS: tracker.splits.length ? tracker.splits[tracker.splits.length - 1] : null,
     recentSecPerKm: recent,
     targetSecPerKm: ctx.targetSecPerKm,
-    gap: gapCue(ctx.userId, runners),
+    gap: gapCue(ctx.userId, runners, ctx.targetSecPerKm),
+    stopped: run.stationary.openSinceMs != null || standingStill(fixes, tracker.seenAtMs),
   });
   run = { ...run, cues: chosen.schedule };
   const text = chosen.cue ? cueText(chosen.cue) : null;
