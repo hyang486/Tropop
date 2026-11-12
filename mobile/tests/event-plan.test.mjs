@@ -446,3 +446,26 @@ test('entryDirty (qa F2): only a change from the loaded form asks before leaving
   assert.equal(entryDirty(saved, { ...saved, links: [...saved.links] }), false, 'loaded entry, no edit');
   assert.equal(entryDirty(saved, { ...saved, lookingFor: 'D' }), true);
 });
+
+test('roomStateFor: a read for another room never shows; the same room keeps its state across reloads', async () => {
+  const { roomStateFor, ROOM_UNKNOWN, ROOM_READ_FAILED } = await import('../src/features/event/qrewing-plan.ts');
+  const on = { aiEnabled: true, entryRequired: true, me: { aiOk: true, mute: true }, readFailed: false, loaded: true };
+  assert.equal(roomStateFor(null, 'a'), ROOM_UNKNOWN);
+  assert.equal(roomStateFor({ roomId: 'a', state: on }, 'a'), on);
+  assert.equal(roomStateFor({ roomId: 'a', state: on }, 'b'), ROOM_UNKNOWN);
+  assert.equal(roomStateFor({ roomId: 'a', state: ROOM_READ_FAILED }, 'b'), ROOM_UNKNOWN);
+});
+
+test('sessionUserId: the id from the stored session (works offline); no session is undefined', async () => {
+  const { sessionUserId } = await import('../src/features/event/qrewing-plan.ts');
+  assert.equal(sessionUserId({ data: { session: { user: { id: 'u1' } } } }), 'u1');
+  assert.equal(sessionUserId({ data: { session: null } }), undefined);
+  assert.equal(sessionUserId(null), undefined);
+});
+
+test('useQrewingRoom reads the user from getSession, not the network getUser', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/features/event/qrewing-api.ts', import.meta.url), 'utf8');
+  assert.match(src, /sessionUserId\(await supabase\.auth\.getSession\(\)\)/);
+  assert.doesNotMatch(src, /auth\.getUser\(/);
+});
