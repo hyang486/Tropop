@@ -24,13 +24,14 @@ import {
   parseQuestions,
   type QuestionPayload,
 } from './entry-questions';
+import { askBody, askErrorKind, type AskError, type AskMe, type AskTurn, parseAskAnswer } from './ask-plan';
 import type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 
 export type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 export { isQrewingError } from './qrewing-plan';
 
 
-type Invoke<T> = { data: T } | { error: QrewingError };
+export type Invoke<T> = { data: T } | { error: QrewingError };
 
 async function invokeQrewing<T>(body: Record<string, unknown>): Promise<Invoke<T>> {
   try {
@@ -47,6 +48,26 @@ async function invokeQrewing<T>(body: Record<string, unknown>): Promise<Invoke<T
   } catch (e) {
     return { error: isOfflineError(e) ? 'network' : 'ai_failed' };
   }
+}
+
+/** Spec 10.3 `ask` (private chat). `invoke` is replaceable for the fake API and tests. */
+export async function askQrewing(
+  roomId: string,
+  question: string,
+  history: readonly AskTurn[],
+  me?: AskMe | null,
+  invoke: (body: Record<string, unknown>) => Promise<Invoke<unknown>> = invokeQrewing,
+): Promise<{ answer: string } | { error: AskError }> {
+  let tz: string | undefined;
+  try {
+    tz = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    tz = undefined;
+  }
+  const res = await invoke(askBody(roomId, question, history, me, tz));
+  if ('error' in res) return { error: askErrorKind(res.error) };
+  const ok = parseAskAnswer(res.data);
+  return ok ? { answer: ok.answer } : { error: 'ai_failed' };
 }
 
 export async function probeQrewing(roomId: string): Promise<{ ok: true } | { error: QrewingError }> {
@@ -94,7 +115,16 @@ export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRe
 
 export async function setQrewingMember(roomId: string, aiOk: boolean, mute: boolean): Promise<{ error?: string; offline?: boolean }> {
   const { error } = await supabase.rpc('set_qrewing_member', { p_room_id: roomId, p_ai_ok: aiOk, p_mute: mute });
-  return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
+  if (error) return { error: error.message, offline: saveErrorKind(error) === 'network' };
+  memberChanged(roomId);
+  return {};
+}
+
+// Every mounted useQrewingRoom of a room re-reads after my consent/mute row changes anywhere (e.g. the chat's
+// disclosure sheet), so another reader such as the Ask Qrewing button never keeps a stale `aiOk`.
+const memberListeners = new Set<(roomId: string) => void>();
+function memberChanged(roomId: string) {
+  for (const l of memberListeners) l(roomId);
 }
 
 // --- host-defined entry questions (spec 9.2 contract, migration 0028) -----------------------------------------------
@@ -181,6 +211,16 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
   const [kept, setKept] = useState<KeyedRoomState | null>(null);
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  useEffect(() => {
+    const onChange = (changed: string) => {
+      if (changed === roomId) reload();
+    };
+    memberListeners.add(onChange);
+    return () => {
+      memberListeners.delete(onChange);
+    };
+  }, [roomId, reload]);
 
   useEffect(() => {
     let alive = true;

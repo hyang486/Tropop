@@ -10,6 +10,7 @@ import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { Button, colors, Hint, radius } from '@/components/ui';
+import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
 import { PaceCard } from '@/features/pace/pace-card';
 import { PaceLayer } from '@/features/pace/pace-layer';
 import { en } from '@/i18n/en';
@@ -627,6 +628,8 @@ function RoomMap({
         />
       ) : null}
       </ScrollView>
+      {/* Spec 10.1: Ask Qrewing at the bottom of the screen; content pads below so the map controls scroll clear. */}
+      <QrewingFab roomId={room.id} safeArea />
       <PaceLayer roomId={room.id} />
     </View>
   );
@@ -684,7 +687,7 @@ const MAP_OVERLAY_MAX_SCALE = 1.3;
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, gap: 16 },
+  content: { padding: 16, paddingBottom: 16 + QREWING_FAB_CLEARANCE, gap: 16 },
   // Qrew unit 4: the QScreen head (title, gray room name under it) inside the map's own scroll view.
   head: { gap: 4, marginBottom: -4 },
   roomName: { fontSize: 15, color: colors.secondaryLabel },

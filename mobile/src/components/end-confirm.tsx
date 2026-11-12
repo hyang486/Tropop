@@ -7,6 +7,7 @@ import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
+import { purgeAskHistory } from '@/features/event/ask-store';
 import { useQrewingRoom } from '@/features/event/qrewing-api';
 import { endCopyHasRecap } from '@/features/event/qrewing-plan';
 import { recapAfterEnd } from '@/features/recap/recap-store';
@@ -135,6 +136,7 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
           recapAfterEnd(room.id, userId);
           cancelExpiryReminder(room.id);
           clearRoomCache(room.id);
+          void purgeAskHistory(room.id);
         }
       });
       if (!ran || !focusedRef.current) return;

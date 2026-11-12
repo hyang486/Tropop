@@ -5,6 +5,7 @@ import {
   type ChosenCue,
   chooseCue,
   closeStationary,
+  currentPaceSnapshot,
   type CueSchedule,
   gapCue,
   newCueSchedule,
@@ -105,6 +106,12 @@ export function flushRun(key: string) {
   if (!run || !run.tracker.lastFix) return;
   put({ ...run, lastSavedAtMs: Date.now() });
   saveSession(summarize(run.tracker)).catch(() => {});
+}
+
+/** The Qrewing bot's `me` for this room's running activity (spec 10.4); null when none is running or unmeasured. */
+export function paceSnapshot(room: { id: string; activity_state: string; activity_seq: number }, nowMs = Date.now()) {
+  const tracker = runs.get(runKey(room.id, room.activity_seq))?.tracker;
+  return currentPaceSnapshot({ activityRunning: room.activity_state === 'active', tracker, nowMs });
 }
 
 /** My in-memory sessions in this room (any activity), for a recap built before or while they are saved. */

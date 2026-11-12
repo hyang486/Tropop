@@ -6,6 +6,8 @@ import { Avatar } from '@/components/avatar';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RoomEnded } from '@/components/room-ended';
+import { purgeAskHistory } from '@/features/event/ask-store';
+import { QrewingFab } from '@/features/event/qrewing-fab';
 import { StatusEditor } from '@/components/status-editor';
 import { QrewingInfoSection } from '@/features/event/info-section';
 import { QLink, QScreen } from '@/components/q-screen';
@@ -133,6 +135,7 @@ export default function RoomInfoScreen() {
             await leaveRoom(room.id);
             cancelExpiryReminder(room.id);
             clearRoomCache(room.id);
+            void purgeAskHistory(room.id);
             router.dismissTo('/');
           } catch (e) {
             setBusy(false);
@@ -162,6 +165,7 @@ export default function RoomInfoScreen() {
     <QScreen
       title={room.name}
       subtitle={en.room.infoSubtitle(isHost)}
+      floating={<QrewingFab roomId={room.id} />}
       actions={
         <>
           {isHost ? (

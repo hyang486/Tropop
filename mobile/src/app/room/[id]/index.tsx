@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HandTitle } from '@/components/hand-title';
 import { RoomActivityBar } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
+import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
 import { Button, colors, Hint, radius, Screen } from '@/components/ui';
 import { EntryGate, HiddenRow, ImportantBannerView, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
@@ -334,6 +335,8 @@ function ChatRoom({
             hideControls={keyboardOpen}
           />
 
+          {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it. */}
+          <View style={styles.flex}>
           {qrewing.gates.entry ? (
             <EntryGate roomId={room.id} />
           ) : chat.loading ? (
@@ -353,7 +356,8 @@ function ChatRoom({
               onScrollToIndexFailed={({ averageItemLength, index }) =>
                 listRef.current?.scrollToOffset({ offset: averageItemLength * index, animated: true })
               }
-              contentContainerStyle={styles.list}
+              // Inverted: paddingTop is the visual bottom, so the newest message clears Ask Qrewing.
+              contentContainerStyle={[styles.list, { paddingTop: QREWING_FAB_CLEARANCE }]}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
               onEndReached={chat.hasMore ? chat.loadOlder : undefined}
@@ -385,6 +389,8 @@ function ChatRoom({
               }}
             />
           )}
+          <QrewingFab roomId={room.id} />
+          </View>
 
           {/* Q 03.01: one rounded field with the arrow Send inside. Q's left chat icon has no action: omitted. */}
           {qrewing.gates.entry ? null : (

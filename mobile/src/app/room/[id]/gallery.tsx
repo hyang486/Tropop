@@ -22,6 +22,7 @@ import { PhotosOfMe } from '@/components/photos-of-me';
 import { qSpacing } from '@/components/q-screen';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
+import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
@@ -288,7 +289,7 @@ export default function GalleryScreen() {
             numColumns={COLUMNS}
             style={styles.grid}
             columnWrapperStyle={{ gap: GAP }}
-            contentContainerStyle={{ gap: GAP }}
+            contentContainerStyle={{ gap: GAP, paddingBottom: can.upload ? QREWING_FAB_CLEARANCE : 0 }}
             onRefresh={media.reload}
             refreshing={false}
             ListHeaderComponent={notices ?? undefined}
@@ -301,6 +302,8 @@ export default function GalleryScreen() {
             renderItem={({ item }) => <Tile media={item} size={tile} token={token} />}
           />
         )}
+        {/* Spec 10.1: Ask Qrewing over the grid, above the pinned footer; not in grace (read-only). */}
+        {can.upload ? <QrewingFab roomId={id} /> : null}
       </View>
 
       <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
