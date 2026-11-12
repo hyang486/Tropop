@@ -3,7 +3,7 @@ const km = (m: number) => (m / 1000).toFixed(2);
 
 export const paceStrings = {
   title: 'Pace maker',
-  switchHint: 'Qrewing coaches your pace on this phone while you share your location. Nothing is sent to a server.',
+  switchHint: 'Qrewing coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
   needsSharing: 'Turn on Share my location to use the pace maker.',
   needsActivity: 'Cues start when the host starts the activity.',
   target: 'Target',
@@ -12,7 +12,9 @@ export const paceStrings = {
   targetTime: 'Time for distance',
   pacePlaceholder: '5:30',
   distancePlaceholder: 'km',
+  distanceLabel: 'Distance in km',
   timePlaceholder: 'h:mm:ss',
+  timeLabel: 'Target time',
   perKm: 'per km',
   save: 'Save target',
   saved: 'Target saved.',
@@ -32,7 +34,5 @@ export const paceStrings = {
     `Lead group ${gapM} meters ahead. Run ${pace} per km to catch them in 3 minutes.`,
   cueDismiss: 'Dismiss cue',
   stationaryTitle: "You've stopped for 3 minutes. Everything okay?",
-  stationaryBody: 'Set your status so your crew knows, or dismiss.',
-  setStatus: 'Set status',
   dismiss: 'Dismiss',
 };

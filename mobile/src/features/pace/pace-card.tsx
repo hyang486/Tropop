@@ -132,6 +132,7 @@ function TargetEditor({ target, usual }: { target: PaceTarget; usual: number | n
             placeholder={t.pacePlaceholder}
             keyboardType="numbers-and-punctuation"
             accessibilityLabel={t.targetPace}
+            placeholderTextColor={colors.secondaryLabel}
             style={styles.input}
           />
           <Text style={styles.unit}>{t.perKm}</Text>
@@ -144,7 +145,8 @@ function TargetEditor({ target, usual }: { target: PaceTarget; usual: number | n
             onChangeText={setKm}
             placeholder={t.distancePlaceholder}
             keyboardType="decimal-pad"
-            accessibilityLabel={t.distancePlaceholder}
+            accessibilityLabel={t.distanceLabel}
+            placeholderTextColor={colors.secondaryLabel}
             style={styles.input}
           />
           <TextInput
@@ -152,7 +154,8 @@ function TargetEditor({ target, usual }: { target: PaceTarget; usual: number | n
             onChangeText={setTime}
             placeholder={t.timePlaceholder}
             keyboardType="numbers-and-punctuation"
-            accessibilityLabel={t.timePlaceholder}
+            accessibilityLabel={t.timeLabel}
+            placeholderTextColor={colors.secondaryLabel}
             style={styles.input}
           />
           {shown ? <Text style={styles.unit}>{`${formatPace(shown)} ${t.perKm}`}</Text> : null}
