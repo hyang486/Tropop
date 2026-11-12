@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { QCard, QLabel } from '@/components/q-screen';
-import { colors } from '@/components/ui';
+import { Button, colors } from '@/components/ui';
 import { eventStrings } from '@/features/event/strings';
 import { useAuth } from '@/lib/auth';
 
-import type { RecapMark, SavedRecap } from './recap-plan';
-import { fetchAndSaveRecap, loadMark, loadSavedRecap, readAndSaveRecap } from './recap-store';
+import { type RecapMark, type RecapMiss, recapCardView, type SavedRecap } from './recap-plan';
+import { loadMark, loadSavedRecap, recapForEndedRoom } from './recap-store';
 
 const s = eventStrings.recap;
 
-type Loaded = { roomId: string; saved: SavedRecap | null; mark: RecapMark | null };
+type Loaded = { roomId: string; saved: SavedRecap | null; mark: RecapMark | null; miss: RecapMiss | null };
 
 /**
  * The saved recap on the Room ended screen (spec 3.3), read from this phone. "No recap was saved" only for rooms
@@ -22,27 +22,50 @@ export function SavedRecapCard({ roomId }: { roomId: string }) {
   const { session } = useAuth();
   const userId = session?.user.id;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [tick, setTick] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   useEffect(() => {
     let alive = true;
     (async () => {
       const [stored, mark] = await Promise.all([loadSavedRecap(roomId), loadMark(roomId)]);
       let saved = stored;
+      let miss: RecapMiss | null = null;
       // Early end (spec 7): the room is readable for 30 minutes, but room notices stop at the end, so a member
       // who missed the recap reads the row (grace read policy), and asks once if there is none yet.
       if (!saved && mark?.ai && userId) {
-        saved = (await readAndSaveRecap(roomId, userId)) ?? (await fetchAndSaveRecap(roomId, userId));
+        const res = await recapForEndedRoom(roomId, userId);
+        if ('saved' in res) saved = res.saved;
+        else miss = res.miss;
       }
-      if (alive) setLoaded({ roomId, saved, mark });
-    })().catch(() => {});
+      if (alive) setLoaded({ roomId, saved, mark, miss });
+    })()
+      .catch(() => {})
+      .finally(() => alive && setRetrying(false));
     return () => {
       alive = false;
     };
-  }, [roomId, userId]);
+  }, [roomId, userId, tick]);
 
   if (!loaded || loaded.roomId !== roomId) return null;
-  const { saved, mark } = loaded;
-  if (!saved) {
-    return mark?.ai ? <Text style={styles.line}>{s.none}</Text> : null;
+  const { saved, mark, miss } = loaded;
+  const view = recapCardView(saved !== null, mark?.ai === true, miss);
+  if (view === 'hidden') return null;
+  if (view === 'none') return <Text style={styles.line}>{s.none}</Text>;
+  if (view === 'pending' || view === 'offline' || !saved) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.line}>{view === 'pending' ? s.pending : s.offline}</Text>
+        <Button
+          title={s.retry}
+          variant="secondary"
+          busy={retrying}
+          onPress={() => {
+            setRetrying(true);
+            setTick((n) => n + 1);
+          }}
+        />
+      </View>
+    );
   }
   const me = saved.me;
   const mine = [

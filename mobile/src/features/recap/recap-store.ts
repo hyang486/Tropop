@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { requestRecap } from '@/features/event/qrewing-api';
+import { isOfflineError } from '@/features/event/qrewing-plan';
 import type { RoomRecapRow } from '@/features/event/types';
 import { loadFaceData } from '@/lib/face';
 import { supabase } from '@/lib/supabase';
@@ -18,6 +19,7 @@ import {
   type RecapMark,
   recapKey,
   recapMarkKey,
+  type RecapMiss,
   type SavedRecap,
   type ServerRecap,
   withTimeout,
@@ -151,4 +153,40 @@ export function recapAfterEnd(roomId: string, userId: string | undefined): void 
       return withTimeout(fetchAndSaveRecap(roomId, userId), END_RECAP_TIMEOUT_MS, null);
     })
     .catch(() => {});
+}
+
+/**
+ * Room ended without a copy on this phone (spec 7.3 grace): read the shared row, then ask once. Says why there is
+ * no recap, so the card can tell "still writing" and "offline" apart from "no recap was saved".
+ */
+export async function recapForEndedRoom(roomId: string, userId: string): Promise<{ saved: SavedRecap } | { miss: RecapMiss }> {
+  let offline = false;
+  try {
+    const { data, error } = await db.from('room_recaps').select('*').eq('room_id', roomId).maybeSingle<RoomRecapRow>();
+    if (error) offline = isOfflineError(error);
+    else if (data?.state === 'done' && data.title && data.summary) {
+      return {
+        saved: await save(roomId, userId, {
+          title: data.title,
+          summary: data.summary,
+          highlights: data.highlights ?? [],
+          generatedAt: data.updated_at,
+        }),
+      };
+    }
+  } catch {
+    offline = true;
+  }
+  if (offline) return { miss: 'offline' };
+  const res = await requestRecap(roomId);
+  if ('error' in res) return { miss: res.error === 'network' ? 'offline' : 'gone' };
+  if (res.state !== 'done') return { miss: 'pending' };
+  return {
+    saved: await save(roomId, userId, {
+      title: res.title,
+      summary: res.summary,
+      highlights: res.highlights,
+      generatedAt: res.generatedAt,
+    }),
+  };
 }

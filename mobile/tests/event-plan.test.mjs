@@ -202,3 +202,14 @@ test('linksByUser keeps up to 3 https links per member and skips empty ones', ()
   assert.equal(map.has('b'), false);
   assert.equal(map.has('c'), false);
 });
+
+test('isOfflineError: a failed fetch has no code; server errors do', async () => {
+  const { isOfflineError, saveErrorKind } = await import('../src/features/event/qrewing-plan.ts');
+  assert.equal(isOfflineError({ message: 'TypeError: Network request failed', code: '' }), true);
+  assert.equal(isOfflineError(new TypeError('Network request failed')), true);
+  assert.equal(isOfflineError({ message: 'relation does not exist', code: '42P01' }), false);
+  assert.equal(isOfflineError({ message: 'missing table', code: 'PGRST205' }), false);
+  assert.equal(isOfflineError(null), false);
+  assert.equal(saveErrorKind({ code: '' }), 'network');
+  assert.equal(saveErrorKind({ code: 'P0001', message: 'not a member' }), 'failed');
+});

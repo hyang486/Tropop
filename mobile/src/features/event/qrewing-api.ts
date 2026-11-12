@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
-import { classifyQrewingError } from './qrewing-plan';
+import { classifyQrewingError, isOfflineError, saveErrorKind } from './qrewing-plan';
 import type { MatchResult, QrewingError, QrewingMemberRow, QrewingRoomRow, RecapResult, TriageResult } from './types';
 
 export type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
@@ -65,26 +65,34 @@ export async function requestMatches(roomId: string): Promise<MatchResult | { er
   return Array.isArray(res.data?.matches) ? res.data : { error: 'ai_failed' };
 }
 
-export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRequired: boolean): Promise<{ error?: string }> {
+export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRequired: boolean): Promise<{ error?: string; offline?: boolean }> {
   const { error } = await db.rpc('set_qrewing_room', {
     p_room_id: roomId,
     p_ai_enabled: aiEnabled,
     p_entry_required: entryRequired,
   });
-  return error ? { error: error.message } : {};
+  return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
 }
 
-export async function setQrewingMember(roomId: string, aiOk: boolean, mute: boolean): Promise<{ error?: string }> {
+export async function setQrewingMember(roomId: string, aiOk: boolean, mute: boolean): Promise<{ error?: string; offline?: boolean }> {
   const { error } = await db.rpc('set_qrewing_member', { p_room_id: roomId, p_ai_ok: aiOk, p_mute: mute });
-  return error ? { error: error.message } : {};
+  return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
 }
 
-type RoomState = { aiEnabled: boolean; entryRequired: boolean; me: { aiOk: boolean; mute: boolean } | null };
-const OFF: RoomState = { aiEnabled: false, entryRequired: false, me: null };
+type RoomState = {
+  aiEnabled: boolean;
+  entryRequired: boolean;
+  me: { aiOk: boolean; mute: boolean } | null;
+  /** The last read never reached the server (offline). The state then reads as AI off but is not known. */
+  readFailed: boolean;
+};
+const OFF: RoomState = { aiEnabled: false, entryRequired: false, me: null, readFailed: false };
+const OFFLINE: RoomState = { ...OFF, readFailed: true };
 
 /**
  * The room's Qrewing switches and my own consent/mute row. Any read failure (including the tables not existing
- * yet) reads as AI off, so no AI UI shows.
+ * yet) reads as AI off, so no AI UI shows; `readFailed` tells an offline read apart so settings screens do not
+ * show a switch they could not read.
  */
 export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
   const [state, setState] = useState<RoomState>(OFF);
@@ -103,14 +111,18 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
           : Promise.resolve({ data: null, error: null }),
       ]);
       if (!alive) return;
+      if (room.error && isOfflineError(room.error)) {
+        setState(OFFLINE);
+        return;
+      }
       if (room.error || !room.data?.ai_enabled) {
         setState(OFF);
         return;
       }
       const me = member.data ? { aiOk: member.data.ai_ok_at != null, mute: member.data.mute_small_talk } : null;
-      setState({ aiEnabled: true, entryRequired: room.data.entry_required, me });
+      setState({ aiEnabled: true, entryRequired: room.data.entry_required, me, readFailed: false });
     })().catch(() => {
-      if (alive) setState(OFF);
+      if (alive) setState(OFFLINE);
     });
     return () => {
       alive = false;

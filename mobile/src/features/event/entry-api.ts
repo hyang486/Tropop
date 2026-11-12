@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
 import type { EntryInput } from './event-plan';
+import { saveErrorKind } from './qrewing-plan';
 import type { EntryProfileRow } from './types';
 
 // Untyped until database.types.ts is regenerated after migration 0027 (see qrewing-api.ts).
@@ -27,7 +28,7 @@ export async function listEntryProfiles(roomId: string): Promise<EntryProfileRow
   return (data ?? []) as EntryProfileRow[];
 }
 
-export async function saveEntryProfile(roomId: string, entry: EntryInput): Promise<{ error?: string }> {
+export async function saveEntryProfile(roomId: string, entry: EntryInput): Promise<{ error?: string; offline?: boolean }> {
   const { error } = await db.rpc('upsert_entry_profile', {
     p_room_id: roomId,
     p_headline: entry.headline,
@@ -35,5 +36,5 @@ export async function saveEntryProfile(roomId: string, entry: EntryInput): Promi
     p_looking_for: entry.lookingFor,
     p_links: entry.links,
   });
-  return error ? { error: error.message } : {};
+  return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
 }

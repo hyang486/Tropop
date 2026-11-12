@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { QCard, QScreen } from '@/components/q-screen';
@@ -32,18 +32,22 @@ export function PeopleScreen() {
   const router = useRouter();
   const q = useQrewingRoom(id);
   const [state, setState] = useState<State>({ status: 'loading' });
+  // Only the newest request may set the state (a Refresh after leaving, or two quick taps, must not).
+  const latest = useRef(0);
 
   useEffect(() => {
-    let alive = true;
-    load(id).then((next) => alive && setState(next));
+    const req = latest;
+    const n = ++req.current;
+    load(id).then((next) => req.current === n && setState(next));
     return () => {
-      alive = false;
+      req.current++;
     };
   }, [id]);
 
   const refresh = useCallback(() => {
+    const n = ++latest.current;
     setState({ status: 'loading' });
-    load(id).then(setState);
+    load(id).then((next) => latest.current === n && setState(next));
   }, [id]);
 
   const notConsented = q.me !== null && !q.me.aiOk;

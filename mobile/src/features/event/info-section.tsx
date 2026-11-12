@@ -4,7 +4,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { QCard, QLabel } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
-import { colors, Hint } from '@/components/ui';
+import { Button, colors, Hint } from '@/components/ui';
 
 import { setQrewingMember, setQrewingRoom, useQrewingRoom } from './qrewing-api';
 import { eventStrings } from './strings';
@@ -28,16 +28,28 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
     }, [reload]),
   );
 
-  async function run(action: () => Promise<{ error?: string }>) {
+  async function run(action: () => Promise<{ error?: string; offline?: boolean }>) {
     setBusy(true);
     setError(null);
     const res = await action();
     setBusy(false);
-    if (res.error) setError(res.error);
+    if (res.error) setError(res.offline ? eventStrings.errors.network : s.saveFailed);
     q.reload();
   }
 
   const isEvent = roomType === 'event';
+  // Offline: the host sees why the switches are missing (not a switch that reads Off); members see nothing, as
+  // in a room without AI.
+  if (q.readFailed) {
+    if (!isHost) return null;
+    return (
+      <View style={styles.section}>
+        <QLabel>{s.section}</QLabel>
+        <Hint tone="error">{s.loadFailed}</Hint>
+        <Button title={s.retry} variant="secondary" onPress={reload} />
+      </View>
+    );
+  }
   if (!isHost && !q.aiEnabled) return null;
   const aiOk = q.me?.aiOk ?? false;
 

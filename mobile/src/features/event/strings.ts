@@ -47,6 +47,9 @@ export const eventStrings = {
     tooLong: (field: string, max: number) => `${field} can be up to ${max} characters.`,
     linkInvalid: 'Each link must start with https:// and be up to 200 characters.',
     tooManyLinks: 'Add up to 3 links.',
+    loadFailed: 'Could not load your entry info. Check your connection and try again.',
+    saveFailed: 'Could not save your entry info. Try again.',
+    retry: 'Try again',
   },
   info: {
     section: 'Qrewing AI',
@@ -57,6 +60,9 @@ export const eventStrings = {
     editEntry: 'Edit my entry info',
     addEntry: 'Add my entry info',
     peopleToMeet: 'People to meet',
+    loadFailed: 'Could not load Qrewing settings. Check your connection.',
+    saveFailed: 'Could not save this change. Try again.',
+    retry: 'Try again',
   },
   mute: {
     label: 'Mute small talk',
@@ -68,6 +74,7 @@ export const eventStrings = {
     mentioned: 'You were mentioned',
     dismiss: 'Dismiss',
     unavailable: 'Qrewing is not available right now. All messages are shown.',
+    saveFailed: 'Could not change Mute small talk. Try again.',
   },
   people: {
     title: 'People to meet',
@@ -82,6 +89,9 @@ export const eventStrings = {
   recap: {
     title: 'Recap',
     none: 'No recap was saved for this room.',
+    pending: 'Qrewing is still writing the recap.',
+    offline: 'Could not get the recap. Check your connection.',
+    retry: 'Try again',
     you: 'You in this room',
     messages: (n: number) => (n === 1 ? '1 message sent' : `${n} messages sent`),
     media: (n: number) => (n === 1 ? '1 photo or file shared' : `${n} photos and files shared`),

@@ -38,7 +38,7 @@ export function DisclosureSheet({
     const res = await setQrewingMember(roomId, agree, false);
     setBusy(null);
     if (res.error) {
-      setError(s.failed);
+      setError(res.offline ? eventStrings.errors.network : s.failed);
       return;
     }
     onDone();

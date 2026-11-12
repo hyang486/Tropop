@@ -5,7 +5,6 @@ import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { errorMessage } from '@/lib/errors';
 
 import { getEntryProfile, saveEntryProfile } from './entry-api';
 import { ENTRY_LIMITS, type EntryProblem, validateEntry } from './event-plan';
@@ -46,6 +45,9 @@ export function EntryScreen() {
   const [links, setLinks] = useState<string[]>(['', '', '']);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The saved entry could not be read: Save stays off so an empty form never replaces it.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadTick, setLoadTick] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -58,12 +60,12 @@ export function EntryScreen() {
         setLookingFor(row.looking_for);
         setLinks([0, 1, 2].map((i) => row.links[i] ?? ''));
       })
-      .catch((e) => alive && setError(errorMessage(e)))
+      .catch(() => alive && setLoadFailed(true))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
-  }, [id, userId]);
+  }, [id, userId, loadTick]);
 
   async function save() {
     const checked = validateEntry({ headline, interests, lookingFor, links });
@@ -76,7 +78,7 @@ export function EntryScreen() {
     const res = await saveEntryProfile(id, checked.value);
     setBusy(false);
     if (res.error) {
-      setError(res.error);
+      setError(res.offline ? eventStrings.errors.network : s.saveFailed);
       return;
     }
     if (gate === '1') router.replace({ pathname: '/room/[id]', params: { id } });
@@ -90,13 +92,23 @@ export function EntryScreen() {
       actions={
         <>
           {error ? <Hint tone="error">{error}</Hint> : null}
-          <Button title={s.save} onPress={save} busy={busy} disabled={loading} />
+          {loadFailed ? (
+            <Button title={s.retry} variant="secondary" onPress={() => {
+                setLoading(true);
+                setLoadFailed(false);
+                setLoadTick((n) => n + 1);
+              }} />
+          ) : (
+            <Button title={s.save} onPress={save} busy={busy} disabled={loading} />
+          )}
         </>
       }
     >
       <Stack.Screen options={{ title: s.title, headerTitle: '' }} />
       {loading ? (
         <ActivityIndicator />
+      ) : loadFailed ? (
+        <Hint tone="error">{s.loadFailed}</Hint>
       ) : (
         <>
           <QLabel>{s.headline}</QLabel>

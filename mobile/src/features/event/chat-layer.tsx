@@ -9,19 +9,25 @@ import { Button, colors, Hint } from '@/components/ui';
 import { getEntryProfile } from './entry-api';
 import { needsDisclosure, needsEntry } from './event-plan';
 import { probeQrewing, setQrewingMember, useQrewingRoom } from './qrewing-api';
+import type { QrewingError } from './types';
 import { eventStrings } from './strings';
 import type { ImportantBanner as Banner } from './use-small-talk';
 
+/** While the room read or the probe failed offline, both are tried again this often (no model call). */
+const OFFLINE_RETRY_MS = 30_000;
+
 /**
  * The room's Qrewing state for the chat screen. `available` is false until the probe answers ok, so a
- * missing key (503) or a room with AI off shows no AI UI. `hasProfile` is null until known.
+ * missing key (503) or a room with AI off shows no AI UI. `hasProfile` is null until known. A read or probe
+ * that failed offline is tried again every 30 s, so AI UI comes back after the connection does.
  */
 export function useQrewingChat(roomId: string, roomType: string, userId: string | undefined) {
   const q = useQrewingRoom(roomId);
   // Probe answer per room; a stale answer for another room or with AI off counts as unavailable.
-  const [probe, setProbe] = useState<{ roomId: string; ok: boolean } | null>(null);
+  const [probe, setProbe] = useState<{ roomId: string; ok: boolean; error?: QrewingError } | null>(null);
+  const [probeTick, setProbeTick] = useState(0);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
-  const { reload, aiEnabled, entryRequired } = q;
+  const { reload, aiEnabled, entryRequired, readFailed } = q;
 
   useFocusEffect(
     useCallback(() => {
@@ -32,12 +38,24 @@ export function useQrewingChat(roomId: string, roomType: string, userId: string 
   useEffect(() => {
     if (!aiEnabled) return;
     let alive = true;
-    probeQrewing(roomId).then((r) => alive && setProbe({ roomId, ok: 'ok' in r }));
+    probeQrewing(roomId).then(
+      (r) => alive && setProbe({ roomId, ok: 'ok' in r, error: 'error' in r ? r.error : undefined }),
+    );
     return () => {
       alive = false;
     };
-  }, [roomId, aiEnabled]);
+  }, [roomId, aiEnabled, probeTick]);
   const available = aiEnabled && probe?.roomId === roomId && probe.ok;
+
+  const probeOffline = aiEnabled && probe?.roomId === roomId && probe.error === 'network';
+  useEffect(() => {
+    if (!readFailed && !probeOffline) return;
+    const t = setInterval(() => {
+      if (readFailed) reload();
+      else setProbeTick((n) => n + 1);
+    }, OFFLINE_RETRY_MS);
+    return () => clearInterval(t);
+  }, [readFailed, probeOffline, reload]);
 
   const checkProfile = useCallback(() => {
     if (!userId || !entryRequired || roomType !== 'event') return;
@@ -77,6 +95,7 @@ export function MuteBar({
 }) {
   const [busy, setBusy] = useState(false);
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
+  const [failed, setFailed] = useState<'network' | 'failed' | null>(null);
   const on = optimistic ?? me?.mute ?? false;
 
   async function toggle(next: boolean) {
@@ -85,10 +104,13 @@ export function MuteBar({
       return;
     }
     setBusy(true);
+    setFailed(null);
     setOptimistic(next);
-    await setQrewingMember(roomId, true, next);
+    const res = await setQrewingMember(roomId, true, next);
     setBusy(false);
     setOptimistic(null);
+    // The switch goes back to the saved value; say why instead of flipping back silently.
+    if (res.error) setFailed(res.offline ? 'network' : 'failed');
     onChanged();
   }
 
@@ -101,6 +123,11 @@ export function MuteBar({
         <Switch value={on} disabled={busy} onValueChange={toggle} accessibilityLabel={m.label} />
       </View>
       {on && unavailable ? <Text style={styles.note}>{m.unavailable}</Text> : null}
+      {failed ? (
+        <Text style={styles.note} accessibilityRole="alert">
+          {failed === 'network' ? eventStrings.errors.network : m.saveFailed}
+        </Text>
+      ) : null}
     </View>
   );
 }

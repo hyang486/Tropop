@@ -146,3 +146,19 @@ export function withTimeout<T, F>(p: Promise<T>, ms: number, fallback: F, setTim
     );
   });
 }
+
+/**
+ * What the Room ended recap card shows (spec 3.3, 7.3). `miss` is why the server read gave no recap: `pending`
+ * (another member's call is writing it), `offline` (the request never got an answer) or `gone` (any other answer,
+ * including the room deleted after grace). Only rooms this phone knows had Qrewing on show a line at all.
+ */
+export type RecapMiss = 'pending' | 'offline' | 'gone';
+export type RecapCardView = 'recap' | 'hidden' | 'none' | 'pending' | 'offline';
+
+export function recapCardView(hasSaved: boolean, markAi: boolean, miss: RecapMiss | null): RecapCardView {
+  if (hasSaved) return 'recap';
+  if (!markAi) return 'hidden';
+  if (miss === 'pending') return 'pending';
+  if (miss === 'offline') return 'offline';
+  return 'none';
+}
