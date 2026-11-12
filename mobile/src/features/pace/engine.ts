@@ -14,6 +14,7 @@ import {
   type PaceFix,
   type Point,
   progressOf,
+  spokenCue,
   recentPace,
   type Runner,
   type StationaryState,
@@ -169,7 +170,7 @@ export function feedFixes(key: string, batch: PaceFix[], ctx: FeedContext) {
   if (save) run = { ...run, lastSavedAtMs: ctx.nowMs };
   put(run);
   if (save) saveSession(summarize(run.tracker)).catch(() => {});
-  if (text) speak(text);
+  if (text && chosen.cue) speak(text, spokenCue(chosen.cue));
 }
 
 /** Every few seconds: whether to open the "Everything okay?" status sheet. Returns true when it opened. */

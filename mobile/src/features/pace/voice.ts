@@ -71,10 +71,13 @@ export function onCue(listener: Listener): () => void {
   };
 }
 
-/** Speaks a cue when possible (after the one being spoken), otherwise vibrates; the banner shows it either way. */
-export function speak(text: string) {
+/**
+ * Speaks a cue when possible (after the one being spoken), otherwise vibrates; the banner shows `text` either way.
+ * `spoken` is the wording for speech (pace-core spokenCue: no m:ss, no "km"); `text` is spoken when it is absent.
+ */
+export function speak(text: string, spoken?: string) {
   if (speech) {
-    const r = enqueue(queue, { id: String(++nextId), text }, Date.now());
+    const r = enqueue(queue, { id: String(++nextId), text: spoken ?? text }, Date.now());
     queue = r.queue;
     say(r.say);
   } else {

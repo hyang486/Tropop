@@ -621,3 +621,58 @@ export function formatDuration(totalS: number): string {
   const sec = String(s % 60).padStart(2, '0');
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
 }
+
+// --- spoken cues -------------------------------------------------------------------------------------------------
+// Speech gets its own wording: no clock-style m:ss (read as a time of day) and no "km". The banner keeps the
+// display copy (strings.ts); only the speech queue uses these.
+
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+/** "0 seconds", "59 seconds", "1 minute", "5 minutes 2 seconds", "1 hour 5 minutes" (whole seconds). */
+export function spokenDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const parts = [h ? plural(h, 'hour') : null, m ? plural(m, 'minute') : null, s || (!h && !m) ? plural(s, 'second') : null];
+  return parts.filter(Boolean).join(' ');
+}
+
+/** "150 meters" under 1 km, then kilometers to one decimal: "1 kilometer", "2.4 kilometers", "12 kilometers". */
+export function spokenDistance(meters: number): string {
+  const m = Math.max(0, Math.round(meters));
+  if (m < 1000) return plural(m, 'meter');
+  const km = Math.round(m / 100) / 10;
+  return `${km} kilometer${km === 1 ? '' : 's'}`;
+}
+
+/** Seconds from formatPace's "m:ss" (the cues carry it), or null. */
+function paceSeconds(text: string | null): number | null {
+  const match = text ? /^(\d+):([0-5]\d)$/.exec(text) : null;
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+}
+
+const spokenPace = (text: string | null) => {
+  const s = paceSeconds(text);
+  return s == null ? null : `${spokenDuration(s)} per kilometer`;
+};
+
+/** The words spoken for a cue; same content as the banner (strings.ts cue*), said as words. */
+export function spokenCue(cue: ChosenCue): string {
+  if (cue.kind === 'gap') {
+    const run = spokenPace(cue.pace) ?? cue.pace;
+    return `Lead group ${spokenDistance(cue.gapM)} ahead. Run ${run} to catch them in ${spokenDuration(CATCH_UP_S)}.`;
+  }
+  const target = paceSeconds(cue.target);
+  const targetPart = target == null ? '' : `, target ${spokenDuration(target)}`;
+  switch (cue.kind) {
+    case 'km': {
+      const split = paceSeconds(cue.pace);
+      return `${plural(cue.km, 'kilometer')}${split == null ? '' : `, split ${spokenDuration(split)}`}${targetPart}.`;
+    }
+    case 'slow':
+      return `Pick it up: ${spokenPace(cue.pace) ?? cue.pace}${targetPart}.`;
+    case 'fast':
+      return `Ease off: ${spokenPace(cue.pace) ?? cue.pace}${targetPart}.`;
+  }
+}
