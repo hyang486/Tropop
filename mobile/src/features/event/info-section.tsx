@@ -6,7 +6,7 @@ import { QCard, QLabel } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
 
-import { setQrewingMember, setQrewingRoom, useQrewingRoom } from './qrewing-api';
+import { setQrewingMember, setQrewingRoom, useEntryQuestions, useQrewingRoom } from './qrewing-api';
 import { en } from '@/i18n/en';
 
 const s = en.qrewing.info;
@@ -19,6 +19,9 @@ const s = en.qrewing.info;
 export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: string; roomType: string; isHost: boolean }) {
   const router = useRouter();
   const q = useQrewingRoom(roomId);
+  // Spec 9.4 R4: entry info needs questions, which are set only on Create room. Read for the host of an event room.
+  const entryQuestions = useEntryQuestions(isHost && roomType === 'event' ? roomId : '');
+  const noQuestions = entryQuestions.loaded && !entryQuestions.failed && entryQuestions.questions.length === 0;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reload = q.reload;
@@ -72,12 +75,14 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
               <Text style={styles.cardTitle}>{en.qrewing.create.entryLabel}</Text>
               <Switch
                 value={q.entryRequired}
-                disabled={busy}
-                onValueChange={(v) => run(() => setQrewingRoom(roomId, true, v))}
+                // Turning it off always works; turning it on needs questions (22023 otherwise).
+                disabled={busy || (noQuestions && !q.entryRequired)}
+                onValueChange={(v) => (v && noQuestions ? undefined : run(() => setQrewingRoom(roomId, true, v)))}
                 accessibilityLabel={en.qrewing.create.entryLabel}
               />
             </QCard>
           ) : null}
+          {q.aiEnabled && isEvent && noQuestions && !q.entryRequired ? <Hint>{s.entryNoQuestions}</Hint> : null}
         </>
       ) : null}
       {q.aiEnabled ? (

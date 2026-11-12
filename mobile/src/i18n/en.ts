@@ -681,7 +681,7 @@ export const en = {
       tooLong: (field: string, max: number) => `${field} can be up to ${max} characters.`,
       linkInvalid: 'Each link must start with https:// and be up to 200 characters.',
       tooManyLinks: 'Add up to 3 links.',
-      requiredMark: 'Required',
+      requiredMark: 'required',
       answerRequired: (prompt: string) => `Answer “${prompt}”.`,
       linkPlaceholderN: (n: number) => `https://… (link ${n})`,
       noQuestions: 'This room has no entry questions yet.',
@@ -696,6 +696,7 @@ export const en = {
     },
     info: {
       section: 'Qrewing AI',
+      entryNoQuestions: 'This room has no entry questions, so entry info cannot be turned on. Questions can only be set when the room is created.',
       consentOn: 'Your messages are included',
       consentOff: 'Your messages are not included',
       agree: 'Include my messages',

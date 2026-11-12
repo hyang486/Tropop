@@ -64,6 +64,8 @@ export function EntryScreen() {
   const [edits, setEdits] = useState<AnswerDraft>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The first answer that fails validateAnswers, shown under its question (spec 9.4 R3).
+  const [invalid, setInvalid] = useState<{ questionId: string; text: string } | null>(null);
   const fields = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   // Set after a successful save: prevention turns off first, then the effect below leaves.
   const [saved, setSaved] = useState(false);
@@ -120,6 +122,7 @@ export function EntryScreen() {
   }
 
   function setAnswer({ q, slot }: Field, text: string) {
+    if (invalid?.questionId === q.id) setInvalid(null);
     setEdits((cur) => {
       if (slot === null) return { ...cur, [q.id]: text };
       const prev = (cur[q.id] ?? base[q.id]) as string[];
@@ -131,9 +134,14 @@ export function EntryScreen() {
     if (busy || saved || !ready) return;
     const checked = validateAnswers(questions, current);
     if ('problem' in checked) {
-      setError(problemText(checked.problem, questions.find((q) => q.id === checked.questionId)));
+      // Inline under that question; focusing its first field scrolls it into view (QScreen keyboard reveal).
+      const q = questions.find((x) => x.id === checked.questionId);
+      setInvalid({ questionId: checked.questionId, text: problemText(checked.problem, q) });
+      setError(null);
+      fields.current[list.findIndex((f) => f.q.id === checked.questionId)]?.focus();
       return;
     }
+    setInvalid(null);
     setBusy(true);
     setError(null);
     const res = await saveEntryAnswers(id, checked.value);
@@ -185,10 +193,16 @@ export function EntryScreen() {
           const last = i === list.length - 1;
           const value = current[q.id];
           const text = slot === null ? (value as string) : (value as string[])[slot];
-          const label = q.required ? `${q.prompt} (${s.requiredMark})` : q.prompt;
           const links = slot !== null;
+          const end = !links || slot === ANSWER_LIMITS.links - 1;
           return (
-            <FieldBlock key={`${q.id}:${slot ?? ''}`} first={!links || slot === 0} last={links && slot === ANSWER_LIMITS.links - 1} label={label}>
+            <FieldBlock
+              key={`${q.id}:${slot ?? ''}`}
+              q={q}
+              first={!links || slot === 0}
+              end={end}
+              error={end && invalid?.questionId === q.id ? invalid.text : null}
+            >
               <QField
                 label={links ? `${q.prompt} ${slot + 1}` : q.prompt}
                 placeholder={links ? s.linkPlaceholderN(slot + 1) : undefined}
@@ -214,19 +228,49 @@ export function EntryScreen() {
   );
 }
 
-/** The question's label above its first field, and the links note under the last links slot. */
-function FieldBlock({ first, last, label, children }: { first: boolean; last: boolean; label: string; children: ReactNode }) {
+/**
+ * The question's label above its first field (a red * after required questions, spec 9.4 R2), and under its last
+ * field the links note and the question's inline error.
+ */
+function FieldBlock({
+  q,
+  first,
+  end,
+  error,
+  children,
+}: {
+  q: EntryQuestion;
+  first: boolean;
+  end: boolean;
+  error: string | null;
+  children: ReactNode;
+}) {
   return (
     <>
-      {first ? <QLabel>{label}</QLabel> : null}
+      {first ? (
+        q.required ? (
+          <Text style={styles.label} accessibilityRole="header" accessibilityLabel={`${q.prompt}, ${s.requiredMark}`}>
+            {q.prompt}
+            <Text style={styles.star} accessibilityLabel={s.requiredMark}>
+              {' *'}
+            </Text>
+          </Text>
+        ) : (
+          <QLabel>{q.prompt}</QLabel>
+        )
+      ) : null}
       {children}
-      {last ? <Text style={styles.note}>{s.linksNote}</Text> : null}
+      {end && q.kind === 'links' ? <Text style={styles.note}>{s.linksNote}</Text> : null}
+      {error ? <Hint tone="error">{error}</Hint> : null}
     </>
   );
 }
 
 const styles = StyleSheet.create({
   note: { fontSize: 13, color: colors.secondaryLabel },
+  // Matches QLabel (q-screen.tsx), which only takes a plain string.
+  label: { fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 6 },
+  star: { color: colors.danger },
   headerSave: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 8 },
   headerSaveBusy: { opacity: 0.4 },
 });
