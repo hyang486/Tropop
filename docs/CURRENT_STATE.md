@@ -5,7 +5,15 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
-## 2026-11-12: Qrewing on main b9d031c — QA in progress (resume here)
+## 2026-11-12: Qrewing on main eeeafd9 — qa PASS on simulators (resume here)
+- main eeeafd9 (local): tsc 0, 449/449, lint 0. Push snapshot 9975963 (qrew-push-snapshot-2) reviewed, NOT pushed (qa's go).
+- qa PASS (LS ~04:00-04:12): real match/triage/recap calls, People to meet, Mute small talk, entry F1/E2.6d/E2.5k, pace stop,
+  early end → grace → recap, Photos of me + Save in grace, "Shared by Host". Details: implementation-status.md Qrewing section.
+- Not verified: audible voice, a stop cutting speech, the silent switch, a real iPhone, the recap refresh.
+- Open for the human: account deletion and the 30-min grace; the biometric category declaration.
+- qa is recording the demo on :8093: do not touch the sims or Metro until qa says done.
+
+## 2026-11-12: Qrewing on main b9d031c — QA in progress (superseded by the entry above)
 - Full status: docs/implementation-status.md "2026-11-12: Qrewing AI on main b9d031c" and Feature status (Qrewing rows).
 - main b9d031c = 55948fd + event-ux-polish 8ae6c98 (58e6ada) + pace-demo-replay 9a7c18f; tsc 0, 446/446, lint 0. Local, not pushed.
 - Live: 0027 applied, qrewing v2 d30438f, room-janitor v10 */5. Sims: signed rebuild 55948fd on all 5 (groups kept).
