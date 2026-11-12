@@ -15,7 +15,8 @@ import {
   targetSecPerKm,
   usualPace,
 } from '../src/features/pace/pace-core.ts';
-import { paceStrings } from '../src/features/pace/strings.ts';
+import { en } from '../src/i18n/en.ts';
+const paceStrings = en.pace;
 
 const DEG_M = (6_371_000 * Math.PI) / 180;
 /** A point `m` meters north of (0, 0) at `s` seconds. */

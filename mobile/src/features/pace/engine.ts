@@ -25,8 +25,9 @@ import {
   type Tracker,
 } from './pace-core';
 import { saveSession } from './storage';
-import { paceStrings as t } from './strings';
+import { en } from '@/i18n/en';
 import { speak } from './voice';
+const t = en.pace;
 
 /**
  * One pace session per room and activity (activity_seq), kept for the app run so leaving and reopening the Map

@@ -1,7 +1,8 @@
 import { liveSessions } from './engine';
 import { type PaceSummary, recapParts, summaryWithLive } from './pace-core';
 import { loadHistory } from './storage';
-import { paceStrings as t } from './strings';
+import { en } from '@/i18n/en';
+const t = en.pace;
 
 export type ActivitySummary = PaceSummary;
 

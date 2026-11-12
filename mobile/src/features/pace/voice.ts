@@ -4,18 +4,14 @@ import { Vibration } from 'react-native';
 import { enqueue, finish, newSpeechQueue, speechBudgetMs, type Utterance } from './speech-queue';
 
 /**
- * Spoken cues through expo-speech's native module when the app was built with it; null otherwise. The JS
- * package is not imported: its entry calls requireNativeModule, which throws on a build without the module, and
- * this keeps the fallback below for such a build. The module name, call and events match expo-speech 58
- * (`ExpoSpeech.speak(id, text, options)`, `Exponent.speakingDone` and friends with `{ id }`); unverified until a
- * build includes it.
+ * Spoken cues through expo-speech. Its JS entry calls requireNativeModule, which throws on a build made before
+ * expo-speech was added, so it is loaded only when the native module is present; otherwise cues vibrate.
  */
-type Subscription = { remove(): void };
-type SpeechModule = {
-  speak(id: string, text: string, options: Record<string, unknown>): void;
-  addListener?(event: string, listener: (e: { id?: string }) => void): Subscription;
-};
-const speech = requireOptionalNativeModule<SpeechModule>('ExpoSpeech');
+type SpeechApi = typeof import('expo-speech');
+const speech: SpeechApi | null =
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  requireOptionalNativeModule('ExpoSpeech') != null ? (require('expo-speech') as SpeechApi) : null;
+const VIBRATE = [0, 250, 150, 250];
 let nextId = 0;
 
 /** Whether cues are spoken on this build. */
@@ -28,12 +24,20 @@ let budgetTimer: ReturnType<typeof setTimeout> | null = null;
 function say(u: Utterance | null) {
   if (!u || !speech) return;
   if (budgetTimer) clearTimeout(budgetTimer);
-  // If the end event never comes, the cue's time budget ends it.
+  // If no callback comes, the cue's time budget ends it.
   budgetTimer = setTimeout(() => ended(u.id), speechBudgetMs(u.text));
   try {
-    speech.speak(u.id, u.text, { language: 'en-US' });
+    speech.speak(u.text, {
+      language: 'en-US',
+      onDone: () => ended(u.id),
+      onStopped: () => ended(u.id),
+      onError: () => {
+        Vibration.vibrate(VIBRATE);
+        ended(u.id);
+      },
+    });
   } catch {
-    Vibration.vibrate([0, 250, 150, 250]);
+    Vibration.vibrate(VIBRATE);
     ended(u.id);
   }
 }
@@ -48,16 +52,14 @@ function ended(id: string) {
   say(r.say);
 }
 
-if (speech?.addListener) {
-  for (const event of ['Exponent.speakingDone', 'Exponent.speakingStopped', 'Exponent.speakingError']) {
-    try {
-      speech.addListener(event, (e) => {
-        if (e?.id != null) ended(String(e.id));
-      });
-    } catch {
-      // No events: the time budget ends each cue.
-    }
+/** Stops the cue being spoken and drops the waiting one (switch or sharing off, activity ended, screen left). */
+export function stopSpeech() {
+  queue = newSpeechQueue();
+  if (budgetTimer) {
+    clearTimeout(budgetTimer);
+    budgetTimer = null;
   }
+  speech?.stop().catch(() => {});
 }
 
 type Listener = (text: string) => void;
@@ -81,7 +83,7 @@ export function speak(text: string, spoken?: string) {
     queue = r.queue;
     say(r.say);
   } else {
-    Vibration.vibrate([0, 250, 150, 250]);
+    Vibration.vibrate(VIBRATE);
   }
   for (const l of listeners) l(text);
 }
