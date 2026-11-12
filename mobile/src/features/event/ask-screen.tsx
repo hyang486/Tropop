@@ -1,6 +1,6 @@
 // Private Qrewing chat (spec 10.1, 10.4): route `room/[id]/ask`. Only the asker sees it; nothing is posted to the
 // room, and the history stays on this phone (ask-store).
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase';
 
 import { ASK_FAKE, fakeAskInvoke } from './ask-fake';
 import { type AskError, ASK_LIMITS, askQuestion, type AskTurn } from './ask-plan';
-import { appendAskTurn, loadAskHistory } from './ask-store';
+import { appendAskTurn, loadAskHistory, purgeAskHistory } from './ask-store';
 import { DisclosureSheet } from './disclosure-sheet';
 import { askQrewing } from './qrewing-api';
 
@@ -20,6 +20,7 @@ const s = en.qrewing.ask;
 
 export function AskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState('');
@@ -56,6 +57,12 @@ export function AskScreen() {
     setError(null);
     const res = await askQrewing(id, q, turns, await mySnapshot(id), ASK_FAKE ? fakeAskInvoke : undefined);
     if ('error' in res) {
+      if (res.error === 'not_member') {
+        // Spec 10.4: no longer in the room, so its history goes and the modal closes.
+        await purgeAskHistory(id);
+        if (mounted.current) router.back();
+        return;
+      }
       if (!mounted.current) return;
       setError(res.error);
       // The question is not lost: it goes back into the composer unless something new was typed.

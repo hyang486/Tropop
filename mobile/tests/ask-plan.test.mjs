@@ -91,8 +91,13 @@ test('contract errors map to the four the ask screen names', () => {
   assert.equal(classifyQrewingError(429, 'ask_limit'), 'ask_limit');
   assert.equal(classifyQrewingError(502, 'ai_failed'), 'ai_failed');
   assert.equal(classifyQrewingError(0), 'network');
-  for (const e of ['not_consented', 'ask_limit', 'ai_failed', 'network']) assert.equal(plan.askErrorKind(e), e);
-  for (const e of ['not_member', 'ai_off', 'ai_not_configured', 'too_early']) assert.equal(plan.askErrorKind(e), 'ai_failed');
+  // A known body code wins over the status: a 403 with not_consented or ask_limit is not not_member.
+  assert.equal(classifyQrewingError(403, 'ask_limit'), 'ask_limit');
+  assert.equal(classifyQrewingError(401, 'not_consented'), 'not_consented');
+  assert.equal(classifyQrewingError(403), 'not_member');
+  assert.equal(classifyQrewingError(403, 'something_else'), 'not_member');
+  for (const e of ['not_consented', 'ask_limit', 'ai_failed', 'network', 'not_member']) assert.equal(plan.askErrorKind(e), e);
+  for (const e of ['ai_off', 'ai_not_configured', 'too_early']) assert.equal(plan.askErrorKind(e), 'ai_failed');
 });
 
 test('a 200 answer needs a non-empty answer string', () => {

@@ -107,9 +107,14 @@ export function parseAskAnswer(data: unknown): { answer: string; usage: { input:
   return { answer: d.answer.trim(), usage: { input, output } };
 }
 
-/** Errors the ask screen names; every other contract error reads as ai_failed there. */
-export type AskError = 'not_consented' | 'ask_limit' | 'ai_failed' | 'network';
+/**
+ * Errors the ask screen handles; every other contract error reads as ai_failed there. `not_member` (left, removed,
+ * or the room ended) is not shown: the screen closes and deletes this room's history.
+ */
+export type AskError = 'not_consented' | 'ask_limit' | 'ai_failed' | 'network' | 'not_member';
 
 export function askErrorKind(error: string): AskError {
-  return error === 'not_consented' || error === 'ask_limit' || error === 'network' ? error : 'ai_failed';
+  return error === 'not_consented' || error === 'ask_limit' || error === 'network' || error === 'not_member'
+    ? error
+    : 'ai_failed';
 }
