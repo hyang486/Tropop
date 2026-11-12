@@ -36,6 +36,28 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   BEFORE trigger live; every RPC under a 42501 test checks host/member first). 0027 byte-identical to 9a4cdb6.
   Recheck: still 0026, no qrewing tables, no grace_until, janitor */15, no idle transaction. Rerun on supervisor PASS
   (qa answers the prompts). Steps 2-5 not run.
+- Step 1 rerun on 686a69e: PASS (no FAIL, leftovers 0, still 0026). Step 2 apply: PASS (supervisor f841c2e).
+  0027 IS APPLIED LIVE. Version mapping: MCP apply_migration stored 20261112105302 "qrewing_ai" for the local file
+  supabase/migrations/20261104000027_qrewing_ai.sql (same content). A later CLI db push must treat these as one
+  migration (e.g. `supabase migration repair`), not as drift. Post-apply: 6 public tables + private.qrewing_usage,
+  rooms.grace_until, room-janitor job */5 active.
+- Test file alone (686a69e, verbatim minus comments) on the applied DB: no FAIL raised (every assert raises on
+  failure), ROLLBACK, leftovers 0; after: no tests schema, no QA rooms, 0 idle in transaction. Reported to supervisor.
+  Next (on supervisor PASS): room-janitor deploy → qrewing deploy 23e1423 → smoke (runbook sections 3-4).
+- Supervisor PASS bebc57c. room-janitor v10 ACTIVE (verify_jwt false, source = local). qrewing 23e1423 DEPLOYED
+  (id 8befc29d, v1, ACTIVE, verify_jwt false) ~11:05Z; the supervisor's hold (qa-proxy cost safety, M1/M2) arrived after
+  the call had completed. Reported. No probe/smoke made. Next: M1/M2/L4 (+L5/L8) fix on qrewing-backend → review → redeploy → smoke.
+- d30438f cost fixes (functions/qrewing only, no SQL): M1 match failed:<n> marker, cooldown 2 min/10 min/24 h, old list kept;
+  M2 triage model failures end skipped reason 'model_failed' (final, counted in the cap); L4 esc quotes; L5 recapLine;
+  L7 TTL 3 min; L8 setup inside try. qrewing 36/36, janitor 11/11, tsc strict clean (SDK 1.3.0). Supervisor decided to leave
+  v1 live (option b). Review requested. Next on PASS: deploy d30438f as v2, verify source, probe/smoke (runbook §4).
+- Supervisor PASS d30438f. qrewing v2 DEPLOYED (id 8befc29d, ACTIVE, verify_jwt false, ~11:12Z). Deployed source: index.ts
+  and prompts.ts byte-identical; core.ts differs only in EMOJI_RE, where the deploy encoding wrote U+200D/U+FE0F/U+20E3
+  as literal characters instead of \u escapes (same code points; the deployed files pass qrewing.test.ts 36/36).
+  Smoke (runbook §4): GET 405, POST without auth 401, non-user bearer 401, janitor or-filter 200 []. Janitor runs
+  11:00/11:05/11:10 ok 200, stuck 0. Usage 0 rows (no model call yet), no qrewing rows. Logs: no qrewing request
+  between the v1 deploy and the smoke. Probe with a user JWT NOT run: no session token at hand, and no new account without
+  the human (rule). Real model call still unverified (SDK 1.3.0 output_config acceptance, match max_tokens headroom).
 
 ## 2026-11-09: U6 G-U6-1 — 33264a7 on qrew-u6 (from main e89cf85); local, no push, no rebuild
 - Place and time (0026) closed: qa PASS on qrew-pt 62d8fdd and 28bd04f, merged --no-ff → main e89cf85 (dev: tsc 0, lint 0, 303/303).
