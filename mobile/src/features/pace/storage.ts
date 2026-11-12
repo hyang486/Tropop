@@ -15,11 +15,12 @@ export async function loadHistory(): Promise<PaceSession[]> {
   }
 }
 
-// Saves run one after another so two quick saves never drop each other's session.
+// Saves run one after another so two quick saves never drop each other's session. A failed read rejects without
+// writing: writing then would replace the whole history with this one session.
 let queue: Promise<unknown> = Promise.resolve();
 export function saveSession(session: PaceSession): Promise<void> {
   const next = queue.then(async () => {
-    const history = await loadHistory();
+    const history = parseHistory(await AsyncStorage.getItem(HISTORY_KEY));
     await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(mergeSession(history, session)));
   });
   queue = next.catch(() => {});
