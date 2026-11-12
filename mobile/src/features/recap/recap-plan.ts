@@ -229,6 +229,12 @@ export function parseMyPart(raw: string | null | undefined): MyPart | null {
   }
 }
 
+/** A successful send while open: one more message when the count is known (null stays null until a head count). */
+export function bumpMessages(part: MyPart | null): MyPart | null {
+  if (!part || part.messages === null) return part;
+  return { ...part, messages: part.messages + 1 };
+}
+
 /**
  * The part saved with a server recap: fresh reads win, and a field that can no longer be read (messages in grace)
  * keeps the part saved while the room was open, then the one saved with an earlier recap. Works with no earlier

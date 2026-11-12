@@ -5,6 +5,7 @@ import { useRoomEvents } from '@/lib/room-channel';
 
 import { recapStep, SEND_SAVE_DEBOUNCE_MS, stepCall } from './recap-plan';
 import {
+  bumpOpenMessages,
   fetchAndSaveRecap,
   loadMark,
   readAndSaveRecap,
@@ -17,8 +18,8 @@ import { onMessageSent } from './sent-signal';
 /**
  * In an AI room: remembers the room had Qrewing on, asks for the recap once at 60 minutes left and once more with
  * `refresh` in the last 10 minutes (each once per device, kept in AsyncStorage), and saves a recap announced on
- * the room channel. Saves my part (counts only) once on open and about 10 s after my last send, so grace keeps
- * the last open count even with no server recap yet. Never blocks the screen; every failure is silent (the Room ended screen says when nothing
+ * the room channel. Saves my part (counts only) once on open, adds one message per successful send, and recounts
+ * exactly about 10 s after the last send, so grace keeps the last open count even with no server recap yet. Never blocks the screen; every failure is silent (the Room ended screen says when nothing
  * was saved).
  */
 export function useRecapTriggers(roomId: string, userId: string | undefined, aiEnabled: boolean, remainingMs: number) {
@@ -30,6 +31,8 @@ export function useRecapTriggers(roomId: string, userId: string | undefined, aiE
     let timer: ReturnType<typeof setTimeout> | null = null;
     const off = onMessageSent((id) => {
       if (id !== roomId) return;
+      // Counted at once, so a room ended inside the debounce keeps it; the head count below reconciles it.
+      bumpOpenMessages(roomId);
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         timer = null;

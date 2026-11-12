@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import {
   EMPTY_MARK,
   END_RECAP_TIMEOUT_MS,
+  bumpMessages,
   EMPTY_MY_PART,
   mergeMyPart,
   myPartAfterRoomCheck,
@@ -122,13 +123,30 @@ async function loadOpenMyPart(roomId: string): Promise<MyPart | null> {
   }
 }
 
-async function storeOpenMyPart(roomId: string, part: MyPart): Promise<void> {
-  const next = mergeMyPart(await loadOpenMyPart(roomId), part);
-  try {
-    await AsyncStorage.setItem(recapMeKey(roomId), JSON.stringify(next));
-  } catch {
-    // Not saved; the end-time read is the fallback.
-  }
+// Every read-modify-write of the open part runs in order, so quick sends do not lose increments.
+let openPartQueue: Promise<void> = Promise.resolve();
+
+function updateOpenMyPart(roomId: string, change: (prev: MyPart | null) => MyPart | null): Promise<void> {
+  const run = openPartQueue.then(async () => {
+    const next = change(await loadOpenMyPart(roomId));
+    if (!next) return;
+    try {
+      await AsyncStorage.setItem(recapMeKey(roomId), JSON.stringify(next));
+    } catch {
+      // Not saved; the end-time read is the fallback.
+    }
+  });
+  openPartQueue = run.catch(() => {});
+  return openPartQueue;
+}
+
+function storeOpenMyPart(roomId: string, part: MyPart): Promise<void> {
+  return updateOpenMyPart(roomId, (prev) => mergeMyPart(prev, part));
+}
+
+/** Right after a successful send: one more message in the saved open count, if known. Never rejects. */
+export function bumpOpenMessages(roomId: string): Promise<void> {
+  return updateOpenMyPart(roomId, bumpMessages);
 }
 
 /** While the room is open (room screen open): saves the per-user part, no AI call. Never rejects. */
