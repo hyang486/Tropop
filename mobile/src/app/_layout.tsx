@@ -84,6 +84,8 @@ function RootNavigator() {
         <Stack.Screen name="room/[id]/face" options={{ title: en.face.title }} />
         <Stack.Screen name="room/[id]/media/[mediaId]" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/invite" options={{ title: en.invite.title, presentation: 'modal' }} />
+        {/* Spec 10.4: the private Ask Qrewing chat opens as a sheet over the room. */}
+        <Stack.Screen name="room/[id]/ask" options={{ title: en.qrewing.ask.title, presentation: 'modal' }} />
       </Stack.Protected>
 
       {/* QR deep link moment://join/<token>; handles both signed-in and signed-out users. */}

@@ -6,7 +6,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { QField, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
+import { paceSnapshot } from '@/features/pace/engine';
 import { en } from '@/i18n/en';
+import { supabase } from '@/lib/supabase';
 
 import { ASK_FAKE, fakeAskInvoke } from './ask-fake';
 import { type AskError, ASK_LIMITS, askQuestion, type AskTurn } from './ask-plan';
@@ -52,8 +54,7 @@ export function AskScreen() {
     setSending(q);
     setDraft('');
     setError(null);
-    // `me` comes from developer-pace's currentPaceSnapshot (spec 10.4); none until that lands.
-    const res = await askQrewing(id, q, turns, null, ASK_FAKE ? fakeAskInvoke : undefined);
+    const res = await askQrewing(id, q, turns, await mySnapshot(id), ASK_FAKE ? fakeAskInvoke : undefined);
     if ('error' in res) {
       if (!mounted.current) return;
       setError(res.error);
@@ -134,6 +135,16 @@ export function AskScreen() {
       />
     </QScreen>
   );
+}
+
+/** My own activity in this room for `me` (spec 10.3), or null when none runs or the room read fails. */
+async function mySnapshot(roomId: string) {
+  try {
+    const { data } = await supabase.from('rooms').select('id, activity_state, activity_seq').eq('id', roomId).maybeSingle();
+    return data ? paceSnapshot(data) : null;
+  } catch {
+    return null;
+  }
 }
 
 function Bubble({ text, mine }: { text: string; mine?: boolean }) {

@@ -78,7 +78,10 @@ test('the request sends the last 4 turns, each side cut to 300, and only a whole
   assert.deepEqual(body.me, me);
   // Optional fields are left out, not sent as null.
   assert.deepEqual(plan.askBody('r1', 'q', [], null), { action: 'ask', roomId: 'r1', question: 'q' });
-  assert.equal(plan.askBody('r1', 'q', [], { ...me, paceSecPerKm: Number.NaN }).me, undefined);
+  // A null pace (under 100 m, or slower than 3600 s/km) is left out; the rest of me is still sent.
+  assert.deepEqual(plan.askBody('r1', 'q', [], { ...me, paceSecPerKm: null }).me, { elapsedSec: 600, distanceM: 2000, activity: 'moving' });
+  assert.deepEqual(plan.askBody('r1', 'q', [], { ...me, paceSecPerKm: Number.NaN }).me, { elapsedSec: 600, distanceM: 2000, activity: 'moving' });
+  assert.equal(plan.askBody('r1', 'q', [], { ...me, elapsedSec: Number.NaN }).me, undefined);
   assert.equal(plan.askBody('r1', 'q', [], { ...me, activity: 'running' }).me, undefined);
   assert.equal(plan.askBody('r1', 'q', [], { ...me, distanceM: -1 }).me, undefined);
 });

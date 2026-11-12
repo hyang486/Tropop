@@ -15,6 +15,8 @@ import { probeQrewing, useQrewingRoom } from './qrewing-api';
 const s = en.qrewing.ask;
 const ART = require('../../../assets/images/icon.png');
 export const QREWING_FAB_SIZE = 56;
+/** Bottom padding for a scroll area under the button, so its last row can scroll clear of it. */
+export const QREWING_FAB_CLEARANCE = QREWING_FAB_SIZE + 24;
 
 /** The room's Qrewing switch plus a probe ok, and my consent. `available` is false until both answer. */
 export function useQrewingAsk(roomId: string) {
@@ -33,10 +35,11 @@ export function useQrewingAsk(roomId: string) {
 }
 
 /**
- * Mount it only on a live room (never in grace or on Room ended). `bottom` is the height of the screen's own bottom
- * controls (composer, Save, map buttons), so the button sits above them; the home-indicator inset is added here.
+ * Mount it only on a live room (never in grace or on Room ended), as the last child of the screen's content area
+ * that ends above its bottom controls (composer, Save, map buttons), so it never covers them. `bottom` adds more
+ * clearance; `safeArea` adds the home-indicator inset (only for an area that reaches the bottom of the screen).
  */
-export function QrewingFab({ roomId, bottom = 0 }: { roomId: string; bottom?: number }) {
+export function QrewingFab({ roomId, bottom = 0, safeArea = false }: { roomId: string; bottom?: number; safeArea?: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { available, agreed, reload } = useQrewingAsk(roomId);
@@ -60,7 +63,7 @@ export function QrewingFab({ roomId, bottom = 0 }: { roomId: string; bottom?: nu
         hitSlop={6}
         style={({ pressed }) => [
           styles.fab,
-          { bottom: bottom + Math.max(insets.bottom, 12) + 12, right: Math.max(insets.right, 0) + 16 },
+          { bottom: bottom + (safeArea ? Math.max(insets.bottom, 12) : 0) + 12, right: insets.right + 16 },
           pressed && styles.pressed,
         ]}
       >

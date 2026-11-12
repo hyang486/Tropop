@@ -56,6 +56,7 @@ export function QScreen({
   refreshControl,
   keepVisible,
   revealRef,
+  floating,
 }: {
   title?: string;
   /** Small gray line right under the title. */
@@ -79,6 +80,11 @@ export function QScreen({
    * Screens that do not pass it behave as before.
    */
   revealRef?: RefObject<QScreenReveal | null>;
+  /**
+   * Opt-in (spec 10.1 Ask Qrewing): absolutely positioned content over the body, in an area that ends above the
+   * pinned actions, so it never covers them. Screens that do not pass it keep the old tree.
+   */
+  floating?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   // Pad the top by the header overlap ourselves instead of contentInsetAdjustmentBehavior "automatic": that
@@ -95,15 +101,13 @@ export function QScreen({
       revealRef.current = null;
     };
   }, [revealRef, revealView]);
-  return (
-    <View style={[styles.root, { paddingBottom: keyboardPad }]}>
-      <View ref={rootRef} onLayout={onLayout} style={styles.flex}>
+  const body = (
         <ScrollView
           ref={scrollRef}
           {...scrollProps}
           style={styles.flex}
           refreshControl={refreshControl}
-          contentContainerStyle={[styles.body, { paddingTop: Math.max(overlap, insets.top) + 8 }]}
+          contentContainerStyle={[styles.body, { paddingTop: Math.max(overlap, insets.top) + 8 }, floating ? styles.floatingClear : null]}
           contentInsetAdjustmentBehavior="never"
           scrollToOverflowEnabled
           keyboardShouldPersistTaps="handled"
@@ -124,6 +128,18 @@ export function QScreen({
             </>
           ) : null}
         </ScrollView>
+  );
+  return (
+    <View style={[styles.root, { paddingBottom: keyboardPad }]}>
+      <View ref={rootRef} onLayout={onLayout} style={styles.flex}>
+        {floating ? (
+          <View style={styles.flex}>
+            {body}
+            {floating}
+          </View>
+        ) : (
+          body
+        )}
         {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>{actions}</View> : null}
       </View>
     </View>
@@ -312,6 +328,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   body: { flexGrow: 1, paddingHorizontal: qSpacing.side, paddingBottom: 24, gap: qSpacing.gap },
+  // Room for a `floating` button (56) plus its margins, so the last row scrolls clear of it.
+  floatingClear: { paddingBottom: 80 },
   head: { marginBottom: 6, gap: 4 },
   subtitle: { fontSize: 15, color: colors.secondaryLabel },
   spacer: { flexGrow: 1 },

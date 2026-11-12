@@ -4,8 +4,11 @@
 /** One question and its answer, kept on this device only. `at` is ms since epoch. */
 export type AskTurn = { q: string; a: string; at: number };
 
-/** The asker's own activity (developer-pace currentPaceSnapshot), sent only for the asker. */
-export type AskMe = { elapsedSec: number; distanceM: number; paceSecPerKm: number; activity: 'moving' | 'stopped' };
+/**
+ * The asker's own activity (pace engine paceSnapshot), sent only for the asker. `paceSecPerKm` is null under 100 m
+ * or slower than 3600 s/km; it is then left out of the request.
+ */
+export type AskMe = { elapsedSec: number; distanceM: number; paceSecPerKm: number | null; activity: 'moving' | 'stopped' };
 
 export const ASK_LIMITS = { question: 300, keep: 30, send: 4 } as const;
 
@@ -68,11 +71,14 @@ export function requestHistory(turns: readonly AskTurn[]): { q: string; a: strin
 
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0;
 
-/** The `me` field: only a whole, non-negative snapshot is sent; otherwise none. */
-export function requestMe(me: AskMe | null | undefined): AskMe | undefined {
-  if (!me || !finite(me.elapsedSec) || !finite(me.distanceM) || !finite(me.paceSecPerKm)) return undefined;
+/** The `me` field: time, distance and activity must be valid, or nothing is sent; a null or bad pace is left out. */
+export function requestMe(me: AskMe | null | undefined): Partial<AskMe> | undefined {
+  if (!me || !finite(me.elapsedSec) || !finite(me.distanceM)) return undefined;
   if (me.activity !== 'moving' && me.activity !== 'stopped') return undefined;
-  return { elapsedSec: me.elapsedSec, distanceM: me.distanceM, paceSecPerKm: me.paceSecPerKm, activity: me.activity };
+  const out: Partial<AskMe> = { elapsedSec: me.elapsedSec, distanceM: me.distanceM };
+  if (finite(me.paceSecPerKm)) out.paceSecPerKm = me.paceSecPerKm;
+  out.activity = me.activity;
+  return out;
 }
 
 /** The 10.3 request body. Optional fields are left out, not sent as null. */
