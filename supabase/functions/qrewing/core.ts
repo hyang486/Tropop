@@ -36,12 +36,34 @@ export const MATCH_STALE_OK_MS = 10 * 60_000;
 /** Spec 8.9: each text field sent to the match model is collapsed and cut to this many characters. */
 export const MATCH_FIELD_MAX = { name: 40, headline: 80, interests: 160, lookingFor: 160 } as const;
 /** A claim whose caller died (crash, timeout) is retaken after this long. Not in the spec's response shapes. */
-export const TRIAGE_PENDING_TTL_MS = 2 * 60_000;
+// L7: longer than one model call can take (SDK timeout 60 s, one retry, plus backoff), so a live call is not retaken.
+export const TRIAGE_PENDING_TTL_MS = 3 * 60_000;
 export const RECAP_PENDING_TTL_MS = 5 * 60_000;
 /** F3: a match claim older than this is treated as abandoned (its caller died) and may be retaken. */
-export const MATCH_PENDING_TTL_MS = 2 * 60_000;
+export const MATCH_PENDING_TTL_MS = 3 * 60_000;
 /** input_hash prefix of a qrewing_matches row that a caller is computing (no new column; 0027 is frozen). */
 export const MATCH_PENDING_PREFIX = 'pending:';
+/**
+ * M1: input_hash of a row whose last model call failed (the call may have been billed) is `failed:<n>`, n = failures
+ * in a row. Until the cooldown for n has passed since the failure, the caller gets the previous list as stale, or 502,
+ * with no new model call. A success writes the real hash, which resets n. Bound: about 3 failed calls a day per user.
+ */
+export const MATCH_FAILED_PREFIX = 'failed:';
+export function matchFailCooldownMs(n: number): number {
+  return n <= 1 ? 2 * 60_000 : n === 2 ? 10 * 60_000 : 24 * 3600_000;
+}
+/** n of a `failed:<n>` marker, or 0 for any other input_hash. */
+export function matchFailures(inputHash: string): number {
+  if (!inputHash.startsWith(MATCH_FAILED_PREFIX)) return 0;
+  const n = Number(inputHash.slice(MATCH_FAILED_PREFIX.length));
+  return Number.isInteger(n) && n > 0 ? n : 1;
+}
+/**
+ * M2: reason stored on a 'skipped' row the model was asked about but did not answer (API error or timeout, refusal,
+ * max_tokens, bad output, or an index it left out). Such a row is final (never retried) and counts toward the daily
+ * cap; rows skipped with no model call keep reason null and do not count. Clients get reason null for skipped rows.
+ */
+export const TRIAGE_MODEL_SKIP_REASON = 'model_failed';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -116,7 +138,10 @@ export interface QrewingStore {
   mediaCounts(roomId: string): Promise<{ photos: number; videos: number }>;
 
   triageRows(messageIds: string[]): Promise<TriageRow[]>;
-  /** message_triage rows of the room created since `since` with state <> 'skipped' and source 'model' (the daily cap). */
+  /**
+   * The daily cap: message_triage rows of the room created since `since` with source 'model' and either
+   * state <> 'skipped' or a non-null reason (M2: a skipped row the model was asked about).
+   */
   triageCountSince(roomId: string, since: string): Promise<number>;
   /** Writes 'skipped' rows (important false) for ids that have no row yet; existing rows are untouched. */
   skipTriage(roomId: string, messageIds: string[]): Promise<void>;
@@ -127,8 +152,6 @@ export interface QrewingStore {
   claimTriage(roomId: string, messageIds: string[], staleBefore: string): Promise<string[]>;
   /** source 'rule' = decided by prefilterTriage with no model call (does not count toward the daily cap). */
   finishTriage(messageId: string, r: { state: 'done' | 'skipped'; important: boolean; reason: string | null; source: TriageSource }): Promise<void>;
-  /** Deletes this call's still-pending claims so a later call can try again (API error path). */
-  releaseTriage(messageIds: string[]): Promise<void>;
 
   recap(roomId: string): Promise<RecapRow | null>;
   /**
@@ -153,8 +176,8 @@ export interface QrewingStore {
   claimMatch(roomId: string, userId: string, seenHash: string | null, claim: string): Promise<boolean>;
   /** Writes the result where input_hash still equals `claim`; returns the created_at it wrote. */
   saveMatch(roomId: string, userId: string, claim: string, inputHash: string, matches: StoredMatch[]): Promise<string>;
-  /** Model failure: puts back `restore` (or 'released' with an old created_at) where input_hash still equals `claim`. */
-  releaseMatch(roomId: string, userId: string, claim: string, restore: { inputHash: string; createdAt: string } | null): Promise<void>;
+  /** M1, model failure: sets input_hash = `marker` and created_at = now where input_hash still equals `claim` (matches kept). */
+  failMatch(roomId: string, userId: string, claim: string, marker: string): Promise<void>;
 
   logUsage(roomId: string, action: 'triage' | 'recap' | 'match', model: string, inputTokens: number, outputTokens: number): Promise<void>;
 }
@@ -296,7 +319,7 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
   for (const [id, m] of msgs) {
     const row = existing.get(id);
     if (row && !(row.state === 'pending' && row.updatedAt < staleBefore)) {
-      out.set(id, { messageId: id, state: row.state, important: row.important, reason: row.reason });
+      out.set(id, toResult(row));
       continue;
     }
     if (m.kind === 'text' && !!m.body?.trim() && !!m.senderId) candidates.push(id);
@@ -330,7 +353,7 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
     const after = new Map((await store.triageRows(toSkip)).map((r) => [r.messageId, r]));
     for (const id of toSkip) {
       const r = after.get(id);
-      if (r) out.set(id, { messageId: id, state: r.state, important: r.important, reason: r.reason });
+      if (r) out.set(id, toResult(r));
       else skip(id);
     }
   }
@@ -350,12 +373,17 @@ async function triage(ctx: Ctx, ids: string[]): Promise<Reply> {
   const claimedForModel = claimed.filter((id) => !ruled.has(id));
   if (claimedForModel.length > 0) {
     const failed = await runTriageModel(ctx, claimedForModel.map((id) => msgs.get(id)!), consents, out);
-    // Rule rows of this call are already saved: return them, with the failed ones as skipped (an API error left no
-    // row, so a later call may try again). With no rule row decided here, the failure is a 502 as before.
+    // Rule rows of this call are already saved: return them, with the failed ones as skipped (M2: final, no retry).
+    // With no rule row decided here, the failure is a 502 as before.
     if (failed && !claimed.some((id) => ruled.has(id))) return AI_FAILED;
     if (failed) for (const id of claimedForModel) out.set(id, { messageId: id, state: 'skipped', important: false, reason: null });
   }
   return { status: 200, body: { results: ids.map((id) => out.get(id)!) } };
+}
+
+/** A stored row as the client sees it: a skipped row never carries a reason (M2 marker stays server side). */
+function toResult(r: TriageRow): TriageResult {
+  return { messageId: r.messageId, state: r.state, important: r.important, reason: r.state === 'skipped' ? null : r.reason };
 }
 
 // ---------------------------------------------------------------------------------------------- triage prefilter
@@ -400,7 +428,7 @@ export function prefilterTriage(input: PrefilterInput): Prefiltered | null {
   return null;
 }
 
-/** Returns true when the call failed (rows already marked/released). */
+/** Returns true when the call failed (M2: the rows are then final 'skipped' rows that count toward the cap). */
 async function runTriageModel(ctx: Ctx, targets: Msg[], consents: Map<string, Consent>, out: Map<string, TriageResult>): Promise<boolean> {
   const { store, room } = ctx;
   const senderIds = new Set<string>();
@@ -435,9 +463,10 @@ async function runTriageModel(ctx: Ctx, targets: Msg[], consents: Map<string, Co
     user: triageUser(room.name, items),
     schema: TRIAGE_SCHEMA,
   });
+  const modelSkip = { state: 'skipped' as const, important: false, reason: TRIAGE_MODEL_SKIP_REASON, source: 'model' as const };
   if (!r.ok) {
-    if (r.kind === 'error') await store.releaseTriage(targets.map((m) => m.id));
-    else for (const m of targets) await store.finishTriage(m.id, { state: 'skipped', important: false, reason: null, source: 'model' });
+    // M2: an API error or timeout may still be billed, so it is final like a refusal (no release, no retry).
+    for (const m of targets) await store.finishTriage(m.id, modelSkip);
     return true;
   }
 
@@ -453,9 +482,13 @@ async function runTriageModel(ctx: Ctx, targets: Msg[], consents: Map<string, Co
   }
   for (const it of items) {
     const v = byIndex.get(it.index);
-    const res = v
-      ? { state: 'done' as const, important: v.important, reason: cut(v.reason, 140) || null }
-      : { state: 'skipped' as const, important: false, reason: null }; // the model left it out
+    if (!v) {
+      // The model left it out.
+      await store.finishTriage(it.msg.id, modelSkip);
+      out.set(it.msg.id, { messageId: it.msg.id, state: 'skipped', important: false, reason: null });
+      continue;
+    }
+    const res = { state: 'done' as const, important: v.important, reason: cut(v.reason, 140) || null };
     await store.finishTriage(it.msg.id, { ...res, source: 'model' });
     out.set(it.msg.id, { messageId: it.msg.id, ...res });
   }
@@ -509,7 +542,7 @@ async function recap(ctx: Ctx): Promise<Reply> {
       startsAt: room.startsAt,
       photos: media.photos,
       videos: media.videos,
-      lines: msgs.map((m) => ({ sender: names.get(m.senderId!) || 'Member', text: cut(m.body ?? '', 200) })),
+      lines: msgs.map((m) => recapLine(names.get(m.senderId!), m.body)),
     }),
     schema: RECAP_SCHEMA,
   });
@@ -559,7 +592,7 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
     system: RECAP_REFRESH_SYSTEM,
     user: recapRefreshUser({
       previous: { title: existing.title ?? '', summary: existing.summary ?? '', highlights: existing.highlights ?? [] },
-      lines: newer.map((m) => ({ sender: names.get(m.senderId!) || 'Member', text: cut(m.body ?? '', 200) })),
+      lines: newer.map((m) => recapLine(names.get(m.senderId!), m.body)),
     }),
     schema: RECAP_SCHEMA,
   });
@@ -568,6 +601,12 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
   if (!out) return AI_FAILED;
   const saved = await store.saveRecapRefresh(room.id, out);
   return { status: 200, body: recapBody(saved ?? { ...existing, ...out }, false) };
+}
+
+/** L5: one chat line per message ("sender: text"), so a newline in a name or body cannot fake another speaker. */
+export function recapLine(name: string | undefined, body: string | null) {
+  const flat = (s: string) => s.replace(/\s+/g, ' ');
+  return { sender: cut(flat(name || 'Member'), 40) || 'Member', text: cut(flat(body ?? ''), 200) };
 }
 
 /** Clamps model output to the 1.5 limits; null when title or summary is missing. */
@@ -623,6 +662,12 @@ async function match(ctx: Ctx): Promise<Reply> {
       if (ageMs >= MATCH_PENDING_TTL_MS) return null; // abandoned claim: retake it
       return row.matches.length > 0 ? stale : { status: 202, body: { state: 'pending' } };
     }
+    const failures = matchFailures(row.inputHash);
+    if (failures > 0) {
+      // M1: no new model call until the cooldown for this many failures in a row has passed.
+      if (ageMs >= matchFailCooldownMs(failures)) return null;
+      return row.matches.length > 0 ? stale : AI_FAILED;
+    }
     if (row.inputHash === hash) return { status: 200, body: { matches: hydrate(row.matches), cached: true, generatedAt: row.createdAt } };
     if (ageMs < MATCH_STALE_OK_MS) return stale;
     return null;
@@ -636,10 +681,6 @@ async function match(ctx: Ctx): Promise<Reply> {
     const again = await store.match(room.id, userId);
     return (again && fromCache(again)) ?? { status: 202, body: { state: 'pending' } };
   }
-  const restore = cachedRow && !cachedRow.inputHash.startsWith(MATCH_PENDING_PREFIX)
-    ? { inputHash: cachedRow.inputHash, createdAt: cachedRow.createdAt }
-    : null;
-
   const r = await callModel(ctx, 'match', {
     model: MATCH_MODEL,
     effort: 'medium',
@@ -649,7 +690,10 @@ async function match(ctx: Ctx): Promise<Reply> {
     schema: MATCH_SCHEMA,
   });
   if (!r.ok) {
-    await store.releaseMatch(room.id, userId, claim, restore);
+    // M1: the failed call may have been billed; the row starts the cooldown and keeps the previous list.
+    // The count carries over from the row this call claimed (a failed marker), so failures in a row escalate.
+    const failures = cachedRow ? matchFailures(cachedRow.inputHash) : 0;
+    await store.failMatch(room.id, userId, claim, MATCH_FAILED_PREFIX + (failures + 1));
     return AI_FAILED;
   }
 

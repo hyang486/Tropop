@@ -99,9 +99,9 @@ export const MATCH_SYSTEM = [
   DATA_RULE,
 ].join(' ');
 
-/** Escapes the characters that could close or open a data tag. */
+/** Escapes the characters that could close or open a data tag, or end an attribute value (L4). */
 export function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /** Cuts to at most n characters (by code point), adding an ellipsis when cut. */

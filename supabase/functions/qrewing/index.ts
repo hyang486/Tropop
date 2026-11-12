@@ -1,4 +1,4 @@
-// qrewing Edge Function (contract: planning/QREWING_AI_SPEC_EN.md sections 2 and 7.2). NOT deployed yet.
+// qrewing Edge Function (contract: planning/QREWING_AI_SPEC_EN.md sections 2 and 7.2). Deployed with verify_jwt=false.
 // verify_jwt=false with the in-function JWT check, like face-match. Actions: probe, triage, recap, match.
 // Secret ANTHROPIC_API_KEY is set by the human; it is never logged or returned. Without it every call except an
 // unscoped probe after auth returns 503 ai_not_configured before any DB write, so deploying makes no AI calls.
@@ -7,7 +7,7 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-import { handle, type Model, type Msg, type QrewingStore, type RecapRow, type StoredMatch } from './core.ts';
+import { handle, type Model, type Msg, type QrewingStore, type RecapRow, type StoredMatch, TRIAGE_MODEL_SKIP_REASON } from './core.ts';
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (req: Request) => Promise<Response> | Response): void };
 
@@ -188,8 +188,9 @@ function createStore(admin: any): QrewingStore {
         .from('message_triage')
         .select('message_id', { count: 'exact', head: true })
         .eq('room_id', roomId)
-        .neq('state', 'skipped')
         .eq('source', 'model')
+        // M2: a skipped row counts only when the model was asked about it (reason = the model-skip marker).
+        .or(`state.neq.skipped,reason.eq.${TRIAGE_MODEL_SKIP_REASON}`)
         .gte('created_at', since);
       must(res, 'triage_count');
       return res.count ?? 0;
@@ -240,9 +241,6 @@ function createStore(admin: any): QrewingStore {
         await admin.from('message_triage').update({ state: r.state, important: r.important, reason: r.reason, source: r.source }).eq('message_id', messageId).eq('state', 'pending'),
         'triage_finish',
       );
-    },
-    async releaseTriage(messageIds) {
-      must(await admin.from('message_triage').delete().in('message_id', messageIds).eq('state', 'pending'), 'triage_release');
     },
 
     async recap(roomId) {
@@ -378,17 +376,15 @@ function createStore(admin: any): QrewingStore {
       );
       return createdAt;
     },
-    async releaseMatch(roomId, userId, claim, restore) {
+    async failMatch(roomId, userId, claim, marker) {
       must(
         await admin
           .from('qrewing_matches')
-          .update(restore
-            ? { input_hash: restore.inputHash, created_at: restore.createdAt }
-            : { input_hash: 'released', created_at: new Date(0).toISOString() })
+          .update({ input_hash: marker, created_at: new Date().toISOString() })
           .eq('room_id', roomId)
           .eq('user_id', userId)
           .eq('input_hash', claim),
-        'match_release',
+        'match_fail',
       );
     },
 
@@ -410,18 +406,19 @@ function createStore(admin: any): QrewingStore {
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
 
-  const url = Deno.env.get('SUPABASE_URL')!;
   // Pass the token to getUser explicitly (face-match note, 2026-11-06).
   const token = /^Bearer\s+(\S+)$/i.exec(req.headers.get('authorization') ?? '')?.[1];
   if (!token) return json(401, { error: 'unauthorized' });
-  const asUser = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
-  const { data: userData, error: userErr } = await asUser.auth.getUser(token);
-  if (userErr || !userData.user) return json(401, { error: 'unauthorized' });
-
-  const rawBody = await req.json().catch(() => null);
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+  // L8: env, client setup and getUser are inside the try, so a throw there is a logged 500, not an unhandled error.
   try {
+    const url = Deno.env.get('SUPABASE_URL')!;
+    const asUser = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
+    const { data: userData, error: userErr } = await asUser.auth.getUser(token);
+    if (userErr || !userData.user) return json(401, { error: 'unauthorized' });
+
+    const rawBody = await req.json().catch(() => null);
+    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
     const reply = await handle({ store: createStore(admin), model: apiKey ? createModel(apiKey) : null, log }, userData.user.id, rawBody);
     return json(reply.status, reply.body);
   } catch (e) {
