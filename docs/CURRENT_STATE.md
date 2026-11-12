@@ -5,7 +5,14 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
-## 2026-11-12: Qrewing bot `ask` (spec 10.2/10.3) — code and 0029 written, NOT applied or deployed (resume here)
+## 2026-11-12 afternoon: local main 340366c (resume here)
+- Spec 9, spec 10 (bot + 10.5 Siri) and a11y/dark merged on local main. Details: docs/implementation-status.md
+  "2026-11-12 (afternoon)".
+- Live: 0029 qrewing_ask_usage (20261112183834); qrewing v5 from ea1f217.
+- Siri 10.5 BLOCKED ON SIMULATOR (iOS 26.5 bug FB23504349, Debug and Release both fail). Verify on a real iPhone (human: "Not now").
+- Open: app.json web.output "server" breaks Release/EAS export:embed (decision pending, unchanged). Push held (no human go).
+
+## 2026-11-12: Qrewing bot `ask` (spec 10.2/10.3) — superseded: 0029 applied and qrewing deployed (see top)
 - Branch qrewing-bot-backend. e054308 (draft ask) was sent to supervisor; the follow-up commit aligns it with spec 10.2/10.3:
   request {question 1..300, history ≤4 turns, me {elapsedSec, distanceM, paceSecPerKm, activity}, tz IANA default UTC};
   caps 30/user and 300/room per 24 h → 429 ask_limit; 200 {answer, usage}; times given to the model in the asker's tz;
@@ -13,7 +20,7 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Migration 0029 (ask action, usage.user_id, log_qrewing_usage p_user_id, qrewing_usage_count) + supabase/tests/qrewing_ask_usage_test.sql.
 - Verified locally: unit 49/49; strict tsc (core, prompts, tests); PGlite test PASSED, leftovers 0; negative control
   (count ignores user) fails as expected. Not verified: index.ts (Deno), live DB, deploy.
-- Blocked: live apply of 0029 needs human approval (spec 10.2); deploy only after that and supervisor review.
+- Was blocked on human approval; the human approved (USER_DECISIONS 2026-11-12 FINAL), and 0029 was applied and deployed.
 
 ## 2026-11-12: Entry questions (spec 9) LIVE — 0028 applied, qrewing v3 deployed
 - Authority: USER_DECISIONS ~10:20 PST FINAL "Go ahead" (apply 31a482f once, deploy 4c8a83a; no push).
@@ -23,7 +30,8 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Smoke: GET 405, POST without auth 401. Unit: qrewing + janitor 52/52.
 - Security advisor: no new kind of finding. The new RPCs set_entry_questions and upsert_entry_answers follow the existing
   SECURITY DEFINER pattern, and entry_questions has the same anonymous-auth policy WARN as the other room tables.
-- Not verified: client app against live 0028 (needs simulator sitting via qa). Not pushed.
+- Client against live 0028: qa sim PASS ~11:30 PST on 90b1f45 (docs/reviews/codex-final-qa-live-status.md, 2026-11-12-entry-q-*.jpg);
+  not checked: server-side lock after the first answer (unit-tested only). Not pushed.
 
 ## 2026-11-12: Qrewing on main eeeafd9 — qa PASS on simulators
 - main eeeafd9 (local): tsc 0, 449/449, lint 0. Push snapshot 9975963 (qrew-push-snapshot-2) reviewed, NOT pushed (qa's go).
