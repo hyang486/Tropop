@@ -1,5 +1,5 @@
 import { type Href, Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +18,11 @@ import { HandTitle } from '@/components/hand-title';
 import { RoomActivityBar } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint, radius, Screen } from '@/components/ui';
+import { EntryGate, HiddenRow, ImportantBannerView, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
+import { DisclosureSheet } from '@/features/event/disclosure-sheet';
+import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
+import { eventStrings } from '@/features/event/strings';
+import { useSmallTalk } from '@/features/event/use-small-talk';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
@@ -40,7 +45,7 @@ type State =
   | { status: 'ready'; room: Room; names: Map<string, string> };
 
 export default function RoomScreen() {
-  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
+  const { id, from, aiNote } = useLocalSearchParams<{ id: string; from?: string; aiNote?: string }>();
   const { session } = useAuth();
   const userId = session?.user.id;
   const now = useNow(15_000);
@@ -131,6 +136,7 @@ export default function RoomScreen() {
       remainingMs={remainingMs}
       onNewSender={onNewSender}
       onSendFailed={load}
+      aiNote={aiNote === '1'}
     />
   );
 }
@@ -142,6 +148,7 @@ function ChatRoom({
   remainingMs,
   onNewSender,
   onSendFailed,
+  aiNote,
 }: {
   room: Room;
   names: Map<string, string>;
@@ -149,6 +156,8 @@ function ChatRoom({
   remainingMs: number;
   onNewSender: (senderId: string) => void;
   onSendFailed: () => void;
+  /** Qrewing AI could not be turned on at create time (non-blocking note). */
+  aiNote?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
@@ -156,6 +165,42 @@ function ChatRoom({
   const chat = useChat(room.id, userId, onNewSender);
   const uploadSummary = useRoomUploadSummary(room.id);
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
+  // Qrewing AI (spec 3.2): disclosure, entry gate, Mute small talk with important-message alerts.
+  const qrewing = useQrewingChat(room.id, room.type, userId);
+  const [disclosureClosed, setDisclosureClosed] = useState(false);
+  const [askConsent, setAskConsent] = useState(false);
+  const showDisclosure = (qrewing.gate === 'disclosure' && !disclosureClosed) || askConsent;
+  const isEvent = room.type === 'event';
+  const smallTalk = useSmallTalk({
+    roomId: room.id,
+    userId,
+    myName: userId ? names.get(userId) : undefined,
+    muted: qrewing.available && isEvent && !!qrewing.me?.aiOk && !!qrewing.me?.mute,
+    ready: !chat.loading,
+    messages: chat.messages,
+  });
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
+  const rows: MutedRow<ChatItem>[] = useMemo(
+    () =>
+      smallTalk.active
+        ? collapseSmallTalk(chat.messages, smallTalk.visible, expanded)
+        : chat.messages.map((item) => ({ type: 'message' as const, item })),
+    [smallTalk.active, smallTalk.visible, chat.messages, expanded],
+  );
+  const hiddenCount = rows.reduce((n, r) => n + (r.type === 'hidden' ? r.ids.length : 0), 0);
+  const listRef = useRef<FlatList<MutedRow<ChatItem>>>(null);
+  const [aiNoteShown, setAiNoteShown] = useState(!!aiNote);
+
+  function showImportant(messageId: string) {
+    let index = rows.findIndex((r) => (r.type === 'message' ? r.item.id === messageId : r.ids.includes(messageId)));
+    if (index >= 0 && rows[index].type === 'hidden') {
+      const key = (rows[index] as { key: string }).key;
+      setExpanded((cur) => new Set(cur).add(key));
+    }
+    if (index < 0) return;
+    listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
+    smallTalk.dismissBanner();
+  }
   const draft = composer.draft;
   const canSend = canSendDraft(draft);
   // Q 03.01 head (title, Ends line, tabs) and #9 ends-soon line hide while the keyboard is open, so typing
@@ -248,6 +293,28 @@ function ChatRoom({
               </View>
             </View>
           )}
+          {aiNoteShown && !keyboardOpen ? (
+            <Pressable style={styles.aiNote} onPress={() => setAiNoteShown(false)} accessibilityRole="button">
+              <Hint>{eventStrings.create.aiSaveFailed}</Hint>
+            </Pressable>
+          ) : null}
+          {qrewing.available && isEvent && qrewing.gate === null && !keyboardOpen ? (
+            <MuteBar
+              roomId={room.id}
+              me={qrewing.me}
+              hiddenCount={hiddenCount}
+              unavailable={smallTalk.unavailable !== null}
+              onChanged={qrewing.reload}
+              onNeedConsent={() => setAskConsent(true)}
+            />
+          ) : null}
+          {smallTalk.banner ? (
+            <ImportantBannerView
+              banner={smallTalk.banner}
+              onPress={() => showImportant(smallTalk.banner!.messageId)}
+              onClose={smallTalk.dismissBanner}
+            />
+          ) : null}
           <RoomActivityBar
             roomId={room.id}
             activitySeq={room.activity_seq}
@@ -256,7 +323,9 @@ function ChatRoom({
             hideControls={keyboardOpen}
           />
 
-          {chat.loading ? (
+          {qrewing.gate === 'entry' ? (
+            <EntryGate roomId={room.id} />
+          ) : chat.loading ? (
             <ActivityIndicator style={styles.loading} />
           ) : chat.error && chat.messages.length === 0 ? (
             <View style={styles.center}>
@@ -265,10 +334,14 @@ function ChatRoom({
             </View>
           ) : (
             <FlatList
+              ref={listRef}
               style={styles.flex}
               inverted
-              data={chat.messages}
-              keyExtractor={(m) => m.id}
+              data={rows}
+              keyExtractor={(r) => (r.type === 'hidden' ? r.key : r.item.id)}
+              onScrollToIndexFailed={({ averageItemLength, index }) =>
+                listRef.current?.scrollToOffset({ offset: averageItemLength * index, animated: true })
+              }
               contentContainerStyle={styles.list}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
@@ -279,48 +352,73 @@ function ChatRoom({
                   <Hint>{en.chat.empty}</Hint>
                 </View>
               }
-              renderItem={({ item }) => (
-                <MessageRow
-                  item={item}
-                  mine={item.sender_id === userId}
-                  name={item.sender_id ? (names.get(item.sender_id) ?? en.chat.formerMember) : ''}
-                  onFailedPress={onFailedPress}
-                  onMediaPress={openPhotos}
-                />
-              )}
+              renderItem={({ item: row }) => {
+                if (row.type === 'hidden') {
+                  return (
+                    <HiddenRow
+                      count={row.ids.length}
+                      onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
+                    />
+                  );
+                }
+                const item = row.item;
+                return (
+                  <MessageRow
+                    item={item}
+                    mine={item.sender_id === userId}
+                    name={item.sender_id ? (names.get(item.sender_id) ?? en.chat.formerMember) : ''}
+                    onFailedPress={onFailedPress}
+                    onMediaPress={openPhotos}
+                  />
+                );
+              }}
             />
           )}
 
           {/* Q 03.01: one rounded field with the arrow Send inside. Q's left chat icon has no action: omitted. */}
-          <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-            <View style={styles.inputWrap}>
-              <TextInput
-                key={composer.key}
-                autoFocus={composerAutoFocus(composer)}
-                style={styles.input}
-                value={draft}
-                onChange={(e) => dispatchComposer({ type: 'change', key: composer.key, text: e.nativeEvent.text })}
-                placeholder={en.chat.placeholder}
-                placeholderTextColor={colors.secondaryLabel}
-                accessibilityLabel={en.chat.placeholder}
-                multiline
-                maxLength={MAX_MESSAGE_LENGTH}
-              />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={en.chat.send}
-                accessibilityState={{ disabled: !canSend }}
-                disabled={!canSend}
-                onPress={submit}
-                hitSlop={6}
-                style={({ pressed }) => [styles.sendButton, (!canSend || pressed) && { opacity: 0.3 }]}
-              >
-                <SymbolView name="arrow.right" size={20} tintColor={colors.label} />
-              </Pressable>
+          {qrewing.gate === 'entry' ? null : (
+            <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  key={composer.key}
+                  autoFocus={composerAutoFocus(composer)}
+                  style={styles.input}
+                  value={draft}
+                  onChange={(e) => dispatchComposer({ type: 'change', key: composer.key, text: e.nativeEvent.text })}
+                  placeholder={en.chat.placeholder}
+                  placeholderTextColor={colors.secondaryLabel}
+                  accessibilityLabel={en.chat.placeholder}
+                  multiline
+                  maxLength={MAX_MESSAGE_LENGTH}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={en.chat.send}
+                  accessibilityState={{ disabled: !canSend }}
+                  disabled={!canSend}
+                  onPress={submit}
+                  hitSlop={6}
+                  style={({ pressed }) => [styles.sendButton, (!canSend || pressed) && { opacity: 0.3 }]}
+                >
+                  <SymbolView name="arrow.right" size={20} tintColor={colors.label} />
+                </Pressable>
+              </View>
             </View>
-          </View>
+          )}
         </View>
       </KeyboardAvoidingView>
+      <DisclosureSheet
+        roomId={room.id}
+        visible={showDisclosure}
+        onDone={() => {
+          setAskConsent(false);
+          qrewing.reload();
+        }}
+        onClose={() => {
+          setAskConsent(false);
+          setDisclosureClosed(true);
+        }}
+      />
     </>
   );
 }
@@ -474,6 +572,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   bannerText: { fontSize: 14, color: colors.label },
+  aiNote: { paddingHorizontal: 24, paddingBottom: 6 },
   tabs: { flexDirection: 'row', gap: 6, marginTop: 8 },
   tab: {
     flex: 1,

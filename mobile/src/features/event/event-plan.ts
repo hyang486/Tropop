@@ -146,3 +146,57 @@ export function createTriageBatcher(opts: {
     },
   };
 }
+
+type Timed = ChatLike & { created_at: string; pending?: unknown };
+
+/** The newest loaded (not pending) message time in ms, or 0 when there is none. Marks the start of a mute session. */
+export function newestMs(items: readonly Timed[]): number {
+  let max = 0;
+  for (const m of items) {
+    if (m.pending) continue;
+    const t = Date.parse(m.created_at);
+    if (Number.isFinite(t) && t > max) max = t;
+  }
+  return max;
+}
+
+export type ImportantBanner = { messageId: string; reason: string | null; mention: boolean; createdMs: number };
+
+/**
+ * The banner for the newest important text from someone else that arrived in this mute session (after `since`)
+ * and was not dismissed. A mention wins without AI; otherwise the triage flag decides. Null when none.
+ */
+export function pickBanner(
+  items: readonly Timed[],
+  opts: {
+    since: number;
+    userId: string | undefined;
+    myName: string | undefined;
+    flags: ReadonlyMap<string, Importance>;
+    dismissed: ReadonlySet<string>;
+  },
+): ImportantBanner | null {
+  let best: ImportantBanner | null = null;
+  for (const m of items) {
+    if (m.pending || m.kind !== 'text' || !m.sender_id || m.sender_id === opts.userId) continue;
+    if (opts.dismissed.has(m.id)) continue;
+    const t = Date.parse(m.created_at);
+    if (!Number.isFinite(t) || t <= opts.since) continue;
+    if (best && t <= best.createdMs) continue;
+    const mention = mentionsName(m.body, opts.myName);
+    const flag = opts.flags.get(m.id);
+    if (!mention && !flag?.important) continue;
+    best = { messageId: m.id, reason: mention ? null : (flag?.reason ?? null), mention, createdMs: t };
+  }
+  return best;
+}
+
+/** Each member's links from entry info, keeping only https links (shown only, never fetched by Qrewing). */
+export function linksByUser(profiles: readonly { user_id: string; links: readonly string[] | null }[]): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const p of profiles) {
+    const links = (p.links ?? []).filter((l) => /^https:\/\/\S+$/i.test(l)).slice(0, 3);
+    if (links.length > 0) out.set(p.user_id, links);
+  }
+  return out;
+}

@@ -7,6 +7,7 @@ import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RoomEnded } from '@/components/room-ended';
 import { StatusEditor } from '@/components/status-editor';
+import { QrewingInfoSection } from '@/features/event/info-section';
 import { QLink, QScreen } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
@@ -206,6 +207,7 @@ export default function RoomInfoScreen() {
       <QRowCard icon="clock" title={endsLine} subtitle={en.room.endsSoonInfo} />
       {/* Place and time (0026), only when the host set them: map, place + Open in Maps, start time. */}
       {placeTime ? <PlaceTimeCards placeTime={placeTime} /> : null}
+      <QrewingInfoSection roomId={room.id} roomType={room.type} isHost={isHost} />
 
       <View style={styles.statuses}>
         <StatusEditor roomId={room.id} isHost={isHost} editing={editingStatus} />

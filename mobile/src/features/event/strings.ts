@@ -57,6 +57,7 @@ export const eventStrings = {
     needsConsent: 'Agree to Qrewing AI first to mute small talk.',
     banner: (reason: string) => `Important: ${reason}`,
     mentioned: 'You were mentioned',
+    dismiss: 'Dismiss',
     unavailable: 'Qrewing is not available right now. All messages are shown.',
   },
   people: {

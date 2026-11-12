@@ -5,9 +5,12 @@ import { test } from 'node:test';
 import {
   collapseSmallTalk,
   createTriageBatcher,
+  linksByUser,
   mentionsName,
   needsDisclosure,
   needsEntry,
+  newestMs,
+  pickBanner,
   staysVisible,
   validateEntry,
 } from '../src/features/event/event-plan.ts';
@@ -142,4 +145,50 @@ test('classifyQrewingError: body code wins, else status', () => {
   assert.equal(classifyQrewingError(500, 'boom'), 'ai_failed');
   assert.equal(isQrewingError({ error: 'ai_off' }), true);
   assert.equal(isQrewingError({ ok: true }), false);
+});
+
+test('newestMs skips pending rows and returns 0 for none', () => {
+  assert.equal(newestMs([]), 0);
+  const items = [
+    { id: 'p', kind: 'text', sender_id: 'me', body: 'x', created_at: '2026-11-12T10:05:00Z', pending: true },
+    { id: 'a', kind: 'text', sender_id: 'u', body: 'x', created_at: '2026-11-12T10:01:00Z' },
+    { id: 'b', kind: 'text', sender_id: 'u', body: 'x', created_at: '2026-11-12T10:03:00Z' },
+  ];
+  assert.equal(newestMs(items), Date.parse('2026-11-12T10:03:00Z'));
+});
+
+test('pickBanner: newest important or mention after since, not mine, not dismissed', () => {
+  const since = Date.parse('2026-11-12T10:00:00Z');
+  const row = (id, sender, body, min) => ({ id, kind: 'text', sender_id: sender, body, created_at: `2026-11-12T10:0${min}:00Z` });
+  const items = [
+    row('mine', 'me', 'Sam look', 6),
+    row('plain', 'u', 'nice weather', 5),
+    row('flag', 'u', 'Stage moved to hall B', 4),
+    row('mention', 'u', 'hey @Sam', 3),
+    row('old', 'u', 'Sam before', 0),
+  ];
+  const flags = new Map([['flag', { important: true, reason: 'Location change' }], ['plain', { important: false, reason: null }]]);
+  const base = { since, userId: 'me', myName: 'Sam', flags, dismissed: new Set() };
+  assert.deepEqual(pickBanner(items, base), {
+    messageId: 'flag',
+    reason: 'Location change',
+    mention: false,
+    createdMs: Date.parse('2026-11-12T10:04:00Z'),
+  });
+  const next = pickBanner(items, { ...base, dismissed: new Set(['flag']) });
+  assert.equal(next.messageId, 'mention');
+  assert.equal(next.mention, true);
+  assert.equal(next.reason, null);
+  assert.equal(pickBanner(items, { ...base, dismissed: new Set(['flag', 'mention']) }), null);
+});
+
+test('linksByUser keeps up to 3 https links per member and skips empty ones', () => {
+  const map = linksByUser([
+    { user_id: 'a', links: ['https://x.dev', 'http://bad', 'javascript:alert(1)', 'https://y.dev', 'https://z.dev', 'https://w.dev'] },
+    { user_id: 'b', links: [] },
+    { user_id: 'c', links: null },
+  ]);
+  assert.deepEqual(map.get('a'), ['https://x.dev', 'https://y.dev', 'https://z.dev']);
+  assert.equal(map.has('b'), false);
+  assert.equal(map.has('c'), false);
 });
