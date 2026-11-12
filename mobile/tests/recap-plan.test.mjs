@@ -88,3 +88,14 @@ test('recapCardView: saved wins; without the AI mark only pending shows; pending
   assert.equal(recapCardView(false, true, 'gone'), 'none');
   assert.equal(recapCardView(false, true, null), 'none');
 });
+
+test('recapMissForError (68132d6): only no connection is retryable; a 502 after the server retry is "none"', async () => {
+  const { recapMissForError, recapCardView } = await import('../src/features/recap/recap-plan.ts');
+  const { classifyQrewingError } = await import('../src/features/event/qrewing-plan.ts');
+  assert.equal(classifyQrewingError(502, 'ai_failed'), 'ai_failed');
+  assert.equal(classifyQrewingError(502, undefined), 'ai_failed');
+  assert.equal(recapMissForError(classifyQrewingError(502)), 'gone');
+  assert.equal(recapCardView(false, true, recapMissForError('ai_failed')), 'none', 'No recap was saved, no Try again');
+  assert.equal(recapMissForError('network'), 'offline');
+  assert.equal(recapCardView(false, true, recapMissForError('network')), 'offline');
+});

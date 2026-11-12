@@ -8,19 +8,28 @@ import { Button, colors, Hint } from '@/components/ui';
 import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
 import { type MatchResult, type QrewingError, requestMatches, useQrewingRoom } from './qrewing-api';
+import { matchStep } from './qrewing-plan';
 import { eventStrings } from './strings';
 
 const s = eventStrings.people;
 
 type State =
   | { status: 'loading' }
-  | { status: 'ready'; result: MatchResult; links: ReadonlyMap<string, string[]> }
+  | { status: 'ready'; result: MatchResult; links: ReadonlyMap<string, string[]>; updating: boolean }
+  | { status: 'pending' }
   | { status: 'error'; error: QrewingError };
 
-async function load(roomId: string): Promise<State> {
+type Loaded = { state: State; retryInMs: number | null };
+
+async function load(roomId: string, last: MatchResult | null, isRetry: boolean): Promise<Loaded> {
   const [res, profiles] = await Promise.all([requestMatches(roomId), listEntryProfiles(roomId).catch(() => [])]);
-  if ('error' in res) return { status: 'error', error: res.error };
-  return { status: 'ready', result: res, links: linksByUser(profiles) };
+  const step = matchStep(res, last, isRetry);
+  if (step.show === 'error') return { state: { status: 'error', error: step.error }, retryInMs: null };
+  if (step.show === 'pending') return { state: { status: 'pending' }, retryInMs: step.retryInMs };
+  return {
+    state: { status: 'ready', result: step.result, links: linksByUser(profiles), updating: step.pending },
+    retryInMs: step.retryInMs,
+  };
 }
 
 /**
@@ -34,21 +43,41 @@ export function PeopleScreen() {
   const [state, setState] = useState<State>({ status: 'loading' });
   // Only the newest request may set the state (a Refresh after leaving, or two quick taps, must not).
   const latest = useRef(0);
+  // The last list shown, kept while a 202 pending answer is re-asked.
+  const lastList = useRef<MatchResult | null>(null);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const run = useCallback(() => {
+    if (retryTimer.current) clearTimeout(retryTimer.current);
+    retryTimer.current = null;
+    const ask = (isRetry: boolean) => {
+      const n = ++latest.current;
+      load(id, lastList.current, isRetry).then(({ state: next, retryInMs }) => {
+        if (latest.current !== n) return;
+        if (next.status === 'ready') lastList.current = next.result;
+        setState(next);
+        // One re-ask after a pending answer; the re-ask itself never schedules another (isRetry).
+        if (retryInMs !== null) retryTimer.current = setTimeout(() => ask(true), retryInMs);
+      });
+    };
+    ask(false);
+  }, [id]);
 
   useEffect(() => {
     const req = latest;
-    const n = ++req.current;
-    load(id).then((next) => req.current === n && setState(next));
+    lastList.current = null;
+    run();
     return () => {
       req.current++;
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+      retryTimer.current = null;
     };
-  }, [id]);
+  }, [run]);
 
   const refresh = useCallback(() => {
-    const n = ++latest.current;
     setState({ status: 'loading' });
-    load(id).then((next) => latest.current === n && setState(next));
-  }, [id]);
+    run();
+  }, [run]);
 
   const notConsented = q.me !== null && !q.me.aiOk;
 
@@ -72,6 +101,8 @@ export function PeopleScreen() {
           <ActivityIndicator />
           <Hint>{s.loading}</Hint>
         </View>
+      ) : state.status === 'pending' ? (
+        <Hint>{s.pending}</Hint>
       ) : state.status === 'error' ? (
         <Hint tone="error">
           {notConsented ? s.notConsented : state.error === 'no_entry' ? s.noEntry : eventStrings.errors[state.error]}
@@ -80,7 +111,7 @@ export function PeopleScreen() {
         <Hint>{s.empty}</Hint>
       ) : (
         <>
-          {state.result.stale ? <Hint>{s.stale}</Hint> : null}
+          {state.updating ? <Hint>{s.updating}</Hint> : state.result.stale ? <Hint>{s.stale}</Hint> : null}
           {state.result.matches.map((m) => (
             <QCard key={m.userId}>
               <Text style={styles.name}>{m.displayName}</Text>

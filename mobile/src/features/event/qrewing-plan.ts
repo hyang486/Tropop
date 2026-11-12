@@ -1,5 +1,5 @@
 // Pure logic for the Qrewing AI client (no React Native imports, so node --test can load it).
-import type { QrewingError } from './types';
+import type { MatchResult, QrewingError } from './types';
 
 const KNOWN: readonly QrewingError[] = [
   'ai_not_configured',
@@ -59,4 +59,25 @@ export function invokeFailureKind(error: unknown): 'http' | 'network' | 'server'
   if (name === 'FunctionsHttpError') return 'http';
   if (name === 'FunctionsRelayError') return 'server';
   return isOfflineError(error) ? 'network' : 'server';
+}
+
+/** Wait before the one re-ask after a 202 pending match answer (backend 68132d6). */
+export const MATCH_RETRY_MS = 10_000;
+
+export type MatchAnswer = MatchResult | { state: 'pending' } | { error: QrewingError };
+export type MatchStep =
+  | { show: 'list'; result: MatchResult; pending: boolean; retryInMs: number | null }
+  | { show: 'pending'; retryInMs: number | null }
+  | { show: 'error'; error: QrewingError };
+
+/**
+ * People to meet after one `match` answer. 202 pending (another call for my list is running): keep the last list
+ * if there is one, else a pending line, and re-ask once after MATCH_RETRY_MS when this answer was not itself the
+ * re-ask; never in a loop. 200 with stale:true is a normal list (the screen shows the stale hint, no error).
+ */
+export function matchStep(answer: MatchAnswer, last: MatchResult | null, isRetry: boolean): MatchStep {
+  if ('error' in answer) return { show: 'error', error: answer.error };
+  if ('matches' in answer) return { show: 'list', result: answer, pending: false, retryInMs: null };
+  const retryInMs = isRetry ? null : MATCH_RETRY_MS;
+  return last ? { show: 'list', result: last, pending: true, retryInMs } : { show: 'pending', retryInMs };
 }

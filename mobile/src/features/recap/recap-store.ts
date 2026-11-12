@@ -20,6 +20,7 @@ import {
   recapKey,
   recapMarkKey,
   type RecapMiss,
+  recapMissForError,
   type SavedRecap,
   type ServerRecap,
   withTimeout,
@@ -185,7 +186,7 @@ export async function recapForEndedRoom(
   }
   if (!opts.ask) return { miss: 'gone' };
   const res = await requestRecap(roomId);
-  if ('error' in res) return { miss: res.error === 'network' ? 'offline' : 'gone' };
+  if ('error' in res) return { miss: recapMissForError(res.error) };
   if (res.state !== 'done') return { miss: 'pending' };
   return {
     saved: await save(roomId, userId, {

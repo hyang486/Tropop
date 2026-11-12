@@ -61,10 +61,12 @@ export async function requestRecap(
   return { error: 'ai_failed' };
 }
 
-export async function requestMatches(roomId: string): Promise<MatchResult | { error: QrewingError }> {
-  const res = await invokeQrewing<MatchResult>({ action: 'match', roomId });
+/** 200 list (maybe cached/stale), or 202 `{ state: 'pending' }` while another call for my list runs (68132d6). */
+export async function requestMatches(roomId: string): Promise<MatchResult | { state: 'pending' } | { error: QrewingError }> {
+  const res = await invokeQrewing<MatchResult | { state: 'pending' }>({ action: 'match', roomId });
   if ('error' in res) return res;
-  return Array.isArray(res.data?.matches) ? res.data : { error: 'ai_failed' };
+  if (res.data && 'state' in res.data && res.data.state === 'pending') return { state: 'pending' };
+  return res.data && 'matches' in res.data && Array.isArray(res.data.matches) ? res.data : { error: 'ai_failed' };
 }
 
 export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRequired: boolean): Promise<{ error?: string; offline?: boolean }> {

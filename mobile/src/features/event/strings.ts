@@ -84,6 +84,8 @@ export const eventStrings = {
     empty: 'No one else has shared entry info yet.',
     noEntry: 'Add your entry info first so Qrewing knows who to suggest.',
     stale: 'Showing the last list. A new one is available in a few minutes.',
+    pending: 'Qrewing is still finding people to meet.',
+    updating: 'Showing the last list while Qrewing updates it.',
     failed: 'Could not get suggestions. Try again.',
     notConsented: 'Agree to Qrewing AI to get suggestions.',
   },

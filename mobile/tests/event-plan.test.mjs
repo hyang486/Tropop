@@ -257,3 +257,17 @@ test('mentionsName: cached RegExp gives the same answer on repeat calls and foll
   assert.equal(mentionsName('hi @Ann', 'Ann Kim'), true);
   assert.equal(mentionsName('hi @A', 'A'), false, 'short names never match');
 });
+
+test('matchStep (68132d6): 202 pending keeps the last list or shows pending, re-asks once, never loops', async () => {
+  const { matchStep, MATCH_RETRY_MS } = await import('../src/features/event/qrewing-plan.ts');
+  const list = { matches: [{ userId: 'b', displayName: 'B', headline: '', reason: 'r', score: 1 }], cached: false, generatedAt: 't' };
+  const stale = { ...list, cached: true, stale: true };
+  assert.deepEqual(matchStep(list, null, false), { show: 'list', result: list, pending: false, retryInMs: null });
+  assert.deepEqual(matchStep(stale, list, false), { show: 'list', result: stale, pending: false, retryInMs: null }, 'stale is no error');
+  assert.deepEqual(matchStep({ state: 'pending' }, null, false), { show: 'pending', retryInMs: MATCH_RETRY_MS });
+  assert.deepEqual(matchStep({ state: 'pending' }, list, false), { show: 'list', result: list, pending: true, retryInMs: MATCH_RETRY_MS });
+  assert.deepEqual(matchStep({ state: 'pending' }, null, true), { show: 'pending', retryInMs: null }, 're-ask is not repeated');
+  assert.deepEqual(matchStep({ state: 'pending' }, list, true), { show: 'list', result: list, pending: true, retryInMs: null });
+  assert.deepEqual(matchStep({ error: 'network' }, list, true), { show: 'error', error: 'network' });
+  assert.equal(MATCH_RETRY_MS, 10_000);
+});

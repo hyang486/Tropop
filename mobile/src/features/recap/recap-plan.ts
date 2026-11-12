@@ -165,3 +165,12 @@ export function recapCardView(hasSaved: boolean, markAi: boolean, miss: RecapMis
   if (miss === 'offline') return 'offline';
   return 'none';
 }
+
+/**
+ * Why a recap request gave no recap. Only "no connection" can be retried; any server failure, including the 502
+ * the server returns without a model call after its one retry per room (68132d6), is `gone` ("No recap was saved",
+ * no Try again).
+ */
+export function recapMissForError(error: string): RecapMiss {
+  return error === 'network' ? 'offline' : 'gone';
+}
