@@ -42,7 +42,8 @@ test('stored history that is not valid JSON or has bad rows is dropped, not thro
 test('recap summary: the latest session in that room with an average pace, else null', () => {
   // startedAt 5 has 50 m (no average pace), so 3 is used.
   const h = [s('a', 1, 1500), s('a', 5, 50), s('a', 3, 2400.4), s('b', 9)];
-  assert.deepEqual(summaryFor(h, 'a'), { distanceM: 2400, durationS: 300, avgSecPerKm: 300 });
+  // Saved before elapsedS existed: elapsed falls back to the moving time.
+  assert.deepEqual(summaryFor(h, 'a'), { distanceM: 2400, durationS: 300, elapsedS: 300, avgSecPerKm: 300 });
   assert.equal(summaryFor(h, 'zzz'), null);
 });
 
@@ -54,7 +55,14 @@ test('recap hand-off: no session in the room gives null and no line; a session g
   assert.equal(summaryFor([s('a', 1, 50)], 'a'), null);
   assert.equal(recapParts(null), null);
   const one = summaryFor([s('a', 1, 2400)], 'a');
-  assert.deepEqual(Object.keys(one).sort(), ['avgSecPerKm', 'distanceM', 'durationS']);
+  assert.deepEqual(Object.keys(one).sort(), ['avgSecPerKm', 'distanceM', 'durationS', 'elapsedS']);
   const p = recapParts(one);
-  assert.equal(paceStrings.recap(p.distanceM, p.duration, p.pace), 'Pace maker: 2.40 km in 5:00, 5:00 per km');
+  assert.equal(paceStrings.recap(p.distanceM, p.moving, p.total, p.pace), 'Pace maker: 2.40 km, moving 5:00, total 5:00, 5:00 per km');
+  // A long stop shows in the total.
+  const stopped = summaryFor([{ ...s('a', 1, 2400), durationS: 720, elapsedS: 1020, avgSecPerKm: 300 }], 'a');
+  const q = recapParts(stopped);
+  assert.equal(paceStrings.recap(q.distanceM, q.moving, q.total, q.pace), 'Pace maker: 2.40 km, moving 12:00, total 17:00, 5:00 per km');
+  // Stored elapsedS is read back; a bad one drops the row.
+  assert.equal(parseHistory(JSON.stringify([{ ...s('a', 1), elapsedS: 400 }]))[0].elapsedS, 400);
+  assert.equal(parseHistory(JSON.stringify([{ ...s('a', 1), elapsedS: 'x' }])).length, 0);
 });

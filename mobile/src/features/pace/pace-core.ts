@@ -10,7 +10,10 @@ export type PaceSession = {
   roomId: string;
   /** Epoch ms. */
   startedAt: number;
+  /** Moving seconds (pauses left out). */
   durationS: number;
+  /** Seconds from the first to the last accepted fix, stops included. Missing in sessions saved before it. */
+  elapsedS?: number;
   distanceM: number;
   /** Null under MIN_PACE_DISTANCE_M. */
   avgSecPerKm: number | null;
@@ -96,6 +99,8 @@ export type Tracker = {
   lastFix: PaceFix | null;
   /** Device time of lastFix (or startedAt before the first fix): steps are measured from both together. */
   lastAtMs: number;
+  /** Device time of the first accepted fix (elapsed time counts from it). */
+  firstAtMs: number | null;
   distanceM: number;
   /** Time spent moving, ms: pauses (standing still) are left out, so average and splits are moving pace. */
   movingMs: number;
@@ -117,6 +122,7 @@ export function newTracker(roomId: string, startedAt: number): Tracker {
     startedAt,
     lastFix: null,
     lastAtMs: startedAt,
+    firstAtMs: null,
     distanceM: 0,
     movingMs: 0,
     splits: [],
@@ -141,7 +147,8 @@ function plausibleStep(a: PaceFix, b: PaceFix): boolean {
  */
 export function stepFix(t: Tracker, fix: PaceFix): { tracker: Tracker; kept: boolean } {
   if (!t.lastFix) {
-    return { tracker: { ...t, lastFix: fix, lastAtMs: Math.max(t.lastAtMs, fix.atMs), rejects: [] }, kept: true };
+    const atMs = Math.max(t.lastAtMs, fix.atMs);
+    return { tracker: { ...t, lastFix: fix, lastAtMs: atMs, firstAtMs: atMs, rejects: [] }, kept: true };
   }
   const newest = t.rejects.length ? t.rejects[t.rejects.length - 1].atMs : t.lastAtMs;
   if (fix.atMs <= Math.max(t.lastAtMs, newest)) return { tracker: t, kept: false };
@@ -179,11 +186,20 @@ export function addFix(t: Tracker, fix: PaceFix): Tracker {
   return stepFix(t, fix).tracker;
 }
 
-/** durationS is moving time; avgSecPerKm is moving pace (null under MIN_PACE_DISTANCE_M). */
+/** durationS is moving time, elapsedS first to last fix; avgSecPerKm is moving pace (null under MIN_PACE_DISTANCE_M). */
 export function summarize(t: Tracker): PaceSession {
   const durationS = Math.max(0, Math.round(t.movingMs / 1000));
   const avgSecPerKm = t.distanceM >= MIN_PACE_DISTANCE_M && durationS > 0 ? durationS / (t.distanceM / 1000) : null;
-  return { roomId: t.roomId, startedAt: t.startedAt, durationS, distanceM: t.distanceM, avgSecPerKm, splits: t.splits };
+  const elapsedS = t.firstAtMs == null ? 0 : Math.max(durationS, Math.round((t.lastAtMs - t.firstAtMs) / 1000));
+  return {
+    roomId: t.roomId,
+    startedAt: t.startedAt,
+    durationS,
+    elapsedS,
+    distanceM: t.distanceM,
+    avgSecPerKm,
+    splits: t.splits,
+  };
 }
 
 /** My pace over the last minute of fixes (path length), or null with too little movement. */
@@ -380,6 +396,7 @@ export function parseHistory(raw: string | null): PaceSession[] {
         typeof s.roomId === 'string' &&
         Number.isFinite(s.startedAt) &&
         Number.isFinite(s.durationS) &&
+        (s.elapsedS === undefined || Number.isFinite(s.elapsedS)) &&
         Number.isFinite(s.distanceM) &&
         (s.avgSecPerKm === null || Number.isFinite(s.avgSecPerKm)) &&
         Array.isArray(s.splits),
@@ -389,25 +406,38 @@ export function parseHistory(raw: string | null): PaceSession[] {
   }
 }
 
-/** The recap's pace part: the latest session in this room that has an average pace (100 m or more), or null. */
-export function summaryFor(
-  history: PaceSession[],
-  roomId: string,
-): { distanceM: number; durationS: number; avgSecPerKm: number } | null {
+export type PaceSummary = { distanceM: number; durationS: number; elapsedS: number; avgSecPerKm: number };
+
+/**
+ * The recap's pace part: the latest session in this room that has an average pace (100 m or more), or null.
+ * durationS is moving time; elapsedS includes stops (a session saved before elapsedS existed uses durationS).
+ */
+export function summaryFor(history: PaceSession[], roomId: string): PaceSummary | null {
   const s = [...history]
     .sort((a, b) => b.startedAt - a.startedAt)
     .find((x) => x.roomId === roomId && x.avgSecPerKm != null);
   return s && s.avgSecPerKm != null
-    ? { distanceM: Math.round(s.distanceM), durationS: s.durationS, avgSecPerKm: Math.round(s.avgSecPerKm) }
+    ? {
+        distanceM: Math.round(s.distanceM),
+        durationS: s.durationS,
+        elapsedS: Math.max(s.durationS, s.elapsedS ?? s.durationS),
+        avgSecPerKm: Math.round(s.avgSecPerKm),
+      }
     : null;
 }
 
-/** The recap line's parts for a summary ("5:00" pace, "12:00" moving time), or null with no session. */
+/** The recap line's parts for a summary ("12:00" moving, "17:00" total, "5:00" pace), or null with no session. */
 export function recapParts(
-  summary: { distanceM: number; durationS: number; avgSecPerKm: number } | null | undefined,
-): { distanceM: number; duration: string; pace: string } | null {
+  summary: PaceSummary | null | undefined,
+): { distanceM: number; moving: string; total: string; pace: string } | null {
   const pace = summary ? formatPace(summary.avgSecPerKm) : null;
-  return summary && pace ? { distanceM: summary.distanceM, duration: formatDuration(summary.durationS), pace } : null;
+  if (!summary || !pace) return null;
+  return {
+    distanceM: summary.distanceM,
+    moving: formatDuration(summary.durationS),
+    total: formatDuration(Math.max(summary.durationS, summary.elapsedS)),
+    pace,
+  };
 }
 
 // --- target input -----------------------------------------------------------------------------------------------

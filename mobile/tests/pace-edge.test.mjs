@@ -86,6 +86,8 @@ test('standing still (30 s heartbeats with GPS drift) adds no distance and no mo
   assert.ok(near(sum.distanceM, 2000, 15), `distance ${sum.distanceM}`);
   // 10 minutes of running; the 5-minute stop is left out of the time and the pace.
   assert.ok(near(sum.durationS, 600, 40), `moving ${sum.durationS}`);
+  // The total from the first to the last fix keeps the stop: 940 s.
+  assert.equal(sum.elapsedS, 940);
   assert.ok(near(sum.avgSecPerKm, 300, 20), `pace ${sum.avgSecPerKm}`);
   // The pause fixes are still kept: the stationary check needs them.
   assert.ok(still.every((f) => kept.includes(f)));
