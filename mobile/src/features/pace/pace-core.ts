@@ -441,6 +441,8 @@ export function newCueSchedule(): CueSchedule {
  * (its km is not marked done) and comes on the first fix after it, with the latest split. Order: km, then the
  * lead-group gap (at most every OFF_TARGET_EVERY_MS on its own clock), then off-target (at most every
  * OFF_TARGET_EVERY_MS and once per km, through paceCue); off-target stays quiet while I am behind the lead group.
+ * No gap cue while I am standing still (no recent pace): "Run 2:18 per km" to someone stopped, maybe with the
+ * "Everything okay?" sheet open, is wrong; it comes once I move again.
  */
 export function chooseCue(
   schedule: CueSchedule,
@@ -461,7 +463,7 @@ export function chooseCue(
   });
   if (paced.cue?.kind === 'km') return said({ pace: paced.state }, paced.cue);
   const gapDue = schedule.lastGapCueAtMs == null || input.nowMs - schedule.lastGapCueAtMs >= OFF_TARGET_EVERY_MS;
-  if (input.gap && gapDue) return said({ lastGapCueAtMs: input.nowMs }, { kind: 'gap', ...input.gap });
+  if (input.gap && gapDue && input.recentSecPerKm != null) return said({ lastGapCueAtMs: input.nowMs }, { kind: 'gap', ...input.gap });
   if (!input.gap && paced.cue) return said({ pace: paced.state }, paced.cue);
   return { schedule, cue: null };
 }
