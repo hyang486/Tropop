@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  compactPerson,
   handle,
+  MATCH_FIELD_MAX,
+  MATCH_MAX_CANDIDATES,
+  matchCandidates,
   parseBody,
   prefilterTriage,
   PREFILTER_REASON,
@@ -563,7 +567,7 @@ test('recap refresh with no done row is a normal recap request', async () => {
 
 // ------------------------------------------------------------------------------------------- match
 
-const entry = (userId: string, headline: string): EntryProfile => ({ userId, headline, interests: 'ML, running', lookingFor: 'internship' });
+const entry = (userId: string, headline: string, updatedAt = iso(-MIN)): EntryProfile => ({ userId, headline, interests: 'ML, running', lookingFor: 'internship', updatedAt });
 
 test('match: needs consent and an entry; no candidates → empty without a call', async () => {
   const { m, calls } = model(() => ({}));
@@ -605,6 +609,34 @@ test('match: a cached person who withdrew consent or left is not returned', asyn
   w.matches.set(BOB, { ...w.matches.get(BOB)!, createdAt: iso(-MIN) });
   const r = (await run(w, m, BOB, { action: 'match', roomId: ROOM })).body as { matches: unknown[] };
   assert.deepEqual(r.matches, []);
+});
+
+test('matchCandidates: cap keeps the newest entries, ordered by user id; non-members and non-consenting left out', () => {
+  const ids = Array.from({ length: 40 }, (_, i) => `aaaaaaaa-0000-4000-8000-${String(100 + i).padStart(12, '0')}`);
+  const profiles = ids.map((id, i) => entry(id, `h${i}`, iso(-(40 - i) * MIN))); // later index = newer
+  const members = new Set([BOB, ...ids.slice(0, 39)]); // ids[39] (newest) left the room
+  const consents = new Map<string, Consent>(ids.map((id) => [id, { aiOk: true, mute: false }]));
+  consents.set(ids[38], { aiOk: false, mute: false }); // second newest withdrew
+  const out = matchCandidates([entry(BOB, 'me'), ...profiles], BOB, members, consents);
+  assert.equal(out.length, MATCH_MAX_CANDIDATES);
+  assert.deepEqual(out.map((p) => p.userId), ids.slice(38 - MATCH_MAX_CANDIDATES, 38), 'the 29 newest eligible, by id');
+});
+
+test('compactPerson: fields collapsed and cut to fixed lengths; the match prompt carries no links or ids', async () => {
+  const long = 'word '.repeat(100);
+  const c = compactPerson('N'.repeat(60), { headline: 'CS\n\n  junior', interests: long, lookingFor: long });
+  assert.equal(c.headline, 'CS junior');
+  assert.equal([...c.name].length, MATCH_FIELD_MAX.name);
+  assert.equal([...c.interests].length, MATCH_FIELD_MAX.interests);
+  assert.equal([...c.lookingFor].length, MATCH_FIELD_MAX.lookingFor);
+  assert.ok(c.interests.endsWith('…'));
+  assert.deepEqual(Object.keys(c).sort(), ['headline', 'interests', 'lookingFor', 'name']);
+
+  const w = world({ entries: [entry(BOB, 'CS junior'), { ...entry(HOST, 'Recruiter'), interests: long }] });
+  const { m, calls } = model(() => ({ text: JSON.stringify({ matches: [] }) }));
+  await run(w, m, BOB, { action: 'match', roomId: ROOM });
+  assert.ok(!calls[0].user.includes(long.trim()), 'long field cut before sending');
+  assert.ok(calls[0].user.includes(`<interests>${cut(long.replace(/\s+/g, ' '), MATCH_FIELD_MAX.interests)}</interests>`));
 });
 
 // ------------------------------------------------------------------------------------------- prompts

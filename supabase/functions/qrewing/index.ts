@@ -289,12 +289,16 @@ function createStore(admin: any): QrewingStore {
     },
 
     async entryProfiles(roomId) {
-      const rows = must(await admin.from('entry_profiles').select('user_id, headline, interests, looking_for').eq('room_id', roomId), 'entries');
-      return (rows ?? []).map((r: { user_id: string; headline: string; interests: string; looking_for: string }) => ({
+      const rows = must(
+        await admin.from('entry_profiles').select('user_id, headline, interests, looking_for, updated_at').eq('room_id', roomId),
+        'entries',
+      );
+      return (rows ?? []).map((r: { user_id: string; headline: string; interests: string; looking_for: string; updated_at: string }) => ({
         userId: r.user_id,
         headline: r.headline,
         interests: r.interests,
         lookingFor: r.looking_for,
+        updatedAt: r.updated_at,
       }));
     },
     async match(roomId, userId) {

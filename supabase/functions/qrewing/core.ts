@@ -33,6 +33,8 @@ export const RECAP_WINDOW_MS = 60 * 60_000;
 export const RECAP_REFRESH_MESSAGES = 50;
 export const MATCH_MAX_CANDIDATES = 29;
 export const MATCH_STALE_OK_MS = 10 * 60_000;
+/** Spec 8.9: each text field sent to the match model is collapsed and cut to this many characters. */
+export const MATCH_FIELD_MAX = { name: 40, headline: 80, interests: 160, lookingFor: 160 } as const;
 /** A claim whose caller died (crash, timeout) is retaken after this long. Not in the spec's response shapes. */
 export const TRIAGE_PENDING_TTL_MS = 2 * 60_000;
 export const RECAP_PENDING_TTL_MS = 5 * 60_000;
@@ -70,7 +72,7 @@ export type RoomInfo = {
 export type Msg = { id: string; roomId: string; kind: string; senderId: string | null; body: string | null; createdAt: string };
 export type TriageRow = { messageId: string; state: 'pending' | 'done' | 'skipped'; important: boolean | null; reason: string | null; updatedAt: string };
 export type RecapRow = { state: 'pending' | 'done' | 'failed'; title: string | null; summary: string | null; highlights: string[] | null; updatedAt: string; refreshedAt: string | null };
-export type EntryProfile = { userId: string; headline: string; interests: string; lookingFor: string };
+export type EntryProfile = { userId: string; headline: string; interests: string; lookingFor: string; updatedAt: string };
 export type StoredMatch = { userId: string; reason: string; score: number };
 export type MatchRow = { inputHash: string; matches: StoredMatch[]; createdAt: string };
 export type Consent = { aiOk: boolean; mute: boolean };
@@ -570,20 +572,12 @@ async function match(ctx: Ctx): Promise<Reply> {
   if (consents.get(userId)?.aiOk !== true || !mine) return { status: 409, body: { error: 'no_entry' } };
 
   const members = new Set(await store.memberIds(room.id));
-  const others = profiles
-    .filter((p) => p.userId !== userId && members.has(p.userId) && consents.get(p.userId)?.aiOk === true)
-    .sort((a, b) => (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0))
-    .slice(0, MATCH_MAX_CANDIDATES);
+  const others = matchCandidates(profiles, userId, members, consents);
   if (others.length === 0) return { status: 200, body: { matches: [], cached: false, generatedAt: now.toISOString() } };
 
   const names = await store.displayNames([userId, ...others.map((p) => p.userId)]);
   const nameOf = (id: string) => names.get(id) || 'Member';
-  const person = (p: EntryProfile) => ({
-    name: nameOf(p.userId),
-    headline: p.headline,
-    interests: p.interests,
-    lookingFor: p.lookingFor,
-  });
+  const person = (p: EntryProfile) => compactPerson(nameOf(p.userId), p);
   const me = person(mine);
   const people: MatchPerson[] = others.map((p, i) => ({ id: `p${i + 1}`, ...person(p) }));
   const byIndex = new Map(people.map((p, i) => [p.id, others[i].userId]));
@@ -631,6 +625,30 @@ async function match(ctx: Ctx): Promise<Reply> {
   list.splice(5);
   const createdAt = await store.saveMatch(room.id, userId, hash, list);
   return { status: 200, body: { matches: hydrate(list), cached: false, generatedAt: createdAt } };
+}
+
+/**
+ * Spec 2 + 8.9: other current members with consent and an entry; at most MATCH_MAX_CANDIDATES, the most recently
+ * updated entries kept; then ordered by user id so the prompt (and its hash) does not depend on the read order.
+ */
+export function matchCandidates(profiles: EntryProfile[], userId: string, members: Set<string>, consents: Map<string, Consent>): EntryProfile[] {
+  const byId = (a: EntryProfile, b: EntryProfile) => (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0);
+  return profiles
+    .filter((p) => p.userId !== userId && members.has(p.userId) && consents.get(p.userId)?.aiOk === true)
+    .sort((a, b) => (a.updatedAt === b.updatedAt ? byId(a, b) : a.updatedAt > b.updatedAt ? -1 : 1))
+    .slice(0, MATCH_MAX_CANDIDATES)
+    .sort(byId);
+}
+
+/** Spec 8.9: only the fields matching needs (no links, no ids), whitespace collapsed, each cut to a fixed length. */
+export function compactPerson(name: string, p: Pick<EntryProfile, 'headline' | 'interests' | 'lookingFor'>) {
+  const f = (s: string, n: number) => cut(s.replace(/\s+/g, ' '), n);
+  return {
+    name: f(name, MATCH_FIELD_MAX.name),
+    headline: f(p.headline, MATCH_FIELD_MAX.headline),
+    interests: f(p.interests, MATCH_FIELD_MAX.interests),
+    lookingFor: f(p.lookingFor, MATCH_FIELD_MAX.lookingFor),
+  };
 }
 
 export async function sha256Hex(s: string): Promise<string> {
