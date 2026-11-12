@@ -15,7 +15,12 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Live sitting script: docs/qrewing-live-sitting.md; dry-run SQL builder scripts/qrewing-dry-run.mjs. Held for the human.
 - 9a4cdb6 triage prefilter (8.8, supervisor PASS), de19608 janitor single or-tree, 71978d0 compact match input (8.9).
   Rerun: janitor 11/11, qrewing 26/26. Live read-only check: migrations end at 0026; cron = expiry-reminders, room-janitor only.
-  0027 apply HOLD: waiting for supervisor review of de19608/71978d0 and qa on the approval scope (USER_DECISIONS line 219).
+  Supervisor PASS on de19608 and 71978d0.
+- 68132d6 review fixes: F1 recap max 2 attempts/room (refreshed_at = retry spent on a failed row), F2 refresh 2048,
+  F3 match in-flight guard (input_hash 'pending:<uuid>' CAS, 2 min TTL; loser gets stale list or 202 = contract change
+  for developer-event), qa Q1-Q3 prefilter (no @name rule, no bare everyone/important, rules for every sender). No SQL.
+  qrewing 32/32, janitor 11/11. Review requested.
+  0027 apply HOLD: waiting for qa on the approval scope (USER_DECISIONS line 219); then rollback test, apply, janitor deploy.
 
 ## 2026-11-09: U6 G-U6-1 — 33264a7 on qrew-u6 (from main e89cf85); local, no push, no rebuild
 - Place and time (0026) closed: qa PASS on qrew-pt 62d8fdd and 28bd04f, merged --no-ff → main e89cf85 (dev: tsc 0, lint 0, 303/303).
