@@ -24,7 +24,7 @@ Every future install keeps its simulator's group. Check it before installing:
 or erasing loses the session, and the guests are anonymous accounts. No repo config encodes this. The
 team value is passed only on the command line.
 
-## 2026-11-12: Qrewing AI on main b9d031c (local, not pushed)
+## 2026-11-12: Qrewing AI on main b9d031c, now eeeafd9 (local, not pushed)
 
 Authority: USER_DECISIONS 2026-11-12 FINAL entries (Qrewing AI build, API key set by the human, expo-speech + one
 rebuild, grace (b), janitor */5, the 0027 sitting "해도 돼"; that file's 2026-11-12 lines are in the main checkout, not yet
@@ -37,6 +37,10 @@ committed) plus the qa-as-proxy entries of the same day. Requirements: planning/
   8befc29d, verify_jwt false; v1 = 23e1423 was live ~7 min and never called). room-janitor v10 (grace-aware, cron */5).
 - event (cf19e4d, 84a97b6, post-merge 03320df, ux-polish 8ae6c98) and pace (8edef43, 0a1854b, post-merge c982ebf,
   demo-replay 9a7c18f), all --no-ff. Checks on b9d031c: tsc 0, npm test 446/446, expo lint 0; Deno node tests 47/47.
+- After qa's pass: 61ba26e (keyboard 70f850d, copy-grace 40fd48f, pace-privacy-notes 004951d, status 323b873), 0266bc3
+  (cost model, docs), eeeafd9 (grace host name 0a42742). Checks on eeeafd9: tsc 0, npm test 449/449, expo lint 0.
+- GitHub push snapshot 9975963 (branch qrew-push-snapshot-2; parent qrew/main 8147215, fast-forward; mobile/ and
+  supabase/ = eeeafd9; 272 files; secret scan clean; supervisor PASS). NOT pushed: waits for qa's explicit go.
 
 **Simulator build**
 - Signed rebuild from 55948fd (expo-speech is native; b9d031c added JS only), installed over the existing app on all
@@ -48,25 +52,38 @@ committed) plus the qa-as-proxy entries of the same day. Requirements: planning/
   --clear, recount routes before reporting. (2) a new worktree has no mobile/.env.local (gitignored); copy the main
   checkout's (public keys only), or a clean bundle throws "Missing EXPO_PUBLIC_SUPABASE_URL".
 
-**qa results so far (PARTIAL, single checklist pass on :8093 still running; source LS af39a5c)**
-- First real AI calls OK: match claude-sonnet-5-5 667 in / 67 out tokens; triage claude-haiku-5-5 587 in / 42 out. The
-  API key, SDK 1.3.0 output_config path and structured output are verified live by these calls.
-- People to meet: shows the host with a sensible reason.
-- Mute small talk: hides chit-chat; the room-change message is flagged "Important: Announcement".
-- F1 (header Save with the keyboard up) OK; E2.6d (Discard prompt, one tap leaves) OK; entry links require https://.
+**qa results (simulators; LS "~04:00 PST qa: Qrewing AI pass on main b9d031c" and "~04:06 PST main 61ba26e rechecks")**
+- First real AI calls (private.qrewing_usage): match claude-sonnet-5-5 667 in / 67 out; triage claude-haiku-5-5 587 in /
+  42 out; recap claude-sonnet-5-5 493 in / 105 out (one recap call per room). The API key, SDK 1.3.0 output_config path
+  and structured output are verified live.
+- People to meet: the host listed with a sensible reason (2026-11-12-qrewing-first-ai-call-people-to-meet.jpg).
+- Mute small talk: chit-chat hidden ("1 message hidden"), the room-change message shown as "Important: Announcement"
+  (2026-11-12-qrewing-mute-important.jpg).
+- Entry: consent sheet, F1 (header Save with the keyboard up, Return moves fields), https:// link validation, E2.6d
+  Discard (2026-11-12-qrewing-e2-6d-discard-alert.jpg). E2.5k after 70f850d: Chat-gate path and Info path PASS, header
+  stays (2026-11-12-qrewing-e2-5k-chat-gate-header-pass.jpg).
+- Pace stop scenario: live card frozen during the stop, "You've stopped for 3 minutes. Everything okay?" sheet, then
+  1.27 km · 6:22 · 5:01 per km with the stop excluded (2026-11-12-qrewing-pace-stationary-sheet.jpg). Sports rooms only.
+- Early end → grace → recap: 30-minute copy on the confirm (2026-11-12-qrewing-end-room-30min-copy.jpg); guest sees
+  "Recap and photos available until …", chat closed, recap card, Photos buttons (2026-11-12-qrewing-grace-recap.jpg);
+  host recap with the pace line (2026-11-12-qrewing-host-recap-pace-line.jpg).
+- Photos of me in grace: only the matching photo "Likely you"; Save original during grace verified 1.8 MB
+  (2026-11-12-qrewing-photos-of-me-match.jpg, 2026-11-12-qrewing-grace-save-original.jpg).
+- Grace host name (0a42742) on eeeafd9: "Shared by Host" on the host's photo (2026-11-12-qrewing-grace-shared-by-host.jpg).
 
-**Pending**
-- qa: pace stop scenario; early end → 30-min grace → recap.
-- Reviewed, waiting to merge after qa's pass: 70f850d (useKeyboardOpen DidHide; fixes the blank room header after an
-  entry-gate save, then one device check E2.5k), copy-grace 40fd48f (5 strings: "...or 30 minutes after the host ends it
-  early"), pace-privacy-notes 9859293 (checklist doc).
-- Reviewed DRAFT for the human: docs/evidence/qrewing-privacy-and-store-notes.md (pace b9a26b1); its UNVERIFIED items stay open.
+**Open for the human**
+- Account deletion: a host's account deletion ends their rooms at once, with no 30-minute grace (0021/0027 as built).
+  Whether it should follow the grace is a human decision (decision (b) covers only a host's early end).
+- The biometric (face data) category declaration for the store listing.
+- The privacy and store notes draft docs/evidence/qrewing-privacy-and-store-notes.md: its UNVERIFIED items stay open.
+- The GitHub push of snapshot 9975963: on qa's explicit go only.
 
 **Not verified**
-- Spoken pace cues: audible voice until qa confirms it; the silent switch on a physical device; behaviour on a network drop.
-- Anything on a real iPhone: every Qrewing result so far is from simulators (GPS by simctl, simulator audio).
-- Recap (first and refresh) and the grace window end to end; match/triage failure paths live (unit tests only: M1 cooldown
-  2 min/10 min/24 h, M2 model-failed rows final and counted in the 300/day cap).
+- Spoken pace cues: audible voice (the TTS engine loaded in the app, but nobody heard it on a simulator) and a stop
+  cutting the speech; the silent switch; behaviour on a network drop.
+- Anything on a real iPhone: every Qrewing result is from simulators (GPS by simctl, simulator audio).
+- The recap refresh near the end; match/triage failure paths live (unit tests only: M1 cooldown 2 min/10 min/24 h,
+  M2 model-failed rows final and counted in the 300/day cap).
 
 ## 2026-11-09: Place and time unit (migration 0026), pre-apply test
 - Branch qrew-pt (c40ccd5, 68abdec). Human go-ahead typed in the developer session; the rollback run of
@@ -318,7 +335,7 @@ GPS-stripped copies.
 
 ## Feature status
 
-Refreshed 2026-11-12 (main b9d031c, local). Qrewing AI rows added at the end of the non-deferred rows; the U6 and
+Refreshed 2026-11-12 (main b9d031c; Qrewing rows final from qa on b9d031c/61ba26e/eeeafd9). Qrewing AI rows added at the end of the non-deferred rows; the U6 and
 Copy code / Qrew rows reconciled with their merges (a6702b1, 860e938). Earlier refresh: 2026-11-09 (main e89cf85). "verified" means a recorded qa/supervisor PASS on simulators or a live server check; nothing below was run
 on Android, and only items marked "human iPhone" were seen on a physical device. CS = docs/CURRENT_STATE.md, IS = this file,
 LS = docs/reviews/codex-final-qa-live-status.md (supervisor-owned). Evidence files are under docs/evidence/. Rows from
@@ -359,11 +376,11 @@ LS = docs/reviews/codex-final-qa-live-status.md (supervisor-owned). Evidence fil
 | Plan preview | verified | 2026-11-06-final-8-plan-preview.png, 2026-11-06-final-8-cta-alert.png | The alert only, no payment. The screen is not in the Q style yet (CS U5 section). |
 | Qrew redesign units 1-5 look | verified with limits | 2026-11-09-qrew-u2-side-by-side.html, 2026-11-09-qrew-u3-side-by-side.html, 2026-11-09-qrew-u4-side-by-side.html, 2026-11-09-qrew-u5-side-by-side.html, 2026-11-09-qrew-pt-side-by-side.html; USER_DECISIONS 2026-11-09 entries | The human accepted the U1 art and font and the U2-U5 screens. Q-only items the human chose not to build stay unbuilt. The app name still shows as "Moment" until a rebuild (see the Copy code / Qrew row). |
 | Dynamic Type / largest text | verified with limits | 2026-11-09-qrew-u1-d-largest-type.png, 2026-11-09-qrew-u3-f1-largest-17e.png, 2026-11-09-qrew-u4-f2-map-largest.png, 2026-11-09-qrew-u5-f1-17e-xl-both-cards.png, 2026-11-09-qrew-pt-f1-xl-create-pickers-17pro.png | Layouts hold and actions stay reachable. Known truncations: Arrived/Set status chips (N3) and Draw/Undo/Clear (N4). Host-only screens at largest type were checked on the 17 Pro only. |
-| Qrewing AI backend: 0027 tables/RPCs/RLS, grace, qrewing Edge Function, janitor */5 | verified with limits | CS 2026-11-12 sitting lines (rollback test, apply, test-file run, deploys, smoke); LS af39a5c (first real calls) | Live: 0027 test file ran with ROLLBACK and no FAIL; smoke 405/401; janitor runs ok. First real match and triage calls succeeded. Not verified live: recap, grace end to end, failure paths (unit tests only). |
-| Qrewing event: entry gate, People to meet (match) | verified with limits | LS af39a5c (qa partial on b9d031c) | qa: People to meet shows the host with a sensible reason; header Save (F1) and Discard (E2.6d) OK; links need https://. PARTIAL: qa's pass is still running. Known bug: blank room header after a save with the keyboard up (fix 70f850d, not merged; E2.5k recheck pending). |
-| Qrewing Mute small talk (triage) | verified with limits | LS af39a5c | qa: chit-chat hidden, room-change message flagged "Important: Announcement". PARTIAL. Daily cap and model-failure rows: unit tests only. |
-| Qrewing recap and 30-min grace after an early end | not verified | LS af39a5c ("still running") | qa run in progress. Copy fix 40fd48f (grace wording) is reviewed, not merged. |
-| Qrewing pace maker (moving time, km splits, spoken cues) | not verified | LS af39a5c ("still running") | qa stop scenario in progress. Spoken audio, the silent switch on a physical device and a network drop are not verified. |
+| Qrewing AI backend: 0027 tables/RPCs/RLS, grace, qrewing Edge Function, janitor */5 | verified with limits | CS 2026-11-12 sitting lines (rollback test, apply, test-file run, deploys, smoke); LS af39a5c (first real calls) | Live: 0027 test file ran with ROLLBACK and no FAIL; smoke 405/401; janitor runs ok. Real match, triage and recap calls succeeded (qa ~04:00). Not verified live: the recap refresh and the failure paths (unit tests only). |
+| Qrewing event: entry gate, People to meet (match) | verified with limits | LS qa ~04:00 pass and ~04:06 rechecks; 2026-11-12-qrewing-first-ai-call-people-to-meet.jpg, 2026-11-12-qrewing-e2-6d-discard-alert.jpg, 2026-11-12-qrewing-e2-5k-chat-gate-header-pass.jpg | qa PASS: People to meet, consent sheet, F1, https:// links, E2.6d, E2.5k after 70f850d (Chat-gate and Info paths). Simulators only. |
+| Qrewing Mute small talk (triage) | verified with limits | LS qa ~04:00 pass; 2026-11-12-qrewing-mute-important.jpg | qa PASS: chit-chat hidden, room-change message shown as "Important: Announcement". Daily cap and model-failure rows: unit tests only. |
+| Qrewing recap and 30-min grace after an early end | verified with limits | LS qa ~04:00 pass and ~04:06/04:12 rechecks; 2026-11-12-qrewing-end-room-30min-copy.jpg, 2026-11-12-qrewing-grace-recap.jpg, 2026-11-12-qrewing-host-recap-pace-line.jpg, 2026-11-12-qrewing-grace-save-original.jpg, 2026-11-12-qrewing-grace-shared-by-host.jpg | qa PASS: 30-minute copy (40fd48f), guest recap card and closed chat in grace, Photos of me and Save original in grace, "Shared by Host" (0a42742). Not verified: the recap refresh; account deletion has no grace (open for the human). |
+| Qrewing pace maker (moving time, km splits, spoken cues) | verified with limits | LS qa ~04:00 pass; 2026-11-12-qrewing-pace-stationary-sheet.jpg, 2026-11-12-qrewing-host-recap-pace-line.jpg | qa PASS: stop scenario (card frozen, stationary sheet, stop excluded: 1.27 km · 6:22 · 5:01 per km) and the recap pace line. Not verified: audible voice, a stop cutting speech, the silent switch, a real iPhone. |
 | Android | not verified | CS U2 "ANDROID FOLLOW-UP" | iOS first; Android is follow-up work. The expo-maps Google key is missing and keyboard handling is iOS-only. |
 | Copy code + app name "Qrew" | verified | LS 2026-11-09 rebuild 891b759 host QA and the FAKETEAMID recovery entry; merged main 860e938 | Name Qrew and the Q icon on all 5 sims, Copy code → paste → preview PASS (qa). The 55948fd rebuild keeps CFBundleDisplayName Qrew. |
 | Android keyboard | not verified | CS U2 "ANDROID FOLLOW-UP", U3 "Keyboard" line | Deferred: QScreen and useKeyboardOpen listen only to the iOS keyboard events. |
