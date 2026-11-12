@@ -7,6 +7,7 @@
 -- Actors (temporary auth.users rows, removed by the ROLLBACK):
 --   H host account, A and B anonymous members, O anonymous outsider (never joins).
 -- Rooms: E (event) and G (general), created through create_room as H; A and B join both directly.
+-- G is ended early in 7b (grace); D is ended by H's account deletion.
 
 begin;
 -- A busy table makes the run fail fast instead of holding up live traffic.
@@ -260,6 +261,154 @@ select tests.expect_state($$ select public.set_qrewing_room((select room_id from
   '42501', 'expired: host cannot change the switch');
 reset role;
 
+-- 7b. Early-end grace (spec 7.1). Room G: a message, A's media (row + Storage object), A's face enrollment and
+-- match, and a done recap; then the host ends G.
+insert into public.messages (id, room_id, sender_id, kind, body)
+values ('c2710000-0000-4000-8000-0000000000b1', (select room_id from tests.made where label = 'G'),
+        'c2700000-0000-4000-8000-000000000003', 'text', 'Bus at 5');
+insert into public.media (id, room_id, uploader_id, kind, original_path, preview_path, file_name, mime_type, status)
+select 'c2720000-0000-4000-8000-0000000000c1', room_id, 'c2700000-0000-4000-8000-000000000002', 'photo',
+       room_id::text || '/c2720000-0000-4000-8000-0000000000c1/original.jpg', null, 'a.jpg', 'image/jpeg', 'ready'
+from tests.made where label = 'G';
+insert into storage.objects (bucket_id, name, owner_id)
+select 'room-media', room_id::text || '/c2720000-0000-4000-8000-0000000000c1/original.jpg',
+       'c2700000-0000-4000-8000-000000000002'
+from tests.made where label = 'G';
+insert into storage.objects (bucket_id, name, owner_id)
+select 'room-media', room_id::text || '/c2720000-0000-4000-8000-0000000000c1/detect/0.jpg',
+       'c2700000-0000-4000-8000-000000000002'
+from tests.made where label = 'G';
+insert into public.face_enrollments (id, room_id, user_id, ref_path)
+select 'c2730000-0000-4000-8000-0000000000d1', room_id, 'c2700000-0000-4000-8000-000000000002', 'qa/ref.jpg'
+from tests.made where label = 'G';
+insert into public.face_matches (enrollment_id, media_id, similarity, matched)
+values ('c2730000-0000-4000-8000-0000000000d1', 'c2720000-0000-4000-8000-0000000000c1', 99, true);
+-- Pending: not announced. It turns done during grace below.
+insert into public.room_recaps (room_id, state) select room_id, 'pending' from tests.made where label = 'G';
+
+-- Rows of the grace set for one room (as the current role).
+create function tests.grace_visible(p_room uuid) returns bigint language sql as $$
+  select (select count(*) from public.rooms where id = p_room)
+       + (select count(*) from public.room_members where room_id = p_room)
+       + (select count(*) from public.media where room_id = p_room)
+       + (select count(*) from storage.objects where bucket_id = 'room-media' and name like p_room::text || '/%')
+       + (select count(*) from public.face_enrollments where room_id = p_room)
+       + (select count(*) from public.face_matches f join public.media m on m.id = f.media_id where m.room_id = p_room)
+       + (select count(*) from public.room_recaps where room_id = p_room);
+$$;
+grant execute on function tests.grace_visible(uuid) to authenticated;
+
+set local role authenticated;
+select tests.login('c2700000-0000-4000-8000-000000000001', false);
+select tests.expect_ok($$ select public.end_room((select room_id from tests.made where label = 'G')) $$, 'host ends G early');
+reset role;
+select tests.expect_true($$ (select deleted_at is not null and grace_until between now() + interval '29 minutes'
+  and now() + interval '31 minutes' from public.rooms where id = (select room_id from tests.made where label = 'G')) $$,
+  'end_room sets deleted_at and grace_until = now + 30 minutes');
+-- Only the recap notice is broadcast during grace: a new message sends nothing, the recap turning done
+-- sends one. Notices from before the end (message, rooms update) are cleared first.
+delete from realtime.messages where topic = 'room:' || (select room_id from tests.made where label = 'G');
+insert into public.messages (room_id, sender_id, kind, body)
+select room_id, 'c2700000-0000-4000-8000-000000000003', 'text', 'After the end' from tests.made where label = 'G';
+update public.room_recaps set state = 'done', title = 'QA general', summary = 'Summary' where room_id = (select room_id from tests.made where label = 'G');
+select tests.expect_count($$ select 1 from realtime.messages
+  where topic = 'room:' || (select room_id from tests.made where label = 'G') and event = 'messages' $$,
+  0, 'grace: messages are not broadcast');
+select tests.expect_true($$ (select count(*) from realtime.messages
+  where topic = 'room:' || (select room_id from tests.made where label = 'G') and event = 'room_recaps') = 1 $$,
+  'grace: the room_recaps notice is broadcast');
+-- A forged non-recap row on the topic, to prove a grace member cannot receive it.
+insert into realtime.messages (topic, extension, event, payload, private)
+select 'room:' || room_id, 'broadcast', 'messages', '{}'::jsonb, true from tests.made where label = 'G';
+
+set local role authenticated;
+select tests.login('c2700000-0000-4000-8000-000000000002', true);
+select tests.expect_count($$ select 1 from public.rooms where id = (select room_id from tests.made where label = 'G') $$,
+  1, 'grace: A reads the rooms row');
+select tests.expect_count($$ select 1 from public.room_members where room_id = (select room_id from tests.made where label = 'G') $$,
+  1, 'grace: A reads only own room_members row');
+select tests.expect_count($$ select 1 from public.media where room_id = (select room_id from tests.made where label = 'G') $$,
+  1, 'grace: A reads media');
+select tests.expect_count($$ select 1 from storage.objects where bucket_id = 'room-media'
+  and name like (select room_id from tests.made where label = 'G')::text || '/%' $$,
+  1, 'grace: A reads the original, never the detect copy');
+select tests.expect_count($$ select 1 from public.face_enrollments where room_id = (select room_id from tests.made where label = 'G') $$,
+  1, 'grace: A reads own face enrollment');
+select tests.expect_count($$ select 1 from public.face_matches where enrollment_id = 'c2730000-0000-4000-8000-0000000000d1' $$,
+  1, 'grace: A reads own face matches');
+select tests.expect_count($$ select 1 from public.room_recaps where room_id = (select room_id from tests.made where label = 'G') $$,
+  1, 'grace: A reads the recap');
+select tests.expect_count($$ select 1 from public.messages where room_id = (select room_id from tests.made where label = 'G') $$,
+  0, 'grace: A reads no messages');
+select tests.expect_count($$ select 1 from public.qrewing_rooms where room_id = (select room_id from tests.made where label = 'G')
+  union all select 1 from public.qrewing_members where room_id = (select room_id from tests.made where label = 'G')
+  union all select 1 from public.entry_profiles where room_id = (select room_id from tests.made where label = 'G') $$,
+  0, 'grace: A reads no Qrewing settings or entry info');
+select set_config('realtime.topic', 'room:' || (select room_id from tests.made where label = 'G'), true);
+select tests.expect_true($$ (select count(*) from realtime.messages where event = 'room_recaps') >= 1 $$,
+  'grace: A may receive the room_recaps notice');
+select tests.expect_count($$ select 1 from realtime.messages where event <> 'room_recaps' $$,
+  0, 'grace: A may not receive any other event on the topic');
+-- Every write path stays closed (42501).
+select tests.expect_state($$ insert into public.messages (room_id, sender_id, kind, body)
+  values ((select room_id from tests.made where label = 'G'), 'c2700000-0000-4000-8000-000000000002', 'text', 'x') $$,
+  '42501', 'grace: A cannot send a message');
+select tests.expect_state($$ insert into public.media (room_id, uploader_id, kind, original_path, file_name, mime_type)
+  select room_id, 'c2700000-0000-4000-8000-000000000002', 'photo', room_id::text || '/x/original.jpg', 'x.jpg', 'image/jpeg'
+  from tests.made where label = 'G' $$, '42501', 'grace: A cannot add media');
+select tests.expect_state($$ select public.set_qrewing_member((select room_id from tests.made where label = 'G'), false, false) $$,
+  '42501', 'grace: A cannot change consent');
+select tests.expect_state($$ select public.upsert_entry_profile((select room_id from tests.made where label = 'G'), 'A', '', '', '{}') $$,
+  '42501', 'grace: A cannot save entry info');
+select tests.expect_state($$ select public.set_my_status((select room_id from tests.made where label = 'G'), null) $$,
+  '42501', 'grace: A cannot set a status');
+update public.face_matches set excluded = true where enrollment_id = 'c2730000-0000-4000-8000-0000000000d1';
+select tests.login('c2700000-0000-4000-8000-000000000001', false);
+select tests.expect_state($$ select public.update_room_expiry((select room_id from tests.made where label = 'G'), now() + interval '1 hour') $$,
+  '42501', 'grace: host cannot extend');
+select tests.expect_state($$ select public.end_room((select room_id from tests.made where label = 'G')) $$,
+  '42501', 'grace: host cannot end again (grace is not reset)');
+select tests.expect_state($$ select public.set_qrewing_room((select room_id from tests.made where label = 'G'), true, false) $$,
+  '42501', 'grace: host cannot change Qrewing AI');
+-- An outsider reads nothing and receives nothing.
+select tests.login('c2700000-0000-4000-8000-000000000004', true);
+select tests.expect_true($$ tests.grace_visible((select room_id from tests.made where label = 'G')) = 0 $$,
+  'grace: outsider reads nothing');
+select tests.expect_count($$ select 1 from realtime.messages $$, 0, 'grace: outsider receives nothing');
+reset role;
+select tests.expect_true($$ (select not excluded from public.face_matches where enrollment_id = 'c2730000-0000-4000-8000-0000000000d1') $$,
+  'grace: A cannot exclude a match (update had no effect)');
+
+-- Grace over: the grace set reads 0 (and nothing is received).
+update public.rooms set grace_until = now() - interval '1 minute' where id = (select room_id from tests.made where label = 'G');
+set local role authenticated;
+select tests.login('c2700000-0000-4000-8000-000000000002', true);
+select tests.expect_true($$ tests.grace_visible((select room_id from tests.made where label = 'G')) = 0 $$,
+  'grace over: A reads 0 of the grace set');
+select tests.expect_count($$ select 1 from realtime.messages $$, 0, 'grace over: A receives nothing');
+-- Expiry without grace (E expired in 7): 0 of the grace set.
+select tests.expect_true($$ tests.grace_visible((select room_id from tests.made where label = 'E')) = 0 $$,
+  'expiry has no grace: A reads 0 of the grace set');
+reset role;
+select tests.expect_true($$ (select grace_until is null from public.rooms where id = (select room_id from tests.made where label = 'E')) $$,
+  'expiry leaves grace_until null');
+
+-- Account-deletion end has no grace: a fresh open room H hosts, then prepare_account_deletion(H).
+set local role authenticated;
+select tests.login('c2700000-0000-4000-8000-000000000001', false);
+select tests.expect_ok($$ insert into tests.made select 'D', r.id from public.create_room(
+  p_name => 'QA delete', p_type => 'general', p_expires_at => now() + interval '3 hours', p_location_allowed => false) r $$,
+  'create room D');
+reset role;
+select public.prepare_account_deletion('c2700000-0000-4000-8000-000000000001');
+select tests.expect_true($$ (select deleted_at is not null and grace_until is null from public.rooms
+  where id = (select room_id from tests.made where label = 'D')) $$, 'account-deletion end: deleted_at set, no grace');
+
+-- Janitor cadence: the single room-janitor job runs every 5 minutes.
+select tests.expect_true($$ (select count(*) = 1 and min(schedule) = '*/5 * * * *'
+  and min(command) = 'select private.invoke_janitor()' from cron.job where jobname = 'room-janitor') $$,
+  'room-janitor is one job at */5');
+
 -- 8. Room delete cascades all six tables to 0 (usage keeps counts only, by design).
 delete from public.rooms where id in (select room_id from tests.made);
 select tests.expect_true($$ (select count(*) from public.qrewing_rooms where room_id in (select room_id from tests.made))
@@ -275,5 +424,7 @@ rollback;
 
 -- Leftover check (run after the ROLLBACK): must return 0.
 select (select count(*) from auth.users where id::text like 'c2700000-%')
-     + (select count(*) from public.messages where id = 'c2710000-0000-4000-8000-0000000000a1')
+     + (select count(*) from public.messages where id in ('c2710000-0000-4000-8000-0000000000a1', 'c2710000-0000-4000-8000-0000000000b1'))
+     + (select count(*) from public.media where id = 'c2720000-0000-4000-8000-0000000000c1')
+     + (select count(*) from storage.objects where name like '%/c2720000-0000-4000-8000-0000000000c1/%')
      + (select count(*) from information_schema.schemata where schema_name = 'tests') as leftovers;

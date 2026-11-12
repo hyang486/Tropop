@@ -12,7 +12,8 @@
 -- Deletion: every public table cascades from rooms or room_members, so the existing end/expiry path
 -- (room-janitor hard delete of the room row) removes them, and leaving a room removes the leaver's rows.
 -- Access: every read policy goes through private.is_room_member, which already denies once the room has
--- expired or ended. Clients never write directly: the three RPCs below handle client writes; triage,
+-- expired or ended; the only exception is room_recaps during an early-end grace period (end of file).
+-- Clients never write directly: the three RPCs below handle client writes; triage,
 -- recaps and matches are written by the qrewing Edge Function with the service role.
 
 -- Tables --------------------------------------------------------------------
@@ -95,6 +96,8 @@ create table public.room_recaps (
   highlights text[] check (private.recap_highlights_ok(highlights)),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  -- Set by the one allowed recap refresh (spec 7.2); null = not refreshed yet.
+  refreshed_at timestamptz,
   check (state <> 'done' or (title is not null and summary is not null))
 );
 
@@ -290,5 +293,131 @@ grant execute on function private.recap_highlights_ok(text[]) to authenticated, 
 -- re-read the row through RLS. Pending and failed rows are not announced.
 create trigger broadcast_room_change after insert or update on public.room_recaps
   for each row when (new.state = 'done') execute function private.broadcast_room_change();
+
+-- Early-end grace period (human decision 2026-11-12 (b); spec 7.1) -------------------------------
+--
+-- When the host ends a room early, the room stays on the server for 30 minutes (grace_until) so members
+-- can read the AI recap, Photos of me and download originals. The room is closed for everything else:
+-- private.is_room_member / is_room_host / room_is_open are unchanged (they require deleted_at is null),
+-- so every existing write RPC, write policy and read policy keeps denying. Grace adds SELECT-only
+-- policies for exactly: own rooms row, own room_members row, media rows, room-media originals and
+-- previews in Storage (never detect/ copies), own face_enrollments and face_matches, and room_recaps.
+-- No messages, member list, locations, statuses, emergencies, triage, matches or entry profiles.
+-- An expiry (expires_at passing) has no grace, and neither does the account-deletion end (0021 sets only
+-- deleted_at). room-janitor deletes a room once (expired or ended) and (no grace or grace over).
+
+alter table public.rooms add column grace_until timestamptz;
+
+create or replace function public.end_room(p_room_id uuid)
+returns void
+language plpgsql security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_room_host(p_room_id) then
+    raise exception 'Only the host can end this room.' using errcode = '42501';
+  end if;
+  update public.rooms
+     set deleted_at = now(), grace_until = now() + interval '30 minutes'
+   where id = p_room_id;
+end;
+$$;
+revoke execute on function public.end_room(uuid) from public, anon;
+grant execute on function public.end_room(uuid) to authenticated;
+
+-- The caller is a member of a room the host ended early whose grace period has not run out.
+create or replace function private.is_grace_member(p_room_id uuid)
+returns boolean language sql stable security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.room_members m
+    join public.rooms r on r.id = m.room_id
+    where m.room_id = p_room_id and m.user_id = auth.uid()
+      and r.deleted_at is not null and r.grace_until > now()
+  )
+$$;
+revoke all on function private.is_grace_member(uuid) from public, anon;
+grant execute on function private.is_grace_member(uuid) to authenticated;
+
+-- SELECT-only grace policies (permissive, so they add to the open-room policies; never for writes).
+create policy rooms_select_grace on public.rooms for select to authenticated
+  using (private.is_grace_member(id));
+create policy members_select_own_grace on public.room_members for select to authenticated
+  using (user_id = (select auth.uid()) and private.is_grace_member(room_id));
+create policy media_select_grace on public.media for select to authenticated
+  using (private.is_grace_member(room_id));
+create policy room_media_select_grace on storage.objects for select to authenticated
+  using (bucket_id = 'room-media'
+         and not private.is_detect_path(name)
+         and private.is_grace_member(private.try_uuid((storage.foldername(name))[1])));
+create policy face_enrollments_own_grace on public.face_enrollments for select to authenticated
+  using (user_id = (select auth.uid()) and private.is_grace_member(room_id));
+create policy face_matches_own_grace on public.face_matches for select to authenticated
+  using (exists (select 1 from public.face_enrollments e
+                 where e.id = enrollment_id and e.user_id = (select auth.uid())
+                   and private.is_grace_member(e.room_id)));
+create policy room_recaps_select_grace on public.room_recaps for select to authenticated
+  using (private.is_grace_member(room_id));
+
+-- Realtime during grace: only the room_recaps notice is sent (0018 rule plus one exception), and a grace
+-- member may receive only that event on room:<id>.
+create or replace function private.broadcast_room_change()
+returns trigger language plpgsql security definer
+set search_path = ''
+as $$
+declare
+  v_row jsonb := to_jsonb(coalesce(new, old));
+  v_room uuid;
+begin
+  if tg_table_name = 'rooms' then
+    if tg_op = 'DELETE' then
+      return null;
+    end if;
+    v_row := to_jsonb(new);
+    v_room := new.id;
+    if tg_op = 'UPDATE' and not (old.deleted_at is null and old.expires_at > now()) then
+      return null;
+    end if;
+    if tg_op = 'INSERT' and not (new.deleted_at is null and new.expires_at > now()) then
+      return null;
+    end if;
+  else
+    if tg_table_name = 'emergency_acks' then
+      -- No room_id column; when the event itself is being deleted (cascade) there is nobody to tell.
+      select e.room_id into v_room from public.emergency_events e where e.id = (v_row ->> 'event_id')::uuid;
+    else
+      v_room := (v_row ->> 'room_id')::uuid;
+    end if;
+    if v_room is null or not exists (
+      select 1 from public.rooms r
+      where r.id = v_room
+        and ((r.deleted_at is null and r.expires_at > now())
+             or (tg_table_name = 'room_recaps' and r.deleted_at is not null and r.grace_until > now()))
+    ) then
+      return null;
+    end if;
+  end if;
+  perform realtime.send(
+    jsonb_strip_nulls(jsonb_build_object('table', tg_table_name, 'op', tg_op, 'id', v_row ->> 'id')),
+    tg_table_name,
+    'room:' || v_room::text,
+    true
+  );
+  return null;
+end;
+$$;
+revoke all on function private.broadcast_room_change() from public, anon, authenticated;
+
+create policy room_topic_receive_grace on realtime.messages for select to authenticated
+  using (
+    realtime.messages.extension = 'broadcast'
+    and realtime.messages.event = 'room_recaps'
+    and private.is_grace_member(private.room_topic_id((select realtime.topic())))
+  );
+
+-- room-janitor cadence: every 5 minutes (was 15; human decision 2026-11-12). cron.schedule with an
+-- existing job name updates that job in place, so there is never a second job.
+select cron.schedule('room-janitor', '*/5 * * * *', 'select private.invoke_janitor()');
 
 notify pgrst, 'reload schema';
