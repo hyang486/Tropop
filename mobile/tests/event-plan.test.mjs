@@ -183,6 +183,14 @@ test('classifyQrewingError: body code wins, else status', () => {
   assert.equal(classifyQrewingError(0), 'network');
   assert.equal(classifyQrewingError(401), 'not_member');
   assert.equal(classifyQrewingError(500, 'boom'), 'ai_failed');
+  // Contract vs qrewing d30438f: every status/code the function returns, plus a gateway 429 (the function sends none).
+  assert.equal(classifyQrewingError(409, 'no_entry'), 'no_entry');
+  assert.equal(classifyQrewingError(403, 'not_muted'), 'not_muted');
+  assert.equal(classifyQrewingError(403, 'not_member'), 'not_member');
+  assert.equal(classifyQrewingError(400, 'bad_request'), 'ai_failed');
+  assert.equal(classifyQrewingError(405, 'method_not_allowed'), 'ai_failed');
+  assert.equal(classifyQrewingError(500, 'internal'), 'ai_failed');
+  assert.equal(classifyQrewingError(429), 'ai_failed', 'gateway rate limit');
   assert.equal(isQrewingError({ error: 'ai_off' }), true);
   assert.equal(isQrewingError({ ok: true }), false);
 });
