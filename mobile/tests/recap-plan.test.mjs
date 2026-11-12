@@ -146,3 +146,28 @@ test('myPartAfterRoomCheck: a messages count read after the end (RLS 0, no error
   const open = { ...inGrace, messages: 0 };
   assert.deepEqual(myPartAfterRoomCheck(open, true), open);
 });
+
+test('myPartForSave keeps the open-room message count when grace reads none and no recap was saved', async () => {
+  const { myPartForSave, parseMyPart, EMPTY_MY_PART, recapMeKey } = await import('../src/features/recap/recap-plan.ts');
+  const open = { ...EMPTY_MY_PART, messages: 2 };
+  const grace = { messages: null, mediaShared: 0, photosOfMe: null, arrivedAt: null, pace: null };
+  assert.deepEqual(myPartForSave(null, open, grace), { ...EMPTY_MY_PART, messages: 2, mediaShared: 0 });
+  // Open part beats an older recap's part; a fresh read beats both.
+  assert.equal(myPartForSave({ ...EMPTY_MY_PART, messages: 1 }, open, grace).messages, 2);
+  assert.equal(myPartForSave(null, open, { ...grace, messages: 3 }).messages, 3);
+  assert.equal(myPartForSave(null, null, grace).messages, null);
+  assert.deepEqual(parseMyPart(JSON.stringify(open)), open);
+  assert.equal(parseMyPart('nope'), null);
+  assert.equal(recapMeKey('r'), 'qrewing.recap-me.v1.r');
+});
+
+test('two sends then an end inside the debounce: grace keeps messages 2 (bumpMessages)', async () => {
+  const { bumpMessages, myPartForSave, EMPTY_MY_PART } = await import('../src/features/recap/recap-plan.ts');
+  const mount = { ...EMPTY_MY_PART, messages: 0 };
+  const open = bumpMessages(bumpMessages(mount));
+  // The debounced head count runs in grace and is dropped, so the open part stays as bumped.
+  const grace = { ...EMPTY_MY_PART, mediaShared: 0 };
+  assert.equal(myPartForSave(null, open, grace).messages, 2);
+  assert.equal(bumpMessages({ ...EMPTY_MY_PART }).messages, null);
+  assert.equal(bumpMessages(null), null);
+});

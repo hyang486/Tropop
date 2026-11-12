@@ -200,3 +200,46 @@ export function isStalePending(updatedAt: string, nowMs: number): boolean {
   const t = Date.parse(updatedAt);
   return Number.isFinite(t) && nowMs - t > RECAP_PENDING_TTL_MS;
 }
+
+/** The per-user part saved while the room is open (counts only, no AI), so grace can show the last open count. */
+export const RECAP_ME_PREFIX = 'qrewing.recap-me.v1.';
+export function recapMeKey(roomId: string) {
+  return `${RECAP_ME_PREFIX}${roomId}`;
+}
+/** After a successful send, the message count is saved once this long after the last send. */
+export const SEND_SAVE_DEBOUNCE_MS = 10_000;
+
+export const EMPTY_MY_PART: MyPart = { messages: null, mediaShared: null, photosOfMe: null, arrivedAt: null, pace: null };
+
+/** Reads a stored open-room part; anything malformed reads as none. */
+export function parseMyPart(raw: string | null | undefined): MyPart | null {
+  if (!raw) return null;
+  try {
+    const m = JSON.parse(raw) as Record<string, unknown>;
+    if (!m || typeof m !== 'object') return null;
+    return {
+      messages: numOrNull(m.messages),
+      mediaShared: numOrNull(m.mediaShared),
+      photosOfMe: numOrNull(m.photosOfMe),
+      arrivedAt: strOrNull(m.arrivedAt),
+      pace: strOrNull(m.pace),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** A successful send while open: one more message when the count is known (null stays null until a head count). */
+export function bumpMessages(part: MyPart | null): MyPart | null {
+  if (!part || part.messages === null) return part;
+  return { ...part, messages: part.messages + 1 };
+}
+
+/**
+ * The part saved with a server recap: fresh reads win, and a field that can no longer be read (messages in grace)
+ * keeps the part saved while the room was open, then the one saved with an earlier recap. Works with no earlier
+ * recap saved.
+ */
+export function myPartForSave(savedMe: MyPart | null | undefined, openMe: MyPart | null | undefined, fresh: MyPart): MyPart {
+  return mergeMyPart(openMe ? mergeMyPart(savedMe, openMe) : savedMe, fresh);
+}
