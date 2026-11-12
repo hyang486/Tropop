@@ -15,6 +15,9 @@ import { placeTimeOf } from '@/lib/place-time';
 import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
+import { eventStrings } from '@/features/event/strings';
+import { roomListEntry } from '@/features/recap/grace-plan';
+import { graceTime } from '@/features/recap/use-grace';
 
 export default function Rooms() {
   const router = useRouter();
@@ -30,8 +33,12 @@ export default function Rooms() {
       setError(null);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
-      // Local 24-hour reminders for every open room; cancels those of rooms no longer listed.
-      syncExpiryReminders(list, true);
+      // Local 24-hour reminders for every open room; cancels those of rooms no longer listed. Rooms the host
+      // ended (listed only during their grace window, spec 7) get no reminder.
+      syncExpiryReminders(
+        list.filter((r) => r.deleted_at === null),
+        true,
+      );
     } catch (e) {
       setError(`${en.home.loadFailed} ${errorMessage(e)}`);
     }
@@ -92,7 +99,12 @@ export default function Rooms() {
         ) : null}
 
         {rooms && rooms.length > 0 ? <QLabel>{en.home.yourRooms}</QLabel> : null}
-        {rooms?.map((room) => (
+        {rooms?.map((room) => {
+          // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
+          // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.
+          const entry = roomListEntry(room, now);
+          if (entry.kind === 'hidden') return null;
+          return (
           <Pressable
             key={room.id}
             accessibilityRole="button"
@@ -107,15 +119,22 @@ export default function Rooms() {
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {room.name}
               </Text>
-              <Text style={styles.rowSubtitle}>
-                {en.rooms.types[room.type as keyof typeof en.rooms.types] ?? room.type} ·{' '}
-                {en.home.endsIn(formatRemaining(new Date(room.expires_at).getTime() - now))}
-              </Text>
-              {/* Place and time (0026), when set: one extra line; rooms without them look as before. */}
-              <PlaceTimeLine room={room} />
+              {entry.kind === 'grace' ? (
+                <Text style={styles.rowSubtitle}>{eventStrings.grace.listRow(graceTime(entry.untilMs))}</Text>
+              ) : (
+                <>
+                  <Text style={styles.rowSubtitle}>
+                    {en.rooms.types[room.type as keyof typeof en.rooms.types] ?? room.type} ·{' '}
+                    {en.home.endsIn(formatRemaining(new Date(room.expires_at).getTime() - now))}
+                  </Text>
+                  {/* Place and time (0026), when set: one extra line; rooms without them look as before. */}
+                  <PlaceTimeLine room={room} />
+                </>
+              )}
             </View>
           </Pressable>
-        ))}
+          );
+        })}
       </QScreen>
     </>
   );

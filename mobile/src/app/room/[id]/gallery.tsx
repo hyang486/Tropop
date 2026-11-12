@@ -48,6 +48,9 @@ import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useNow } from '@/lib/use-now';
 import { useRoomOver } from '@/lib/use-room-over';
+import { eventStrings } from '@/features/event/strings';
+import { screenActions } from '@/features/recap/grace-plan';
+import { graceTime, useGrace } from '@/features/recap/use-grace';
 
 /** 'me' = Photos of me (face matching); it lists from the 'all' media query. */
 type GalleryFilter = MediaFilter | 'me';
@@ -71,13 +74,14 @@ const timeOf = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'nume
  * says when it closes. After "Save original" on a detail, an "Original saved" card shows once here.
  */
 export default function GalleryScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `filter: 'me'` comes from the grace Room ended screen's Photos of me link (spec 7.3).
+  const { id, filter: initialFilter } = useLocalSearchParams<{ id: string; filter?: string }>();
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
   const token = session?.access_token;
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState<GalleryFilter>('all');
+  const [filter, setFilter] = useState<GalleryFilter>(initialFilter === 'me' ? 'me' : 'all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
   // G-U6-1: the room read came back empty (RLS hides a room once it ends or expires, or after a leave).
@@ -116,6 +120,9 @@ export default function GalleryScreen() {
     if (event.table === 'rooms' || event.table === 'room_members') readRoom();
   });
   const ended = useRoomOver(room);
+  // Spec 7.3: in the host's early-end grace window the gallery stays open read-only (view and download).
+  const grace = useGrace(room);
+  const can = screenActions('gallery', grace.grace ? 'grace' : 'open');
 
   const run = useCallback(
     async (pick: typeof takePhoto) => {
@@ -147,7 +154,7 @@ export default function GalleryScreen() {
   }
 
   // G-U6-1: no stale grid, upload rows or Add once the room is over.
-  if (gone || ended.over) {
+  if (gone || (ended.over && !grace.grace)) {
     return (
       <>
         <Stack.Screen options={{ title: '', headerTitle: '', headerRight: () => null }} />
@@ -158,9 +165,11 @@ export default function GalleryScreen() {
 
   const emptyText = filter === 'mine' ? en.media.emptyMine : filter === 'others' ? en.media.emptyOthers : en.media.empty;
   const expiresMs = room ? new Date(room.expires_at).getTime() : NaN;
-  const closesIn = room ? closesSoonMinutes(room.expires_at, now) : null;
+  const closesIn = room && can.upload ? closesSoonMinutes(room.expires_at, now) : null;
   const originalsLine =
-    room && Number.isFinite(expiresMs) && expiresMs > now
+    grace.grace && grace.untilMs !== null
+      ? eventStrings.grace.readOnly(graceTime(grace.untilMs))
+      : room && Number.isFinite(expiresMs) && expiresMs > now
       ? en.media.originalsUntil(
           endsDay(expiresMs, now),
           new Date(expiresMs).toLocaleDateString([], { month: 'short', day: 'numeric' }),
@@ -182,6 +191,7 @@ export default function GalleryScreen() {
                 onRetry={() => uploads.retry(job.id)}
                 onDismiss={() => uploads.dismiss(job.id)}
                 onCancel={() => confirmCancel(job)}
+                closed={grace.grace}
               />
             ))}
           </View>
@@ -203,11 +213,12 @@ export default function GalleryScreen() {
         options={{
           title: en.media.title,
           headerTitle: '',
-          headerRight: () => (
+          headerRight: () =>
+            can.upload ? (
             <Pressable onPress={() => setSheetOpen(true)} accessibilityRole="button" accessibilityLabel={en.media.add} hitSlop={8}>
               <SymbolView name="plus" size={22} tintColor={colors.tint} />
             </Pressable>
-          ),
+            ) : null,
         }}
       />
       {/* Q 05.02 head: handwritten title, gray room name, filter pills. */}
@@ -259,6 +270,7 @@ export default function GalleryScreen() {
               renderTile={(item) => <Tile media={item} size={tile} token={token} />}
               onRefreshMedia={media.reload}
               header={notices}
+              readOnly={!can.upload}
             />
           )
         ) : media.loading ? (
@@ -299,15 +311,17 @@ export default function GalleryScreen() {
             {originalsLine}
           </Text>
         ) : null}
-        <Button
-          title={en.media.addButton}
-          variant="secondary"
-          onPress={() => setSheetOpen(true)}
-          maxFontSizeMultiplier={FOOTER_FONT_CAP}
-        />
+        {can.upload ? (
+          <Button
+            title={en.media.addButton}
+            variant="secondary"
+            onPress={() => setSheetOpen(true)}
+            maxFontSizeMultiplier={FOOTER_FONT_CAP}
+          />
+        ) : null}
       </View>
 
-      <AddMediaSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} onChoose={onChoose} />
+      <AddMediaSheet visible={sheetOpen && can.upload} onClose={() => setSheetOpen(false)} onChoose={onChoose} />
     </View>
   );
 }
@@ -348,17 +362,22 @@ function UploadRow({
   onRetry,
   onDismiss,
   onCancel,
+  closed,
 }: {
   job: UploadJob;
   onRetry: () => void;
   onDismiss: () => void;
   onCancel: () => void;
+  /** Spec 7.3: the room ended while this upload ran; say so instead of the server's error. */
+  closed?: boolean;
 }) {
   const failed = job.state === 'failed';
   const pct = Math.round(job.progress * 100);
   const size = formatBytes(job.item.size);
   const status = failed
-    ? `${en.media.uploadFailed}: ${job.error ?? ''}`
+    ? closed
+      ? `${en.media.uploadFailed}: ${eventStrings.grace.writeClosed}`
+      : `${en.media.uploadFailed}: ${job.error ?? ''}`
     : job.state === 'queued'
       ? en.media.waiting
       : en.media.uploading(pct);
@@ -388,9 +407,11 @@ function UploadRow({
       </View>
       {failed ? (
         <View style={styles.jobActions}>
-          <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={6}>
-            <Text style={styles.action}>{en.media.retry}</Text>
-          </Pressable>
+          {closed ? null : (
+            <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={6}>
+              <Text style={styles.action}>{en.media.retry}</Text>
+            </Pressable>
+          )}
           <Pressable onPress={onDismiss} accessibilityRole="button" hitSlop={6}>
             <Text style={[styles.action, { color: colors.secondaryLabel }]}>{en.media.dismiss}</Text>
           </Pressable>

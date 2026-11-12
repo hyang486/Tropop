@@ -59,6 +59,12 @@ export default function RoomScreen() {
         setState({ status: 'gone' });
         return;
       }
+      // Spec 7.1: in the early-end grace window the room row is readable again but the room is closed; no
+      // members list and no reminder, only the Room ended screen below.
+      if (room.deleted_at !== null) {
+        setState({ status: 'ready', room, names: new Map() });
+        return;
+      }
       const members = await listMembers(id);
       setState({ status: 'ready', room, names: new Map(members.map((m) => [m.user_id, m.display_name])) });
       // Reschedules the local reminder when the host changed the expiry (rooms notice -> reload).
@@ -111,7 +117,9 @@ export default function RoomScreen() {
 
   // RLS hides the room once it expires, ends or the user leaves; the clock covers the gap until a reload.
   // Q 06.04: the shared ended screen; the closed-at time only when this row shows it (expires_at passed).
-  if (state.status === 'gone' || (state.status === 'ready' && remainingMs <= 0)) {
+  // Spec 7.3: a host-ended room (deleted_at; readable only in grace) shows Room ended, whose grace state offers
+  // the recap, Photos of me and Photos & files.
+  if (state.status === 'gone' || (state.status === 'ready' && (remainingMs <= 0 || state.room.deleted_at !== null))) {
     return (
       <>
         <Stack.Screen options={{ title: '', headerTitle: '' }} />
