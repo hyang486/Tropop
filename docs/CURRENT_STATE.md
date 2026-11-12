@@ -9,6 +9,10 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - main ed5a281 ← backend 08823fc (5ae3f10) ← event cf19e4d (b206b54) ← pace 8edef43 (44e758f) ← event 84a97b6 (2272da1)
   ← pace 0a1854b (81c6da1), all --no-ff, no conflicts. Types = event bdb86d3 (incl. preview_room | null). tsc 0,
   npm test 438/438, lint 0, Deno node tests 47/47. NOT rebuilt (expo-speech native) and not on a device yet.
+- Post-merge: abee9f5 ← event-post-merge 03320df, 55948fd ← pace-postmerge c982ebf; tsc 0, 438/438, lint 0.
+- Signed sim rebuild from 55948fd (prebuild + pod install with LANG=en_US.UTF-8; xcodebuild DEVELOPMENT_TEAM 9K6BKSS4U6 /
+  FAKETEAMID). Installed over the existing app on all 5 sims, app-id unchanged (host/spare 9K6, guests FAKETEAMID).
+  Metro :8093 --clear (33 routes from qrewing-merge). Host and guest F11BA960 on :8093, still signed in. Device QA: qa.
 
 ## 2026-11-12: Qrewing backend (branch qrewing-backend); nothing applied or deployed
 - 00dd3b7 Edge Function qrewing (spec 2, 7.2): node tests 21/21. ddfe985 migration 0027 tables/RPCs.
