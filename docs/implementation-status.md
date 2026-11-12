@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated: 2026-11-09 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
+Updated: 2026-11-12 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
 ## Simulator install rule: two keychain groups (2026-11-09, keep on every install)
 
@@ -23,6 +23,48 @@ Every future install keeps its simulator's group. Check it before installing:
 `strings <app>/Qrew | grep -A1 application-identifier`. Install over the existing app only. Uninstalling
 or erasing loses the session, and the guests are anonymous accounts. No repo config encodes this. The
 team value is passed only on the command line.
+
+## 2026-11-12: Qrewing AI on main b9d031c (local, not pushed)
+
+Authority: USER_DECISIONS 2026-11-12 FINAL entries (Qrewing AI build, API key set by the human, expo-speech + one
+rebuild, grace (b), janitor */5, the 0027 sitting "해도 돼"; that file's 2026-11-12 lines are in the main checkout, not yet
+committed) plus the qa-as-proxy entries of the same day. Requirements: planning/QREWING_AI_REQUIREMENTS_EN.md.
+
+**What main b9d031c contains**
+- Backend (qrewing-backend → 5ae3f10): migration 0027 qrewing_ai, APPLIED LIVE (remote version 20261112105302 for local
+  file 20261104000027; treat as one migration in a later CLI push). Edge Function qrewing v2 = d30438f (deployed, id
+  8befc29d, verify_jwt false; v1 = 23e1423 was live ~7 min and never called). room-janitor v10 (grace-aware, cron */5).
+- event (cf19e4d, 84a97b6, post-merge 03320df, ux-polish 8ae6c98) and pace (8edef43, 0a1854b, post-merge c982ebf,
+  demo-replay 9a7c18f), all --no-ff. Checks on b9d031c: tsc 0, npm test 446/446, expo lint 0; Deno node tests 47/47.
+
+**Simulator build**
+- Signed rebuild from 55948fd (expo-speech is native; b9d031c added JS only), installed over the existing app on all
+  5 sims with each keychain group kept (table above): app-id identical before and after, no account created.
+- Metro :8093 from .claude/worktrees/qrewing-merge is the single Metro while qa tests. Bundle check: 33 route paths
+  from qrewing-merge, 0 from any other tree.
+- Lessons: (1) worktree Metros share node_modules AND $TMPDIR/metro-cache + metro-file-map-*, so a second Metro running
+  (:8092) made :8093 serve another worktree's routes even after --clear. Run one Metro, delete those caches, start with
+  --clear, recount routes before reporting. (2) a new worktree has no mobile/.env.local (gitignored); copy the main
+  checkout's (public keys only), or a clean bundle throws "Missing EXPO_PUBLIC_SUPABASE_URL".
+
+**qa results so far (PARTIAL, single checklist pass on :8093 still running; source LS af39a5c)**
+- First real AI calls OK: match claude-sonnet-5-5 667 in / 67 out tokens; triage claude-haiku-5-5 587 in / 42 out. The
+  API key, SDK 1.3.0 output_config path and structured output are verified live by these calls.
+- People to meet: shows the host with a sensible reason.
+- Mute small talk: hides chit-chat; the room-change message is flagged "Important: Announcement".
+- F1 (header Save with the keyboard up) OK; E2.6d (Discard prompt, one tap leaves) OK; entry links require https://.
+
+**Pending**
+- qa: pace stop scenario; early end → 30-min grace → recap.
+- Reviewed, waiting to merge after qa's pass: 70f850d (useKeyboardOpen DidHide; fixes the blank room header after an
+  entry-gate save, then one device check E2.5k), copy-grace 40fd48f (5 strings: "...or 30 minutes after the host ends it
+  early"), pace-privacy-notes 9859293 (checklist doc).
+- Reviewed DRAFT for the human: docs/evidence/qrewing-privacy-and-store-notes.md (pace b9a26b1); its UNVERIFIED items stay open.
+
+**Not verified**
+- Spoken pace cues: audio output until qa confirms it; the silent switch on a physical device; behaviour on a network drop.
+- Recap (first and refresh) and the grace window end to end; match/triage failure paths live (unit tests only: M1 cooldown
+  2 min/10 min/24 h, M2 model-failed rows final and counted in the 300/day cap).
 
 ## 2026-11-09: Place and time unit (migration 0026), pre-apply test
 - Branch qrew-pt (c40ccd5, 68abdec). Human go-ahead typed in the developer session; the rollback run of
@@ -274,8 +316,8 @@ GPS-stripped copies.
 
 ## Feature status
 
-Refreshed 2026-11-09 (main e89cf85; U6 G-U6-1 on branch qrew-u6 33264a7: supervisor code review PASS, not merged, qa
-regression pending). "verified" means a recorded qa/supervisor PASS on simulators or a live server check; nothing below was run
+Refreshed 2026-11-12 (main b9d031c, local). Qrewing AI rows added at the end of the non-deferred rows; the U6 and
+Copy code / Qrew rows reconciled with their merges (a6702b1, 860e938). Earlier refresh: 2026-11-09 (main e89cf85). "verified" means a recorded qa/supervisor PASS on simulators or a live server check; nothing below was run
 on Android, and only items marked "human iPhone" were seen on a physical device. CS = docs/CURRENT_STATE.md, IS = this file,
 LS = docs/reviews/codex-final-qa-live-status.md (supervisor-owned). Evidence files are under docs/evidence/. Rows from
 "Android" down are deferred items.
@@ -309,14 +351,19 @@ LS = docs/reviews/codex-final-qa-live-status.md (supervisor-owned). Evidence fil
 | RLS read-time denial at expires_at | verified | IS verification log (RLS suite rows); IS checkpoint table Step 12 (R3); checkpoint3b-invalid-code.png | The RLS suite and an app-side denial after expiry PASS against live data. |
 | 24 h / last-hour reminder | verified with limits | 2026-11-06-final-11-host-notification.png, 2026-11-06-final-11-guest-notification.png; 2026-11-08-rc-g6b-notifications.png, 2026-11-08-rc-g6b-1-host-nc-2312.png; 2026-11-07-gap-c3-after-tap-room.png | The local notification fires on both sims, and the 0025 short-room rule PASS. Tap → room was tested only with a simctl push payload; a real tap on the local reminder is not verified. |
 | Room ended screens (Chat, end confirm, Info gone state) | verified with limits | 2026-11-09-qrew-u4-chat-after-end.png, 2026-11-09-qrew-u4-guest-after-end.png; 2026-11-09-qrew-u5-room-ended.png, 2026-11-09-qrew-u5-room-ended-guest-live.png | Chat flips to Room ended while open, with the closed-at line. On main, Photos left open at expiry keeps a stale grid (2026-11-09-qrew-u5-after-expiry-photos-stale.png); U6 fixes this (next row). |
-| U6 G-U6-1: Photos & files, Map, Info, Face, media detail, Camera access is off and Invite switch to Room ended when the room ends while open; Preview shows Invite unavailable once its end time passes | not verified | qrew-u6 33264a7; mobile/tests/room-ended.test.mjs (unit tests only); 2026-11-09-qrew-u6-regression-checklist.md item 21 | Supervisor code review PASS; not merged; the qa regression (checklist rows 1-25, G-U6-1 cases a-e) is pending. |
+| U6 G-U6-1: Photos & files, Map, Info, Face, media detail, Camera access is off and Invite switch to Room ended when the room ends while open; Preview shows Invite unavailable once its end time passes | verified with limits | LS 2026-11-09 "U6 final QA (qa) PASS rows 1-25" (e89cf85 + qrew-u6 044346d); docs/evidence/2026-11-09-qrew-u6-index.html; merged main a6702b1 | qa PASS (a)-(d): each screen switches at close, End room in 1-2 s, back-nav, preview → Invite unavailable. Not run: (e) a direct deep link into an ended room. |
 | End room / leave | verified | checkpoint3b-room-guest.png (leave/rejoin); 2026-11-09-qrew-u4-end-room.png, 2026-11-09-qrew-u4-after-end-room.png, 2026-11-09-qrew-u4-guest-rooms-after-end.png, 2026-11-09-qrew-u4-guest-leave-alert.png | End room on a throwaway room (the guest sees it ended) and the Leave alert PASS. On shared rooms, the U5 confirms were checked with Keep/Cancel only. |
 | Notifications (local only) | verified with limits | 2026-11-06-final-11-host-notification.png, 2026-11-06-final-11-guest-notification.png; 2026-11-08-rc-g6b-notifications.png | In-app and local notifications only (human decision 2026-11-04). Remote push is in the deferred row. |
 | Plan preview | verified | 2026-11-06-final-8-plan-preview.png, 2026-11-06-final-8-cta-alert.png | The alert only, no payment. The screen is not in the Q style yet (CS U5 section). |
 | Qrew redesign units 1-5 look | verified with limits | 2026-11-09-qrew-u2-side-by-side.html, 2026-11-09-qrew-u3-side-by-side.html, 2026-11-09-qrew-u4-side-by-side.html, 2026-11-09-qrew-u5-side-by-side.html, 2026-11-09-qrew-pt-side-by-side.html; USER_DECISIONS 2026-11-09 entries | The human accepted the U1 art and font and the U2-U5 screens. Q-only items the human chose not to build stay unbuilt. The app name still shows as "Moment" until a rebuild (see the Copy code / Qrew row). |
 | Dynamic Type / largest text | verified with limits | 2026-11-09-qrew-u1-d-largest-type.png, 2026-11-09-qrew-u3-f1-largest-17e.png, 2026-11-09-qrew-u4-f2-map-largest.png, 2026-11-09-qrew-u5-f1-17e-xl-both-cards.png, 2026-11-09-qrew-pt-f1-xl-create-pickers-17pro.png | Layouts hold and actions stay reachable. Known truncations: Arrived/Set status chips (N3) and Draw/Undo/Clear (N4). Host-only screens at largest type were checked on the 17 Pro only. |
+| Qrewing AI backend: 0027 tables/RPCs/RLS, grace, qrewing Edge Function, janitor */5 | verified with limits | CS 2026-11-12 sitting lines (rollback test, apply, test-file run, deploys, smoke); LS af39a5c (first real calls) | Live: 0027 test file ran with ROLLBACK and no FAIL; smoke 405/401; janitor runs ok. First real match and triage calls succeeded. Not verified live: recap, grace end to end, failure paths (unit tests only). |
+| Qrewing event: entry gate, People to meet (match) | verified with limits | LS af39a5c (qa partial on b9d031c) | qa: People to meet shows the host with a sensible reason; header Save (F1) and Discard (E2.6d) OK; links need https://. PARTIAL: qa's pass is still running. Known bug: blank room header after a save with the keyboard up (fix 70f850d, not merged; E2.5k recheck pending). |
+| Qrewing Mute small talk (triage) | verified with limits | LS af39a5c | qa: chit-chat hidden, room-change message flagged "Important: Announcement". PARTIAL. Daily cap and model-failure rows: unit tests only. |
+| Qrewing recap and 30-min grace after an early end | not verified | LS af39a5c ("still running") | qa run in progress. Copy fix 40fd48f (grace wording) is reviewed, not merged. |
+| Qrewing pace maker (moving time, km splits, spoken cues) | not verified | LS af39a5c ("still running") | qa stop scenario in progress. Spoken audio, the silent switch on a physical device and a network drop are not verified. |
 | Android | not verified | CS U2 "ANDROID FOLLOW-UP" | iOS first; Android is follow-up work. The expo-maps Google key is missing and keyboard handling is iOS-only. |
-| Copy code + app name "Qrew" | not verified | USER_DECISIONS 2026-11-09 (Copy code deferred); LS U5 ruling (2) | Deferred to the next approved rebuild (expo-clipboard plus the native display name). |
+| Copy code + app name "Qrew" | verified | LS 2026-11-09 rebuild 891b759 host QA and the FAKETEAMID recovery entry; merged main 860e938 | Name Qrew and the Q icon on all 5 sims, Copy code → paste → preview PASS (qa). The 55948fd rebuild keeps CFBundleDisplayName Qrew. |
 | Android keyboard | not verified | CS U2 "ANDROID FOLLOW-UP", U3 "Keyboard" line | Deferred: QScreen and useKeyboardOpen listen only to the iOS keyboard events. |
 | Camera denied on a real device | not verified | CS U5 "Camera denied (Q 07.04)"; LS U5 "NOT RUN" | Deferred: the simulator reports the camera as unavailable before asking. The real-iPhone Take photo check was postponed by the human (USER_DECISIONS 2026-11-09). |
 | Face enrollment manage / replace / stop path | not verified | LS U5 "NOT RUN"; supervisor rule "no new enrollment" | Deferred: there is no enrollment to manage, and none may be created (demo rule). The old-UI Manage/remove was run on 2026-11-06 (2026-11-06-final-7-manage.png, 2026-11-06-final-7-removed.png) but not the Q 06.01-02 version. |
@@ -328,8 +375,11 @@ LS = docs/reviews/codex-final-qa-live-status.md (supervisor-owned). Evidence fil
 
 1. Face API: AWS credentials are set as Edge Function secrets (done). The AI-services opt-out/retention item is superseded 2026-11-07 ~17:50 PST: demo/presentation scope only, no real participant photos; the AWS paid plan + opt-out item is out of scope (planning/USER_DECISIONS_2026-11-04_OPERATIONS_EN.md).
 2. Anonymous sign-ins (enabled) and Confirm email (off) are resolved and verified; no longer blockers.
-3. A physical iPhone for device checks (optional). Apple Developer Program, APNs and EAS login are not needed for this milestone (human decision 2026-11-04).
+3. Anthropic API key: set by the human as the Edge Function secret ANTHROPIC_API_KEY (2026-11-12); verified only by
+   qa's first real calls (LS af39a5c). Nobody has seen or logged the value.
+4. A physical iPhone for device checks (optional). Apple Developer Program, APNs and EAS login are not needed for this milestone (human decision 2026-11-04).
 
 ## Not yet tested
 
-See the "not verified" and "verified with limits" rows in Feature status above (2026-11-09).
+See the "not verified" and "verified with limits" rows in Feature status above (refreshed 2026-11-12) and the
+"Not verified" list in the 2026-11-12 Qrewing section.
