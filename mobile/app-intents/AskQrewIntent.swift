@@ -65,7 +65,11 @@ enum QrewingAsk {
 
   /// Always returns a line to speak; never throws, so Siri never shows a generic error.
   static func answer(_ raw: String, now: Date = Date()) async -> String {
-    let question = String(raw.trimmingCharacters(in: .whitespacesAndNewlines).prefix(300))
+    // The server counts code points (Array.from), so cut by unicode scalars, not grapheme clusters.
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    var scalars = String.UnicodeScalarView()
+    scalars.append(contentsOf: trimmed.unicodeScalars.prefix(300))
+    let question = String(scalars).trimmingCharacters(in: .whitespacesAndNewlines)
     if question.isEmpty { return "I didn't catch a question." }
     guard let m = SiriMirror.load() else { return signIn }
     guard m.expiresAt > now.timeIntervalSince1970 + 30 else { return reopen }
