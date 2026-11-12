@@ -4,7 +4,7 @@
 // unscoped probe after auth returns 503 ai_not_configured before any DB write, so deploying makes no AI calls.
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 // Order: 405 (not POST) -> 401 (no valid user JWT) -> core.handle (400 -> 503 -> 403 not_member -> 403 ai_off -> action).
-import Anthropic from 'npm:@anthropic-ai/sdk@1.8.0';
+import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { handle, type Model, type Msg, type QrewingStore, type RecapRow, type StoredMatch } from './core.ts';
@@ -258,14 +258,15 @@ function createStore(admin: any): QrewingStore {
       );
       if ((inserted ?? []).length > 0) return true;
       const now = new Date().toISOString();
-      // A pending row whose caller died: retaken as is (a retry marker it carries stays).
+      // S2: a pending row whose caller died is retaken once; refreshed_at marks the retry as spent.
       const stale = must(
         await admin
           .from('room_recaps')
-          .update({ created_at: now })
+          .update({ created_at: now, refreshed_at: now })
           .eq('room_id', roomId)
           .eq('state', 'pending')
           .lt('updated_at', staleBefore)
+          .is('refreshed_at', null)
           .select('room_id'),
         'recap_retake_stale',
       );

@@ -132,8 +132,8 @@ export interface QrewingStore {
 
   recap(roomId: string): Promise<RecapRow | null>;
   /**
-   * Inserts 'pending', or retakes a 'pending' row last updated before `staleBefore`, or retakes a 'failed' row whose
-   * retry is not spent yet (refreshed_at null), setting refreshed_at. Every retake resets created_at. True if claimed.
+   * Inserts 'pending', or retakes a 'pending' row last updated before `staleBefore` or a 'failed' row, either one only
+   * while its retry is not spent (refreshed_at null), setting refreshed_at. Every retake resets created_at. True if claimed.
    */
   claimRecap(roomId: string, staleBefore: string): Promise<boolean>;
   /** done: content set, refreshed_at cleared (the refresh is still available). failed: refreshed_at kept. */
@@ -477,10 +477,14 @@ async function recap(ctx: Ctx): Promise<Reply> {
   // F1: at most two attempts per room. A failed row whose one retry is spent stays failed: no more model calls.
   if (existing?.state === 'failed' && existing.refreshedAt !== null) return AI_FAILED;
   const staleBefore = new Date(now.getTime() - RECAP_PENDING_TTL_MS).toISOString();
+  // S2: a stale pending row (its caller was killed, maybe after the model answered) is retaken once, and that spends
+  // the retry. A stale pending row whose retry is spent is final: no more model calls.
+  const spentStale = (r: RecapRow | null) => r?.state === 'pending' && r.updatedAt < staleBefore && r.refreshedAt !== null;
+  if (spentStale(existing)) return AI_FAILED;
   if (!(await store.claimRecap(room.id, staleBefore))) {
     const again = await store.recap(room.id);
     if (again?.state === 'done') return { status: 200, body: recapBody(again, true) };
-    if (again?.state === 'failed') return AI_FAILED;
+    if (again?.state === 'failed' || spentStale(again)) return AI_FAILED;
     return { status: 202, body: { state: 'pending' } };
   }
 

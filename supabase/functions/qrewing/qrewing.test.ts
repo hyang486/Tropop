@@ -173,9 +173,9 @@ function store(w: World): QrewingStore {
         w.recap = { ...fresh, refreshedAt: null };
         return true;
       }
-      if (w.recap.state === 'pending' && w.recap.updatedAt < staleBefore) {
+      if (w.recap.state === 'pending' && w.recap.updatedAt < staleBefore && w.recap.refreshedAt === null) {
         w.writes++;
-        w.recap = { ...w.recap, createdAt: t, updatedAt: t };
+        w.recap = { ...w.recap, createdAt: t, updatedAt: t, refreshedAt: t };
         return true;
       }
       if (w.recap.state === 'failed' && w.recap.refreshedAt === null) {
@@ -579,6 +579,36 @@ test('recap F1: a failed recap is retried once per room, then stays failed with 
   fail = true;
   await run(w2, m, BOB, { action: 'recap', roomId: ROOM });
   fail = false;
+  assert.equal((await run(w2, m, BOB, { action: 'recap', roomId: ROOM })).status, 200);
+  assert.equal(w2.recap?.state, 'done');
+  assert.equal(w2.recap?.refreshedAt, null);
+});
+
+test('recap S2: a stale pending retake spends the retry; a second stale pending makes no model call', async () => {
+  const w = world({ messages: [msg(1, HOST, 'Start at 7', 5)] });
+  w.room = { ...w.room!, expiresAt: iso(30 * MIN) };
+  // First attempt died after the model answered (wall-clock kill): the row is left pending and goes stale.
+  w.recap = { state: 'pending', title: null, summary: null, highlights: null, createdAt: iso(-10 * MIN), updatedAt: iso(-10 * MIN), refreshedAt: null };
+  let claimed: NonNullable<typeof w.recap> | null = null;
+  const { m, calls } = model(() => {
+    claimed = w.recap; // the row as the retake left it while the model runs
+    return { text: RECAP_OUT };
+  });
+  await run(w, m, BOB, { action: 'recap', roomId: ROOM });
+  assert.equal(calls.length, 1, 'the one retake');
+  assert.equal(claimed!.state, 'pending');
+  assert.notEqual(claimed!.refreshedAt, null, 'the retake spends the retry');
+  // The retake was killed too: its row is left pending; once stale, no more calls for anyone.
+  w.recap = { ...claimed!, updatedAt: iso(-10 * MIN) };
+  for (const u of [BOB, CAT, HOST]) {
+    assert.deepEqual(await run(w, m, u, { action: 'recap', roomId: ROOM }), { status: 502, body: { error: 'ai_failed' } });
+  }
+  assert.equal(calls.length, 1, 'no call per member per trigger');
+
+  // A stale retake that succeeds gives a done row whose refresh is still available.
+  const w2 = world({ messages: [msg(1, HOST, 'Start at 7', 5)] });
+  w2.room = w.room;
+  w2.recap = { state: 'pending', title: null, summary: null, highlights: null, createdAt: iso(-10 * MIN), updatedAt: iso(-10 * MIN), refreshedAt: null };
   assert.equal((await run(w2, m, BOB, { action: 'recap', roomId: ROOM })).status, 200);
   assert.equal(w2.recap?.state, 'done');
   assert.equal(w2.recap?.refreshedAt, null);
