@@ -188,7 +188,13 @@ export function EntryScreen() {
           // qa F1: Save stays reachable from the header while the keyboard covers the bottom.
           headerRight: () =>
             !ready ? null : (
-              <Pressable onPress={save} disabled={busy} accessibilityRole="button" hitSlop={8}>
+              <Pressable
+                onPress={save}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: busy, busy }}
+                style={styles.headerHit}
+              >
                 <Text style={[styles.headerSave, busy && styles.headerSaveBusy]}>{s.save}</Text>
               </Pressable>
             ),
@@ -291,6 +297,7 @@ const styles = StyleSheet.create({
   // Matches QLabel (q-screen.tsx), which only takes a plain string.
   label: { fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 6 },
   star: { color: colors.danger },
+  headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
   headerSave: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 8 },
   headerSaveBusy: { opacity: 0.4 },
 });

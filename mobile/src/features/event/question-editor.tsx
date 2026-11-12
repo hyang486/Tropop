@@ -45,7 +45,6 @@ function IconButton({ name, label, disabled, onPress }: { name: string; label: s
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      hitSlop={6}
       style={({ pressed }) => [styles.icon, (pressed || disabled) && { opacity: 0.35 }]}
     >
       <SymbolView name={name as never} size={18} tintColor={colors.label} />
@@ -105,6 +104,7 @@ export function QuestionEditor({
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
                     onPress={() => onChange(updateQuestion(value, q.key, { kind }))}
+                    hitSlop={{ top: 4, bottom: 4 }}
                     style={[styles.chip, selected && { backgroundColor: colors.tint }]}
                   >
                     <Text style={[styles.chipText, selected && { color: colors.onTint }]}>{KIND_LABEL[kind]}</Text>
@@ -133,14 +133,17 @@ export function QuestionEditor({
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   number: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
-  icon: { padding: 8 },
+  // 44 pt target without hitSlop, so neighbouring icons never overlap.
+  icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   kinds: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     backgroundColor: colors.field,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 9,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   chipText: { fontSize: 14, color: colors.label },
   row: { flexDirection: 'row', alignItems: 'center' },

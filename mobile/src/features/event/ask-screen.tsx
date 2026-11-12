@@ -107,7 +107,7 @@ export function AskScreen() {
           headerTitle: '',
           // A visible way out besides the swipe (VoiceOver users cannot discover it).
           headerRight: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel={s.doneLabel} hitSlop={8} onPress={() => router.back()}>
+            <Pressable accessibilityRole="button" accessibilityLabel={s.doneLabel} onPress={() => router.back()} style={styles.headerHit}>
               <Text style={styles.done}>{s.done}</Text>
             </Pressable>
           ),
@@ -180,6 +180,7 @@ function Bubble({ text, mine }: { text: string; mine?: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
   done: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 6 },
   flex: { flex: 1 },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
