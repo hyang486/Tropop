@@ -5,7 +5,17 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
-## 2026-11-12: Entry questions (spec 9) LIVE — 0028 applied, qrewing v3 deployed (resume here)
+## 2026-11-12: Qrewing bot `ask` (spec 10.2/10.3) — code and 0029 written, NOT applied or deployed (resume here)
+- Branch qrewing-bot-backend. e054308 (draft ask) was sent to supervisor; the follow-up commit aligns it with spec 10.2/10.3:
+  request {question 1..300, history ≤4 turns, me {elapsedSec, distanceM, paceSecPerKm, activity}, tz IANA default UTC};
+  caps 30/user and 300/room per 24 h → 429 ask_limit; 200 {answer, usage}; times given to the model in the asker's tz;
+  chat = last 60 consenting lines, about 6,000 chars.
+- Migration 0029 (ask action, usage.user_id, log_qrewing_usage p_user_id, qrewing_usage_count) + supabase/tests/qrewing_ask_usage_test.sql.
+- Verified locally: unit 49/49; strict tsc (core, prompts, tests); PGlite test PASSED, leftovers 0; negative control
+  (count ignores user) fails as expected. Not verified: index.ts (Deno), live DB, deploy.
+- Blocked: live apply of 0029 needs human approval (spec 10.2); deploy only after that and supervisor review.
+
+## 2026-11-12: Entry questions (spec 9) LIVE — 0028 applied, qrewing v3 deployed
 - Authority: USER_DECISIONS ~10:20 PST FINAL "Go ahead" (apply 31a482f once, deploy 4c8a83a; no push).
 - Live check 18:11Z: migrations end at 20261112180712 entry_questions; public.entry_questions exists with RLS on and 1 policy.
 - qrewing v3 ACTIVE, verify_jwt false. Deployed index.ts and prompts.ts are byte-identical to 4c8a83a. In core.ts, EMOJI_RE
