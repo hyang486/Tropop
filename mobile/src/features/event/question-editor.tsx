@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { useAnnounce } from '@/features/event/announce';
 import { QCard, QField, QLabel, QLink } from '@/components/q-screen';
 import { colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -66,6 +67,8 @@ export function QuestionEditor({
   problem: { problem: QuestionProblem; key?: string } | null;
 }) {
   const removable = canRemove(value);
+  const problemIndex = problem?.key ? value.findIndex((q) => q.key === problem.key) : -1;
+  useAnnounce(problem ? questionProblemText(problem.problem, problemIndex >= 0 ? problemIndex + 1 : null) : null, problem);
   return (
     <>
       <QLabel>{s.questionsTitle}</QLabel>

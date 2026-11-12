@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useAnnounce } from '@/features/event/announce';
 import { QField, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { paceSnapshot } from '@/features/pace/engine';
@@ -28,6 +29,8 @@ export function AskScreen() {
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<AskError | null>(null);
   const [consent, setConsent] = useState(false);
+  useAnnounce(sending ? s.thinking : null, sending);
+  useAnnounce(error ? en.qrewing.errors[error] : null, error);
   const mounted = useRef(true);
   const lastRef = useRef<ComponentRef<typeof View>>(null);
   const revealRef = useRef<QScreenReveal>(null);

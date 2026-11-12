@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-r
 import { type ComponentRef, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { useAnnounce } from '@/features/event/announce';
 import { QField, QLabel, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -73,6 +74,8 @@ export function EntryScreen() {
   const fields = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   // Set after a successful save: prevention turns off first, then the effect below leaves.
   const [saved, setSaved] = useState(false);
+  useAnnounce(invalid?.text, invalid);
+  useAnnounce(error);
 
   useEffect(() => {
     if (!userId) return;
