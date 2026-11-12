@@ -46,11 +46,11 @@ What to look for on the guest:
 
 ## stop (host only)
 
-The host runs 600 m at 5:00 per km (2:00), stands still for 4 minutes, then runs another 700 m (3:30).
+The host runs 600 m at 5:00 per km (3:00), stands still for 4 minutes, then runs another 700 m (3:30).
 
 What to look for:
 
-- The stationary sheet ("You've stopped for 3 minutes. Everything okay?") near 5:00, about 3 minutes into the stop. Dismiss closes it. Emergency goes only through its confirm.
+- The stationary sheet ("You've stopped for 3 minutes. Everything okay?") near 6:00, about 3 minutes into the stop. Dismiss closes it. Emergency goes only through its confirm.
 - The stop adds no distance or time. The live card's time does not grow while standing.
 - The km 1 cue comes after 5:00 of moving time (near 9:00 on the clock), with a split of about 5:00.
 - At the recap, the pace line reads about `Pace maker: 1.30 km, moving 6:30, total 10:30, 5:00 per km`. This needs the event branch's recap wiring, which is still pending.
