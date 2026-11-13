@@ -40,6 +40,14 @@ Before recording: main includes 2f6b7e6 (client fixes i/j/c) and 66c057a (Ask/re
 
 Total about 4 min 15 s (Part 1 2:35, Part 2 1:40).
 
+## Edit layout
+
+- **Canvas:** 1920×1080, a calm solid or soft-gradient background in the app's cream (dark navy behind dark-mode scenes). No stock imagery.
+- **Phones:** simulator recordings in device frames, centered left of the canvas. 1-up for single-person scenes (1-3, 5, 7-8, 11-15, 18-19, 21-22), 4-up in a row for the joins (4, 6), and 5-up in a row for group scenes (9, 10, 17, 20). Scale so every phone is the same height.
+- **Caption panel:** a fixed panel on the right third, beside the phones, with the scene's caption in large type and the persona name(s) and sim in small type above it. For 4-up and 5-up, the panel narrows to a strip under the row and each phone gets a name label.
+- **Title cards (3 s each):** an opening "Qrew: temporary rooms for real meetups", "Part 1 · Sunset Run Club (sports)", "Part 2 · Founders Coffee Night (event)", and a closing card "Rooms end. Data is deleted." These add about 12 s, for about 4:27 total.
+- **Highlights:** a soft ring or zoom on the "Hold on" element of a fixed item (scenes 1, 2, 5, 8, 11, 12, 13, 19); no arrows over the UI text.
+
 ## Notes for the recorder
 
 - Hold each "Hold on" frame for at least 2 s before the next action; captions go in the edit, not on device.
