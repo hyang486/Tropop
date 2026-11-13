@@ -42,6 +42,8 @@ import {
   type Msg,
   type QrewingStore,
   type RecapRow,
+  type Emergency,
+  type LivePosition,
   type RoomExtras,
   type RoomInfo,
   type StoredMatch,
@@ -74,6 +76,8 @@ type World = {
   usage: { action: string; model: string; userId?: string }[];
   writes: number;
   extras: RoomExtras;
+  emergencies: Emergency[];
+  positions: LivePosition[];
   /** ask rows already in private.qrewing_usage before the test (plus w.usage asks): room total, and per user. */
   askUsed: number;
   askUsedBy: Record<string, number>;
@@ -121,7 +125,9 @@ function world(over: Partial<World> = {}): World {
     matches: new Map(),
     usage: [],
     writes: 0,
-    extras: { activityState: 'active', route: [{ lat: 37.8, lng: -122.26 }, { lat: 37.81, lng: -122.26 }], statusLabels: ['On my way', 'Help'] },
+    extras: { activityState: 'active', route: [{ lat: 37.8, lng: -122.26 }, { lat: 37.81, lng: -122.26 }], statusLabels: ['On my way', 'Help'], locationAllowed: false, place: null },
+    emergencies: [],
+    positions: [],
     askUsed: 0,
     askUsedBy: {},
     ...over,
@@ -274,6 +280,18 @@ function store(w: World): QrewingStore {
     },
     async roomExtras() {
       return w.extras;
+    },
+    async roomEvents(roomId, limit) {
+      return w.messages
+        .filter((m) => m.roomId === roomId && (m.kind === 'status' || m.kind === 'emergency'))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, limit);
+    },
+    async emergencies(_r, limit) {
+      return [...w.emergencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
+    },
+    async livePositions() {
+      return w.positions;
     },
   };
 }
@@ -1160,7 +1178,7 @@ test('ask context: facts in local tz, consenting chat and entry answers, me and 
   for (const s of ['<room_name>Bay run</room_name>', '<place>Lake Merritt</place>', '<route_km>1.1</route_km>', '<member_count>3</member_count>',
     '<status>On my way</status>', '<activity>active</activity>', '<asker is_host="false">Bob</asker>',
     '<me distanceM="2500" paceSecPerKm="340" activity="stopped"/>', '<history>\n<turn><q>Who hosts?</q><a>Hana hosts.</a></turn>\n</history>',
-    'Hana: Meet at the boathouse 7:30', 'Bob: see you', '<question>Where do we meet?</question>',
+    '] Hana: Meet at the boathouse 7:30', '] You: see you', '<question>Where do we meet?</question>',
     '<tz>America/Los_Angeles</tz>', '<now>Thu, Nov 12 at 12:00 PM</now>']) {
     assert.ok(u.includes(s), `missing ${s}`);
   }
@@ -1231,8 +1249,8 @@ const PROMPT_WORLD = () =>
     messages: [msg(1, HOST, 'Meet at the boathouse 7:30', 30), msg(2, CAT, 'bring water', 20), msg(3, BOB, 'see you', 10), msg(4, null, 'Host started', 5, 'system')],
   });
 const PROMPT_BODY = ASK('Where do we meet?', { me: { distanceM: 2500, paceSecPerKm: 340, activity: 'moving' }, history: [{ q: 'Who hosts?', a: 'Hana.' }], tz: 'America/Los_Angeles' });
-/** sha256 of the ask user prompt for PROMPT_WORLD/PROMPT_BODY, captured from the sequential code before the latency change. */
-const SEQUENTIAL_PROMPT_SHA = '20ab15d481b9c0e5987bb81285cd6a7ac5e1b67b6e296008655115dd33677672';
+/** sha256 of the ask user prompt for PROMPT_WORLD/PROMPT_BODY, captured from the sequential code before the latency change; recaptured for E2E (a)(b)(g)(h). */
+const SEQUENTIAL_PROMPT_SHA = 'b3ae16286749d0826d48c15af5033c68799e184e5d29278460e607e79ec31c1f';
 
 test('ask latency: the prompt is byte-identical to the sequential version whatever order the reads finish in', async () => {
   const names = Object.keys(store(world()));
@@ -1286,4 +1304,103 @@ test('ask latency: one ask_timing log with integer ms only (no text, tokens or i
   const failed: typeof logs = [];
   await handle({ store: store(PROMPT_WORLD()), model: model(() => new Error('boom')).m, now: () => NOW, log: (event, fields) => failed.push({ event, fields }) }, BOB, PROMPT_BODY);
   assert.equal(failed.find((l) => l.event === 'ask_timing')?.fields.model_ok, false);
+});
+
+// ---- E2E (a): status changes and Emergencies; (b): the group view ----
+
+test('E2E (a) ask: status and Emergency lines with times, who saw the Emergency, resolved; non-consenting events left out', async () => {
+  const w = world({
+    messages: [
+      msg(1, HOST, 'Go go', 40),
+      msg(2, CAT, 'Cat: Lost', 35, 'status'),
+      msg(3, HOST, 'Hana needs help (Emergency)', 30, 'emergency'),
+      msg(4, HOST, 'Hana: On my way', 20, 'status'),
+    ],
+    emergencies: [{ id: 'e1', userId: HOST, createdAt: iso(-30 * MIN), ackedBy: [BOB, CAT, HOST] }],
+  });
+  w.consents.set(CAT, { aiOk: false, mute: false });
+  const { m, calls } = model(answer('ok'));
+  const r = await run(w, m, BOB, ASK('Is Hana ok?', { tz: 'America/Los_Angeles' }));
+  assert.equal(r.status, 200);
+  const u = calls[0].user;
+  assert.match(u, /<event at="[^"]+" who="Hana" kind="emergency">needs help \(Emergency\)<\/event>/);
+  assert.match(u, /<event at="[^"]+" who="Hana" kind="status">On my way<\/event>/);
+  assert.ok(u.indexOf('kind="emergency"') < u.indexOf('kind="status"'), 'events oldest first');
+  assert.match(u, /<emergency who="Hana" at="[^"]+" resolved="true" seen_by="You"\/>/);
+  assert.ok(!u.includes('Lost'), 'non-consenting status line sent');
+  assert.ok(!u.includes('Cat'), 'non-consenting acker named');
+  assert.ok(calls[0].system.includes('<room_events>'), 'events rule');
+});
+
+test('E2E (a) ask: an Emergency with no later status is unresolved and seen by nobody yet', async () => {
+  const w = world({
+    messages: [msg(1, CAT, 'Cat needs help (Emergency)', 5, 'emergency')],
+    emergencies: [{ id: 'e1', userId: CAT, createdAt: iso(-5 * MIN), ackedBy: [] }],
+  });
+  const { m, calls } = model(answer('ok'));
+  await run(w, m, BOB, ASK('Anything wrong?'));
+  assert.match(calls[0].user, /<emergency who="Cat" at="[^"]+" resolved="false" seen_by="nobody yet"\/>/);
+});
+
+test('E2E (a) recap: status and Emergency lines merge into the chat in time order, tagged; <emergencies> block', async () => {
+  const w = world({
+    messages: [
+      msg(1, HOST, 'Start at 7', 30),
+      msg(2, BOB, 'Bob needs help (Emergency)', 25, 'emergency'),
+      msg(3, HOST, 'On it', 20),
+      msg(4, BOB, 'Bob: Okay now', 15, 'status'),
+    ],
+    emergencies: [{ id: 'e1', userId: BOB, createdAt: iso(-25 * MIN), ackedBy: [HOST] }],
+  });
+  const { m, calls } = model(() => ({ text: RECAP_OUT }));
+  const r = await run(w, m, HOST, { action: 'recap', roomId: ROOM });
+  assert.equal(r.status, 200);
+  const u = calls[0].user;
+  const order = ['Hana: Start at 7', 'Bob: [Emergency] needs help (Emergency)', 'Hana: On it', 'Bob: [status change] Okay now'].map((s) => u.indexOf(s));
+  assert.ok(order.every((i) => i >= 0), `missing a line: ${order}`);
+  assert.deepEqual([...order].sort((a, b) => a - b), order, 'time order');
+  assert.ok(u.includes('<emergencies>\n<emergency who="Bob" resolved="true" seen_by="Hana"/>\n</emergencies>'));
+  assert.ok(calls[0].system.includes('[status change]'));
+});
+
+const POS = (userId: string, lat: number, secAgo: number, speedMps: number | null, sharing = true) =>
+  ({ userId, lat, lng: -122.26, speedMps, updatedAt: iso(-secAgo * 1000), sharing });
+
+test('E2E (b) ask: <group> lists only fresh, sharing, consenting members with route progress and the lead group; no coordinates', async () => {
+  const w = world({
+    positions: [
+      POS(HOST, 37.8099, 10, 2.5), // ~1,100 m along: front
+      POS(BOB, 37.8050, 20, 0), // ~556 m: asker
+      POS(CAT, 37.8097, 5, 2.4), // consent off below
+    ],
+  });
+  w.extras = { ...w.extras, locationAllowed: true };
+  w.consents.set(CAT, { aiOk: false, mute: false });
+  const { m, calls } = model(answer('ok'));
+  await run(w, m, BOB, ASK('Am I behind?'));
+  const u = calls[0].user;
+  assert.match(u, /<group sharing_members="2" progress_from="route">/);
+  assert.match(u, /<lead_group members="Hana" front_m="1\d{3}" rear_m="1\d{3}"\/>/);
+  assert.match(u, /<you progress_m="5\d0" in_lead_group="false" gap_to_lead_m="5\d0" moving="false" seen_s_ago="20"\/>/);
+  assert.match(u, /<member name="Hana" progress_m="1\d{3}" in_lead_group="true" from_you_m="5\d0" moving="true" seen_s_ago="10"\/>/);
+  assert.ok(!u.includes('Cat'), 'non-consenting member listed');
+  assert.ok(!u.includes('37.8') && !u.includes('122.26'), 'coordinates sent');
+});
+
+test('E2E (b) ask: no <group> when location is off or no activity runs; stale and non-sharing positions are left out', async () => {
+  const base = { positions: [POS(HOST, 37.8099, 10, 2.5), POS(BOB, 37.805, 10, 1)] };
+  const ask = async (w: World) => {
+    const { m, calls } = model(answer('ok'));
+    await run(w, m, BOB, ASK('Where is everyone?'));
+    return calls[0].user;
+  };
+  assert.ok(!(await ask(world(base))).includes('<group'), 'location not allowed');
+  const idle = world(base);
+  idle.extras = { ...idle.extras, locationAllowed: true, activityState: 'idle' };
+  assert.ok(!(await ask(idle)).includes('<group'), 'no activity');
+  const w = world({ positions: [POS(HOST, 37.8099, 10 * 60, 2.5), POS(CAT, 37.809, 10, 2, false), POS(BOB, 37.805, 10, 1)] });
+  w.extras = { ...w.extras, locationAllowed: true };
+  const u = await ask(w);
+  assert.match(u, /<group sharing_members="1" progress_from="route">/);
+  assert.ok(!u.includes('<member '), 'stale or non-sharing member listed');
 });
