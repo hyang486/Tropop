@@ -61,4 +61,4 @@ What to look for:
 node scripts/pace-gps-demo.mjs clear
 ```
 
-Clears the simulated location on both devices.
+Clears the simulated location on both default devices. `clear --host <udid>` (or `--guest <udid>`) clears only the device named.

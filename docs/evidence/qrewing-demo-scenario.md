@@ -64,6 +64,22 @@ Before filming: the Guest enrolled for Photos of me in this room before the end,
 | 3.4 | Guest | **Photos of me** → open a photo → save. **Face** | The photo saves to the phone. | "Your photos, found for you." |
 | 3.5 | Guest | **Back to rooms**. | Row "Ended · recap and photos until <time>" | "Then the server deletes everything." |
 
+## Recorder setup for the presentation video (scenes 5, 9, 11 of presentation-video-plan.md)
+
+Checked read-only against the pace code on qrewing-pace (0a1854b). The script drives one device per process, so 2-2-1 is five `steady` runs (5:00 per km, the same JFK Drive route) started at staggered times. Equal speed keeps the gaps fixed.
+
+- **Before Start activity:** on every sim, turn on **Share my location**, run `xcrun simctl location <udid> set 37.77226,-122.45495` (the route start), and turn on **Pace maker** on Dani. Give the room no place pin, or put the pin at the route start. Without a room route, progress is the straight-line distance from the pin, or from Dani's first fix. A pin off the route skews the gap.
+- **Scene 5 (Dani target):** the field is prefilled only if Dani's phone has a saved session with an average pace. A fresh install shows the empty "e.g. 5:30" state. The plan accepts either state.
+- **Scene 9 (2-2-1), one terminal per sim:** `node scripts/pace-gps-demo.mjs steady --host <udid>`. Get the UDIDs from `xcrun simctl list devices booted`.
+  - t = 0: Mina and Jun, within 5 s of each other. They must stay within 50 m (`LEAD_GROUP_SPAN_M`), which is 15 s at this speed.
+  - t ≈ 25 s: Sora and Leo, about 80 m back. They must be more than 50 m behind Jun, or they join the lead group.
+  - t ≈ 60–75 s: Dani, 200–250 m back. The cue needs more than 150 m (`BEHIND_GAP_M`) to Jun, the rear of the lead group. Use extra margin, because location reports are throttled to every 5 s or 10 m.
+  - Dani's first gap cue comes on Dani's first fix after the gap passes 150 m, as long as no cue played in the last 20 s. It then repeats every 2 min. The banner shows for 12 s. Expected at 200 m: `Lead group 200 meters ahead. Run 3:45 per km to catch them in 3 minutes.` The gap number varies with timing.
+  - Members whose location is older than 60 s drop out of the lead group. Keep all five processes running.
+  - Map pills: pins within 48 px on screen share one pill. Zoom to about 1 km so that "Mina · Jun" and "Sora · Leo" (80 m apart) get separate pills.
+- **Scene 11 (Dani still running):** keep Dani's `steady` process running through the Ask, so Dani reads as moving.
+- **Cleanup:** stop each process with Ctrl-C, which clears its own device. To clear one sim, run `node scripts/pace-gps-demo.mjs clear --host <udid>`, which clears only that sim. Plain `clear` clears the two default sims (17 Pro and 17).
+
 ## Not covered by this video
 
 - The recap pace line (`Pace maker: … km, moving …`) needs the post-merge recap wiring (runbook M3). Add it to Act 3 only if Act 1 and Act 3 are in the same Sports room with AI on.
