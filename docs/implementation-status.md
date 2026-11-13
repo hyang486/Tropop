@@ -1,6 +1,28 @@
 # Implementation status
 
-Updated: 2026-11-12 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
+Updated: 2026-11-13 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
+
+## 2026-11-13 summary for the human's morning review (nothing pushed)
+
+**Qrewing Calendar (Plus): done.** Server: `recap` with `diary: true` and `calendar_add` (details in the next section), live since qrewing v8. App: calendar month/day views, header icon, Plus upsell, diary card, recap diary on every save path, VoiceOver and dark mode (local main, e.g. 62bf662, 8d8f503, 717036f, 941c08f, 572585b). Evidence: `docs/evidence/2026-11-13-calendar-*.png` (month light, month + day list dark, day list light, header icon, upsell). Edge logs on v8: 22 × 200, 1 × 502 (upstream model 503 on a recap, transient).
+
+**qrewing Edge Function v8 → v11** (each deployed via MCP after supervisor PASS; ACTIVE, verify_jwt=false; deployed source = the commit except the accepted escape-only `EMOJI_RE` line; the test file passes on the deployed copies):
+
+| Version | Commit | What changed | Tests | Rollback to |
+|---|---|---|---|---|
+| v8 | 288dbea | Calendar: `recap` diary (emoji + 1–3 lines, 3/user/room/24 h) and `calendar_add` (20/user/24 h) | 68/68 | v7 (9e697f9) |
+| v9 | 48849f7 | E2E (b) lead group. Root cause: a room with no route and no place pin had no progress basis, so every member was sent `in_lead_group="false"` and the model said "none of them is in the lead group". Fix: optional `anchor` {lat,lng} on ask (the pace screen's start point, never sent to the model; invalid → 400); with no basis the lead flags are left out and `<lead_group known="false"/>` is sent. App side sends the anchor (4c62da2). | 71/71 | v8 (288dbea) |
+| v10 | 96c053d | English times clock-first ("3:23 AM today", "9:00 AM on Fri, Nov 13"), fixing "at today at 3:23 AM"; recap, recap refresh, diary and ask prompts never guess gender (names or they/them; Korean: the name). | 73/73 | v9 (48849f7) |
+| v11 | c373472 | `<group>` states the progress basis in plain words (`progress_means`); prompt mentions a route only when `progress_from="route"`, fixing "along the route" with no route. | 73/73 | v10 (96c053d) |
+
+qa live check of v10 (supervisor relay): anchor lead group, time phrase and no gendered words PASS. qa retest of v11: PASS (Leo in the no-route room: start-point wording, Mina and Jun named as the leaders; evidence `docs/evidence/2026-11-13-v11-ask-noroute.png`, `docs/evidence/2026-11-13-s11-reshoot-leo-ask.png`). Known limit: progress from a start point or place pin is straight-line, so an out-and-back course can misorder people (same as the pace screen). Left as is by decision: "next Sunday" from Fri Nov 13 → Nov 22 (the editor lets the user correct it).
+
+**Open items**
+- Siri on a real iPhone: not yet verified end to end (simulator PASS on iOS 27.2).
+- Push: pending the human's approval (the 2026-11-07 one-time approval is used up). Nothing is pushed.
+- Video: s11 was re-shot (PASS, Leo asks) and the video recomposed at 12:07 as `output/video/Qrew_Presentation_2026-11-13.mp4`. Scenes s02 and s21 are not in the video (qa).
+
+**App-side fixes merged today (local main):** calendar-lanes (F1 split a room at full days, F2 "+N", spoken labels; s11 ask anchor falls back to my first shared point, kept in memory only), form-a11y-sheet (the date label is read once), consent-sheet-entry e024b9f (a re-present guard; the retry never fired on the device, so it is unproven). Leo's Ask → Rooms kick during the re-shoot was a harness artifact (Metro reloads from merges), not an app bug.
 
 ## Simulator install rule: two keychain groups (2026-11-09, keep on every install)
 
@@ -36,7 +58,7 @@ Live test accounts added after the standing set (delete only with human approval
 Human decision: USER_DECISIONS_2026-11-04_OPERATIONS_EN.md (Qrewing Calendar). Supervisor approved the two design points.
 - `recap` with `diary: true`: 200 body adds `emoji` (always present) and `diary` (string[1..3], each ≤ 90 chars, or null). Second Haiku call per member over the stored recap; caller named only if consented; nothing stored; logged as 'recap' with user_id; cap 3 per user per room per 24 h. Without `diary` the body is unchanged.
 - `calendar_add` {text ≤ 300, today YYYY-MM-DD, tz IANA}: auth only, no room. 200 {event:{title ≤ 60, start, end (inclusive, ≥ start, ≤ start + 366 d), emoji}}; 422 unclear; 429 rate_limited (20/24 h); 502 ai_failed; 503 ai_not_configured. No Plus check on the server (no plan data).
-- Verified: `node --test supabase/functions/qrewing/qrewing.test.ts` 68/68; tsc strict: only the pre-existing `npm:` import errors in index.ts. Deployed 2026-11-13 as qrewing v8 (ACTIVE, verify_jwt=false, via MCP) after supervisor PASS + qa OK; deployed source = 288dbea except an escape-only EMOJI_RE line (deployed copies 68/68). Rollback target v7 (9e697f9). Live check by qa pending.
+- Verified: `node --test supabase/functions/qrewing/qrewing.test.ts` 68/68; tsc strict: only the pre-existing `npm:` import errors in index.ts. Deployed 2026-11-13 as qrewing v8 (ACTIVE, verify_jwt=false, via MCP) after supervisor PASS + qa OK; deployed source = 288dbea except an escape-only EMOJI_RE line (deployed copies 68/68). Rollback target v7 (9e697f9). Superseded by v9–v11 (see the summary above).
 - **Known debt:** calendar_add usage is logged as action 'ask' with room_id = caller id (`calendarUsage` in core.ts), because 0029 allows only triage|recap|match|ask and counts by room. Counts only, no text. Replace with action 'calendar' and a per-user count in a future migration.
 
 ## 2026-11-12 (afternoon): spec 9, spec 10 and a11y on local main 78a9cfe (not pushed)
