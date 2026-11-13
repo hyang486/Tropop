@@ -36,3 +36,17 @@ test('diary modal: the close button does not wrap the card (VoiceOver would hide
   assert.ok(!src.slice(card, src.indexOf('</Modal>', card)).includes('</Pressable>'), 'card must not sit inside the close Pressable');
   assert.match(src, /onAccessibilityEscape=\{\(\) => setDiary\(null\)\}/);
 });
+
+test('diary card: the room icon is an ink line icon beside the name, not a color emoji in the title', () => {
+  const screen = readFileSync(new URL('../src/features/calendar/calendar-screen.tsx', import.meta.url), 'utf8');
+  const card = screen.slice(screen.indexOf('<DiaryCard'), screen.indexOf('/>', screen.indexOf('<DiaryCard')));
+  assert.match(card, /\btitle=\{diary\.name\}/);
+  assert.match(card, /\bicon=\{diary\.emoji\}/);
+  assert.doesNotMatch(card, /title=\{`\$\{diary\.emoji\}/);
+  const paper = readFileSync(new URL('../src/components/calendar/ruled-diary-paper.tsx', import.meta.url), 'utf8');
+  assert.match(paper, /\{icon \? <InkIcon emoji=\{icon\}/);
+  // Decorative: the InkIcon itself is hidden from VoiceOver, and the card label never includes the emoji.
+  const ink = readFileSync(new URL('../src/components/calendar/ink-icon.tsx', import.meta.url), 'utf8');
+  assert.match(ink, /accessibilityElementsHidden|importantForAccessibility="no(-hide-descendants)?"/);
+  assert.doesNotMatch(card.slice(card.indexOf('accessibilityLabel')), /diary\.emoji/);
+});

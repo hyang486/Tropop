@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { HAND_FONTS } from '@/components/hand-title';
 import { handFontFor } from '@/lib/hand-font';
 
+import { InkIcon } from './ink-icon';
 import { pencilStrokes } from './sketch';
 import { useCalendarColors } from './tokens';
 
@@ -62,11 +63,13 @@ export function RuledDiaryPaper({
 
 /**
  * Qrewing Calendar: a past room's diary, handwritten on pencil-ruled paper: a title, a date line, then up to 3 lines of
- * the first-person recap (extra lines are dropped). Read by VoiceOver as one element.
+ * the first-person recap (extra lines are dropped). `icon` (the room's emoji) draws its ink line icon before the
+ * title; it is decorative, since the label already names the room. Read by VoiceOver as one element.
  */
 export function DiaryCard({
   width,
   title,
+  icon,
   dateLine,
   lines,
   accessibilityLabel,
@@ -74,6 +77,7 @@ export function DiaryCard({
 }: {
   width: number;
   title: string;
+  icon?: string;
   dateLine: string;
   lines: string[];
   accessibilityLabel?: string;
@@ -90,9 +94,12 @@ export function DiaryCard({
       style={style}
     >
       <RuledDiaryPaper width={width} lines={2 + Math.max(shown.length, 1)} seed={title}>
-        <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={[styles.title, { color: colors.ink }, font(title)]}>
-          {title}
-        </Text>
+        <View style={styles.titleRow}>
+          {icon ? <InkIcon emoji={icon} size={26} /> : null}
+          <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={[styles.title, { color: colors.ink }, font(title)]}>
+            {title}
+          </Text>
+        </View>
         <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={[styles.date, { color: colors.ink }, font(dateLine)]}>
           {dateLine}
         </Text>
@@ -109,7 +116,8 @@ export function DiaryCard({
 const styles = StyleSheet.create({
   paper: { borderRadius: 4, overflow: 'hidden' },
   content: { paddingTop: DIARY_PAD_TOP, paddingBottom: PAD_BOTTOM, paddingLeft: PAD_X, paddingRight: PAD_X },
-  title: { fontSize: 28, lineHeight: DIARY_LINE_HEIGHT },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, height: DIARY_LINE_HEIGHT },
+  title: { flexShrink: 1, fontSize: 28, lineHeight: DIARY_LINE_HEIGHT },
   date: { fontSize: 19, lineHeight: DIARY_LINE_HEIGHT, opacity: 0.75 },
   line: { fontSize: 23, lineHeight: DIARY_LINE_HEIGHT },
   fallback: { fontWeight: '300' },

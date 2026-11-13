@@ -286,7 +286,8 @@ function CalendarMonth({ uid }: { uid: string }) {
           {diary ? (
             <DiaryCard
               width={Math.min(360, width + 24 || 340)}
-              title={`${diary.emoji} ${diary.name}`}
+              title={diary.name}
+              icon={diary.emoji}
               dateLine={rangeLabel(diary.start, diary.end, thisYear)}
               lines={diaryText(diary.diary, t.diaryNone)}
               accessibilityLabel={spokenJoin([diary.name, rangeLabel(diary.start, diary.end, thisYear), ...diaryText(diary.diary, t.diaryNone)])}
