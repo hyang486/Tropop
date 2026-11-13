@@ -27,7 +27,7 @@ import { useAuth } from '@/lib/auth';
 import { useNow } from '@/lib/use-now';
 
 import { calendarGate, calendarItems, parseCalendarAdd, type RoomSnapshot } from './calendar-data';
-import { dayTitle, diaryText, monthTitle, rangeLabel, weekdayLabels } from './calendar-format';
+import { dayTitle, diaryText, monthTitle, rangeLabel, spokenJoin, weekdayLabels } from './calendar-format';
 import {
   type CalItem,
   cellOf,
@@ -277,7 +277,7 @@ function CalendarMonth({ uid }: { uid: string }) {
               title={`${diary.emoji} ${diary.name}`}
               dateLine={rangeLabel(diary.start, diary.end, thisYear)}
               lines={diaryText(diary.diary, t.diaryNone)}
-              accessibilityLabel={[diary.name, rangeLabel(diary.start, diary.end, thisYear), ...diaryText(diary.diary, t.diaryNone)].join('. ')}
+              accessibilityLabel={spokenJoin([diary.name, rangeLabel(diary.start, diary.end, thisYear), ...diaryText(diary.diary, t.diaryNone)])}
             />
           ) : null}
         </View>

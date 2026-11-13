@@ -50,3 +50,9 @@ export function keyToLocalDate(key: DateKey): Date {
 export function localDateToKey(date: Date): DateKey {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
+
+/** VoiceOver text from parts: ". " between them, but no period after a part that already ends in . ! ? or …. */
+export function spokenJoin(parts: readonly string[]): string {
+  const kept = parts.map((p) => p.trim()).filter((p) => p.length > 0);
+  return kept.map((p, i) => (i < kept.length - 1 && !/[.!?…]$/.test(p) ? `${p}.` : p)).join(' ');
+}
