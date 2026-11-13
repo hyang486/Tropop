@@ -9,6 +9,7 @@ import { QField, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { paceSnapshot, paceStartPoint } from '@/features/pace/engine';
 import { en } from '@/i18n/en';
+import { myFirstSharedPoint } from '@/lib/location';
 import { supabase } from '@/lib/supabase';
 
 import { ASK_FAKE, fakeAskInvoke } from './ask-fake';
@@ -161,7 +162,7 @@ export function AskScreen() {
 
 /**
  * My own activity in this room for `me` (spec 10.3), and the progress `anchor` (bug b: the place pin, else my own
- * start point); nothing when the room read fails.
+ * start point, else s11: my first point shared in this room); nothing when the room read fails.
  */
 async function myAskContext(roomId: string) {
   try {
@@ -172,7 +173,7 @@ async function myAskContext(roomId: string) {
       .maybeSingle();
     if (!data) return { me: null, anchor: undefined };
     const place = data.place_lat != null && data.place_lng != null ? { latitude: data.place_lat, longitude: data.place_lng } : null;
-    return { me: paceSnapshot(data), anchor: askAnchor(place, paceStartPoint(data)) };
+    return { me: paceSnapshot(data), anchor: askAnchor(place, paceStartPoint(data), myFirstSharedPoint(roomId)) };
   } catch {
     return { me: null, anchor: undefined };
   }
