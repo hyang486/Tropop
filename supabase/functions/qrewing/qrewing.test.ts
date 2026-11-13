@@ -60,7 +60,7 @@ import {
   type StoredMatch,
   type TriageRow,
 } from './core.ts';
-import { cut, esc, recapRefreshUser, triageUser } from './prompts.ts';
+import { ASK_SYSTEM, cut, DIARY_SYSTEM, esc, RECAP_REFRESH_SYSTEM, RECAP_SYSTEM, recapRefreshUser, triageUser } from './prompts.ts';
 
 const NOW = new Date('2026-11-12T20:00:00.000Z');
 const ROOM = '11111111-1111-4111-8111-111111111111';
@@ -1104,12 +1104,12 @@ test('ask parseBody: question 1..300 after trim; history up to 4 turns; tz defau
 test('ask friendlyTime: local, relative to now in tz; 12 h for en, 24 h for ko; questionLang by Hangul', () => {
   const now = new Date('2026-11-12T21:28:00.000Z'); // Thu Nov 12, 1:28 PM in Los Angeles; Fri Nov 13 06:28 in Seoul
   const LA = 'America/Los_Angeles';
-  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'en'), 'today at 1:28 PM');
-  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'en', true), 'Thu, Nov 12 at 1:28 PM');
-  assert.equal(friendlyTime('2026-11-13T17:00:00.000Z', LA, now, 'en'), 'tomorrow at 9:00 AM');
-  assert.equal(friendlyTime('2026-11-14T08:05:00.000Z', LA, now, 'en'), 'Sat, Nov 14 at 12:05 AM');
-  assert.equal(friendlyTime('2026-11-12T07:59:00.000Z', LA, now, 'en'), 'yesterday at 11:59 PM');
-  assert.equal(friendlyTime('2027-01-02T20:00:00.000Z', LA, now, 'en'), 'Sat, Jan 2, 2027 at 12:00 PM');
+  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'en'), '1:28 PM today');
+  assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'en', true), '1:28 PM on Thu, Nov 12');
+  assert.equal(friendlyTime('2026-11-13T17:00:00.000Z', LA, now, 'en'), '9:00 AM tomorrow');
+  assert.equal(friendlyTime('2026-11-14T08:05:00.000Z', LA, now, 'en'), '12:05 AM on Sat, Nov 14');
+  assert.equal(friendlyTime('2026-11-12T07:59:00.000Z', LA, now, 'en'), '11:59 PM yesterday');
+  assert.equal(friendlyTime('2027-01-02T20:00:00.000Z', LA, now, 'en'), '12:00 PM on Sat, Jan 2, 2027');
   assert.equal(friendlyTime('2026-11-12T21:28:00.000Z', LA, now, 'ko'), '오늘 13:28');
   assert.equal(friendlyTime('2026-11-13T17:00:00.000Z', LA, now, 'ko'), '내일 09:00');
   assert.equal(friendlyTime('2026-11-15T00:30:00.000Z', LA, now, 'ko'), '11월 14일 (토) 16:30');
@@ -1191,7 +1191,7 @@ test('ask context: facts in local tz, consenting chat and entry answers, me and 
     '<status>On my way</status>', '<activity>active</activity>', '<asker is_host="false">Bob</asker>',
     '<me distanceM="2500" paceSecPerKm="340" activity="stopped"/>', '<history>\n<turn><q>Who hosts?</q><a>Hana hosts.</a></turn>\n</history>',
     '] Hana: Meet at the boathouse 7:30', '] You: see you', '<question>Where do we meet?</question>',
-    '<tz>America/Los_Angeles</tz>', '<now>Thu, Nov 12 at 12:00 PM</now>']) {
+    '<tz>America/Los_Angeles</tz>', '<now>12:00 PM on Thu, Nov 12</now>']) {
     assert.ok(u.includes(s), `missing ${s}`);
   }
   assert.ok(!u.includes(NOW.toISOString()), 'UTC instant sent instead of local time');
@@ -1261,8 +1261,8 @@ const PROMPT_WORLD = () =>
     messages: [msg(1, HOST, 'Meet at the boathouse 7:30', 30), msg(2, CAT, 'bring water', 20), msg(3, BOB, 'see you', 10), msg(4, null, 'Host started', 5, 'system')],
   });
 const PROMPT_BODY = ASK('Where do we meet?', { me: { distanceM: 2500, paceSecPerKm: 340, activity: 'moving' }, history: [{ q: 'Who hosts?', a: 'Hana.' }], tz: 'America/Los_Angeles' });
-/** sha256 of the ask user prompt for PROMPT_WORLD/PROMPT_BODY, captured from the sequential code before the latency change; recaptured for E2E (a)(b)(g)(h). */
-const SEQUENTIAL_PROMPT_SHA = 'b3ae16286749d0826d48c15af5033c68799e184e5d29278460e607e79ec31c1f';
+/** sha256 of the ask user prompt for PROMPT_WORLD/PROMPT_BODY, captured from the sequential code before the latency change; recaptured for E2E (a)(b)(g)(h) and the clock-first time phrase. */
+const SEQUENTIAL_PROMPT_SHA = '7cec5c194816e47eadae309306f06f6342a07f79c10c6c2029658cb178779c71';
 
 test('ask latency: the prompt is byte-identical to the sequential version whatever order the reads finish in', async () => {
   const names = Object.keys(store(world()));
@@ -1457,6 +1457,23 @@ test('parseAnchor: absent is null, a valid point passes, anything else is invali
     assert.equal(parseAnchor(bad), undefined, JSON.stringify(bad));
   }
   assert.equal(parseBody({ action: 'ask', roomId: ROOM, question: 'q', tz: 'UTC', anchor: { lat: 100, lng: 0 } }), null);
+});
+
+test('friendlyTime (en) starts with the clock, so "at <time>" never doubles a preposition', () => {
+  const now = new Date('2026-11-13T20:00:00.000Z');
+  for (const iso of ['2026-11-13T11:23:00.000Z', '2026-11-12T11:23:00.000Z', '2026-11-14T11:23:00.000Z', '2026-11-20T11:23:00.000Z', '2027-01-02T20:00:00.000Z']) {
+    const phrase = friendlyTime(iso, 'America/Los_Angeles', now, 'en');
+    assert.match(phrase, /^\d{1,2}:\d{2} [AP]M( today| yesterday| tomorrow| on [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}(, \d{4})?)$/, phrase);
+  }
+  assert.equal(friendlyTime('2026-11-13T11:23:00.000Z', 'America/Los_Angeles', now, 'en'), '3:23 AM today');
+});
+
+test('recap, recap refresh, diary and ask prompts forbid guessing gender', () => {
+  for (const [name, sys] of Object.entries({ RECAP_SYSTEM, RECAP_REFRESH_SYSTEM, DIARY_SYSTEM, ASK_SYSTEM })) {
+    assert.ok(sys.includes("Never guess anyone's gender"), name);
+    assert.ok(sys.includes('they/them') && sys.includes('그녀'), name);
+    assert.ok(!/\b(he|she|him|her|his|himself|herself)\b/i.test(sys.replace(/Never guess[^.]*\./, '')), `${name}: gendered word`);
+  }
 });
 
 // ------------------------------------------------------------------------------------------- Qrewing Calendar (Plus)

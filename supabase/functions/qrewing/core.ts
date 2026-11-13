@@ -401,7 +401,7 @@ function localParts(d: Date, tz: string) {
 }
 
 /**
- * Friendly local time for the ask context: "today at 1:28 PM" / "Fri, Nov 13 at 9:00 AM" (en, 12 h) or
+ * Friendly local time for the ask context: "1:28 PM today" / "9:00 AM on Fri, Nov 13" (en, 12 h) or
  * "오늘 13:28" / "11월 13일 (금) 09:00" (ko, 24 h). Relative words only for yesterday/today/tomorrow, relative to `now`
  * in `tz`; the year is added when it differs from now's. `absolute` skips the relative words (used for <now> itself).
  */
@@ -418,8 +418,9 @@ export function friendlyTime(isoStr: string, tz: string, now: Date, lang: AskLan
   }
   const clock = `${t.h % 12 === 0 ? 12 : t.h % 12}:${mm} ${t.h < 12 ? 'AM' : 'PM'}`;
   const rel = absolute ? null : ({ [-1]: 'yesterday', 0: 'today', 1: 'tomorrow' } as Record<number, string>)[diff];
-  if (rel) return `${rel} at ${clock}`;
-  return `${WEEKDAYS[t.wd]}, ${MONTHS[t.m - 1]} ${t.day}${t.y !== n.y ? `, ${t.y}` : ''} at ${clock}`;
+  // Clock first, so a preposition the model adds reads right: "at 1:28 PM today", never "at today at 1:28 PM".
+  if (rel) return `${clock} ${rel}`;
+  return `${clock} on ${WEEKDAYS[t.wd]}, ${MONTHS[t.m - 1]} ${t.day}${t.y !== n.y ? `, ${t.y}` : ''}`;
 }
 
 export function parseBody(raw: unknown): Body | null {
