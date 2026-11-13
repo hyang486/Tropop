@@ -145,6 +145,7 @@ function cueText(cue: ChosenCue): string {
     case 'km':
       return t.cueKm(cue.km, cue.pace, cue.target);
     case 'gap':
+      if (cue.mode === 'pickUp') return t.cueGapPickUp(cue.gapM);
       return cue.pace == null ? t.cueGapKeep(cue.gapM) : t.cueGap(cue.gapM, cue.pace);
     case 'slow':
       return t.cueSlow(cue.pace, cue.target);
@@ -184,7 +185,7 @@ export function feedFixes(key: string, batch: PaceFix[], ctx: FeedContext) {
     lastSplitS: tracker.splits.length ? tracker.splits[tracker.splits.length - 1] : null,
     recentSecPerKm: recent,
     targetSecPerKm: ctx.targetSecPerKm,
-    gap: gapCue(ctx.userId, runners, ctx.targetSecPerKm),
+    gap: gapCue(ctx.userId, runners, ctx.targetSecPerKm, recent),
     stopped: run.stationary.openSinceMs != null || standingStill(fixes, tracker.seenAtMs),
   });
   run = { ...run, cues: chosen.schedule };
