@@ -15,6 +15,7 @@ import {
   clearUserCalendar,
   deleteEvent,
   emptyDoc,
+  mayWrite,
   type EventInput,
   mergeRooms,
   parseDoc,
@@ -22,6 +23,9 @@ import {
   upsertEvent,
 } from './calendar-data';
 
+// Who is signed in, from auth events (update() and setPlusPreview() skip writes for anyone else).
+let currentUid: string | null = null;
+let authKnown = false;
 const docs = new Map<string, CalendarDoc>();
 const plus = new Map<string, boolean>();
 const listeners = new Set<() => void>();
@@ -51,6 +55,7 @@ async function loadDoc(uid: string): Promise<CalendarDoc> {
 /** Read, change and write the user's doc in order; failures keep the in-memory copy (never block the app). */
 function update(uid: string, change: (doc: CalendarDoc) => CalendarDoc): Promise<void> {
   return serial(async () => {
+    if (!mayWrite(uid, currentUid, authKnown)) return;
     const next = change(await loadDoc(uid));
     docs.set(uid, next);
     emit();
@@ -103,6 +108,7 @@ async function loadPlus(uid: string): Promise<boolean> {
 }
 
 export async function setPlusPreview(uid: string, on: boolean) {
+  if (!mayWrite(uid, currentUid, authKnown)) return;
   plus.set(uid, on);
   emit();
   try {
@@ -127,8 +133,8 @@ export function usePlusPreview(uid: string | null | undefined): boolean | null {
 
 // Sign-out and account deletion (deleteAccount and the account-gone check both end in signOut) emit SIGNED_OUT:
 // remove that user's calendar and Plus preview keys. INITIAL_SESSION on subscribe tells us who is signed in.
-let currentUid: string | null = null;
 supabase.auth.onAuthStateChange((event, session) => {
+  authKnown = true;
   if (session?.user.id) currentUid = session.user.id;
   if (event !== 'SIGNED_OUT' || !currentUid) return;
   const uid = currentUid;

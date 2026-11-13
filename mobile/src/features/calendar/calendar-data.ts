@@ -169,6 +169,14 @@ export function calendarItems(doc: CalendarDoc): CalItem[] {
   ];
 }
 
+/**
+ * A queued write for `uid` runs only while that user is signed in: after SIGNED_OUT cleared the keys, a late
+ * recap or rooms sync must not write them back. Before the first auth event (`authKnown` false) writes pass.
+ */
+export function mayWrite(uid: string, currentUid: string | null, authKnown: boolean): boolean {
+  return !authKnown || uid === currentUid;
+}
+
 /** Sign-out and account deletion: both of the user's keys go. */
 export async function clearUserCalendar(storage: { multiRemove(keys: string[]): Promise<void> }, uid: string) {
   await storage.multiRemove([calendarKey(uid), plusPreviewKey(uid)]);

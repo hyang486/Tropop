@@ -104,3 +104,10 @@ test('calendarGate: Plus preview on shows the calendar; off, unread or signed ou
   assert.equal(d.calendarGate(null, true), 'loading');
   assert.equal(d.calendarGate(true, false), 'upsell');
 });
+
+test('mayWrite: after sign-out a late write for the old user is skipped; before any auth event it passes', () => {
+  assert.equal(d.mayWrite('u1', 'u1', true), true);
+  assert.equal(d.mayWrite('u1', null, true), false); // signed out, keys cleared
+  assert.equal(d.mayWrite('u1', 'u2', true), false); // another user signed in since
+  assert.equal(d.mayWrite('u1', null, false), true); // listener not told yet (cold start)
+});
