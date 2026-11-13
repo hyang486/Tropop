@@ -114,6 +114,11 @@ export function paceSnapshot(room: { id: string; activity_state: string; activit
   return currentPaceSnapshot({ activityRunning: room.activity_state === 'active', tracker, nowMs });
 }
 
+/** My own start point in this room's current activity (engine anchor when there is no place pin); null when unmeasured. */
+export function paceStartPoint(room: { id: string; activity_seq: number }): Point | null {
+  return runs.get(runKey(room.id, room.activity_seq))?.tracker.firstPoint ?? null;
+}
+
 /** My in-memory sessions in this room (any activity), for a recap built before or while they are saved. */
 export function liveSessions(roomId: string): PaceSession[] {
   const out: PaceSession[] = [];

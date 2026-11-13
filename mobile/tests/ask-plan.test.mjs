@@ -120,3 +120,25 @@ test('the store appends up to 30 turns and purges one room or every stale room',
   await store.purgeStaleAskHistories(['b']);
   assert.deepEqual([...globalThis.__askStore.keys()].sort(), ['other.key', 'qrewing.ask.v1.b']);
 });
+
+test('askAnchor (bug b): place pin first, else my own start point, else left out', () => {
+  const pin = { latitude: 37.5, longitude: 127.0 };
+  const start = { latitude: 37.6, longitude: 126.9 };
+  assert.deepEqual(plan.askAnchor(pin, start), { lat: 37.5, lng: 127.0 });
+  assert.deepEqual(plan.askAnchor(null, start), { lat: 37.6, lng: 126.9 });
+  assert.equal(plan.askAnchor(null, null), undefined);
+  assert.equal(plan.askAnchor(undefined, undefined), undefined);
+  // Out of range or non-finite values are never sent (the server answers 400 to them).
+  assert.deepEqual(plan.askAnchor({ latitude: 91, longitude: 0 }, start), { lat: 37.6, lng: 126.9 });
+  assert.equal(plan.askAnchor({ latitude: NaN, longitude: 0 }, { latitude: 0, longitude: 181 }), undefined);
+});
+
+test('askBody: anchor is sent as {lat,lng} only when known', () => {
+  assert.deepEqual(plan.askBody('r1', 'q', [], null, undefined, { lat: 1, lng: 2 }), {
+    action: 'ask',
+    roomId: 'r1',
+    question: 'q',
+    anchor: { lat: 1, lng: 2 },
+  });
+  assert.equal('anchor' in plan.askBody('r1', 'q', [], null, 'UTC'), false);
+});

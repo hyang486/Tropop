@@ -57,6 +57,7 @@ export async function askQrewing(
   history: readonly AskTurn[],
   me?: AskMe | null,
   invoke: (body: Record<string, unknown>) => Promise<Invoke<unknown>> = invokeQrewing,
+  anchor?: { lat: number; lng: number },
 ): Promise<{ answer: string } | { error: AskError }> {
   let tz: string | undefined;
   try {
@@ -64,7 +65,7 @@ export async function askQrewing(
   } catch {
     tz = undefined;
   }
-  const res = await invoke(askBody(roomId, question, history, me, tz));
+  const res = await invoke(askBody(roomId, question, history, me, tz, anchor));
   if ('error' in res) return { error: askErrorKind(res.error) };
   const ok = parseAskAnswer(res.data);
   return ok ? { answer: ok.answer } : { error: 'ai_failed' };
