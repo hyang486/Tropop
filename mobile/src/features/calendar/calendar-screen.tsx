@@ -20,6 +20,7 @@ import {
   useCalendarColors,
 } from '@/components/calendar';
 import { HAND_FONTS } from '@/components/hand-title';
+import { InkIcon } from '@/components/calendar/ink-icon';
 import { QCard, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
@@ -237,7 +238,7 @@ function CalendarMonth({ uid }: { uid: string }) {
         </View>
 
         {selected ? (
-          <QCard>
+          <View style={styles.dayList}>
             <Text style={styles.dayHead} accessibilityRole="header">
               {dayTitle(selected)}
             </Text>
@@ -250,7 +251,7 @@ function CalendarMonth({ uid }: { uid: string }) {
                 onPress={() => openItem(item)}
                 style={styles.dayRow}
               >
-                <Text style={styles.dayEmoji}>{item.emoji}</Text>
+                <InkIcon emoji={item.emoji} size={24} />
                 <View style={styles.flex}>
                   <Text style={styles.dayTitle} numberOfLines={2}>
                     {item.title}
@@ -264,7 +265,7 @@ function CalendarMonth({ uid }: { uid: string }) {
                 ) : null}
               </Pressable>
             ))}
-          </QCard>
+          </View>
         ) : null}
       </QScreen>
 
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
   more: { position: 'absolute', right: 4, top: 2, fontSize: 13, lineHeight: 16 },
   dayHead: { fontSize: 15, fontWeight: '600', color: colors.label },
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  dayEmoji: { fontSize: 22 },
+  dayList: { gap: 8, paddingHorizontal: 4 },
   dayTitle: { fontSize: 16, color: colors.label },
   daySub: { fontSize: 13, color: colors.secondaryLabel },
   fab: { position: 'absolute', width: FAB, height: FAB, borderRadius: FAB / 2 },

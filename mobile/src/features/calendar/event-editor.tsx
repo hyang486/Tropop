@@ -7,6 +7,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { InkIcon } from '@/components/calendar/ink-icon';
+import { inkIconKey, inkIconLabel } from '@/components/calendar/ink-icon-map';
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
@@ -38,7 +40,8 @@ export function EventEditor() {
   const [problem, setProblem] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
   useAnnounce(problem, tries);
-  const emojis = EVENT_EMOJIS.includes(emoji) ? EVENT_EMOJIS : [emoji, ...EVENT_EMOJIS];
+  // An emoji outside the grid (a sentence's pick) shows as the grid icon it maps to; it is kept until another is tapped.
+  const picked = inkIconKey(emoji);
   const editing = !!existing;
 
   async function save() {
@@ -97,16 +100,16 @@ export function EventEditor() {
       <DateRow label={t.endLabel} value={end} onChange={setEnd} />
       <QLabel>{t.emojiLabel}</QLabel>
       <View style={styles.emojis} accessibilityRole="radiogroup" accessibilityLabel={t.emojiLabel}>
-        {emojis.map((e) => (
+        {EVENT_EMOJIS.map((e) => (
           <Pressable
             key={e}
             accessibilityRole="radio"
-            accessibilityLabel={e}
-            accessibilityState={{ selected: e === emoji }}
+            accessibilityLabel={inkIconLabel(e)}
+            accessibilityState={{ selected: inkIconKey(e) === picked }}
             onPress={() => setEmoji(e)}
-            style={[styles.emoji, e === emoji && { borderColor: colors.tint, backgroundColor: colors.field }]}
+            style={[styles.emoji, inkIconKey(e) === picked && { borderColor: colors.tint, backgroundColor: colors.field }]}
           >
-            <Text style={styles.emojiText}>{e}</Text>
+            <InkIcon emoji={e} size={26} />
           </Pressable>
         ))}
       </View>
@@ -146,5 +149,4 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  emojiText: { fontSize: 26 },
 });
