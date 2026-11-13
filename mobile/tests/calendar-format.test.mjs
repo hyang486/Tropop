@@ -18,3 +18,15 @@ test('labels never shift the key day', () => {
 test('date picker round trip holds on DST change days', () => {
   for (const k of ['2026-03-08', '2026-11-01', '2026-12-31', '2028-02-29']) assert.equal(f.localDateToKey(f.keyToLocalDate(k)), k);
 });
+
+test('rangeLabel without Intl formatRange (Hermes): no crash, same labels', () => {
+  const saved = Intl.DateTimeFormat.prototype.formatRange;
+  delete Intl.DateTimeFormat.prototype.formatRange;
+  try {
+    assert.equal(f.rangeLabel('2026-11-15', '2026-11-17', 2026, 'en-US'), 'Nov 15 – 17');
+    assert.equal(f.rangeLabel('2026-11-30', '2026-12-02', 2026, 'en-US'), 'Nov 30 – Dec 2');
+    assert.equal(f.rangeLabel('2026-12-30', '2027-01-02', 2026, 'en-US'), 'Dec 30, 2026 – Jan 2, 2027');
+  } finally {
+    Intl.DateTimeFormat.prototype.formatRange = saved;
+  }
+});

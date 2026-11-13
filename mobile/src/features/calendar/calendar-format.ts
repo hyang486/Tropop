@@ -22,7 +22,10 @@ export function rangeLabel(start: DateKey, end: DateKey, thisYear: number, local
   const withYear = ys !== thisYear || ye !== thisYear;
   const f = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' });
   if (start === end) return f.format(utcDate(start));
-  return f.formatRange(utcDate(start), utcDate(end));
+  // Hermes (the app's engine) has no Intl.DateTimeFormat.formatRange: build the range by hand there.
+  if (typeof f.formatRange === 'function') return f.formatRange(utcDate(start), utcDate(end));
+  if (!withYear && start.slice(0, 7) === end.slice(0, 7)) return `${f.format(utcDate(start))} – ${+end.slice(8, 10)}`;
+  return `${f.format(utcDate(start))} – ${f.format(utcDate(end))}`;
 }
 
 /** Short weekday names from `weekStartsOn` (0 = Sunday). */
