@@ -114,11 +114,13 @@ export function PeopleScreen() {
       ) : state.status === 'pending' ? (
         <Hint>{state.final ? s.pendingFinal : s.pending}</Hint>
       ) : state.status === 'error' ? (
-        <Hint tone="error">
-          {notConsented ? s.notConsented : state.error === 'no_entry' ? s.noEntry : en.qrewing.errors[state.error]}
-        </Hint>
+        state.error === 'no_entry' && !notConsented ? (
+          <EmptyState title={s.noEntryTitle} body={s.noEntry} />
+        ) : (
+          <Hint tone="error">{notConsented ? s.notConsented : en.qrewing.errors[state.error]}</Hint>
+        )
       ) : state.result.matches.length === 0 ? (
-        <Hint>{s.empty}</Hint>
+        <EmptyState title={s.emptyTitle} body={s.empty} />
       ) : (
         <>
           {state.error ? (
@@ -148,7 +150,22 @@ export function PeopleScreen() {
   );
 }
 
+/** UI audit 7: a neutral empty state; the screen's one pinned action is its CTA. */
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyTitle} accessibilityRole="header">
+        {title}
+      </Text>
+      <Text style={styles.emptyBody}>{body}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  empty: { alignItems: 'center', gap: 8, paddingVertical: 48, paddingHorizontal: 16 },
+  emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label, textAlign: 'center' },
+  emptyBody: { fontSize: 15, color: colors.secondaryLabel, textAlign: 'center' },
   center: { alignItems: 'center', gap: 12, paddingVertical: 24 },
   name: { fontSize: 17, fontWeight: '600', color: colors.label },
   headline: { fontSize: 15, color: colors.secondaryLabel },
