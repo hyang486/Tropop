@@ -303,7 +303,7 @@ type Body =
   | { action: 'recap'; roomId: string; refresh: boolean; diary: boolean }
   | { action: 'calendar_add'; text: string; today: string; tz: string }
   | { action: 'match'; roomId: string }
-  | { action: 'ask'; roomId: string; question: string; history: AskTurn[]; me: AskMe | null; tz: string };
+  | { action: 'ask'; roomId: string; question: string; history: AskTurn[]; me: AskMe | null; tz: string; anchor: GeoPoint | null };
 
 const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 /** Trimmed text of 1..max code points, else null. */
@@ -329,6 +329,20 @@ export function parseMe(raw: unknown): AskMe | null | undefined {
     out.activity = raw.activity;
   }
   return out;
+}
+
+export type GeoPoint = { lat: number; lng: number };
+
+/**
+ * E2E (b): the asker's pace anchor (where their activity started), the same one the pace screen uses when the room
+ * has no route and no place pin. undefined = invalid (400). Absent = null. Never forwarded to the model.
+ */
+export function parseAnchor(raw: unknown): GeoPoint | null | undefined {
+  if (raw === undefined || raw === null) return null;
+  if (!isObj(raw)) return undefined;
+  const { lat, lng } = raw;
+  if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
+  return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : undefined;
 }
 
 /** undefined = invalid. Up to 4 turns of {q, a}, each 1..300 chars after trim; extra keys dropped. */
@@ -442,8 +456,9 @@ export function parseBody(raw: unknown): Body | null {
       const history = parseHistory(b.history);
       const me = parseMe(b.me);
       const tz = parseTz(b.tz);
-      if (!roomOk || question === null || history === undefined || me === undefined || tz === undefined) return null;
-      return { action: 'ask', roomId: b.roomId as string, question, history, me, tz };
+      const anchor = parseAnchor(b.anchor);
+      if (!roomOk || question === null || history === undefined || me === undefined || tz === undefined || anchor === undefined) return null;
+      return { action: 'ask', roomId: b.roomId as string, question, history, me, tz, anchor };
     }
     default:
       return null;
@@ -1211,7 +1226,7 @@ export function compactPerson(name: string, p: Pick<EntryProfile, 'answers' | 'h
  * usage row (token counts) is written. Context: room facts, chat of consenting members, entry answers of consenting
  * members (links never), the asker's own `me` snapshot and their on-device history. Never user ids, coordinates or links.
  */
-async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: AskMe | null; tz: string }): Promise<Reply> {
+async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: AskMe | null; tz: string; anchor?: GeoPoint | null }): Promise<Reply> {
   const { store, room, now } = ctx;
   const lang = questionLang(body.question);
   const contextStart = ctx.clock();
@@ -1272,7 +1287,7 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
   // E2E (h): the asker is "You" everywhere in the context, never their own name.
   const who = (id: string) => (id === ctx.userId ? 'You' : flatCut(nameOf(id), MATCH_FIELD_MAX.name));
   const at = (isoStr: string) => friendlyTime(isoStr, body.tz, now, lang);
-  const group = groupView(extras, positions.filter((p) => memberSet.has(p.userId)), ctx.userId, ok, nameOf, now.getTime());
+  const group = groupView(extras, positions.filter((p) => memberSet.has(p.userId)), ctx.userId, ok, nameOf, now.getTime(), body.anchor ?? null);
   const { questions, keyOf } = matchLegend(questionRows);
   const compact = people.map((p) => compactPerson(nameOf(p.userId), p, keyOf));
   if (compact.some((c) => c.legacy)) questions.push(...LEGACY_QUESTIONS.map(({ key, kind, prompt }) => ({ key, kind, prompt })));
@@ -1381,6 +1396,7 @@ export function groupView(
   allowed: (id: string) => boolean,
   nameOf: (id: string) => string,
   nowMs: number,
+  anchor: GeoPoint | null = null,
 ): AskGroup | null {
   if (extras.activityState !== 'active' || !extras.locationAllowed) return null;
   const route = extras.route.filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lng));
@@ -1391,12 +1407,16 @@ export function groupView(
     if (fresh) seen.add(p.userId);
     return fresh;
   });
+  // Same order as the pace screen: route, else the place pin, else the asker's own start point.
+  const origin = extras.place ?? anchor;
+  const basis = route.length >= 2 ? 'route' : extras.place ? 'place' : anchor ? 'start' : 'none';
   const progressOf = (p: LivePosition): number | null =>
-    route.length >= 2 ? progressAlongRoute(p, route) : extras.place ? haversineM(extras.place, p) : null;
+    route.length >= 2 ? progressAlongRoute(p, route) : origin ? haversineM(origin, p) : null;
   const rows = live.map((p) => ({ p, progressM: progressOf(p) }));
   const ranked = rows.filter((r) => r.progressM !== null) as { p: LivePosition; progressM: number }[];
   const frontM = ranked.length ? Math.max(...ranked.map((r) => r.progressM)) : null;
-  const inLead = (r: { progressM: number | null }) => frontM !== null && r.progressM !== null && r.progressM >= frontM - LEAD_GROUP_SPAN_M;
+  // Unknown (left out of the XML) without a front; never a false "not in the lead group".
+  const inLead = (r: { progressM: number | null }) => (frontM === null || r.progressM === null ? undefined : r.progressM >= frontM - LEAD_GROUP_SPAN_M);
   const moving = (p: LivePosition) => (p.speedMps === null || !Number.isFinite(p.speedMps) ? undefined : p.speedMps >= MOVING_MPS);
   const seenS = (p: LivePosition) => Math.max(0, Math.round((nowMs - Date.parse(p.updatedAt)) / 1000));
   const me = rows.find((r) => r.p.userId === askerId) ?? null;
@@ -1407,7 +1427,7 @@ export function groupView(
     .slice(0, ASK_GROUP_MAX);
   return {
     sharing: live.length,
-    basis: route.length >= 2 ? 'route' : extras.place ? 'place' : 'none',
+    basis,
     lead: frontM === null ? null : {
       names: leadRows.map((r) => (r.p.userId === askerId ? 'You' : flatCut(nameOf(r.p.userId), MATCH_FIELD_MAX.name))),
       frontM: round10(frontM),

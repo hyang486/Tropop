@@ -12,6 +12,7 @@ import {
   matchCandidates,
   matchFailCooldownMs,
   parseBody,
+  parseAnchor,
   parseMe,
   parseHistory,
   parseTz,
@@ -1079,7 +1080,7 @@ const ASK = (question: string, extra: Record<string, unknown> = {}) => ({ action
 const answer = (a: string) => () => ({ text: JSON.stringify({ answer: a }) });
 
 test('ask parseBody: question 1..300 after trim; history up to 4 turns; tz default UTC', () => {
-  assert.deepEqual(parseBody(ASK('  When do we start? ')), { action: 'ask', roomId: ROOM, question: 'When do we start?', history: [], me: null, tz: 'UTC' });
+  assert.deepEqual(parseBody(ASK('  When do we start? ')), { action: 'ask', roomId: ROOM, question: 'When do we start?', history: [], me: null, tz: 'UTC', anchor: null });
   assert.equal(parseBody(ASK('   ')), null);
   assert.equal(parseBody(ASK('x'.repeat(ASK_TEXT_MAX + 1))), null);
   assert.ok(parseBody(ASK('가'.repeat(ASK_TEXT_MAX))));
@@ -1414,6 +1415,48 @@ test('E2E (b) ask: no <group> when location is off or no activity runs; stale an
   const u = await ask(w);
   assert.match(u, /<group sharing_members="1" progress_from="route">/);
   assert.ok(!u.includes('<member '), 'stale or non-sharing member listed');
+});
+
+test('E2E (b) ask: no route or place pin; asker behind two leaders, measured from the asker\'s start point', async () => {
+  // Live shape (room 41c17aeb, Dani): no route, no place. Before the fix every flag was in_lead_group="false".
+  const w = world({
+    positions: [
+      POS(HOST, 37.8090, 5, 3.3), // ~1,000 m from the start: leader
+      POS(CAT, 37.8091, 5, 3.3), // ~1,010 m: leader
+      POS(BOB, 37.8084, 5, 3.0), // ~930 m: asker, ~80 m behind the front
+    ],
+  });
+  w.extras = { ...w.extras, locationAllowed: true, route: [], place: null };
+  const { m, calls } = model(answer('ok'));
+  await run(w, m, BOB, ASK('Where is everyone?', { anchor: { lat: 37.8, lng: -122.26 } }));
+  const u = calls[0].user;
+  assert.match(u, /<group sharing_members="3" progress_from="start">/);
+  assert.match(u, /<lead_group members="Cat, Hana" front_m="1010" rear_m="1000"\/>/);
+  assert.match(u, /<you progress_m="930" in_lead_group="false" gap_to_lead_m="80" /);
+  assert.match(u, /<member name="Cat" progress_m="1010" in_lead_group="true" from_you_m="80" /);
+  assert.match(u, /<member name="Hana" progress_m="1000" in_lead_group="true" from_you_m="70" /);
+  assert.ok(!u.includes('37.8') && !u.includes('122.26'), 'coordinates sent');
+});
+
+test('E2E (b) ask: no route, place pin or start point: the order is unknown, never a false "not in the lead group"', async () => {
+  const w = world({ positions: [POS(HOST, 37.8090, 5, 3.3), POS(CAT, 37.8091, 5, 3.3), POS(BOB, 37.8084, 5, 3.0)] });
+  w.extras = { ...w.extras, locationAllowed: true, route: [], place: null };
+  const { m, calls } = model(answer('ok'));
+  await run(w, m, BOB, ASK('Where is everyone?'));
+  const u = calls[0].user;
+  assert.match(u, /<group sharing_members="3" progress_from="none">\n<lead_group known="false"\/>/);
+  assert.ok(!u.includes('in_lead_group') && !u.includes('gap_to_lead_m'), 'lead flags without a basis');
+  assert.match(u, /<member name="Hana" from_you_m="70" /);
+  assert.ok(calls[0].system.includes('<lead_group known="false"/>'), 'rule for an unknown order');
+});
+
+test('parseAnchor: absent is null, a valid point passes, anything else is invalid', () => {
+  assert.equal(parseAnchor(undefined), null);
+  assert.deepEqual(parseAnchor({ lat: 37.77, lng: -122.47, x: 1 }), { lat: 37.77, lng: -122.47 });
+  for (const bad of [{ lat: 91, lng: 0 }, { lat: 0, lng: 181 }, { lat: '1', lng: 0 }, { lat: NaN, lng: 0 }, [1, 2], 'x']) {
+    assert.equal(parseAnchor(bad), undefined, JSON.stringify(bad));
+  }
+  assert.equal(parseBody({ action: 'ask', roomId: ROOM, question: 'q', tz: 'UTC', anchor: { lat: 100, lng: 0 } }), null);
 });
 
 // ------------------------------------------------------------------------------------------- Qrewing Calendar (Plus)
