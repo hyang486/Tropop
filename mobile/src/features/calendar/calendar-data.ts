@@ -130,8 +130,12 @@ export function applyRecap(
   const base = doc.rooms[roomId] ? doc : room ? mergeRooms(doc, [room], timeZone) : null;
   if (!base) return doc;
   const prev = base.rooms[roomId];
+  const good = Array.isArray(recap.diary) && cleanDiary(recap.diary).length > 0;
+  // Past the server's diary cap (or a failed diary) the body has diary null and the type's fallback emoji, so a
+  // saved good diary and its emoji are kept; null only marks "no diary yet" and is asked again next time.
+  if (!good && Array.isArray(prev.diary) && prev.diary.length > 0) return base;
   const emoji = str(recap.emoji, 16) ?? prev.emoji;
-  const diary = Array.isArray(recap.diary) ? cleanDiary(recap.diary) : recap.diary === null ? (prev.diary ?? null) : prev.diary;
+  const diary = good ? cleanDiary(recap.diary as unknown[]) : null;
   return { ...base, rooms: { ...base.rooms, [roomId]: { ...prev, emoji, diary } } };
 }
 
@@ -181,4 +185,11 @@ export function parseCalendarAdd(data: unknown): EventInput | null {
     emoji: typeof ev.emoji === 'string' ? ev.emoji : '',
   };
   return checkEvent(input) ? null : input;
+}
+
+/** Plus gating (local preview flag): loading while unread, the upsell when off, the calendar when on. */
+export function calendarGate(plus: boolean | null, signedIn: boolean): 'loading' | 'upsell' | 'calendar' {
+  if (!signedIn) return 'upsell';
+  if (plus === null) return 'loading';
+  return plus ? 'calendar' : 'upsell';
 }

@@ -89,3 +89,18 @@ test('parseCalendarAdd accepts the 200 shape and rejects a bad one', () => {
   assert.equal(d.parseCalendarAdd({ event: { title: 'x', start: '2026-11-21', end: '2026-11-20', emoji: '🍜' } }), null);
   assert.equal(d.parseCalendarAdd(null), null);
 });
+
+test('applyRecap: a capped diary (null + fallback emoji) never replaces a saved good diary', () => {
+  let doc = d.mergeRooms(d.emptyDoc(), [room('a')], tz);
+  doc = d.applyRecap(doc, 'a', { emoji: '🌅', diary: ['We ran by the sea.'] });
+  const after = d.applyRecap(doc, 'a', { emoji: '🏃', diary: null });
+  assert.equal(after.rooms.a.emoji, '🌅');
+  assert.deepEqual(after.rooms.a.diary, ['We ran by the sea.']);
+});
+
+test('calendarGate: Plus preview on shows the calendar; off, unread or signed out shows the upsell or waits', () => {
+  assert.equal(d.calendarGate(true, true), 'calendar');
+  assert.equal(d.calendarGate(false, true), 'upsell');
+  assert.equal(d.calendarGate(null, true), 'loading');
+  assert.equal(d.calendarGate(true, false), 'upsell');
+});

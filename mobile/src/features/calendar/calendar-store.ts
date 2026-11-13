@@ -69,11 +69,11 @@ export function saveRecapToCalendar(uid: string, roomId: string, recap: { emoji?
   return update(uid, (doc) => applyRecap(doc, roomId, recap));
 }
 
-/** True when this room's diary was never saved, so the recap call should ask for one (Plus preview only). */
+/** True while this room has no good diary saved, so the recap call asks for one (Plus preview only; capped server-side). */
 export async function wantsDiary(uid: string, roomId: string): Promise<boolean> {
   if (!(await loadPlus(uid))) return false;
   const room = (await loadDoc(uid)).rooms[roomId];
-  return !room || room.diary === undefined;
+  return !room || !Array.isArray(room.diary) || room.diary.length === 0;
 }
 
 export const saveEvent = (uid: string, id: string, e: EventInput) => update(uid, (doc) => upsertEvent(doc, id, e));
