@@ -4,7 +4,7 @@ import { createHmac, createHash } from 'node:crypto';
 import test from 'node:test';
 
 import { DETECT_TTL_MS, detectObjectPath, isDetectObjectName, staleDetectObjects } from '../_shared/detect.ts';
-import { MAX_ATTEMPTS, processBatch, type FaceStore, type Job } from './core.ts';
+import { DEFAULT_SIMILARITY_THRESHOLD, MAX_ATTEMPTS, processBatch, type FaceStore, type Job } from './core.ts';
 import { FaceProviderError, type FaceProvider } from './provider.ts';
 import { classifyAwsError, createRekognitionProvider } from './rekognition.ts';
 import { signV4 } from './sigv4.ts';
@@ -373,8 +373,8 @@ test('Rekognition detail: box size only (no position, landmarks or face ids), fl
 test('face_compare log: only the allowed fields, no bytes/paths/user or enrollment ids; match rule unchanged', async () => {
   const cases = [
     { sim: 95, had: true, matched: true, outcome: 'matched', detail: { qualityFilter: 'AUTO', providerFloor: 80, matches: [{ similarity: 95.04, box: { w: 0.2, h: 0.25 } }], unmatched: [{ box: { w: 0.1, h: 0.1 } }] } },
-    { sim: 89.96, had: true, matched: false, outcome: 'below_threshold', detail: { qualityFilter: 'AUTO', providerFloor: 80, matches: [{ similarity: 89.96, box: { w: 0.09, h: 0.1 } }], unmatched: [] } },
-    { sim: 90, had: true, matched: true, outcome: 'matched', detail: undefined },
+    { sim: 81.96, had: true, matched: false, outcome: 'below_threshold', detail: { qualityFilter: 'AUTO', providerFloor: 72, matches: [{ similarity: 81.96, box: { w: 0.09, h: 0.1 } }], unmatched: [] } },
+    { sim: 82, had: true, matched: true, outcome: 'matched', detail: undefined },
     { sim: null, had: true, matched: false, outcome: 'below_floor', detail: { qualityFilter: 'AUTO', providerFloor: 80, matches: [], unmatched: [{ box: { w: 0.08, h: 0.1 } }] } },
     { sim: null, had: false, matched: false, outcome: 'no_face_returned', detail: { qualityFilter: 'AUTO', providerFloor: 80, matches: [], unmatched: [] } },
   ];
@@ -385,7 +385,7 @@ test('face_compare log: only the allowed fields, no bytes/paths/user or enrollme
       limit: 1,
       log: (event, f) => logs.push({ event, f }),
     });
-    // Match rule and stored result unchanged: >= 90 matches, the raw similarity is saved.
+    // Match rule and stored result unchanged: >= 82 matches, the raw similarity is saved.
     assert.deepEqual(store.saved.map((x) => [x.sim, x.matched]), [[c.sim, c.matched]]);
     assert.equal(s.matched, c.matched ? 1 : 0);
     const line = logs.filter((l) => l.event === 'face_compare');
@@ -395,7 +395,7 @@ test('face_compare log: only the allowed fields, no bytes/paths/user or enrollme
     assert.equal(f.room, ROOM);
     assert.equal(f.media, M);
     assert.equal(f.target, 'detect');
-    assert.equal(f.threshold, 90);
+    assert.equal(f.threshold, 82);
     assert.equal(f.matched, c.matched);
     assert.equal(f.outcome, c.outcome);
     assert.equal(f.best_similarity, c.sim === null ? null : Math.round(c.sim * 10) / 10);
@@ -403,6 +403,16 @@ test('face_compare log: only the allowed fields, no bytes/paths/user or enrollme
     for (const face of f.faces as Record<string, unknown>[]) assert.deepEqual(Object.keys(face).sort(), ['box', 'i', 'returned', 'similarity']);
     const text = JSON.stringify(f);
     for (const leak of [E, DETECT, PREVIEW, 'face-refs', 'detect/', 'Left', 'Top']) assert.ok(!text.includes(leak), leak);
+  }
+});
+
+test('default threshold is 82: 81.99 is no match, 82 and the p04 scores 83.3/89.0 match', async () => {
+  assert.equal(DEFAULT_SIMILARITY_THRESHOLD, 82);
+  for (const [sim, matched] of [[81.99, false], [82, true], [83.3, true], [89.0, true], [null, false]] as const) {
+    const store = makeStore({ enrollments: [E], jobs: [uJob()], photos: { [M]: PREVIEW }, objects: { [DETECT]: bytes(4) } });
+    const s = await processBatch(store, fake(async () => ({ similarity: sim, targetHadFace: true })), { limit: 1 });
+    assert.deepEqual(store.saved.map((x) => [x.sim, x.matched]), [[sim, matched]], String(sim));
+    assert.equal(s.matched, matched ? 1 : 0);
   }
 });
 
