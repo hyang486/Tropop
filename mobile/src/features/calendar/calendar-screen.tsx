@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   cell: { position: 'absolute', paddingTop: 2, paddingHorizontal: 4 },
   dayNum: { fontSize: 13, fontVariant: ['tabular-nums'] },
   today: { fontWeight: '800', textDecorationLine: 'underline' },
-  more: { position: 'absolute', right: 4, bottom: 2, fontSize: 11, fontWeight: '600' },
+  more: { position: 'absolute', right: 4, top: 3, fontSize: 11, fontWeight: '600' },
   dayHead: { fontSize: 15, fontWeight: '600', color: colors.label },
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   dayEmoji: { fontSize: 22 },

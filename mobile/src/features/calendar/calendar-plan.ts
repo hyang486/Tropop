@@ -115,7 +115,7 @@ export function itemsInMonth(items: readonly CalItem[], year: number, month0: nu
 
 /**
  * The shown month's items as week-row segments. Ranges are clipped to the month and wrapped per row; each row
- * stacks its segments in lanes (an item keeps one lane within a row). Segments in lane >= MAX_LANES are
+ * stacks its segments in lanes (an item keeps one lane within a row unless it is split at full days). Segments in lane >= MAX_LANES are
  * returned too, and the screen shows them as "+N" (see overflowByDay).
  */
 export function layoutMonth(items: readonly CalItem[], grid: MonthGrid): Segment[] {
@@ -134,20 +134,45 @@ export function layoutMonth(items: readonly CalItem[], grid: MonthGrid): Segment
       const rowEndDay = Math.min(endDay, day + (6 - col));
       const colEnd = cellOf(grid, rowEndDay).col;
       const lanes = taken.get(row) ?? [];
-      let lane = 0;
-      while (lanes[lane]?.some((v, i) => i % 2 === 0 && !(colEnd < v || col > lanes[lane][i + 1]))) lane++;
-      (lanes[lane] ??= []).push(col, colEnd);
       taken.set(row, lanes);
-      out.push({
-        itemId: it.id,
-        row,
-        colStart: col,
-        colEnd,
-        capStart: day === startDay && it.start >= first,
-        capEnd: rowEndDay === endDay && daysBetween(first, it.end) + 1 <= grid.days,
-        lane,
-        emoji: midDay >= day && midDay <= rowEndDay,
-      });
+      const busy = (lane: number, a: number, b: number) =>
+        lanes[lane]?.some((v, i) => i % 2 === 0 && !(b < v || a > lanes[lane][i + 1])) ?? false;
+      const lowest = (a: number, b: number) => {
+        let lane = 0;
+        while (busy(lane, a, b)) lane++;
+        return lane;
+      };
+      // One lane for the whole row when a drawn lane is free; otherwise split at the full days, so the room is
+      // hidden ("+N") only where all drawn lanes are taken (draw test F1).
+      const runs: [number, number, number][] = [];
+      const whole = lowest(col, colEnd);
+      if (whole < MAX_LANES) runs.push([col, colEnd, whole]);
+      else {
+        let c = col;
+        while (c <= colEnd) {
+          const lane = lowest(c, c);
+          let e = c;
+          if (lane < MAX_LANES) while (e < colEnd && !busy(lane, e + 1, e + 1)) e++;
+          else while (e < colEnd && lowest(e + 1, e + 1) >= MAX_LANES) e++;
+          runs.push([c, e, lane < MAX_LANES ? lane : lowest(c, e)]);
+          c = e + 1;
+        }
+      }
+      for (const [a, b, lane] of runs) {
+        (lanes[lane] ??= []).push(a, b);
+        const aDay = day + (a - col);
+        const bDay = day + (b - col);
+        out.push({
+          itemId: it.id,
+          row,
+          colStart: a,
+          colEnd: b,
+          capStart: aDay === startDay && it.start >= first,
+          capEnd: bDay === endDay && daysBetween(first, it.end) + 1 <= grid.days,
+          lane,
+          emoji: midDay >= aDay && midDay <= bDay,
+        });
+      }
       day = rowEndDay + 1;
     }
   }

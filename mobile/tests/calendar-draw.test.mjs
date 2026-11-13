@@ -76,19 +76,25 @@ test('month boundary: each item covers exactly its days inside the month, one ro
         want.add(`${row}:${col}`);
       }
       const got = new Set();
-      const rows = new Set();
+      const drawnRows = new Set();
       for (const s of mine) {
         assert.ok(s.colStart <= s.colEnd && s.colStart >= 0 && s.colEnd <= 6);
-        assert.ok(!rows.has(s.row), `${it.id}: one segment per row`);
-        rows.add(s.row);
-        for (let c = s.colStart; c <= s.colEnd; c++) got.add(`${s.row}:${c}`);
+        // A row may be split at full days (hidden there), but each cell is covered once and drawn at most once per row.
+        if (s.lane < MAX_LANES) {
+          assert.ok(!drawnRows.has(s.row), `${it.id}: one drawn segment per row`);
+          drawnRows.add(s.row);
+        }
+        for (let c = s.colStart; c <= s.colEnd; c++) {
+          assert.ok(!got.has(`${s.row}:${c}`), `${it.id}: cell covered once`);
+          got.add(`${s.row}:${c}`);
+        }
       }
       assert.deepEqual([...got].sort(), [...want].sort(), `${it.id} cells in ${y}-${m0 + 1}`);
-      const sorted = [...mine].sort((a, b) => a.row - b.row);
+      const sorted = [...mine].sort((a, b) => a.row - b.row || a.colStart - b.colStart);
       assert.equal(sorted[0].capStart, it.start >= first, `${it.id} start cap`);
       assert.equal(sorted.at(-1).capEnd, it.end <= last, `${it.id} end cap`);
-      for (const s of sorted.slice(1)) assert.equal(s.capStart, false, 'week wrap has no start cap');
-      for (const s of sorted.slice(0, -1)) assert.equal(s.capEnd, false, 'week wrap has no end cap');
+      for (const s of sorted.slice(1)) assert.equal(s.capStart, false, 'week wrap or split has no start cap');
+      for (const s of sorted.slice(0, -1)) assert.equal(s.capEnd, false, 'week wrap or split has no end cap');
       assert.equal(mine.filter((s) => s.emoji).length, 1, `${it.id}: exactly one emoji`);
     }
   }
