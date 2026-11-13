@@ -422,11 +422,13 @@ function createStore(admin: any): QrewingStore {
       return typeof n === 'number' ? n : 0;
     },
     async roomExtras(roomId) {
-      const r = must(await admin.from('rooms').select('activity_state, route').eq('id', roomId).maybeSingle(), 'room_extras');
-      const labels = must(
-        await admin.from('status_definitions').select('label').eq('room_id', roomId).order('sort'),
-        'status_labels',
-      );
+      // Both reads at once; must() in the old order, so the same error is logged and thrown.
+      const [roomRes, labelRes] = await Promise.all([
+        admin.from('rooms').select('activity_state, route').eq('id', roomId).maybeSingle(),
+        admin.from('status_definitions').select('label').eq('room_id', roomId).order('sort'),
+      ]);
+      const r = must(roomRes, 'room_extras');
+      const labels = must(labelRes, 'status_labels');
       return {
         activityState: r?.activity_state ?? 'idle',
         route: Array.isArray(r?.route) ? r.route : [],
@@ -437,6 +439,7 @@ function createStore(admin: any): QrewingStore {
 }
 
 Deno.serve(async (req) => {
+  const startedAt = Date.now();
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
 
   // Pass the token to getUser explicitly (face-match note, 2026-11-06).
@@ -448,11 +451,12 @@ Deno.serve(async (req) => {
     const asUser = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
     const { data: userData, error: userErr } = await asUser.auth.getUser(token);
     if (userErr || !userData.user) return json(401, { error: 'unauthorized' });
+    const authMs = Date.now() - startedAt;
 
     const rawBody = await req.json().catch(() => null);
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-    const reply = await handle({ store: createStore(admin), model: apiKey ? createModel(apiKey) : null, log }, userData.user.id, rawBody);
+    const reply = await handle({ store: createStore(admin), model: apiKey ? createModel(apiKey) : null, log, startedAt, authMs }, userData.user.id, rawBody);
     return json(reply.status, reply.body);
   } catch (e) {
     // DB errors (logged by must) and anything unexpected: no detail to the client.

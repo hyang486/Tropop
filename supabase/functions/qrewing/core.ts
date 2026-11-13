@@ -242,6 +242,10 @@ export type Deps = {
   model: Model | null;
   now?: () => Date;
   log?: (event: string, fields: Record<string, string | number | boolean>) => void;
+  /** Latency log (ask): ms clock, request start and the getUser time measured by the caller. */
+  clock?: () => number;
+  startedAt?: number;
+  authMs?: number;
 };
 export type Reply = { status: number; body: unknown };
 
@@ -401,14 +405,23 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
   if (!deps.model) return { status: 503, body: { error: 'ai_not_configured' } };
   if (body.action === 'probe' && body.roomId === null) return { status: 200, body: { ok: true } };
 
-  const room = await deps.store.room(body.roomId!);
+  const clock = deps.clock ?? Date.now;
+  const gateStart = clock();
+  // Latency: the three gate reads start together; their results are checked in the old sequential order (got()).
+  const [roomS, memberS, aiS] = await Promise.allSettled([
+    deps.store.room(body.roomId!),
+    deps.store.isMember(body.roomId!, userId),
+    deps.store.aiEnabled(body.roomId!),
+  ]);
+  const room = got(roomS);
   const reachable = room && (isOpen(room, now) || (body.action === 'recap' && inGrace(room, now)));
-  if (!room || !reachable || !(await deps.store.isMember(room.id, userId))) {
+  if (!room || !reachable || !got(memberS)) {
     return { status: 403, body: { error: 'not_member' } };
   }
-  if (!(await deps.store.aiEnabled(room.id))) return { status: 403, body: { error: 'ai_off' } };
+  if (!got(aiS)) return { status: 403, body: { error: 'ai_off' } };
 
-  const ctx: Ctx = { ...deps, model: deps.model, now, log: deps.log ?? (() => {}), room, userId };
+  const authMs = (deps.authMs ?? 0) + (clock() - gateStart);
+  const ctx: Ctx = { ...deps, model: deps.model, now, log: deps.log ?? (() => {}), room, userId, clock, startedAt: deps.startedAt ?? gateStart, authMs };
   switch (body.action) {
     case 'probe':
       return { status: 200, body: { ok: true } };
@@ -424,6 +437,15 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
 }
 
 type Ctx = Required<Omit<Deps, 'model' | 'now'>> & { model: Model; now: Date; room: RoomInfo; userId: string };
+
+/**
+ * A settled read's value, or its error rethrown. Reads start together (Promise.allSettled) and are unwrapped with got()
+ * in the old sequential order, so an earlier gate still wins and a failed read still throws (→ 500) as before.
+ */
+function got<T>(s: PromiseSettledResult<T>): T {
+  if (s.status === 'rejected') throw s.reason;
+  return s.value;
+}
 
 const AI_FAILED: Reply = { status: 502, body: { error: 'ai_failed' } };
 
@@ -961,24 +983,28 @@ export function compactPerson(name: string, p: Pick<EntryProfile, 'answers' | 'h
 async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: AskMe | null; tz: string }): Promise<Reply> {
   const { store, room, now } = ctx;
   const lang = questionLang(body.question);
-  const consents = await store.consents(room.id);
-  if (consents.get(ctx.userId)?.aiOk !== true) return { status: 403, body: { error: 'not_consented' } };
-
+  const contextStart = ctx.clock();
   const since = new Date(now.getTime() - ASK_WINDOW_MS).toISOString();
-  const [usedByUser, usedByRoom] = await Promise.all([
+  // Latency: all reads start together; unwrapped in the old order (consent gate → caps → context), so the replies match.
+  const [consentsS, userS, roomUseS, extrasS, membersS, msgsS, questionsS, profilesS] = await Promise.allSettled([
+    store.consents(room.id),
     store.usageCountSince(room.id, 'ask', since, ctx.userId),
     store.usageCountSince(room.id, 'ask', since),
-  ]);
-  if (usedByUser >= ASK_USER_CAP || usedByRoom >= ASK_ROOM_CAP) return { status: 429, body: { error: 'ask_limit' } };
-
-  const ok = (id: string | null) => !!id && consents.get(id)?.aiOk === true;
-  const [extras, members, msgsRaw, questionRows, profiles] = await Promise.all([
     store.roomExtras(room.id),
     store.memberIds(room.id),
     store.latestText(room.id, ASK_CHAT_LINES * 2),
     store.entryQuestions(room.id),
     store.entryProfiles(room.id),
   ]);
+  const consents = got(consentsS);
+  if (consents.get(ctx.userId)?.aiOk !== true) return { status: 403, body: { error: 'not_consented' } };
+
+  const usedByUser = got(userS);
+  const usedByRoom = got(roomUseS);
+  if (usedByUser >= ASK_USER_CAP || usedByRoom >= ASK_ROOM_CAP) return { status: 429, body: { error: 'ask_limit' } };
+
+  const ok = (id: string | null) => !!id && consents.get(id)?.aiOk === true;
+  const [extras, members, msgsRaw, questionRows, profiles] = [got(extrasS), got(membersS), got(msgsS), got(questionsS), got(profilesS)];
   const memberSet = new Set(members);
   // Newest first: keep consenting lines until ASK_CHAT_LINES or about ASK_CHAT_CHARS, then oldest first.
   const msgs: typeof msgsRaw = [];
@@ -1016,6 +1042,7 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
     statusLabels: extras.statusLabels,
     activityState: extras.activityState,
   };
+  const modelStart = ctx.clock();
   const r = await callModel(ctx, 'ask', {
     model: ASK_MODEL,
     effort: 'low',
@@ -1034,6 +1061,15 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
     }),
     schema: ASK_SCHEMA,
   }, ctx.userId);
+  const end = ctx.clock();
+  // Integers only: no question/answer text, tokens or user ids.
+  ctx.log('ask_timing', {
+    model_ok: r.ok,
+    auth_ms: Math.round(ctx.authMs),
+    context_ms: Math.round(modelStart - contextStart),
+    model_ms: Math.round(end - modelStart),
+    total_ms: Math.round(end - ctx.startedAt),
+  });
   if (!r.ok) return AI_FAILED;
   const answer = (r.data as { answer?: unknown } | null)?.answer;
   if (typeof answer !== 'string' || !answer.trim()) {
