@@ -1,5 +1,6 @@
 // qrewing Edge Function (contract: planning/QREWING_AI_SPEC_EN.md sections 2 and 7.2). Deployed with verify_jwt=false.
-// verify_jwt=false with the in-function JWT check, like face-match. Actions: probe, triage, recap, match.
+// verify_jwt=false with the in-function JWT check, like face-match. Actions: probe, triage, recap (+diary), match, ask,
+// calendar_add (no room: auth only, before the room gates).
 // Secret ANTHROPIC_API_KEY is set by the human; it is never logged or returned. Without it every call except an
 // unscoped probe after auth returns 503 ai_not_configured before any DB write, so deploying makes no AI calls.
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.

@@ -3,6 +3,14 @@
 // "who is the caller" lives here so it can be unit tested with a fake store and a fake model (qrewing.test.ts).
 import {
   ASK_MODEL,
+  CALENDAR_MODEL,
+  CALENDAR_SCHEMA,
+  CALENDAR_SYSTEM,
+  calendarUser,
+  DIARY_MODEL,
+  DIARY_SCHEMA,
+  DIARY_SYSTEM,
+  diaryUser,
   ASK_SCHEMA,
   ASK_SYSTEM,
   askUser,
@@ -83,6 +91,17 @@ export const ASK_ME_RANGES = {
   distanceM: [0, 1_000_000],
   paceSecPerKm: [0, 3600],
 } as const;
+/** Qrewing Calendar: the per-member diary (a second small call on top of the shared recap). Counted per user per room. */
+export const DIARY_USER_CAP = 3;
+export const DIARY_LINES = 3;
+export const DIARY_LINE_MAX = 90;
+/** Always-present emoji when the diary call is skipped, fails or returns no single emoji. Keys = rooms.type values. */
+export const ROOM_TYPE_EMOJI: Record<string, string> = { sports: '🏃', event: '🎉', waiting: '⏳', general: '💬' };
+/** Qrewing Calendar: calendar_add caps and limits. */
+export const CALENDAR_USER_CAP = 20;
+export const CALENDAR_TEXT_MAX = 300;
+export const CALENDAR_TITLE_MAX = 60;
+export const CALENDAR_SPAN_DAYS = 366;
 /** input_hash prefix of a qrewing_matches row that a caller is computing (no new column; 0027 is frozen). */
 export const MATCH_PENDING_PREFIX = 'pending:';
 /**
@@ -281,7 +300,8 @@ export type Reply = { status: number; body: unknown };
 type Body =
   | { action: 'probe'; roomId: string | null }
   | { action: 'triage'; roomId: string; messageIds: string[] }
-  | { action: 'recap'; roomId: string; refresh: boolean }
+  | { action: 'recap'; roomId: string; refresh: boolean; diary: boolean }
+  | { action: 'calendar_add'; text: string; today: string; tz: string }
   | { action: 'match'; roomId: string }
   | { action: 'ask'; roomId: string; question: string; history: AskTurn[]; me: AskMe | null; tz: string };
 
@@ -405,7 +425,16 @@ export function parseBody(raw: unknown): Body | null {
     }
     case 'recap':
       if (!roomOk || (b.refresh !== undefined && typeof b.refresh !== 'boolean')) return null;
-      return { action: 'recap', roomId: b.roomId as string, refresh: b.refresh === true };
+      if (b.diary !== undefined && typeof b.diary !== 'boolean') return null;
+      return { action: 'recap', roomId: b.roomId as string, refresh: b.refresh === true, diary: b.diary === true };
+    case 'calendar_add': {
+      const text = askText(b.text, CALENDAR_TEXT_MAX);
+      const today = typeof b.today === 'string' ? dayNumber(b.today) : null;
+      // tz is required here (no UTC default): "this Saturday" depends on it.
+      const tz = b.tz === undefined || b.tz === null ? undefined : parseTz(b.tz);
+      if (text === null || today === null || tz === undefined) return null;
+      return { action: 'calendar_add', text, today: b.today as string, tz };
+    }
     case 'match':
       return roomOk ? { action: 'match', roomId: b.roomId as string } : null;
     case 'ask': {
@@ -433,6 +462,8 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
   if (!body) return { status: 400, body: { error: 'bad_request' } };
   if (!deps.model) return { status: 503, body: { error: 'ai_not_configured' } };
   if (body.action === 'probe' && body.roomId === null) return { status: 200, body: { ok: true } };
+  // No room: authenticated user only (index.ts checked the JWT). No Plus check here; the server has no plan data.
+  if (body.action === 'calendar_add') return calendarAdd({ ...deps, model: deps.model, now, log: deps.log ?? (() => {}) }, userId, body);
 
   const clock = deps.clock ?? Date.now;
   const gateStart = clock();
@@ -456,8 +487,10 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
       return { status: 200, body: { ok: true } };
     case 'triage':
       return triage(ctx, body.messageIds);
-    case 'recap':
-      return body.refresh ? recapRefresh(ctx) : recap(ctx);
+    case 'recap': {
+      const res = await (body.refresh ? recapRefresh(ctx) : recap(ctx));
+      return body.diary ? withDiary(ctx, res) : res;
+    }
     case 'match':
       return match(ctx);
     case 'ask':
@@ -480,7 +513,8 @@ const AI_FAILED: Reply = { status: 502, body: { error: 'ai_failed' } };
 
 /** One model call with the shared rules: usage logged, refusal/max_tokens/invalid JSON = failure (no retry). */
 async function callModel(
-  ctx: Ctx,
+  /** room.id = the usage row's room_id (calendar_add passes its usage key, see calendarUsage). */
+  ctx: Pick<Ctx, 'model' | 'store' | 'log'> & { room: { id: string } },
   action: UsageAction,
   req: ModelRequest,
   userId?: string,
@@ -874,6 +908,144 @@ function cleanRecap(data: unknown): { title: string; summary: string; highlights
 
 function recapBody(r: RecapRow, cached: boolean) {
   return { state: 'done', title: r.title, summary: r.summary, highlights: r.highlights ?? [], generatedAt: r.updatedAt, cached };
+}
+
+// ---------------------------------------------------------------------------------------------- calendar (Plus)
+
+/**
+ * Qrewing Calendar, recap diary. Runs only on a 200 recap with diary:true, as a second small call per member: the
+ * shared room_recaps row is cached per room, so a per-member diary cannot ride in that call. Input = the stored
+ * (consent-clean) recap + the caller's own display name only if they consented. Nothing stored. Logged as 'recap' with
+ * user_id (the room-level recap rows have none, so only diary calls count); DIARY_USER_CAP per user per room per 24 h.
+ * `emoji` is always present: the diary call's emoji when it returned exactly one, else ROOM_TYPE_EMOJI[room.type].
+ * Any diary failure (cap, store error, model error, bad output) gives diary: null, never a non-200 for the recap.
+ */
+async function withDiary(ctx: Ctx, res: Reply): Promise<Reply> {
+  if (res.status !== 200) return res;
+  const recap = res.body as ReturnType<typeof recapBody>;
+  const fallback = ROOM_TYPE_EMOJI[ctx.room.type] ?? ROOM_TYPE_EMOJI.general;
+  let emoji = fallback;
+  let diary: string[] | null = null;
+  try {
+    const since = new Date(ctx.now.getTime() - ASK_WINDOW_MS).toISOString();
+    if ((await ctx.store.usageCountSince(ctx.room.id, 'recap', since, ctx.userId)) >= DIARY_USER_CAP) {
+      ctx.log('diary_capped', { cap: DIARY_USER_CAP });
+    } else {
+      const consents = await ctx.store.consents(ctx.room.id);
+      const name = consents.get(ctx.userId)?.aiOk === true ? (await ctx.store.displayNames([ctx.userId])).get(ctx.userId) : undefined;
+      const r = await callModel(ctx, 'recap', {
+        model: DIARY_MODEL,
+        effort: 'low',
+        maxTokens: 1024,
+        system: DIARY_SYSTEM,
+        user: diaryUser({
+          roomName: ctx.room.name,
+          roomType: ctx.room.type,
+          me: name ? flatCut(name, 40) || null : null,
+          recap: { title: recap.title ?? '', summary: recap.summary ?? '', highlights: recap.highlights ?? [] },
+        }),
+        schema: DIARY_SCHEMA,
+      }, ctx.userId);
+      if (r.ok) {
+        const d = cleanDiary(r.data);
+        emoji = d.emoji ?? fallback;
+        diary = d.diary;
+      }
+    }
+  } catch {
+    ctx.log('diary_failed', {});
+  }
+  return { status: 200, body: { ...recap, emoji, diary } };
+}
+
+/** Model diary output → one emoji (or null) and 1..DIARY_LINES clean lines (or null when none survive). */
+export function cleanDiary(data: unknown): { emoji: string | null; diary: string[] | null } {
+  const d = data as { emoji?: unknown; diary?: unknown } | null;
+  const lines = (Array.isArray(d?.diary) ? d!.diary : [])
+    .filter((l): l is string => typeof l === 'string')
+    .map((l) => flatCut(cleanText(l), DIARY_LINE_MAX))
+    .filter((l) => l !== '')
+    .slice(0, DIARY_LINES);
+  return { emoji: oneEmoji(d?.emoji), diary: lines.length > 0 ? lines : null };
+}
+
+/** Exactly one grapheme that is an emoji (pictographic or a flag), else null. */
+export function oneEmoji(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const t = raw.trim();
+  if (!t || t.length > 32) return null;
+  const n = Array.from(new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(t)).length;
+  return n === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(t) ? t : null;
+}
+
+/** Control and bidi-override characters removed (titles and diary lines are shown verbatim on the phone). */
+export function cleanText(s: string): string {
+  return s.replace(/[\p{Cc}​‎‏‪-‮⁦-⁩﻿]/gu, ' ');
+}
+
+/** 'YYYY-MM-DD' of a real calendar date → days since the epoch, else null. */
+export function dayNumber(s: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const t = Date.UTC(y, mo - 1, d);
+  const back = new Date(t);
+  if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d) return null;
+  return t / 86_400_000;
+}
+
+/**
+ * calendar_add is logged as action 'ask' with room_id = caller id; counts only (no text). Replace with action
+ * 'calendar' in a future migration. Known debt: 0029 allows only triage|recap|match|ask and counts by room_id, so this
+ * key is the one no-migration way to count per user. A user id never equals a room id, so these rows never count
+ * toward a real room's ask cap (room_id = room) or a member's in-room ask cap (room_id = room and user_id = member).
+ */
+export function calendarUsage(userId: string): { roomId: string; action: UsageAction } {
+  return { roomId: userId, action: 'ask' };
+}
+
+type CalendarCtx = Pick<Ctx, 'model' | 'store' | 'log' | 'now'>;
+
+/**
+ * Qrewing Calendar: free text → one date-only entry. 200 {event:{title,start,end,emoji}} (end inclusive, ≥ start,
+ * ≤ start + CALENDAR_SPAN_DAYS); 422 unclear; 429 rate_limited (CALENDAR_USER_CAP per 24 h); 502 ai_failed.
+ * The text is never logged or stored.
+ */
+async function calendarAdd(ctx: CalendarCtx, userId: string, body: { text: string; today: string; tz: string }): Promise<Reply> {
+  const key = calendarUsage(userId);
+  const since = new Date(ctx.now.getTime() - ASK_WINDOW_MS).toISOString();
+  if ((await ctx.store.usageCountSince(key.roomId, key.action, since, userId)) >= CALENDAR_USER_CAP) {
+    return { status: 429, body: { error: 'rate_limited' } };
+  }
+  const weekday = WEEKDAYS[new Date(dayNumber(body.today)! * 86_400_000).getUTCDay()];
+  const r = await callModel({ ...ctx, room: { id: key.roomId } }, key.action, {
+    model: CALENDAR_MODEL,
+    effort: 'low',
+    maxTokens: 512,
+    system: CALENDAR_SYSTEM,
+    user: calendarUser({ text: body.text, today: body.today, weekday, tz: body.tz }),
+    schema: CALENDAR_SCHEMA,
+  }, userId);
+  if (!r.ok) return r.kind === 'refusal' ? UNCLEAR : AI_FAILED;
+  const event = cleanCalendar(r.data);
+  if (!event) {
+    ctx.log('calendar_unclear', {});
+    return UNCLEAR;
+  }
+  return { status: 200, body: { event } };
+}
+
+const UNCLEAR: Reply = { status: 422, body: { error: 'unclear' } };
+
+/** Strict check of the model's calendar JSON; null (→ unclear) on anything off. */
+export function cleanCalendar(data: unknown): { title: string; start: string; end: string; emoji: string } | null {
+  const d = data as { clear?: unknown; title?: unknown; start?: unknown; end?: unknown; emoji?: unknown } | null;
+  if (d?.clear !== true || typeof d.title !== 'string' || typeof d.start !== 'string' || typeof d.end !== 'string') return null;
+  const title = flatCut(cleanText(d.title), CALENDAR_TITLE_MAX);
+  const s = dayNumber(d.start);
+  const e = dayNumber(d.end);
+  if (!title || s === null || e === null || e < s || e - s > CALENDAR_SPAN_DAYS) return null;
+  return { title, start: d.start, end: d.end, emoji: oneEmoji(d.emoji) ?? '📅' };
 }
 
 // ---------------------------------------------------------------------------------------------- match

@@ -31,6 +31,14 @@ Live test accounts added after the standing set (delete only with human approval
 |---|---|---|---|
 | guest 'Siri Test' | `08936e50-13ed-428e-ac6e-3506ab28a87d` | sim 56FB44E7, room AI Meetup QA | human-approved (qa, 2026-11-12) |
 
+## 2026-11-13: Qrewing Calendar (Plus), server side, branch calendar-qrewing (not deployed, not pushed)
+
+Human decision: USER_DECISIONS_2026-11-04_OPERATIONS_EN.md (Qrewing Calendar). Supervisor approved the two design points.
+- `recap` with `diary: true`: 200 body adds `emoji` (always present) and `diary` (string[1..3], each ≤ 90 chars, or null). Second Haiku call per member over the stored recap; caller named only if consented; nothing stored; logged as 'recap' with user_id; cap 3 per user per room per 24 h. Without `diary` the body is unchanged.
+- `calendar_add` {text ≤ 300, today YYYY-MM-DD, tz IANA}: auth only, no room. 200 {event:{title ≤ 60, start, end (inclusive, ≥ start, ≤ start + 366 d), emoji}}; 422 unclear; 429 rate_limited (20/24 h); 502 ai_failed; 503 ai_not_configured. No Plus check on the server (no plan data).
+- Verified: `node --test supabase/functions/qrewing/qrewing.test.ts` 68/68; tsc strict: only the pre-existing `npm:` import errors in index.ts. Not deployed; rollback target qrewing v7 (9e697f9). Not run against the live model.
+- **Known debt:** calendar_add usage is logged as action 'ask' with room_id = caller id (`calendarUsage` in core.ts), because 0029 allows only triage|recap|match|ask and counts by room. Counts only, no text. Replace with action 'calendar' and a per-user count in a future migration.
+
 ## 2026-11-12 (afternoon): spec 9, spec 10 and a11y on local main 78a9cfe (not pushed)
 
 - Merged (--no-ff): spec 9 entry questions (83397b4, 863129f, 66bb53e, a30765a); spec 10 Qrewing bot (66b98f5,
