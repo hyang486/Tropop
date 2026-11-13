@@ -4,7 +4,7 @@
  * Both keys are removed when the user signs out or the account is deleted (both end in SIGNED_OUT).
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
@@ -84,17 +84,22 @@ export async function wantsDiary(uid: string, roomId: string): Promise<boolean> 
 export const saveEvent = (uid: string, id: string, e: EventInput) => update(uid, (doc) => upsertEvent(doc, id, e));
 export const removeEvent = (uid: string, id: string) => update(uid, (doc) => deleteEvent(doc, id));
 
+/**
+ * Store reads go through useSyncExternalStore: the React Compiler caches plain render reads of module state on
+ * the hook's inputs (uid), which kept a stale null after the first load (2026-11-13 stuck spinner).
+ */
+function subscribe(l: () => void) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+
 export function useCalendar(uid: string | null | undefined): CalendarDoc | null {
-  const [, tick] = useState(0);
   useEffect(() => {
-    const l = () => tick((n) => n + 1);
-    listeners.add(l);
-    if (uid && !docs.has(uid)) void loadDoc(uid).then(l);
-    return () => {
-      listeners.delete(l);
-    };
+    if (uid && !docs.has(uid)) void loadDoc(uid).then(emit);
   }, [uid]);
-  return uid ? (docs.get(uid) ?? null) : null;
+  return useSyncExternalStore(subscribe, () => (uid ? (docs.get(uid) ?? null) : null));
 }
 
 async function loadPlus(uid: string): Promise<boolean> {
@@ -119,16 +124,10 @@ export async function setPlusPreview(uid: string, on: boolean) {
 
 /** The Plus preview flag (null while loading). */
 export function usePlusPreview(uid: string | null | undefined): boolean | null {
-  const [, tick] = useState(0);
   useEffect(() => {
-    const l = () => tick((n) => n + 1);
-    listeners.add(l);
-    if (uid && !plus.has(uid)) void loadPlus(uid).then(l);
-    return () => {
-      listeners.delete(l);
-    };
+    if (uid && !plus.has(uid)) void loadPlus(uid).then(emit);
   }, [uid]);
-  return uid ? (plus.get(uid) ?? null) : null;
+  return useSyncExternalStore(subscribe, () => (uid ? (plus.get(uid) ?? null) : null));
 }
 
 // Sign-out and account deletion (deleteAccount and the account-gone check both end in signOut) emit SIGNED_OUT:
