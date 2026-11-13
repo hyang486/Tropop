@@ -10,7 +10,14 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DiaryCard, HighlighterStroke, highlighterFor, SketchyMonthGrid, useCalendarColors } from '@/components/calendar';
+import {
+  DiaryCard,
+  HighlighterStroke,
+  highlighterFor,
+  primarySegments,
+  SketchyMonthGrid,
+  useCalendarColors,
+} from '@/components/calendar';
 import { QCard, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
@@ -82,6 +89,8 @@ function CalendarMonth({ uid }: { uid: string }) {
   const items = useMemo(() => (doc ? calendarItems(doc) : []), [doc]);
   const segments = useMemo(() => layoutMonth(items, grid), [items, grid]);
   const overflow = useMemo(() => overflowByDay(segments, grid), [segments, grid]);
+  const shown = useMemo(() => segments.filter((s) => s.lane < MAX_LANES), [segments]);
+  const a11yFirst = useMemo(() => primarySegments(shown), [shown]);
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const weekdays = useMemo(() => weekdayLabels(0), []);
   const cellW = width / 7;
@@ -188,9 +197,7 @@ function CalendarMonth({ uid }: { uid: string }) {
                   </Pressable>
                 );
               })}
-              {segments
-                .filter((s) => s.lane < MAX_LANES)
-                .map((s) => {
+              {shown.map((s) => {
                   const item = byId.get(s.itemId)!;
                   return (
                     <View
@@ -213,6 +220,7 @@ function CalendarMonth({ uid }: { uid: string }) {
                         lanePitch={LANE_PITCH}
                         onPress={() => openItem(item)}
                         accessibilityLabel={itemLabel(item)}
+                        a11yPrimary={a11yFirst.has(`${s.itemId}:${s.row}`)}
                       />
                     </View>
                   );

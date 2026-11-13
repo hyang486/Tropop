@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { type Cap, highlighterPath } from './sketch';
+import { type Cap, highlighterPath, strokeA11y } from './sketch';
 import { useCalendarColors } from './tokens';
 
 const MIN_TARGET = 44;
@@ -23,6 +23,7 @@ export function HighlighterStroke({
   onPress,
   accessibilityLabel,
   lanePitch,
+  a11yPrimary = true,
 }: {
   width: number;
   height: number;
@@ -38,6 +39,11 @@ export function HighlighterStroke({
    * the next lane, so neighbors never share a touch point (the 44 pt height applies only when lanes are that far apart).
    */
   lanePitch?: number;
+  /**
+   * A room spanning several week rows is one VoiceOver element: pass true only on its first visible segment (give it
+   * the full-range label). Other segments stay tappable but are hidden from VoiceOver. Default true.
+   */
+  a11yPrimary?: boolean;
 }) {
   const colors = useCalendarColors();
   const d = useMemo(() => highlighterPath(width, height, startCap, endCap, seed), [width, height, startCap, endCap, seed]);
@@ -61,8 +67,8 @@ export function HighlighterStroke({
       <View
         pointerEvents="none"
         style={{ width, height }}
-        accessible={!!accessibilityLabel}
-        accessibilityLabel={accessibilityLabel}
+        {...strokeA11y(a11yPrimary && !!accessibilityLabel, accessibilityLabel)}
+        accessibilityRole={undefined}
       >
         {band}
       </View>
@@ -75,8 +81,7 @@ export function HighlighterStroke({
     <Pressable
       onPress={onPress}
       hitSlop={{ top: v, bottom: v, left: h, right: h }}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      {...strokeA11y(a11yPrimary, accessibilityLabel)}
       style={({ pressed }) => [{ width, height }, pressed && styles.pressed]}
     >
       {band}

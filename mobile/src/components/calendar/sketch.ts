@@ -137,3 +137,23 @@ export function weekSegments(info: MonthInfo, startDay: number, endDay: number):
   }
   return out;
 }
+
+/**
+ * One VoiceOver element per room: keys (`itemId:row`) of each item's first visible week-row segment. Pass only the
+ * segments that are drawn, so a room whose first row is hidden still gets one element.
+ */
+export function primarySegments(segments: readonly { itemId: string; row: number }[]): Set<string> {
+  const first = new Map<string, number>();
+  for (const s of segments) {
+    const r = first.get(s.itemId);
+    if (r == null || s.row < r) first.set(s.itemId, s.row);
+  }
+  return new Set([...first].map(([id, row]) => `${id}:${row}`));
+}
+
+/** Accessibility props for one stroke segment: the primary one is a labelled button; the rest stay tappable but are hidden from VoiceOver. */
+export function strokeA11y(primary: boolean, label: string | undefined) {
+  return primary
+    ? { accessible: true, accessibilityRole: 'button' as const, accessibilityLabel: label }
+    : { accessible: false, accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const };
+}
