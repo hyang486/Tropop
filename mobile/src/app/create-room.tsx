@@ -8,6 +8,7 @@ import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'rea
 import { PlacePinMap } from '@/components/place-time-cards';
 import { defaultDraft, type QuestionPayload, validateQuestions } from '@/features/event/entry-questions';
 import { useAnnounce } from '@/features/event/announce';
+import { createBarLayout } from '@/features/event/create-bar';
 import { QuestionEditor, questionProblemText } from '@/features/event/question-editor';
 import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api';
 import { QCard, QField, QLabel, QLink, QScreen } from '@/components/q-screen';
@@ -225,10 +226,11 @@ export default function CreateRoom() {
     <QScreen
       title={en.createRoom.title}
       actions={
-        <>
+        // E2E (i): hairline at the scroll edge and a non-tappable gap, so a tap on a clipped switch never hits Create.
+        <View style={styles.bar}>
           {error ? <Hint tone="error">{error}</Hint> : null}
           <Button title={en.createRoom.submit} onPress={submit} busy={busy} />
-        </>
+        </View>
       }
     >
       <QField
@@ -378,6 +380,7 @@ export default function CreateRoom() {
 }
 
 const styles = StyleSheet.create({
+  bar: { ...createBarLayout, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   planLink: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
   deletes: { fontSize: 14, color: colors.label, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
