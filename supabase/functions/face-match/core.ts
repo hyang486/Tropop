@@ -2,12 +2,8 @@ import { detectObjectPath } from '../_shared/detect.ts';
 import { FaceProviderError, MAX_IMAGE_BYTES, type CompareResult, type FaceProvider } from './provider.ts';
 
 export const MAX_ATTEMPTS = 3;
-/**
- * Estimate threshold for "this photo probably contains you". 90 -> 82 on 2026-11-13 after the live 5-person set on v10:
- * genuine small-face shots scored 83.3 and 89.0, every impostor stayed under the provider floor of 80 (FP 0).
- * index.ts sends threshold - 10 (72) as the provider floor, so impostor scores 72-82 show up in face_compare.
- */
-export const DEFAULT_SIMILARITY_THRESHOLD = 82;
+/** Estimate threshold for "this photo probably contains you". Tune with real test photos. */
+export const DEFAULT_SIMILARITY_THRESHOLD = 90;
 
 export type Job = { id: string; enrollment_id: string; media_id: string; attempts: number };
 

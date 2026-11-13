@@ -25,7 +25,7 @@ Nothing below the line "Before the switch" starts until (a) supervisor ACCEPT of
 
 ## R3 Switch
 7. Human sets `FACE_MATCH_ENABLED=true` (or says "OK" and I set it with `supabase secrets set` using a literal `true`; no key values involved). Record time T1. No other enrollment may exist: nobody else uses the app's face feature during the window (qa idle on Photos → Me).
-8. `match` (after `prepare` from step 6): call `face-match` once as A. Record call count, per-photo similarity, matched flag; threshold = `DEFAULT_SIMILARITY_THRESHOLD` (82 since 2026-11-13, was 90; from `core.ts`), AWS floor = threshold - 10 (72). Expected: A2 matched, B1 not. If a job fails with `transient`/`throttled`, a retry is a further call and is listed. Maximum calls is bounded by `MAX_ATTEMPTS` per job.
+8. `match` (after `prepare` from step 6): call `face-match` once as A. Record call count, per-photo similarity, matched flag; threshold = `DEFAULT_SIMILARITY_THRESHOLD` (90, from `core.ts`), AWS floor 80. Expected: A2 matched, B1 not. If a job fails with `transient`/`throttled`, a retry is a further call and is listed. Maximum calls is bounded by `MAX_ATTEMPTS` per job.
 9. Immediately after: human (or I, with OK) unsets the secret; Record time T2. `probe` again → `503 face_match_disabled`. Count `face_enrollments`/`face_jobs` before/after: only rows for user A / the test media may exist.
 
 ## R4/R5 Results and no leakage
