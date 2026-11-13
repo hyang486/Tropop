@@ -37,3 +37,12 @@ test('(d/e) both screens sit on the calendar paper token, header included, no ha
   const q = read('components/q-screen.tsx');
   assert.match(q, /styles\.root, \{ paddingBottom: keyboardPad \}, background \? \{ backgroundColor: background \} : null/);
 });
+
+test('(f) the Starts/Ends row labels use the hand font; the title field and Save stay system', () => {
+  const ed = read('features/calendar/event-editor.tsx');
+  const row = ed.slice(ed.indexOf('function DateRow('), ed.indexOf('const styles'));
+  assert.match(row, /const \[handLoaded\] = useFonts\(HAND_FONTS\);/);
+  assert.match(row, /styles\.dateLabel, handLoaded \? \{ fontFamily: handFontFor\(label\) \} : null/);
+  const form = ed.slice(ed.indexOf('export function EventEditor'), ed.indexOf('function DateRow('));
+  assert.doesNotMatch(form, /fontFamily|handFontFor/);
+});

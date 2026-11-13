@@ -4,16 +4,19 @@
  */
 import { DatePicker, Host } from '@expo/ui/swift-ui';
 import { labelsHidden } from '@expo/ui/swift-ui/modifiers';
+import { useFonts } from 'expo-font';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon, inkIconKey, inkIconLabel, useCalendarColors } from '@/components/calendar';
+import { HAND_FONTS } from '@/components/hand-title';
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { handFontFor } from '@/lib/hand-font';
 import { useNow } from '@/lib/use-now';
 
 import { checkEvent, EVENT_TITLE_MAX } from './calendar-data';
@@ -128,11 +131,13 @@ export function EventEditor() {
 }
 
 function DateRow({ label, value, onChange }: { label: string; value: string; onChange: (key: string) => void }) {
+  // Calendar look: the row label in the hand font, like the calendar (system font until it loads).
+  const [handLoaded] = useFonts(HAND_FONTS);
   return (
     <View style={styles.dateRow}>
       {/* One label each way: the row Text is the visible one (hidden from VoiceOver); the picker's title is only
           spoken (labelsHidden), so neither the screen nor VoiceOver says "Starts Starts". */}
-      <Text style={styles.dateLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Text style={[styles.dateLabel, handLoaded ? { fontFamily: handFontFor(label) } : null]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {label}
       </Text>
       <Host matchContents>
@@ -150,7 +155,7 @@ function DateRow({ label, value, onChange }: { label: string; value: string; onC
 
 const styles = StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 },
-  dateLabel: { flex: 1, fontSize: 16, color: colors.label },
+  dateLabel: { flex: 1, fontSize: 19, color: colors.label },
   emojis: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   emoji: {
     width: 48,
