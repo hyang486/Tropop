@@ -1,0 +1,447 @@
+{
+  "version": 1,
+  "source": "docs/evidence/presentation-video-plan.md",
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "personas": {
+    "mina": "Mina · iPhone 17 Pro · iOS 26.5",
+    "jun": "Jun · iPhone 17 · iOS 26.5",
+    "sora": "Sora · iPhone 17e · iOS 26.5 · dark",
+    "leo": "Leo · iPhone 17 Pro Max · iOS 26.5",
+    "dani": "Dani · iPhone 17 Pro · iOS 27.2"
+  },
+  "scenes": [
+    {
+      "id": "card-open",
+      "part": 0,
+      "title": "Qrew",
+      "caption": "Qrew: temporary rooms for real meetups",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "card-part1",
+      "part": 1,
+      "title": "Part 1",
+      "caption": "Part 1 · Sunset Run Club (sports)",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s01",
+      "part": 1,
+      "title": "Create room, clear edge",
+      "caption": "Room settings never hide under the Create button.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Hairline and gap above Create room, AI switch just above it",
+      "check": "✓ AI switch fully visible; gap separates it from Create (fix i)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s02",
+      "part": 1,
+      "title": "Same edge in dark",
+      "caption": "Same clear edge in dark mode.",
+      "persona": "Sora · iPhone 17e · iOS 26.5 · dark",
+      "layout": "1up",
+      "devices": [
+        "sora"
+      ],
+      "holdSeconds": 8,
+      "highlight": "Separator line above Create room in dark mode",
+      "check": "✓ Separator visible in dark mode (fix i)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s03",
+      "part": 1,
+      "title": "Invite code",
+      "caption": "Start a temporary room in seconds.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 8,
+      "highlight": "5-digit code and QR",
+      "check": "✓ Room created with a 5-digit code",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s04",
+      "part": 1,
+      "title": "Friends join",
+      "caption": "Friends join by code or QR, no sign-up.",
+      "persona": "Jun / Sora / Leo / Dani",
+      "layout": "4up",
+      "devices": [
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Each phone lands in the chat",
+      "check": "✓ 4 guests joined by code",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s05",
+      "part": 1,
+      "title": "Target pace prefill",
+      "caption": "Your target starts from your usual pace.",
+      "persona": "Dani · iPhone 17 Pro · iOS 27.2",
+      "layout": "1up",
+      "devices": [
+        "dani"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Target pace field (prefill, or muted \"e.g. 5:30\" with Save disabled)",
+      "check": "✓ Prefilled with usual pace; empty field cannot be saved (fix j)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s06",
+      "part": 1,
+      "title": "Arrived",
+      "caption": "Arrivals show up for everyone.",
+      "persona": "Jun / Sora / Leo / Dani",
+      "layout": "4up",
+      "devices": [
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 8,
+      "highlight": "\"X arrived\" notices in the chat",
+      "check": "✓ 4 arrival notices",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s07",
+      "part": 1,
+      "title": "Arrival count",
+      "caption": "",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 5,
+      "highlight": "\"5 people · 4 arrived\" on Info",
+      "check": "✓ 5 people · 4 arrived",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s08",
+      "part": 1,
+      "title": "Arrivals survive restart",
+      "caption": "Arrivals count for the meetup, not each activity.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Info count after End → Start activity",
+      "check": "✓ Still 4 arrived after End → Start activity (fix c)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s09",
+      "part": 1,
+      "title": "Pace groups",
+      "caption": "Pace cues keep the group together.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 20,
+      "highlight": "Map groups and Dani's lead-group cue",
+      "check": "✓ Lead group 150 m ahead → Dani caught up",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s10",
+      "part": 1,
+      "title": "Emergency",
+      "caption": "Emergency reaches everyone at once.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Red Emergency banner, then \"Seen by Mina\"",
+      "check": "✓ Seen by Mina → resolved",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s11",
+      "part": 1,
+      "title": "Ask: where is everyone",
+      "caption": "Ask Qrewing knows where the group is.",
+      "persona": "Dani · iPhone 17 Pro · iOS 27.2",
+      "layout": "1up",
+      "devices": [
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Answer text naming the lead group and \"you\"",
+      "check": "✓ Says you are moving; names lead group Mina and Jun (fixes b, h)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s12",
+      "part": 1,
+      "title": "Ask: emergency history",
+      "caption": "It remembers what happened in the room.",
+      "persona": "Sora · iPhone 17e · iOS 26.5 · dark",
+      "layout": "1up",
+      "devices": [
+        "sora"
+      ],
+      "holdSeconds": 10,
+      "highlight": "Answer naming Leo's Emergency",
+      "check": "✓ Names Leo's Emergency and that it was resolved (fix a)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s13",
+      "part": 1,
+      "title": "Recap",
+      "caption": "A recap when the room ends; data is deleted after.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Recap pace lines and the Emergency line",
+      "check": "✓ Recap includes pace and the Emergency (fix a)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "card-part2",
+      "part": 2,
+      "title": "Part 2",
+      "caption": "Part 2 · Founders Coffee Night (event)",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s14",
+      "part": 2,
+      "title": "Entry questions",
+      "caption": "Hosts choose what guests share.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Red * and Required switch on \"Looking for\"",
+      "check": "✓ \"Looking for\" marked required",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s15",
+      "part": 2,
+      "title": "Required answer check",
+      "caption": "Required answers are checked in place.",
+      "persona": "Jun · iPhone 17 · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "jun"
+      ],
+      "holdSeconds": 10,
+      "highlight": "Inline error under \"Headline\"",
+      "check": "✓ Answer \"Headline\". → saved",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s16",
+      "part": 2,
+      "title": "People to meet",
+      "caption": "Qrewing suggests who to meet.",
+      "persona": "Jun · iPhone 17 · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "jun"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Sora and Leo cards with reasons",
+      "check": "✓ Jun → Sora + Leo",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s17",
+      "part": 2,
+      "title": "Mute small talk",
+      "caption": "Mute small talk, keep what matters.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "\"2 messages hidden · Show\" and the Announcement",
+      "check": "✓ 2 small-talk messages hidden; the announcement stays",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s18",
+      "part": 2,
+      "title": "Host message",
+      "caption": "",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 6,
+      "highlight": "\"Important: From the host\" banner",
+      "check": "✓ Host message flagged important",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s19",
+      "part": 2,
+      "title": "Ask: posted time",
+      "caption": "Answers use when things were said.",
+      "persona": "Leo · iPhone 17 Pro Max · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "leo"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Answer time relative to the posted message, \"you posted\"",
+      "check": "✓ Time counted from the posted message; \"you posted\" (fixes g, h)",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s20",
+      "part": 2,
+      "title": "Photos of me",
+      "caption": "Photos of me, matched only in this room.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Each Me tab showing only that person",
+      "check": "✓ 14/14 faces matched, 0 false positives",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s21",
+      "part": 2,
+      "title": "Siri",
+      "caption": "Ask hands-free with Siri.",
+      "persona": "Dani · iPhone 17 Pro · iOS 27.2",
+      "layout": "1up",
+      "devices": [
+        "dani"
+      ],
+      "holdSeconds": 8,
+      "highlight": "Siri answer panel",
+      "check": "✓ Siri answered from the room",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "s22",
+      "part": 2,
+      "title": "Room ends",
+      "caption": "When it ends, it's really gone.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 7,
+      "highlight": "Recap and the deletion note",
+      "check": "✓ Recap ready; room deleted after grace",
+      "start": null,
+      "end": null
+    },
+    {
+      "id": "card-close",
+      "part": 2,
+      "title": "Rooms end",
+      "caption": "Rooms end. Data is deleted.",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null
+    }
+  ]
+}
