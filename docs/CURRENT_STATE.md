@@ -5,6 +5,17 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
+## 2026-11-13: local main 0978eb7 (resume here); qrewing v6 live; push snapshot 4 built, not pushed
+- Latency fix d528797 (USER_DECISIONS 2026-11-12 FINAL item 1, line 255): node tests 53/53, deployed as qrewing v6
+  (verify_jwt false). Deployed index.ts and prompts.ts match d528797 byte for byte. core.ts differs only at line 603, where
+  the MCP deploy turned the EMOJI_RE \u200d\ufe0f\u20e3 escapes into literal characters (same regex).
+- qa live retest on 56FB44E7: PASS, no rollback. Siri cold: auth 965 / context 597 / model 1524 / total 3090 ms (edge
+  4221). In-app warm: 576 / 601 / 1247 / 2425 (edge 2650). The same ask on v5: 3911 ms. No Q/A text in logs.
+- Supervisor merged into main 0978eb7 = 77219fd + 421dd3a (ExpoApplication patch) + 6bd7b7a (web.output single) + d528797.
+- Push (item 3): branch qrew-push-snapshot-4 = 45a1ad9 (tree d23cec0, parent qrew/main 8147215, human author, no
+  trailer, 303 files, mobile/supabase = 0978eb7; tree checks PASS by supervisor). NOT pushed yet.
+- Next: push on supervisor GO; then the human's real-iPhone Siri test (item 4); then qa deletes Siri Test 08936e50 (item 6).
+
 ## 2026-11-12 afternoon: local main 340366c (resume here)
 - Spec 9, spec 10 (bot + 10.5 Siri) and a11y/dark merged on local main. Details: docs/implementation-status.md
   "2026-11-12 (afternoon)".
