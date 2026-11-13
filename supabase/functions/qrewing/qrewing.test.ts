@@ -1391,7 +1391,7 @@ test('E2E (b) ask: <group> lists only fresh, sharing, consenting members with ro
   const { m, calls } = model(answer('ok'));
   await run(w, m, BOB, ASK('Am I behind?'));
   const u = calls[0].user;
-  assert.match(u, /<group sharing_members="2" progress_from="route">/);
+  assert.match(u, /<group sharing_members="2" progress_from="route" progress_means="metres along the route">/);
   assert.match(u, /<lead_group members="Hana" front_m="1\d{3}" rear_m="1\d{3}"\/>/);
   assert.match(u, /<you progress_m="5\d0" in_lead_group="false" gap_to_lead_m="5\d0" moving="false" seen_s_ago="20"\/>/);
   assert.match(u, /<member name="Hana" progress_m="1\d{3}" in_lead_group="true" from_you_m="5\d0" moving="true" seen_s_ago="10"\/>/);
@@ -1413,7 +1413,7 @@ test('E2E (b) ask: no <group> when location is off or no activity runs; stale an
   const w = world({ positions: [POS(HOST, 37.8099, 10 * 60, 2.5), POS(CAT, 37.809, 10, 2, false), POS(BOB, 37.805, 10, 1)] });
   w.extras = { ...w.extras, locationAllowed: true };
   const u = await ask(w);
-  assert.match(u, /<group sharing_members="1" progress_from="route">/);
+  assert.match(u, /<group sharing_members="1" progress_from="route" progress_means="metres along the route">/);
   assert.ok(!u.includes('<member '), 'stale or non-sharing member listed');
 });
 
@@ -1430,7 +1430,9 @@ test('E2E (b) ask: no route or place pin; asker behind two leaders, measured fro
   const { m, calls } = model(answer('ok'));
   await run(w, m, BOB, ASK('Where is everyone?', { anchor: { lat: 37.8, lng: -122.26 } }));
   const u = calls[0].user;
-  assert.match(u, /<group sharing_members="3" progress_from="start">/);
+  assert.match(u, /<group sharing_members="3" progress_from="start" progress_means="straight-line metres from where you started \(no route\)">/);
+  assert.ok(!u.includes('along the route'), 'route wording without a route');
+  assert.ok(calls[0].system.includes('Mention a route only when progress_from="route"'), 'no-route rule');
   assert.match(u, /<lead_group members="Cat, Hana" front_m="1010" rear_m="1000"\/>/);
   assert.match(u, /<you progress_m="930" in_lead_group="false" gap_to_lead_m="80" /);
   assert.match(u, /<member name="Cat" progress_m="1010" in_lead_group="true" from_you_m="80" /);
@@ -1444,7 +1446,7 @@ test('E2E (b) ask: no route, place pin or start point: the order is unknown, nev
   const { m, calls } = model(answer('ok'));
   await run(w, m, BOB, ASK('Where is everyone?'));
   const u = calls[0].user;
-  assert.match(u, /<group sharing_members="3" progress_from="none">\n<lead_group known="false"\/>/);
+  assert.match(u, /<group sharing_members="3" progress_from="none" progress_means="unknown \(no route, meeting place or start point\)">\n<lead_group known="false"\/>/);
   assert.ok(!u.includes('in_lead_group') && !u.includes('gap_to_lead_m'), 'lead flags without a basis');
   assert.match(u, /<member name="Hana" from_you_m="70" /);
   assert.ok(calls[0].system.includes('<lead_group known="false"/>'), 'rule for an unknown order');
