@@ -17,11 +17,27 @@ test('(3) a date row is read once: the visible label is hidden from VoiceOver, t
 
 test('(4) the consent sheet presents only on a focused screen whose push has finished', () => {
   const src = read('features/event/disclosure-sheet.tsx');
-  assert.match(src, /<Modal\s+visible=\{visible && settled\}/);
+  assert.match(src, /<Modal[^>]*?\svisible=\{visible && settled\}/);
   const hook = src.slice(src.indexOf('function useSettledFocus'));
   assert.match(hook, /useIsFocused\(\)/);
   assert.match(hook, /addListener\('transitionEnd'/);
   // A screen without a transition still gets there, and leaving the screen resets it.
   assert.match(hook, /setTimeout\(/);
   assert.match(hook, /return focused && settled;/);
+});
+
+test('(4b) a refused presentation is retried: entry via the invite modal\'s Done (presenter still dismissing)', () => {
+  const src = read('features/event/disclosure-sheet.tsx');
+  const modal = src.slice(src.indexOf('<Modal'), src.indexOf('>', src.indexOf('onRequestClose')));
+  // The Modal reports onShow and is remounted (key) to present again when UIKit refused it.
+  assert.match(modal, /key=\{present\.key\}/);
+  assert.match(modal, /onShow=\{present\.onShow\}/);
+  assert.match(src, /usePresentRetry\(visible && settled\)/);
+  const hook = src.slice(src.indexOf('function usePresentRetry'), src.indexOf('const styles'));
+  // Retries only while wanted and not yet shown, bounded, and resets when the sheet is no longer wanted.
+  assert.match(hook, /if \(!want \|\| shown \|\| attempt >= MAX_SHOW_RETRIES\) return;/);
+  assert.match(hook, /setTimeout\(/);
+  assert.match(hook, /clearTimeout\(t\)/);
+  assert.match(hook, /setShown\(false\);\s*setAttempt\(0\);/);
+  assert.match(hook, /onShow: \(\) => setShown\(true\)/);
 });
