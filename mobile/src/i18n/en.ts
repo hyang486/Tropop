@@ -576,6 +576,12 @@ export const en = {
     signOut: 'Log out',
     guestSignOutWarning:
       'Guests cannot log back in. Logging out leaves this guest profile behind for good.',
+    signOutConfirmTitle: 'Log out?',
+    signOutConfirmBody: 'You can log back in any time with your email and password.',
+    guestSignOutConfirmTitle: 'Log out of this guest account?',
+    guestSignOutConfirmBody:
+      'You cannot log back in to this guest account. You lose your guest profile and access to every room you joined with it. To come back, you need a new invite. To keep it, add an email and password first.',
+    signOutConfirmAction: 'Log out',
     language: 'Language',
     languageValue: 'English',
     photoLabel: 'Profile photo',
@@ -751,7 +757,9 @@ export const en = {
       requiredMark: 'required',
       answerRequired: (prompt: string) => `Answer “${prompt}”.`,
       linkPlaceholderN: (n: number) => `https://… (link ${n})`,
-      noQuestions: 'This room has no entry questions yet.',
+      noQuestions: 'No intro needed here',
+      noQuestionsBody:
+        'The host did not add entry questions to this room, so there is nothing to fill in. Entry questions can only be set when a room is created.',
       questionsLoadFailed: 'Could not load this room’s questions. Check your connection and try again.',
       loadFailed: 'Could not load your entry info. Check your connection and try again.',
       saveFailed: 'Could not save your entry info. Try again.',

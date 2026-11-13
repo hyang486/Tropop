@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, V
 import { HandTitle } from '@/components/hand-title';
 import { InkArt } from '@/components/ink-art';
 import { Button, colors, Hint } from '@/components/ui';
+import { QREWING_FAB_CLEARANCE } from '@/features/event/qrewing-fab';
 import { en } from '@/i18n/en';
 import { clearMatchRun, type FaceData, lastMatchRun, loadFaceData, runFaceMatch } from '@/lib/face';
 import { faceJobCounts, faceViewState, type MatchRun, photosOfMe, shouldRunMatch } from '@/lib/face-plan';
@@ -124,18 +125,24 @@ export function PhotosOfMe({
   // Q 06.01: handwritten title, two short lines, art, and the black setup button.
   if (view === 'consent') {
     return (
-      <ScrollView contentContainerStyle={styles.introScroll} contentInsetAdjustmentBehavior="never">
-        {header}
-        <View style={styles.intro}>
-          <View style={styles.introHead}>
-            <HandTitle style={styles.centerText}>{en.face.title}</HandTitle>
-            <Text style={styles.introLine}>{en.face.intro}</Text>
-            <Text style={styles.introMeta}>{en.face.introMeta}</Text>
+      // UI audit (2): the setup button is pinned under the scroll area, left of the Ask Qrewing button, so the
+      // art can never push it under the gallery footer.
+      <View style={styles.introWrap}>
+        <ScrollView style={styles.introWrap} contentContainerStyle={styles.introScroll} contentInsetAdjustmentBehavior="never">
+          {header}
+          <View style={styles.intro}>
+            <View style={styles.introHead}>
+              <HandTitle style={styles.centerText}>{en.face.title}</HandTitle>
+              <Text style={styles.introLine}>{en.face.intro}</Text>
+              <Text style={styles.introMeta}>{en.face.introMeta}</Text>
+            </View>
+            <InkArt art="reference" width={180} />
           </View>
-          <InkArt art="reference" width={180} />
+        </ScrollView>
+        <View style={[styles.introAction, !readOnly && { paddingRight: QREWING_FAB_CLEARANCE }]}>
           {readOnly ? <Hint>{en.qrewing.grace.notSetUp}</Hint> : <Button title={en.face.setUp} onPress={openSetup} />}
         </View>
-      </ScrollView>
+      </View>
     );
   }
 
@@ -227,7 +234,9 @@ export function PhotosOfMe({
 const styles = StyleSheet.create({
   loading: { marginTop: 40 },
   center: { padding: 24, gap: 12, alignItems: 'center' },
+  introWrap: { flex: 1 },
   introScroll: { flexGrow: 1 },
+  introAction: { paddingTop: 12, paddingBottom: 15, justifyContent: 'center' },
   intro: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 28, gap: 28, justifyContent: 'space-between' },
   introHead: { alignItems: 'center', gap: 6 },
   centerText: { textAlign: 'center' },
