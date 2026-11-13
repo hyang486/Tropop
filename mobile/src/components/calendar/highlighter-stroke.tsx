@@ -22,6 +22,7 @@ export function HighlighterStroke({
   emoji,
   onPress,
   accessibilityLabel,
+  lanePitch,
 }: {
   width: number;
   height: number;
@@ -32,6 +33,11 @@ export function HighlighterStroke({
   emoji?: string;
   onPress?: () => void;
   accessibilityLabel?: string;
+  /**
+   * Stacked strokes in one week row: the distance between lane tops. The vertical hit area then stops halfway to
+   * the next lane, so neighbors never share a touch point (the 44 pt height applies only when lanes are that far apart).
+   */
+  lanePitch?: number;
 }) {
   const colors = useCalendarColors();
   const d = useMemo(() => highlighterPath(width, height, startCap, endCap, seed), [width, height, startCap, endCap, seed]);
@@ -62,7 +68,8 @@ export function HighlighterStroke({
       </View>
     );
   }
-  const v = Math.max(0, (MIN_TARGET - height) / 2);
+  const want = lanePitch != null ? Math.min(MIN_TARGET, lanePitch) : MIN_TARGET;
+  const v = Math.max(0, (want - height) / 2);
   const h = Math.max(0, (MIN_TARGET - width) / 2);
   return (
     <Pressable
