@@ -1,0 +1,663 @@
+{
+  "version": 2,
+  "source": "docs/evidence/presentation-video-plan.md",
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "personas": {
+    "mina": "Mina · iPhone 17 Pro · iOS 26.5",
+    "jun": "Jun · iPhone 17 · iOS 26.5",
+    "sora": "Sora · iPhone 17e · iOS 26.5 · dark",
+    "leo": "Leo · iPhone 17 Pro Max · iOS 26.5",
+    "dani": "Dani · iPhone 17 Pro · iOS 27.2"
+  },
+  "scenes": [
+    {
+      "id": "card-open",
+      "part": 0,
+      "title": "Qrew",
+      "caption": "Qrew: temporary rooms for real meetups",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "No sims. Title card only."
+      ]
+    },
+    {
+      "id": "card-part1",
+      "part": 1,
+      "title": "Part 1",
+      "caption": "Part 1 · Sunset Run Club (sports)",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "No sims. Title card only."
+      ]
+    },
+    {
+      "id": "s01",
+      "part": 1,
+      "title": "Create room, clear edge",
+      "caption": "Room settings never hide under the Create button.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Hairline and gap above Create room, AI switch just above it",
+      "check": "✓ AI switch fully visible; gap separates it from Create (fix i)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: Rooms → Create room; scroll the settings down to the AI switch; hold so the hairline and gap above Create room are in frame."
+      ]
+    },
+    {
+      "id": "s02",
+      "part": 1,
+      "title": "Same edge in dark",
+      "caption": "Same clear edge in dark mode.",
+      "persona": "Sora · iPhone 17e · iOS 26.5 · dark",
+      "layout": "1up",
+      "devices": [
+        "sora"
+      ],
+      "holdSeconds": 8,
+      "highlight": "Separator line above Create room in dark mode",
+      "check": "✓ Separator visible in dark mode (fix i)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Sora 6E0F (dark mode): Rooms → Create room; scroll to the bottom; capture the separator above Create room; back out without creating."
+      ]
+    },
+    {
+      "id": "s03",
+      "part": 1,
+      "title": "Invite code",
+      "caption": "Start a temporary room in seconds.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 8,
+      "highlight": "5-digit code and QR",
+      "check": "✓ Room created with a 5-digit code",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: create the meetup room; capture the 5-digit code and QR sheet."
+      ]
+    },
+    {
+      "id": "s04",
+      "part": 1,
+      "title": "Friends join",
+      "caption": "Friends join by code or QR, no sign-up.",
+      "persona": "Jun / Sora / Leo / Dani",
+      "layout": "4up",
+      "devices": [
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Each phone lands in the chat",
+      "check": "✓ 4 guests joined by code",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Jun F11B: Join → enter Mina's code.",
+        "Sora 6E0F: Join → enter the code.",
+        "Leo 99A2: Join → enter the code.",
+        "Dani 56FB: Join → enter the code.",
+        "Capture each phone landing in the chat."
+      ]
+    },
+    {
+      "id": "s05",
+      "part": 1,
+      "title": "Target pace prefill",
+      "caption": "Your target starts from your usual pace.",
+      "persona": "Dani · iPhone 17 Pro · iOS 27.2",
+      "layout": "1up",
+      "devices": [
+        "dani"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Target pace field (prefill, or muted \"e.g. 5:30\" with Save disabled)",
+      "check": "✓ Prefilled with usual pace; empty field cannot be saved (fix j)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Dani 56FB: Pace card → Set target; capture the prefilled usual pace; clear the field to show Save disabled; restore."
+      ]
+    },
+    {
+      "id": "s06",
+      "part": 1,
+      "title": "Arrived",
+      "caption": "Arrivals show up for everyone.",
+      "persona": "Jun / Sora / Leo / Dani",
+      "layout": "4up",
+      "devices": [
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 8,
+      "highlight": "\"X arrived\" notices in the chat",
+      "check": "✓ 4 arrival notices",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Jun F11B, Sora 6E0F, Leo 99A2, Dani 56FB in that order: tap Arrived.",
+        "Capture the arrival notices in the chat (Mina 91F3 view)."
+      ]
+    },
+    {
+      "id": "s07",
+      "part": 1,
+      "title": "Arrival count",
+      "caption": "",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 5,
+      "highlight": "\"5 people · 4 arrived\" on Info",
+      "check": "✓ 5 people · 4 arrived",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: open Info; capture \"5 people · 4 arrived\"."
+      ]
+    },
+    {
+      "id": "s08",
+      "part": 1,
+      "title": "Arrivals survive restart",
+      "caption": "Arrivals count for the meetup, not each activity.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Info count after End → Start activity",
+      "check": "✓ Still 4 arrived after End → Start activity (fix c)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: End activity → Start activity; reopen Info; capture still 4 arrived."
+      ]
+    },
+    {
+      "id": "s09",
+      "part": 1,
+      "title": "Pace groups",
+      "caption": "Pace cues keep the group together.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 20,
+      "highlight": "Map groups and Dani's lead-group cue",
+      "check": "✓ Lead group 150 m ahead → Dani caught up",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "All five start the activity with simulated locations: Mina 91F3 and Jun F11B in the lead group, Dani 56FB 150 m behind.",
+        "Dani 56FB: capture the lead-group cue; move Dani's location up until caught up.",
+        "Mina 91F3: capture the map groups."
+      ]
+    },
+    {
+      "id": "s10",
+      "part": 1,
+      "title": "Emergency",
+      "caption": "Emergency reaches everyone at once.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Red Emergency banner, then \"Seen by Mina\"",
+      "check": "✓ Seen by Mina → resolved",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Leo 99A2: tap Emergency.",
+        "Mina 91F3, Jun F11B, Sora 6E0F, Dani 56FB: capture the red banner.",
+        "Mina 91F3: open it (\"Seen by Mina\").",
+        "Leo 99A2: resolve."
+      ]
+    },
+    {
+      "id": "s11",
+      "part": 1,
+      "title": "Ask: where is everyone",
+      "caption": "Ask Qrewing knows where the group is.",
+      "persona": "Dani · iPhone 17 Pro · iOS 27.2",
+      "layout": "1up",
+      "devices": [
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Answer text naming the lead group and \"you\"",
+      "check": "✓ Says you are moving; names lead group Mina and Jun (fixes b, h)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Dani 56FB: Ask Qrewing \"Where is everyone?\"; capture the answer naming the lead group and \"you\"."
+      ]
+    },
+    {
+      "id": "s12",
+      "part": 1,
+      "title": "Ask: emergency history",
+      "caption": "It remembers what happened in the room.",
+      "persona": "Sora · iPhone 17e · iOS 26.5 · dark",
+      "layout": "1up",
+      "devices": [
+        "sora"
+      ],
+      "holdSeconds": 10,
+      "highlight": "Answer naming Leo's Emergency",
+      "check": "✓ Names Leo's Emergency and that it was resolved (fix a)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Sora 6E0F (dark): Ask Qrewing about the emergency; capture the answer naming Leo's Emergency and that it was resolved."
+      ]
+    },
+    {
+      "id": "s13",
+      "part": 1,
+      "title": "Recap",
+      "caption": "A recap when the room ends; data is deleted after.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Recap pace lines and the Emergency line",
+      "check": "✓ Recap includes pace and the Emergency (fix a)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: request the recap; capture the pace lines and the Emergency line."
+      ]
+    },
+    {
+      "id": "card-part2",
+      "part": 2,
+      "title": "Part 2",
+      "caption": "Part 2 · Founders Coffee Night (event)",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "No sims. Title card only."
+      ]
+    },
+    {
+      "id": "s14",
+      "part": 2,
+      "title": "Entry questions",
+      "caption": "Hosts choose what guests share.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Red * and Required switch on \"Looking for\"",
+      "check": "✓ \"Looking for\" marked required",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: create the event room with entry questions; set \"Looking for\" Required; capture the red *."
+      ]
+    },
+    {
+      "id": "s15",
+      "part": 2,
+      "title": "Required answer check",
+      "caption": "Required answers are checked in place.",
+      "persona": "Jun · iPhone 17 · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "jun"
+      ],
+      "holdSeconds": 10,
+      "highlight": "Inline error under \"Headline\"",
+      "check": "✓ Answer \"Headline\". → saved",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Jun F11B: join; leave \"Headline\" empty and submit; capture the inline error; answer and save."
+      ]
+    },
+    {
+      "id": "s16",
+      "part": 2,
+      "title": "People to meet",
+      "caption": "Qrewing suggests who to meet.",
+      "persona": "Jun · iPhone 17 · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "jun"
+      ],
+      "holdSeconds": 12,
+      "highlight": "Sora and Leo cards with reasons",
+      "check": "✓ Jun → Sora + Leo",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Sora 6E0F and Leo 99A2: join and answer the entry questions first.",
+        "Jun F11B: open People to meet; capture the Sora and Leo cards with reasons."
+      ]
+    },
+    {
+      "id": "s17",
+      "part": 2,
+      "title": "Mute small talk",
+      "caption": "Mute small talk, keep what matters.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "\"2 messages hidden · Show\" and the Announcement",
+      "check": "✓ 2 small-talk messages hidden; the announcement stays",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Jun F11B and Sora 6E0F: send two small-talk messages.",
+        "Mina 91F3: post the announcement.",
+        "Leo 99A2 and Dani 56FB: Mute small talk on; capture \"2 messages hidden · Show\" with the announcement visible."
+      ]
+    },
+    {
+      "id": "s18",
+      "part": 2,
+      "title": "Host message",
+      "caption": "",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 6,
+      "highlight": "\"Important: From the host\" banner",
+      "check": "✓ Host message flagged important",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: send a host message marked important.",
+        "Jun F11B: capture the \"Important: From the host\" banner."
+      ]
+    },
+    {
+      "id": "s19",
+      "part": 2,
+      "title": "Ask: posted time",
+      "caption": "Answers use when things were said.",
+      "persona": "Leo · iPhone 17 Pro Max · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "leo"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Answer time relative to the posted message, \"you posted\"",
+      "check": "✓ Time counted from the posted message; \"you posted\" (fixes g, h)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Leo 99A2: post a message, wait, then Ask Qrewing about it; capture the time counted from the post and \"you posted\"."
+      ]
+    },
+    {
+      "id": "s20",
+      "part": 2,
+      "title": "Photos of me",
+      "caption": "Photos of me, matched only in this room.",
+      "persona": "Mina / Jun / Sora / Leo / Dani",
+      "layout": "5up",
+      "devices": [
+        "mina",
+        "jun",
+        "sora",
+        "leo",
+        "dani"
+      ],
+      "holdSeconds": 15,
+      "highlight": "Each Me tab showing only that person",
+      "check": "✓ Each Me tab shows only that person; 0 false positives (Sora: upper-body shot only, p04_full_body_01/02 left out per the human's 2026-11-13 decision; fill in the counts from the take)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Each phone: enroll a reference selfie (Sora 6E0F: upper-body shot only; no p04_full_body photos).",
+        "Mina 91F3: upload the room photo set (without p04_full_body_01/02).",
+        "Mina 91F3, Jun F11B, Sora 6E0F, Leo 99A2, Dani 56FB: open the Me tab; capture each showing only that person."
+      ]
+    },
+    {
+      "id": "s21",
+      "part": 2,
+      "title": "Siri",
+      "caption": "Ask hands-free with Siri.",
+      "persona": "Dani · iPhone 17 Pro · iOS 27.2",
+      "layout": "1up",
+      "devices": [
+        "dani"
+      ],
+      "holdSeconds": 8,
+      "highlight": "Siri answer panel",
+      "check": "✓ Siri answered from the room",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Dani 56FB (iOS 27.2): ask Siri about the room; capture the Siri answer panel."
+      ]
+    },
+    {
+      "id": "s22",
+      "part": 2,
+      "title": "Room ends",
+      "caption": "When it ends, it's really gone.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 7,
+      "highlight": "Recap and the deletion note",
+      "check": "✓ Recap ready; room deleted after grace",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: End room; capture the recap and the deletion note."
+      ]
+    },
+    {
+      "id": "card-part3",
+      "part": 3,
+      "title": "Part 3",
+      "caption": "Qrewing Calendar (Plus preview)",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "No sims. Title card only."
+      ]
+    },
+    {
+      "id": "s23",
+      "part": 3,
+      "title": "Recap lands on the calendar",
+      "caption": "Every meetup becomes a day on your calendar.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 8,
+      "highlight": "Highlighter bar with the AI emoji on the room's dates",
+      "check": "✓ Room shows as a highlighter bar with the recap emoji",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Before the take, Mina 91F3: Profile → Plan preview → \"Try Plus preview on this phone\" ON (hold the switch: axe touch --down --up --delay 0.4).",
+        "Mina 91F3: in the meetup room, request the recap before the room closes.",
+        "Mina 91F3: Rooms → calendar icon; capture the room's highlighter bar with the AI emoji."
+      ]
+    },
+    {
+      "id": "s24",
+      "part": 3,
+      "title": "Tap for the diary",
+      "caption": "Qrewing writes a 3-line diary of the day.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 6,
+      "highlight": "The 3-line diary card",
+      "check": "✓ Tapping the bar shows the 3-line diary",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: tap the room's day; open the room in the day list; capture the 3-line diary."
+      ]
+    },
+    {
+      "id": "s25",
+      "part": 3,
+      "title": "Add an event",
+      "caption": "Add your own plans with +.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 6,
+      "highlight": "The new event on its day",
+      "check": "✓ Manual event saved and shown",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: tap +; fill title, dates and emoji; Save; capture the new event in the month and day list."
+      ]
+    },
+    {
+      "id": "s26",
+      "part": 3,
+      "title": "Add by asking",
+      "caption": "Or just ask Qrewing to add it.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 8,
+      "highlight": "Qrewing sheet request and the added event",
+      "check": "✓ Qrewing added the requested event",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Mina 91F3: tap the Qrewing button on the calendar; type an add request (e.g. \"Add brunch with Jun next Saturday 11am\"); confirm; capture the event on its day."
+      ]
+    },
+    {
+      "id": "s27",
+      "part": 3,
+      "title": "Overlapping meetups",
+      "caption": "Overlapping rooms stack, never hide.",
+      "persona": "Mina · iPhone 17 Pro · iOS 26.5",
+      "layout": "1up",
+      "devices": [
+        "mina"
+      ],
+      "holdSeconds": 6,
+      "highlight": "Two stacked lanes, or \"+N\" on a full day",
+      "check": "✓ Two overlapping rooms show as stacked lanes (or +N)",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "Before the take, Mina 91F3: create a second room whose dates overlap the meetup room (Jun F11B joins it so it has a member).",
+        "Mina 91F3: open the calendar on those dates; capture the stacked lanes or the \"+N\"."
+      ]
+    },
+    {
+      "id": "card-close",
+      "part": 2,
+      "title": "Rooms end",
+      "caption": "Rooms end. Data is deleted.",
+      "persona": "",
+      "layout": "card",
+      "devices": [],
+      "holdSeconds": 3,
+      "highlight": "",
+      "check": "",
+      "start": null,
+      "end": null,
+      "runbook": [
+        "No sims. Title card only."
+      ]
+    }
+  ],
+  "sims": {
+    "mina": "91F3BFB3",
+    "jun": "F11BA960",
+    "sora": "6E0F2097",
+    "leo": "99A2323F",
+    "dani": "56FB44E7"
+  }
+}
