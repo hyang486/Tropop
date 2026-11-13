@@ -7,20 +7,21 @@ import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   DiaryCard,
   HighlighterStroke,
+  InkIcon,
+  PencilDivider,
   highlighterFor,
   primarySegments,
   SketchyMonthGrid,
   useCalendarColors,
 } from '@/components/calendar';
 import { HAND_FONTS } from '@/components/hand-title';
-import { InkIcon } from '@/components/calendar/ink-icon';
 import { QCard, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
@@ -242,28 +243,31 @@ function CalendarMonth({ uid }: { uid: string }) {
             <Text style={styles.dayHead} accessibilityRole="header">
               {dayTitle(selected)}
             </Text>
+            <PencilDivider seed={`day:${selected}`} />
             {dayItems.length === 0 ? <Hint>{t.nothing}</Hint> : null}
-            {dayItems.map((item) => (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={itemLabel(item)}
-                onPress={() => openItem(item)}
-                style={styles.dayRow}
-              >
-                <InkIcon emoji={item.emoji} size={24} />
-                <View style={styles.flex}>
-                  <Text style={styles.dayTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  <Text style={styles.daySub}>
-                    {`${item.kind === 'room' ? t.roomTag : t.eventTag} · ${rangeLabel(item.start, item.end, thisYear)}`}
-                  </Text>
-                </View>
-                {item.kind === 'event' || isPast(item) ? (
-                  <SymbolView name="chevron.right" size={14} tintColor={colors.secondaryLabel} />
-                ) : null}
-              </Pressable>
+            {dayItems.map((item, i) => (
+              <Fragment key={item.id}>
+                {i > 0 ? <PencilDivider seed={item.id} /> : null}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={itemLabel(item)}
+                  onPress={() => openItem(item)}
+                  style={styles.dayRow}
+                >
+                  <InkIcon emoji={item.emoji} size={24} />
+                  <View style={styles.flex}>
+                    <Text style={styles.dayTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.daySub}>
+                      {`${item.kind === 'room' ? t.roomTag : t.eventTag} · ${rangeLabel(item.start, item.end, thisYear)}`}
+                    </Text>
+                  </View>
+                  {item.kind === 'event' || isPast(item) ? (
+                    <SymbolView name="chevron.right" size={14} tintColor={colors.secondaryLabel} />
+                  ) : null}
+                </Pressable>
+              </Fragment>
             ))}
           </View>
         ) : null}

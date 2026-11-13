@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { InkIcon } from './ink-icon';
 import { type Cap, markerBar, strokeA11y } from './sketch';
 import { useCalendarColors } from './tokens';
 
@@ -59,9 +60,7 @@ export function HighlighterStroke({
       </Svg>
       {emoji ? (
         <View pointerEvents="none" style={styles.center}>
-          <Text allowFontScaling={false} style={{ fontSize: Math.round(height * 1.05), lineHeight: Math.round(height * 1.3) }}>
-            {emoji}
-          </Text>
+          <InkIcon emoji={emoji} size={Math.round(height * 1.05)} />
         </View>
       ) : null}
     </>

@@ -53,4 +53,14 @@ test('call sites draw the icon, not the emoji text', () => {
   assert.doesNotMatch(screen, /\{item\.emoji\}<\/Text>/);
   assert.match(editor, /accessibilityLabel=\{inkIconLabel\(e\)\}/);
   assert.doesNotMatch(editor, /<Text[^>]*>\{e\}<\/Text>/);
+  const stroke = src('components/calendar/highlighter-stroke.tsx');
+  assert.match(stroke, /<InkIcon emoji=\{emoji\}/);
+  assert.doesNotMatch(stroke, /\{emoji\}\s*<\/Text>/);
+});
+
+test('the day list is pencil-ruled, not a card', () => {
+  const screen = src('features/calendar/calendar-screen.tsx');
+  const list = screen.slice(screen.indexOf('style={styles.dayList}'), screen.indexOf('</QScreen>', screen.indexOf('style={styles.dayList}')));
+  assert.match(list, /<PencilDivider seed=/);
+  assert.doesNotMatch(list, /QCard/);
 });
