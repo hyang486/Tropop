@@ -59,7 +59,7 @@ export default function RoomInfoScreen() {
       // Arrivals are extra: when they cannot be read, Info shows only the people count.
       const [members, arrived] = await Promise.all([
         listMembers(id),
-        listArrivedIds(id, room.activity_seq).catch(() => null),
+        listArrivedIds(id).catch(() => null),
       ]);
       setState({ status: 'ready', room, members, arrived });
     } catch (e) {
