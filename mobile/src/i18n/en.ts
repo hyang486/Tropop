@@ -650,7 +650,7 @@ export const en = {
     titlePlaceholder: 'e.g. Dinner with Jun',
     startLabel: 'Starts',
     endLabel: 'Ends',
-    emojiLabel: 'Emoji',
+    emojiLabel: 'Icon',
     save: 'Save event',
     delete: 'Delete event',
     deleteConfirm: 'Delete this event?',

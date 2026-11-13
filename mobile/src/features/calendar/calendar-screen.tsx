@@ -135,6 +135,10 @@ function CalendarMonth({ uid }: { uid: string }) {
     <>
       <Stack.Screen
         options={{
+          // The calendar paper (light and dark, calendar tokens) behind the whole screen, header included.
+          headerStyle: { backgroundColor: palette.paper },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: palette.paper },
           headerRight: () => (
             <Pressable
               accessibilityRole="button"
@@ -149,6 +153,7 @@ function CalendarMonth({ uid }: { uid: string }) {
       />
       <QScreen
         title={t.title}
+        background={palette.paper}
         floating={
           <Pressable
             accessibilityRole="button"
@@ -240,7 +245,7 @@ function CalendarMonth({ uid }: { uid: string }) {
 
         {selected ? (
           <View style={styles.dayList}>
-            <Text style={styles.dayHead} accessibilityRole="header">
+            <Text style={[styles.dayHead, hand(dayTitle(selected))]} accessibilityRole="header">
               {dayTitle(selected)}
             </Text>
             <PencilDivider seed={`day:${selected}`} />
@@ -256,7 +261,7 @@ function CalendarMonth({ uid }: { uid: string }) {
                 >
                   <InkIcon emoji={item.emoji} size={24} />
                   <View style={styles.flex}>
-                    <Text style={styles.dayTitle} numberOfLines={2}>
+                    <Text style={[styles.dayTitle, hand(item.title)]} numberOfLines={2}>
                       {item.title}
                     </Text>
                     <Text style={styles.daySub}>
@@ -385,10 +390,10 @@ const styles = StyleSheet.create({
   dayNum: { fontSize: 16, lineHeight: 18 },
   today: { textDecorationLine: 'underline' },
   more: { position: 'absolute', right: 4, top: 2, fontSize: 13, lineHeight: 16 },
-  dayHead: { fontSize: 15, fontWeight: '600', color: colors.label },
+  dayHead: { fontSize: 20, color: colors.label },
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   dayList: { gap: 8, paddingHorizontal: 4 },
-  dayTitle: { fontSize: 16, color: colors.label },
+  dayTitle: { fontSize: 19, color: colors.label },
   daySub: { fontSize: 13, color: colors.secondaryLabel },
   fab: { position: 'absolute', width: FAB, height: FAB, borderRadius: FAB / 2 },
   fabArt: { width: '100%', height: '100%', borderRadius: FAB / 2 },

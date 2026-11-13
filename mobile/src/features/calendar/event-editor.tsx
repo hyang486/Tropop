@@ -3,12 +3,12 @@
  * sentence (`ask=1` with title/start/end/emoji params). Dates only; saved on this phone.
  */
 import { DatePicker, Host } from '@expo/ui/swift-ui';
+import { labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { InkIcon } from '@/components/calendar/ink-icon';
-import { inkIconKey, inkIconLabel } from '@/components/calendar/ink-icon-map';
+import { InkIcon, inkIconKey, inkIconLabel, useCalendarColors } from '@/components/calendar';
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
@@ -31,6 +31,7 @@ export function EventEditor() {
   const params = useLocalSearchParams<{ id?: string; title?: string; start?: string; end?: string; emoji?: string; ask?: string }>();
   const uid = useAuth().session?.user.id;
   const doc = useCalendar(uid);
+  const paper = useCalendarColors().paper;
   const existing = params.id ? doc?.events.find((e) => e.id === params.id) : undefined;
   const today = localDateKey(useNow(60_000));
   const [title, setTitle] = useState(existing?.title ?? params.title ?? '');
@@ -74,6 +75,7 @@ export function EventEditor() {
   return (
     <QScreen
       title={editing ? t.editEvent : t.newEvent}
+      background={paper}
       subtitle={params.ask === '1' ? t.askConfirm : undefined}
       actions={
         <>
@@ -83,7 +85,15 @@ export function EventEditor() {
         </>
       }
     >
-      <Stack.Screen options={{ title: editing ? t.editEvent : t.newEvent, headerTitle: '' }} />
+      <Stack.Screen
+        options={{
+          title: editing ? t.editEvent : t.newEvent,
+          headerTitle: '',
+          headerStyle: { backgroundColor: paper },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: paper },
+        }}
+      />
       <QField
         label={t.titleLabel}
         placeholder={t.titlePlaceholder}
@@ -120,7 +130,8 @@ export function EventEditor() {
 function DateRow({ label, value, onChange }: { label: string; value: string; onChange: (key: string) => void }) {
   return (
     <View style={styles.dateRow}>
-      {/* The picker announces its own title, so the visible label stays out of VoiceOver ("Starts Starts"). */}
+      {/* One label each way: the row Text is the visible one (hidden from VoiceOver); the picker's title is only
+          spoken (labelsHidden), so neither the screen nor VoiceOver says "Starts Starts". */}
       <Text style={styles.dateLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {label}
       </Text>
@@ -130,6 +141,7 @@ function DateRow({ label, value, onChange }: { label: string; value: string; onC
           selection={keyToLocalDate(value)}
           displayedComponents={['date']}
           onDateChange={(d) => onChange(localDateToKey(d))}
+          modifiers={[labelsHidden()]}
         />
       </Host>
     </View>

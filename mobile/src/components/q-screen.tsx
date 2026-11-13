@@ -57,6 +57,7 @@ export function QScreen({
   keepVisible,
   revealRef,
   floating,
+  background,
 }: {
   title?: string;
   /** Small gray line right under the title. */
@@ -85,6 +86,8 @@ export function QScreen({
    * pinned actions, so it never covers them. Screens that do not pass it keep the old tree.
    */
   floating?: ReactNode;
+  /** Opt-in (Qrewing Calendar paper): the screen and pinned-actions ground; default is the app background. */
+  background?: string;
 }) {
   const insets = useSafeAreaInsets();
   // Pad the top by the header overlap ourselves instead of contentInsetAdjustmentBehavior "automatic": that
@@ -130,7 +133,7 @@ export function QScreen({
         </ScrollView>
   );
   return (
-    <View style={[styles.root, { paddingBottom: keyboardPad }]}>
+    <View style={[styles.root, { paddingBottom: keyboardPad }, background ? { backgroundColor: background } : null]}>
       <View ref={rootRef} onLayout={onLayout} style={styles.flex}>
         {floating ? (
           <View style={styles.flex}>
@@ -140,7 +143,7 @@ export function QScreen({
         ) : (
           body
         )}
-        {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>{actions}</View> : null}
+        {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }, background ? { backgroundColor: background } : null]}>{actions}</View> : null}
       </View>
     </View>
   );
