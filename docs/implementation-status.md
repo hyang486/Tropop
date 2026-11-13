@@ -15,7 +15,7 @@ can't read its key, so it opens on Welcome signed out (cause of the 891b759 gues
 |---|---|---|
 | 17 Pro host `91F3BFB3` | `9K6BKSS4U6.com.iyaproject.moment` | normal `expo run:ios` / `xcodebuild` |
 | 17 Pro spare `20541309` | `9K6BKSS4U6.com.iyaproject.moment` | normal (since 2026-11-12: a Release build of 335f700, no Metro) |
-| "Siri Test 27.2" 17 Pro `56FB44E7` (iOS 27.2) | `9K6BKSS4U6.com.iyaproject.moment` | Release 335f700 (qa, 2026-11-12), signed out |
+| "Siri Test 27.2" 17 Pro `56FB44E7` (iOS 27.2) | `9K6BKSS4U6.com.iyaproject.moment` | Release 335f700 (qa, 2026-11-12), guest 'Siri Test' (see accounts below) |
 | 17 guest `F11BA960` | `FAKETEAMID.com.iyaproject.moment` | `xcodebuild … -sdk iphonesimulator DEVELOPMENT_TEAM=FAKETEAMID build`, then `simctl install` |
 | 17e guest `6E0F2097` | `FAKETEAMID.com.iyaproject.moment` | same as above |
 | 17 Pro Max guest 4 `99A2323F` | `FAKETEAMID.com.iyaproject.moment` | same as above (Moment.app → Qrew.app ba7470d, 2026-11-09) |
@@ -25,6 +25,12 @@ Every future install keeps its simulator's group. Check it before installing:
 or erasing loses the session, and the guests are anonymous accounts. No repo config encodes this. The
 team value is passed only on the command line.
 
+Live test accounts added after the standing set (delete only with human approval of that exact id):
+
+| Account | Id | Where | Approval |
+|---|---|---|---|
+| guest 'Siri Test' | `08936e50-13ed-428e-ac6e-3506ab28a87d` | sim 56FB44E7, room AI Meetup QA | human-approved (qa, 2026-11-12) |
+
 ## 2026-11-12 (afternoon): spec 9, spec 10 and a11y on local main 78a9cfe (not pushed)
 
 - Merged (--no-ff): spec 9 entry questions (83397b4, 863129f, 66bb53e, a30765a); spec 10 Qrewing bot (66b98f5,
@@ -33,9 +39,9 @@ team value is passed only on the command line.
   list_migrations. Edge Function qrewing v5 ACTIVE, verify_jwt false, deployed from ea1f217 (human 13:05 FINAL;
   supervisor confirmed). Byte check against git: index.ts and prompts.ts identical; core.ts differs only where EMOJI_RE's
   ‍️⃣ escapes were uploaded as literal characters (same match set).
-- Siri 10.5: PASS on iOS 27.2 simulator (signed-out path, qa ~18:32; 56FB44E7, Release 335f700: shortcut runs, prompts,
-  speaks the signed-out line; 2026-11-12-siri-272-prompt.jpg, 2026-11-12-siri-272-signed-out.jpg). The 26.5 failure is
-  FB23504349. Real-answer path pending (needs a sign-in on 56FB44E7, separate human approval). Real iPhone not verified.
+- Siri 10.5: PASS on iOS 27.2 simulator, signed-out and live paths (qa: guest 'Siri Test' 08936e50-13ed-428e-ac6e-3506ab28a87d in AI Meetup QA, 'This room ends tomorrow at 3:17 AM.', usage ask/haiku 1145/27). Real iPhone: runs, but the server takes 4.0-4.2 s (latency work in progress: branch qrewing-latency d528797, not deployed). Test Siri on iOS 27.2 sims (26.5 has FB23504349).
+  Signed-out run: qa ~18:32 on 56FB44E7, Release 335f700 (2026-11-12-siri-272-prompt.jpg, 2026-11-12-siri-272-signed-out.jpg).
+- Open: ExpoApplication crash in the Release build (developer-event is fixing it).
   26.5 history: ea1f217 Debug rebuild (prebuild --clean) installed over the
   existing app on host 91F3BFB3 (9K6BKSS4U6) and guests F11BA960, 6E0F2097, 99A2323F (FAKETEAMID); app-id checked
   before and after. Each installed app has Metadata.appintents (AskQrewIntent, provider 4Qrew12AppShortcutsV) and

@@ -9,8 +9,9 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 - Spec 9, spec 10 (bot + 10.5 Siri) and a11y/dark merged on local main. Details: docs/implementation-status.md
   "2026-11-12 (afternoon)".
 - Live: 0029 qrewing_ask_usage (20261112183834); qrewing v5 from ea1f217.
-- Siri 10.5 PASS on iOS 27.2 simulator (signed-out path, qa ~18:32, sim 56FB44E7); the 26.5 failure is FB23504349.
-  Real-answer path pending (needs a sign-in on 56FB44E7, separate human approval). Real iPhone not verified.
+- Siri 10.5 PASS on iOS 27.2 simulator, signed-out and live paths (qa: guest 'Siri Test' 08936e50-13ed-428e-ac6e-3506ab28a87d in AI Meetup QA, 'This room ends tomorrow at 3:17 AM.', usage ask/haiku 1145/27). Real iPhone: runs, but the server takes 4.0-4.2 s (latency work in progress: branch qrewing-latency d528797, not deployed). Test Siri on iOS 27.2 sims (26.5 has FB23504349).
+- Open: ExpoApplication crash in the Release build (developer-event is fixing it). Guest 08936e50 is a live test
+  account (accounts table in docs/implementation-status.md); delete only with approval of that exact id.
 - Open: app.json web.output "server" breaks Release/EAS export:embed (decision pending, unchanged). Push held (no human go).
 
 ## 2026-11-12: Qrewing bot `ask` (spec 10.2/10.3) — superseded: 0029 applied and qrewing deployed (see top)
