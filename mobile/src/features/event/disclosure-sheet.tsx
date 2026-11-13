@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useIsFocused, useNavigation } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,6 +30,7 @@ export function DisclosureSheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const settled = useSettledFocus();
   const [busy, setBusy] = useState<'agree' | 'later' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +48,7 @@ export function DisclosureSheet({
 
   return (
     <Modal
-      visible={visible}
+      visible={visible && settled}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
@@ -68,6 +70,40 @@ export function DisclosureSheet({
       </View>
     </Modal>
   );
+}
+
+/** Fallback for a screen whose navigator sends no transitionEnd (no push animation). */
+const SETTLE_FALLBACK_MS = 700;
+
+/**
+ * qa 2026-11-13: presented while the room's push was still animating, the page sheet was never drawn but still
+ * took every tap until Agree. The sheet waits until its screen is focused and the push has finished; leaving the
+ * screen resets that, so it never presents from a screen in the background.
+ */
+function useSettledFocus() {
+  // The screen's native-stack navigator; the generic useNavigation type lacks the stack's transition events.
+  const navigation = useNavigation() as unknown as {
+    addListener: (event: 'transitionEnd', cb: () => void) => () => void;
+  };
+  const focused = useIsFocused();
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (!focused) return;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setSettled(true);
+    };
+    const off = navigation.addListener('transitionEnd', finish);
+    const t = setTimeout(finish, SETTLE_FALLBACK_MS);
+    return () => {
+      off();
+      clearTimeout(t);
+      setSettled(false);
+    };
+  }, [focused, navigation]);
+  return focused && settled;
 }
 
 const styles = StyleSheet.create({

@@ -117,7 +117,10 @@ export function EventEditor() {
 function DateRow({ label, value, onChange }: { label: string; value: string; onChange: (key: string) => void }) {
   return (
     <View style={styles.dateRow}>
-      <Text style={styles.dateLabel}>{label}</Text>
+      {/* The picker announces its own title, so the visible label stays out of VoiceOver ("Starts Starts"). */}
+      <Text style={styles.dateLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {label}
+      </Text>
       <Host matchContents>
         <DatePicker
           title={label}
