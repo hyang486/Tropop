@@ -31,6 +31,7 @@ import {
   PREFILTER_REASON,
   RECAP_WINDOW_MS,
   TRIAGE_DAILY_CAP,
+  sha256Hex,
   type Consent,
   type EntryProfile,
   type EntryQuestion,
@@ -1207,4 +1208,82 @@ test('routeKm: null under two points; haversine sum to 0.1 km', () => {
   assert.equal(routeKm([{ lat: 1, lng: 1 }]), null);
   assert.equal(routeKm([{ lat: 0, lng: 0 }, { lat: 0, lng: 1 }]), 111.2);
   assert.equal(routeKm([{ lat: 0, lng: 0 }, { lat: NaN, lng: 0 }, { lat: 0, lng: 1 }]), 111.2);
+});
+
+// ------------------------------------------------------------------------------------------- ask latency (parallel reads)
+
+/** Every store read resolves after `delay(name)` ms, so the parallel reads finish in a chosen order. */
+function delayed(s: QrewingStore, delay: (name: string) => number, fail: string[] = []): QrewingStore {
+  const out: Record<string, unknown> = {};
+  for (const [k, f] of Object.entries(s)) {
+    out[k] = async (...a: unknown[]) => {
+      await new Promise((r) => setTimeout(r, delay(k)));
+      if (fail.includes(k)) throw new Error(`db ${k}`);
+      return (f as (...x: unknown[]) => unknown)(...a);
+    };
+  }
+  return out as unknown as QrewingStore;
+}
+
+const PROMPT_WORLD = () =>
+  world({
+    entries: [entry(CAT, 'PhD student'), entry(BOB, 'CS junior', iso(-2 * MIN)), entry(HOST, 'Recruiter')],
+    messages: [msg(1, HOST, 'Meet at the boathouse 7:30', 30), msg(2, CAT, 'bring water', 20), msg(3, BOB, 'see you', 10), msg(4, null, 'Host started', 5, 'system')],
+  });
+const PROMPT_BODY = ASK('Where do we meet?', { me: { distanceM: 2500, paceSecPerKm: 340, activity: 'moving' }, history: [{ q: 'Who hosts?', a: 'Hana.' }], tz: 'America/Los_Angeles' });
+/** sha256 of the ask user prompt for PROMPT_WORLD/PROMPT_BODY, captured from the sequential code before the latency change. */
+const SEQUENTIAL_PROMPT_SHA = '20ab15d481b9c0e5987bb81285cd6a7ac5e1b67b6e296008655115dd33677672';
+
+test('ask latency: the prompt is byte-identical to the sequential version whatever order the reads finish in', async () => {
+  const names = Object.keys(store(world()));
+  const orders: ((k: string) => number)[] = [() => 0, (k) => names.indexOf(k) * 2, (k) => (names.length - names.indexOf(k)) * 2];
+  const prompts: string[] = [];
+  for (const delay of orders) {
+    const { m, calls } = model(answer('At the boathouse.'));
+    const r = await handle({ store: delayed(store(PROMPT_WORLD()), delay), model: m, now: () => NOW }, BOB, PROMPT_BODY);
+    assert.equal(r.status, 200);
+    prompts.push(calls[0].user);
+  }
+  assert.equal(prompts[1], prompts[0]);
+  assert.equal(prompts[2], prompts[0]);
+  assert.equal(await sha256Hex(prompts[0]), SEQUENTIAL_PROMPT_SHA);
+});
+
+test('ask latency: a failed read maps as it did sequentially (the earlier gate wins; otherwise the error propagates to 500)', async () => {
+  const slowFirst = (k: string) => (k === 'room' || k === 'consents' ? 5 : 0);
+  const go = (w: World, fail: string[], user = BOB) => handle({ store: delayed(store(w), slowFirst, fail), model: model(answer('x')).m, now: () => NOW }, user, ASK('hi'));
+  // gates in handle: unreachable room / non-member / ai off still win over a later read failing
+  assert.deepEqual(await go(world({ room: null }), ['isMember', 'aiEnabled']), { status: 403, body: { error: 'not_member' } });
+  assert.deepEqual(await go(world(), ['aiEnabled'], OUT), { status: 403, body: { error: 'not_member' } });
+  assert.deepEqual(await go(world({ aiEnabled: false }), ['consents']), { status: 403, body: { error: 'ai_off' } });
+  await assert.rejects(go(world(), ['isMember']), /db isMember/);
+  await assert.rejects(go(world(), ['aiEnabled']), /db aiEnabled/);
+  // gates in ask: not consented, then the caps, then the context reads
+  const noConsent = world();
+  noConsent.consents.set(BOB, { aiOk: false, mute: false });
+  assert.deepEqual(await go(noConsent, ['usageCountSince', 'latestText', 'roomExtras']), { status: 403, body: { error: 'not_consented' } });
+  assert.deepEqual(await go(world({ askUsed: ASK_ROOM_CAP }), ['latestText', 'entryProfiles']), { status: 429, body: { error: 'ask_limit' } });
+  await assert.rejects(go(world(), ['consents', 'latestText']), /db consents/);
+  await assert.rejects(go(world(), ['usageCountSince', 'latestText']), /db usageCountSince/);
+  await assert.rejects(go(world(), ['roomExtras', 'latestText']), /db roomExtras/);
+});
+
+test('ask latency: one ask_timing log with integer ms only (no text, tokens or ids)', async () => {
+  const logs: { event: string; fields: Record<string, unknown> }[] = [];
+  let t = 1000.4;
+  const clock = () => (t += 7);
+  const { m } = model(answer('At the boathouse.'));
+  const r = await handle({ store: store(PROMPT_WORLD()), model: m, now: () => NOW, clock, startedAt: 900, authMs: 40, log: (event, fields) => logs.push({ event, fields }) }, BOB, PROMPT_BODY);
+  assert.equal(r.status, 200);
+  const timing = logs.filter((l) => l.event === 'ask_timing');
+  assert.equal(timing.length, 1);
+  const f = timing[0].fields;
+  assert.deepEqual(Object.keys(f).sort(), ['auth_ms', 'context_ms', 'model_ms', 'model_ok', 'total_ms']);
+  assert.equal(f.model_ok, true);
+  for (const k of ['auth_ms', 'context_ms', 'model_ms', 'total_ms']) assert.ok(Number.isInteger(f[k]) && (f[k] as number) >= 0, k);
+  assert.equal(f.auth_ms, 47); // caller's getUser 40 + gate reads 7
+  assert.ok((f.total_ms as number) >= (f.auth_ms as number) + (f.context_ms as number) + (f.model_ms as number) - 40);
+  const failed: typeof logs = [];
+  await handle({ store: store(PROMPT_WORLD()), model: model(() => new Error('boom')).m, now: () => NOW, log: (event, fields) => failed.push({ event, fields }) }, BOB, PROMPT_BODY);
+  assert.equal(failed.find((l) => l.event === 'ask_timing')?.fields.model_ok, false);
 });
