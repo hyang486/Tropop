@@ -801,6 +801,8 @@ export const en = {
       loading: 'Qrewing is reading entry info…',
       emptyTitle: 'No suggestions yet',
       empty: 'No one else has shared entry info yet. Check back after more people join.',
+      noQuestionsTitle: 'No intros in this room',
+      noQuestions: "The host didn't add entry questions, so Qrewing can't suggest people to meet here.",
       noEntryTitle: 'Tell Qrewing about you',
       noEntry: 'Qrewing suggests people from the entry info members share. Add yours to see who to meet.',
       stale: 'Showing the last list. A new one is available in a few minutes.',

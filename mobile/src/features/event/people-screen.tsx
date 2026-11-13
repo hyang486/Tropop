@@ -7,7 +7,8 @@ import { Button, colors, Hint } from '@/components/ui';
 
 import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
-import { type MatchResult, type QrewingError, requestMatches, useQrewingRoom } from './qrewing-api';
+import { peopleEmpty } from './people-empty';
+import { type MatchResult, type QrewingError, requestMatches, useEntryQuestions, useQrewingRoom } from './qrewing-api';
 import { matchStep } from './qrewing-plan';
 import { en } from '@/i18n/en';
 
@@ -90,12 +91,20 @@ export function PeopleScreen() {
   }, [run]);
 
   const notConsented = q.me !== null && !q.me.aiOk;
+  const questions = useEntryQuestions(id);
+  const empty = peopleEmpty({
+    status: state.status,
+    error: state.status === 'error' || state.status === 'ready' ? state.error : null,
+    matches: state.status === 'ready' ? state.result.matches.length : 0,
+    notConsented,
+    questions: { loaded: questions.loaded, failed: questions.failed, count: questions.questions.length },
+  });
 
   return (
     <QScreen
       title={s.title}
       actions={
-        state.status === 'error' && state.error === 'no_entry' && !notConsented ? (
+        empty === 'noQuestions' ? undefined : empty === 'noEntry' ? (
           <Button
             title={en.qrewing.info.addEntry}
             onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id } })}
@@ -114,11 +123,15 @@ export function PeopleScreen() {
       ) : state.status === 'pending' ? (
         <Hint>{state.final ? s.pendingFinal : s.pending}</Hint>
       ) : state.status === 'error' ? (
-        state.error === 'no_entry' && !notConsented ? (
+        empty === 'noQuestions' ? (
+          <EmptyState title={s.noQuestionsTitle} body={s.noQuestions} />
+        ) : empty === 'noEntry' ? (
           <EmptyState title={s.noEntryTitle} body={s.noEntry} />
         ) : (
           <Hint tone="error">{notConsented ? s.notConsented : en.qrewing.errors[state.error]}</Hint>
         )
+      ) : empty === 'noQuestions' ? (
+        <EmptyState title={s.noQuestionsTitle} body={s.noQuestions} />
       ) : state.result.matches.length === 0 ? (
         <EmptyState title={s.emptyTitle} body={s.empty} />
       ) : (
