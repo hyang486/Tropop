@@ -447,6 +447,7 @@ export const en = {
     cueFast: (pace: string, target: string) => `Ease off: ${pace} per km, target ${target}.`,
     cueGap: (gapM: number, pace: string) =>
       `Lead group ${gapM} meters ahead. Run ${pace} per km to catch them in 3 minutes.`,
+    cueGapPickUp: (gapM: number) => `Lead group ${gapM} meters ahead, pick up the pace.`,
     cueGapKeep: (gapM: number) => `Lead group ${gapM} meters ahead. Too far to catch in 3 minutes: keep your pace.`,
     cueDismiss: 'Dismiss cue',
     stationaryTitle: "You've stopped for 3 minutes. Everything okay?",
