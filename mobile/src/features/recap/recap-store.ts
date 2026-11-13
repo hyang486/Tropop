@@ -12,6 +12,7 @@ import { loadFaceData } from '@/lib/face';
 import { supabase } from '@/lib/supabase';
 
 import {
+  askDiaryOnce,
   EMPTY_MARK,
   END_RECAP_TIMEOUT_MS,
   bumpMessages,
@@ -177,7 +178,26 @@ export async function saveMessageCountWhileOpen(roomId: string, userId: string):
   }
 }
 
-async function save(roomId: string, userId: string, server: ServerRecap): Promise<SavedRecap> {
+const diaryInFlight = new Set<string>();
+
+async function save(
+  roomId: string,
+  userId: string,
+  server: ServerRecap,
+  opts?: { diaryAsked?: boolean },
+): Promise<SavedRecap> {
+  // s24: only fetchAndSaveRecap sent diary:true; every other path saved the recap without ever asking.
+  if (!opts?.diaryAsked) {
+    void askDiaryOnce(
+      roomId,
+      {
+        wants: () => wantsDiary(userId, roomId),
+        request: () => requestRecap(roomId, { diary: true }),
+        save: (r) => saveRecapToCalendar(userId, roomId, r),
+      },
+      diaryInFlight,
+    );
+  }
   const prev = await loadSavedRecap(roomId);
   const me = myPartForSave(prev?.me, await loadOpenMyPart(roomId), await readMyPart(roomId, userId));
   const saved: SavedRecap = { server, me, savedAt: new Date().toISOString() };
@@ -199,12 +219,12 @@ export async function fetchAndSaveRecap(roomId: string, userId: string, opts?: {
   const res = await requestRecap(roomId, { ...opts, diary });
   if ('error' in res || res.state !== 'done') return null;
   if (diary && res.emoji) void saveRecapToCalendar(userId, roomId, { emoji: res.emoji, diary: res.diary });
-  return save(roomId, userId, {
-    title: res.title,
-    summary: res.summary,
-    highlights: res.highlights,
-    generatedAt: res.generatedAt,
-  });
+  return save(
+    roomId,
+    userId,
+    { title: res.title, summary: res.summary, highlights: res.highlights, generatedAt: res.generatedAt },
+    { diaryAsked: diary },
+  );
 }
 
 /** Trigger C: after a `room_recaps` notice, read the row through RLS and save it when done. */
