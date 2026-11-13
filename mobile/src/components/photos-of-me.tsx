@@ -27,6 +27,8 @@ type Props = {
    * Manage. Matched photos and their downloads stay.
    */
   readOnly?: boolean;
+  /** Extra bottom padding for the grid and states, e.g. the Ask Qrewing button's footprint (UI audit item 1). */
+  bottomInset?: number;
 };
 
 /** The gallery's "Me" filter: my matched photos in this room, or setup, disabled and error states. */
@@ -40,6 +42,7 @@ export function PhotosOfMe({
   onRefreshMedia,
   header,
   readOnly = false,
+  bottomInset = 0,
 }: Props) {
   const router = useRouter();
   // loadedAt: when the jobs were read; stale 'running' jobs are judged against it.
@@ -101,7 +104,7 @@ export function PhotosOfMe({
 
   /** Non-grid states scroll too, so the notices above them never squeeze them off screen. */
   const scroll = (children: ReactNode) => (
-    <ScrollView contentInsetAdjustmentBehavior="never">
+    <ScrollView contentInsetAdjustmentBehavior="never" contentContainerStyle={{ paddingBottom: bottomInset }}>
       {header}
       {children}
     </ScrollView>
@@ -180,7 +183,7 @@ export function PhotosOfMe({
       keyExtractor={(m) => m.id}
       numColumns={columns}
       columnWrapperStyle={{ gap }}
-      contentContainerStyle={{ gap }}
+      contentContainerStyle={{ gap, paddingBottom: bottomInset }}
       contentInsetAdjustmentBehavior="automatic"
       onRefresh={async () => {
         // The spinner covers the media and face reloads; a match run it starts shows as "Checking".

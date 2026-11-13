@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
 import { colors } from '@/components/ui';
+import { QREWING_FAB_CLEARANCE } from '@/features/event/qrewing-fab-size';
 import { keyboardOverlap, revealScrollY, type Span } from '@/lib/keyboard-plan';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
@@ -331,8 +332,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   body: { flexGrow: 1, paddingHorizontal: qSpacing.side, paddingBottom: 24, gap: qSpacing.gap },
-  // Room for a `floating` button (56) plus its margins, so the last row scrolls clear of it.
-  floatingClear: { paddingBottom: 80 },
+  // Room for a `floating` button (the Ask Qrewing footprint), so the last row scrolls clear of it.
+  floatingClear: { paddingBottom: QREWING_FAB_CLEARANCE },
   head: { marginBottom: 6, gap: 4 },
   subtitle: { fontSize: 15, color: colors.secondaryLabel },
   spacer: { flexGrow: 1 },

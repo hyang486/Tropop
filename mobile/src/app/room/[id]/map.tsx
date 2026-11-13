@@ -73,6 +73,8 @@ const ROUTE_COLOR = '#007AFF';
 const LABEL_BACKGROUND = '#FFFFFF';
 const LABEL_TEXT = '#000000';
 const LABEL_STALE_TEXT = '#6C6C70';
+/** Gap under the bottom map buttons. */
+const OVERLAY_BOTTOM = 8;
 // #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
 const EMERGENCY_RED = '#FF3B30';
 const EMERGENCY_TEXT = '#FFFFFF';
@@ -195,6 +197,8 @@ function RoomMap({
 
   // F5-5b: the map's real size once it is laid out (the fit and the label grouping measure against it).
   const [mapSize, setMapSize] = useState<ViewSize>(ROOM_MAP_SIZE);
+  // Height of the bottom map buttons (Show my location / Recenter); the Ask Qrewing button floats above them.
+  const [overlayHeight, setOverlayHeight] = useState(34);
   // The room map's view after its last camera move: the editor opens on the same view.
   const lastView = useRef<Camera | null>(null);
   // P2: what the map showed when its camera last stopped (expo-maps reports a move only at its end), used to
@@ -480,6 +484,7 @@ function RoomMap({
               accessibilityState={{ busy: locate === 'busy' }}
               onPress={showMyLocation}
               style={[styles.overlayButton, styles.showMine]}
+              onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}
             >
               <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
             </Pressable>
@@ -511,8 +516,9 @@ function RoomMap({
             ) : null}
           </View>
         ) : null}
-        {/* qa: on the map, above Recenter, so the floating Q never covers the status text below the map. */}
-        <QrewingFab roomId={room.id} bottom={36} />
+        {/* qa: on the map, above Recenter, so the floating Q never covers the status text below the map. UI audit
+            item 1: the offset follows the bottom buttons' measured height (Dynamic Type), with a full margin gap. */}
+        <QrewingFab roomId={room.id} bottom={OVERLAY_BOTTOM + overlayHeight} />
       </View>
       {locate === 'denied' ? <Hint tone="error">{en.map.locateDenied}</Hint> : null}
       {locate === 'settings' ? (
@@ -697,7 +703,7 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   overlayButton: {
     position: 'absolute',
-    bottom: 8,
+    bottom: OVERLAY_BOTTOM,
     backgroundColor: colors.field,
     borderRadius: 8,
     paddingHorizontal: 10,
