@@ -20,7 +20,7 @@ import { useAuth } from '@/lib/auth';
 import { useNow } from '@/lib/use-now';
 
 import { calendarGate, calendarItems, parseCalendarAdd, type RoomSnapshot } from './calendar-data';
-import { dayTitle, monthTitle, rangeLabel, weekdayLabels } from './calendar-format';
+import { dayTitle, diaryText, monthTitle, rangeLabel, weekdayLabels } from './calendar-format';
 import {
   type CalItem,
   cellOf,
@@ -178,7 +178,7 @@ function CalendarMonth({ uid }: { uid: string }) {
                   <Pressable
                     key={key}
                     accessibilityRole="button"
-                    accessibilityLabel={t.dayLabel(dayTitle(key), on.map((x) => x.title))}
+                    accessibilityLabel={t.dayLabel(dayTitle(key), on.map((x) => x.title), key === today)}
                     accessibilityState={{ selected: selected === key }}
                     onPress={() => setSelected(key)}
                     style={[styles.cell, { left: col * cellW, top: row * CELL_H, width: cellW, height: CELL_H }]}
@@ -254,17 +254,25 @@ function CalendarMonth({ uid }: { uid: string }) {
       </QScreen>
 
       <Modal visible={!!diary} transparent animationType="fade" onRequestClose={() => setDiary(null)}>
-        <Pressable style={styles.scrim} accessibilityRole="button" accessibilityLabel={t.diaryClose} onPress={() => setDiary(null)}>
+        {/* The close scrim is a sibling behind the card: a Pressable wrapping the card would make VoiceOver read
+            only "Close diary" and never the diary itself. */}
+        <View style={styles.scrim} accessibilityViewIsModal onAccessibilityEscape={() => setDiary(null)}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            accessibilityRole="button"
+            accessibilityLabel={t.diaryClose}
+            onPress={() => setDiary(null)}
+          />
           {diary ? (
             <DiaryCard
               width={Math.min(360, width + 24 || 340)}
               title={`${diary.emoji} ${diary.name}`}
               dateLine={rangeLabel(diary.start, diary.end, thisYear)}
-              lines={diary.diary ?? []}
-              accessibilityLabel={[diary.name, rangeLabel(diary.start, diary.end, thisYear), ...(diary.diary ?? [t.diaryNone])].join('. ')}
+              lines={diaryText(diary.diary, t.diaryNone)}
+              accessibilityLabel={[diary.name, rangeLabel(diary.start, diary.end, thisYear), ...diaryText(diary.diary, t.diaryNone)].join('. ')}
             />
           ) : null}
-        </Pressable>
+        </View>
       </Modal>
 
       <AskSheet visible={asking} onClose={() => setAsking(false)} today={today} />
@@ -281,6 +289,11 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
   const [tries, setTries] = useState(0);
   useAnnounce(error, tries);
   useAnnounce(busy ? t.askBusy : null, busy);
+
+  function close() {
+    setError(null);
+    onClose();
+  }
 
   async function send() {
     if (!text.trim() || busy) return;
@@ -302,19 +315,22 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
   }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={close}>
       <View style={styles.sheet}>
         <View style={styles.sheetHead}>
           <Text style={styles.sheetTitle} accessibilityRole="header">
             {t.askTitle}
           </Text>
-          <Pressable accessibilityRole="button" onPress={onClose} style={styles.headerIcon}>
+          <Pressable accessibilityRole="button" onPress={close} style={styles.headerIcon}>
             <Text style={styles.cancel}>{t.cancel}</Text>
           </Pressable>
         </View>
         <TextInput
           value={text}
-          onChangeText={setText}
+          onChangeText={(v) => {
+            setText(v);
+            setError(null);
+          }}
           placeholder={t.askPlaceholder}
           placeholderTextColor={colors.secondaryLabel}
           accessibilityLabel={t.askTitle}

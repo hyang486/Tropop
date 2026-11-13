@@ -10,6 +10,12 @@ export function monthTitle(year: number, month0: number, locale?: string): strin
   return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, month0, 1)));
 }
 
+/** The diary card's lines: up to 3 non-empty recap lines, or the "no recap" line so the card is never blank. */
+export function diaryText(diary: readonly unknown[] | null | undefined, none: string): string[] {
+  const lines = (diary ?? []).filter((l): l is string => typeof l === 'string' && l.trim() !== '').slice(0, 3);
+  return lines.length ? lines : [none];
+}
+
 /** "Sunday, November 15" */
 export function dayTitle(key: DateKey, locale?: string): string {
   return new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(utcDate(key));
