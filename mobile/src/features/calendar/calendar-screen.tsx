@@ -3,6 +3,7 @@
  * past, current, future) as highlighter strokes and my own events. Phone-only data. "+" adds an event, the
  * Qrewing button adds one from a sentence, and a past room's emoji opens its diary card.
  */
+import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
@@ -18,12 +19,14 @@ import {
   SketchyMonthGrid,
   useCalendarColors,
 } from '@/components/calendar';
+import { HAND_FONTS } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
 import { calendarAdd } from '@/features/event/qrewing-api';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { HAND_FONT_LATIN, handFontFor } from '@/lib/hand-font';
 import { useNow } from '@/lib/use-now';
 
 import { calendarGate, calendarItems, parseCalendarAdd, type RoomSnapshot } from './calendar-data';
@@ -76,6 +79,10 @@ function CalendarMonth({ uid }: { uid: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const palette = useCalendarColors();
+  // Month, weekday and date numbers in the hand font (human FINAL 10:50); system font until it loads.
+  const [handLoaded] = useFonts(HAND_FONTS);
+  const hand = (text: string) => (handLoaded ? { fontFamily: handFontFor(text) } : null);
+  const handNum = handLoaded ? { fontFamily: HAND_FONT_LATIN } : null;
   const doc = useCalendar(uid);
   const now = useNow(60_000);
   const today = localDateKey(now);
@@ -156,7 +163,7 @@ function CalendarMonth({ uid }: { uid: string }) {
           <Pressable accessibilityRole="button" accessibilityLabel={t.prevMonth} onPress={() => go(-1)} style={styles.navBtn}>
             <SymbolView name="chevron.left" size={20} tintColor={colors.label} />
           </Pressable>
-          <Text style={styles.month} accessibilityRole="header">
+          <Text style={[styles.month, { color: palette.ink }, hand(monthTitle(grid.year, grid.month0))]} accessibilityRole="header">
             {monthTitle(grid.year, grid.month0)}
           </Text>
           <Pressable accessibilityRole="button" accessibilityLabel={t.nextMonth} onPress={() => go(1)} style={styles.navBtn}>
@@ -165,7 +172,7 @@ function CalendarMonth({ uid }: { uid: string }) {
         </View>
         <View style={styles.weekdays} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           {weekdays.map((w, i) => (
-            <Text key={i} style={styles.weekday}>
+            <Text key={i} style={[styles.weekday, { color: palette.ink }, hand(w)]}>
               {w}
             </Text>
           ))}
@@ -192,8 +199,8 @@ function CalendarMonth({ uid }: { uid: string }) {
                     onPress={() => setSelected(key)}
                     style={[styles.cell, { left: col * cellW, top: row * CELL_H, width: cellW, height: CELL_H }]}
                   >
-                    <Text style={[styles.dayNum, { color: palette.ink }, key === today && styles.today]}>{day}</Text>
-                    {more > 0 ? <Text style={[styles.more, { color: palette.ink }]}>{t.more(more)}</Text> : null}
+                    <Text style={[styles.dayNum, { color: palette.ink }, handNum, key === today && styles.today]}>{day}</Text>
+                    {more > 0 ? <Text style={[styles.more, { color: palette.ink }, handNum]}>{t.more(more)}</Text> : null}
                   </Pressable>
                 );
               })}
@@ -364,14 +371,14 @@ const styles = StyleSheet.create({
   headerIcon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  month: { flex: 1, textAlign: 'center', fontSize: 20, fontWeight: '600', color: colors.label },
+  month: { flex: 1, textAlign: 'center', fontSize: 24 },
   weekdays: { flexDirection: 'row' },
-  weekday: { flex: 1, textAlign: 'center', fontSize: 13, color: colors.secondaryLabel },
+  weekday: { flex: 1, textAlign: 'center', fontSize: 16, opacity: 0.6 },
   grid: { position: 'relative', borderRadius: 8 },
   cell: { position: 'absolute', paddingTop: 2, paddingHorizontal: 4 },
-  dayNum: { fontSize: 13, fontVariant: ['tabular-nums'] },
-  today: { fontWeight: '800', textDecorationLine: 'underline' },
-  more: { position: 'absolute', right: 4, top: 3, fontSize: 11, fontWeight: '600' },
+  dayNum: { fontSize: 16, lineHeight: 18 },
+  today: { textDecorationLine: 'underline' },
+  more: { position: 'absolute', right: 4, top: 2, fontSize: 13, lineHeight: 16 },
   dayHead: { fontSize: 15, fontWeight: '600', color: colors.label },
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   dayEmoji: { fontSize: 22 },

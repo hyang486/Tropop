@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 const plan = await import('../src/features/calendar/calendar-plan.ts');
-const { weekSegments, monthInfo, primarySegments } = await import('../src/components/calendar/sketch.ts');
+const { weekSegments, monthInfo, primarySegments, PRESSURE_OPACITY } = await import('../src/components/calendar/sketch.ts');
 const { MAX_LANES, layoutMonth, overflowByDay, monthGrid, cellOf, keyOf, itemsOnDay } = plan;
 
 const item = (id, start, end) => ({ id, kind: 'room', title: id, start, end, emoji: '*' });
@@ -199,14 +199,14 @@ test('VoiceOver: a room whose first row is hidden (+N) is still one element on i
 
 const hexes = (block) => [...block.matchAll(/'#([0-9A-Fa-f]{6})'/g)].map((m) => m[1]);
 const tokens = readFileSync(new URL('../src/components/calendar/tokens.ts', import.meta.url), 'utf8');
-const ui = readFileSync(new URL('../src/components/ui.tsx', import.meta.url), 'utf8');
 function theme(name) {
   const block = tokens.slice(tokens.indexOf(`${name}: {`), tokens.indexOf('},', tokens.indexOf(`${name}: {`)));
   const paper = /paper: '#([0-9A-Fa-f]{6})'/.exec(block)[1];
   const hl = hexes(/highlighters: \[([^\]]*)\]/.exec(block)[1]);
   const opacity = +/highlighterOpacity: ([\d.]+)/.exec(block)[1];
-  const ink = new RegExp(`${name}: \\{ ink: '#([0-9A-Fa-f]{6})'`).exec(ui)[1];
-  return { paper, hl, opacity, ink };
+  const ink = /ink: '#([0-9A-Fa-f]{6})'/.exec(block)[1];
+  const pencil = /pencil: '#([0-9A-Fa-f]{6})'/.exec(block)[1];
+  return { paper, hl, opacity, ink, pencil };
 }
 const rgb = (h) => [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
 const lum = (c) => {
@@ -235,8 +235,8 @@ test('dark mode: day numbers and grid lines stay readable on the paper in both t
     const t = theme(name);
     const paper = rgb(t.paper);
     assert.ok(contrast(rgb(t.ink), paper) >= 4.5, `${name}: day number contrast`);
-    // Grid lines are ink at 0.6 opacity (sketchy-month-grid.tsx): a non-text graphic needs 3:1.
-    assert.ok(contrast(over(rgb(t.ink), 0.6, paper), paper) >= 3, `${name}: grid line contrast`);
+    // Grid lines are pencil at the lightest pressure (sketch.ts PRESSURE_OPACITY[0]): a non-text graphic needs 3:1.
+    assert.ok(contrast(over(rgb(t.pencil), PRESSURE_OPACITY[0], paper), paper) >= 3, `${name}: grid line contrast`);
   }
 });
 

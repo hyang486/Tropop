@@ -1,5 +1,5 @@
 // Qrewing Calendar: pure geometry for the hand-drawn pieces (unit tested in tests/calendar-sketch.test.mjs).
-// Every wobble comes from a seeded generator, so the same seed draws the same path on every render.
+// Every texture variation comes from a seeded generator, so the same seed draws the same path on every render.
 
 export type Cap = 'round' | 'flat';
 
@@ -24,76 +24,107 @@ const n = (v: number) => +v.toFixed(1);
 /** A value in [-amp, amp]. */
 const jitter = (rand: () => number, amp: number) => (rand() * 2 - 1) * amp;
 
+/** One pass of pencil: many short pieces (subpaths) that share an opacity and a width, drawn as one SVG path. */
+export type PencilPass = { d: string; opacity: number; width: number };
+
+export const PRESSURE_OPACITY = [0.65, 0.75, 0.85, 0.95];
+const PRESSURE_WIDTH = [1.2, 1.4, 1.6];
+const GRAIN = { opacity: 0.35, width: 0.6 };
+/** Largest sideways drift of the core stroke; the grain pass adds at most GRAIN_OFFSET more (≤ 1 px total). */
+export const PENCIL_DRIFT = 0.5;
+const GRAIN_OFFSET = 0.45;
+
 /**
- * A slightly wobbly hand-drawn line from (x1, y1) to (x2, y2): bends every ~40 px by up to `amp` across the line,
- * ends that miss the exact point by a little (overshoot up to `amp`), joined with smooth quadratic curves.
+ * Straight pencil lines with a pencil texture only: each line is cut into 3-7 px pieces whose pressure (opacity and
+ * width) drifts slowly, with rare tiny breaks, plus a thin broken grain pass beside it for the grainy edge. The line
+ * itself stays straight (sideways drift ≤ 1 px) and ends exactly at its endpoints. Pieces are bucketed by opacity
+ * and width so a whole grid is about a dozen paths. Seeded, so it is the same on every render.
  */
-export function wobblyLine(x1: number, y1: number, x2: number, y2: number, rand: () => number, amp = 1.2): string {
-  const len = Math.hypot(x2 - x1, y2 - y1);
-  if (len === 0) return `M${n(x1)} ${n(y1)}`;
-  const ux = (x2 - x1) / len;
-  const uy = (y2 - y1) / len;
-  const steps = Math.max(2, Math.round(len / 40));
-  const pts: [number, number][] = [];
-  for (let i = 0; i <= steps; i++) {
-    const along = (len * i) / steps + (i === 0 || i === steps ? jitter(rand, amp) : 0);
-    const across = jitter(rand, amp);
-    pts.push([x1 + ux * along - uy * across, y1 + uy * along + ux * across]);
+export function pencilStrokes(lines: readonly (readonly [number, number, number, number])[], seed: string): PencilPass[] {
+  const rand = seededRandom(`pencil:${seed}`);
+  const buckets = new Map<string, PencilPass>();
+  const add = (opacity: number, width: number, piece: string) => {
+    const key = `${opacity}|${width}`;
+    const b = buckets.get(key);
+    if (b) b.d += piece;
+    else buckets.set(key, { d: piece, opacity, width });
+  };
+  for (const [x1, y1, x2, y2] of lines) {
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (len === 0) continue;
+    const ux = (x2 - x1) / len;
+    const uy = (y2 - y1) / len;
+    const at = (along: number, across: number) => `${n(x1 + ux * along - uy * across)} ${n(y1 + uy * along + ux * across)}`;
+    let pressure = rand();
+    let drift = 0;
+    let t = 0;
+    while (t < len) {
+      const step = Math.min(len - t, 3 + rand() * 4);
+      pressure = Math.min(1, Math.max(0, pressure + jitter(rand, 0.25)));
+      const next = Math.min(PENCIL_DRIFT, Math.max(-PENCIL_DRIFT, drift + jitter(rand, 0.2)));
+      // A rare break in the lead (never at the very ends, so corners still meet).
+      const gap = t > 4 && t + step < len - 4 && rand() < 0.05 ? 0.8 + rand() * 0.8 : 0;
+      const o = PRESSURE_OPACITY[Math.min(3, Math.floor(pressure * 4))];
+      const w = PRESSURE_WIDTH[Math.min(2, Math.floor(rand() * 0.6 + pressure * 2.4))];
+      add(o, w, `M${at(t, drift)} L${at(t + step - gap, next)}`);
+      if (rand() < 0.45) {
+        const side = rand() < 0.5 ? -1 : 1;
+        const g0 = t + rand() * step * 0.5;
+        add(GRAIN.opacity, GRAIN.width, `M${at(g0, drift + side * GRAIN_OFFSET)} L${at(g0 + 1 + rand() * 2, drift + side * GRAIN_OFFSET)}`);
+      }
+      drift = next;
+      t += step;
+    }
   }
-  let d = `M${n(pts[0][0])} ${n(pts[0][1])}`;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mx = (pts[i][0] + pts[i + 1][0]) / 2;
-    const my = (pts[i][1] + pts[i + 1][1]) / 2;
-    d += ` Q${n(pts[i][0])} ${n(pts[i][1])} ${n(mx)} ${n(my)}`;
-  }
-  const last = pts[pts.length - 1];
-  return `${d} L${n(last[0])} ${n(last[1])}`;
+  return [...buckets.values()].sort((a, b) => a.opacity - b.opacity || a.width - b.width);
 }
 
 /**
- * The month grid's lines: weeks + 1 horizontal and 8 vertical lines over a 7 × weeks grid of cells, each its own
- * wobbly path (offset by `pad` so the wobble at the outer edge is not clipped).
+ * The month grid's pencil: weeks + 1 horizontal and 8 vertical straight lines over a 7 × weeks grid of cells
+ * (offset by `pad` so the grain at the outer edge is not clipped).
  */
-export function gridLinePaths(weeks: number, cellWidth: number, cellHeight: number, seed: string, pad = 0): string[] {
-  const rand = seededRandom(`grid:${seed}:${weeks}:${cellWidth}:${cellHeight}`);
+export function gridPencil(weeks: number, cellWidth: number, cellHeight: number, seed: string, pad = 0): PencilPass[] {
   const w = cellWidth * 7;
   const h = cellHeight * weeks;
-  const paths: string[] = [];
-  for (let r = 0; r <= weeks; r++) paths.push(wobblyLine(pad, pad + r * cellHeight, pad + w, pad + r * cellHeight, rand));
-  for (let c = 0; c <= 7; c++) paths.push(wobblyLine(pad + c * cellWidth, pad, pad + c * cellWidth, pad + h, rand));
-  return paths;
+  const lines: [number, number, number, number][] = [];
+  for (let r = 0; r <= weeks; r++) lines.push([pad, pad + r * cellHeight, pad + w, pad + r * cellHeight]);
+  for (let c = 0; c <= 7; c++) lines.push([pad + c * cellWidth, pad, pad + c * cellWidth, pad + h]);
+  return pencilStrokes(lines, `grid:${seed}:${weeks}:${cellWidth}:${cellHeight}`);
 }
 
+/** A marker bar: its body (filled at the highlighter opacity) and grain streaks along it (stroked in the same color). */
+export type MarkerBar = { body: string; streaks: { d: string; opacity: number }[] };
+
+const STREAK_OPACITY = [0.12, 0.22, 0.32];
+
 /**
- * A highlighter band filling 0..width × 0..height: uneven top and bottom edges (up to 12% of the height inward),
- * a round cap (radius height / 2) on a side that is the range's real start or end, and a straight cut on a side
- * where the range wraps to another week row.
+ * A straight highlighter bar filling 0..width × 0..height, not a pill: a real start or end ('round' cap) is a
+ * slightly slanted chisel tip (up to 1.5 px in from the edge); a week-wrap or month cut ('flat') is an exact
+ * straight cut at 0 or width. Marker grain: thin horizontal streaks every ~2 px across the bar, broken in places,
+ * bucketed into three opacities. Seeded per bar.
  */
-export function highlighterPath(width: number, height: number, startCap: Cap, endCap: Cap, seed: string): string {
-  if (width <= 0 || height <= 0) return '';
+export function markerBar(width: number, height: number, startCap: Cap, endCap: Cap, seed: string): MarkerBar | null {
+  if (width <= 0 || height <= 0) return null;
   const rand = seededRandom(`hl:${seed}:${width}:${height}`);
-  const r = Math.min(height / 2, width / 2);
-  const left = startCap === 'round' ? r : 0;
-  const right = endCap === 'round' ? width - r : width;
-  const edge = height * 0.12;
-  const steps = Math.max(1, Math.round((right - left) / 24));
-  const top: [number, number][] = [];
-  const bottom: [number, number][] = [];
-  for (let i = 0; i <= steps; i++) {
-    const x = left + ((right - left) * i) / steps;
-    top.push([x, rand() * edge]);
-    bottom.push([x, height - rand() * edge]);
+  const tip = Math.min(1.5, width / 4);
+  const inset = (cap: Cap) => (cap === 'round' ? rand() * tip : 0);
+  const [lt, lb] = [inset(startCap), inset(startCap)];
+  const [rt, rb] = [inset(endCap), inset(endCap)];
+  const body = `M${n(lt)} 0 L${n(width - rt)} 0 L${n(width - rb)} ${n(height)} L${n(lb)} ${n(height)} Z`;
+  const rows = Math.max(1, Math.round(height / 2));
+  const lanes = STREAK_OPACITY.map((opacity) => ({ d: '', opacity }));
+  for (let i = 0; i < rows; i++) {
+    const y = n(((i + 0.5) * height) / rows);
+    const left = Math.max(lt, lb) + (startCap === 'round' ? rand() * tip : 0);
+    const right = width - Math.max(rt, rb) - (endCap === 'round' ? rand() * tip : 0);
+    let x = left;
+    while (x < right) {
+      const run = Math.min(right - x, 6 + rand() * 24);
+      lanes[Math.floor(rand() * 3)].d += `M${n(x)} ${y} L${n(x + run)} ${y}`;
+      x += run + (rand() < 0.5 ? rand() * 3 : 0);
+    }
   }
-  const [lx, ly] = top[0];
-  const [rx, ry] = top[top.length - 1];
-  const [, rby] = bottom[bottom.length - 1];
-  const [, lby] = bottom[0];
-  let d = `M${n(lx)} ${n(ly)}`;
-  for (const [x, y] of top.slice(1)) d += ` L${n(x)} ${n(y)}`;
-  d += endCap === 'round' ? ` A${n(r)} ${n((rby - ry) / 2)} 0 0 1 ${n(rx)} ${n(rby)}` : ` L${n(width)} ${n(ry)} L${n(width)} ${n(rby)} L${n(rx)} ${n(rby)}`;
-  for (const [x, y] of bottom.slice(0, -1).reverse()) d += ` L${n(x)} ${n(y)}`;
-  d += startCap === 'round' ? ` A${n(r)} ${n((lby - ly) / 2)} 0 0 1 ${n(lx)} ${n(ly)}` : ` L0 ${n(lby)} L0 ${n(ly)}`;
-  return `${d} Z`;
+  return { body, streaks: lanes.filter((l) => l.d) };
 }
 
 export type MonthInfo = { firstCol: number; daysInMonth: number; weeks: number };

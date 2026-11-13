@@ -2,14 +2,15 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { type Cap, highlighterPath, strokeA11y } from './sketch';
+import { type Cap, markerBar, strokeA11y } from './sketch';
 import { useCalendarColors } from './tokens';
 
 const MIN_TARGET = 44;
 
 /**
- * Qrewing Calendar: one week-row segment of a room's translucent marker band. Round caps only at the range's real
- * start and end; flat where it wraps to another row. An optional emoji sits in the middle. Tappable (44 pt hit
+ * Qrewing Calendar: one week-row segment of a room's translucent marker: a straight bar with marker grain. A
+ * slanted chisel tip only at the range's real start and end ('round' cap); a straight cut where it wraps to another
+ * row or the month ends ('flat'). An optional emoji sits in the middle. Tappable (44 pt hit
  * area through hitSlop) only when onPress is given; otherwise it takes no touches.
  */
 export function HighlighterStroke({
@@ -46,12 +47,15 @@ export function HighlighterStroke({
   a11yPrimary?: boolean;
 }) {
   const colors = useCalendarColors();
-  const d = useMemo(() => highlighterPath(width, height, startCap, endCap, seed), [width, height, startCap, endCap, seed]);
-  if (!d) return null;
+  const bar = useMemo(() => markerBar(width, height, startCap, endCap, seed), [width, height, startCap, endCap, seed]);
+  if (!bar) return null;
   const band = (
     <>
       <Svg width={width} height={height}>
-        <Path d={d} fill={color} fillOpacity={colors.highlighterOpacity} />
+        <Path d={bar.body} fill={color} fillOpacity={colors.highlighterOpacity} />
+        {bar.streaks.map((s, i) => (
+          <Path key={i} d={s.d} stroke={color} strokeOpacity={s.opacity} strokeWidth={0.9} fill="none" />
+        ))}
       </Svg>
       {emoji ? (
         <View pointerEvents="none" style={styles.center}>

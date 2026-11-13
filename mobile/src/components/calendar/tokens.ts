@@ -1,25 +1,22 @@
 import { useColorScheme } from 'react-native';
 
-import { palette } from '@/components/ui';
-
 /**
- * Qrewing Calendar colors, light and dark pairs (react-native-svg needs plain strings). Ink comes from the app
- * palette; the cream paper and the highlighter set are calendar-only, so they live here, not in components/ui.
+ * Qrewing Calendar colors, light and dark pairs (react-native-svg needs plain strings). Calendar-only (the approved
+ * pencil mockup, docs/evidence/2026-11-13-calendar-pencil-mockup-v2.html), so they live here, not in components/ui.
+ * ink: text and line icons. pencil: grid lines and dividers (graphite; light graphite on the dark paper).
  */
 export const CAL_COLORS = {
   light: {
-    ink: palette.light.ink,
-    paper: '#FBF6E9',
-    rule: '#C8D6E5',
-    margin: '#E6A3A3',
+    ink: '#2B2A27',
+    pencil: '#3D3B37',
+    paper: '#FBF7EE',
     highlighters: ['#FFE14D', '#FF9EC4', '#8FE39A', '#8FD3FF', '#FFB870', '#C7A8FF'],
     highlighterOpacity: 0.55,
   },
   dark: {
-    ink: palette.dark.ink,
+    ink: '#E4DED2',
+    pencil: '#BDB7AB',
     paper: '#1D1B17',
-    rule: '#3A4250',
-    margin: '#7A4646',
     highlighters: ['#E8C93A', '#E07FA8', '#6CC27A', '#6BB6E6', '#E39A55', '#A98BE6'],
     highlighterOpacity: 0.5,
   },
