@@ -24,6 +24,7 @@ import {
   triageUser,
   type AskFacts,
   type AskMe,
+  type AskGroup,
   type AskTurn,
   type MatchPerson,
   type MatchQuestion,
@@ -65,6 +66,16 @@ export const ASK_CHAT_LINES = 60;
 export const ASK_CHAT_CHARS = 6000;
 export const ASK_LINE_MAX = 300;
 export const ASK_ENTRY_PEOPLE = 30;
+/** E2E (a): status/Emergency lines in the ask and recap context, each cut to ASK_EVENT_LINE_MAX. */
+export const ASK_EVENT_LINES = 30;
+export const ASK_EVENT_LINE_MAX = 120;
+export const ASK_EMERGENCIES = 5;
+/** E2E (b): members listed in <group>; a position older than POSITION_FRESH_MS is left out. */
+export const ASK_GROUP_MAX = 30;
+export const POSITION_FRESH_MS = 2 * 60_000;
+/** Same as the client's pace engine: the lead group is everyone within 50 m of the front; moving = at least 0.5 m/s. */
+export const LEAD_GROUP_SPAN_M = 50;
+export const MOVING_MPS = 0.5;
 export const ASK_ANSWER_MAX = 600;
 /** Spec 10.3 `me`: the asker's own snapshot from their phone. Only these fields, in these closed ranges. */
 export const ASK_ME_RANGES = {
@@ -163,7 +174,19 @@ export type Consent = { aiOk: boolean; mute: boolean };
 export type TriageSource = 'model' | 'rule';
 export type UsageAction = 'triage' | 'recap' | 'match' | 'ask';
 /** Room columns only the bot reads. route: rooms.route points (lat/lng are used for the distance only, never sent). */
-export type RoomExtras = { activityState: string; route: { lat: number; lng: number }[]; statusLabels: string[] };
+export type RoomExtras = {
+  activityState: string;
+  route: { lat: number; lng: number }[];
+  statusLabels: string[];
+  /** rooms.location_allowed: the host allows location sharing. */
+  locationAllowed: boolean;
+  /** The room's place pin, or null. */
+  place: { lat: number; lng: number } | null;
+};
+/** An emergency_events row with the user ids that acknowledged it (emergency_acks). */
+export type Emergency = { id: string; userId: string; createdAt: string; ackedBy: string[] };
+/** A live_presence row; `sharing` = room_members.share_location of that member (core filters on it). */
+export type LivePosition = { userId: string; lat: number; lng: number; speedMps: number | null; updatedAt: string; sharing: boolean };
 
 export interface QrewingStore {
   room(roomId: string): Promise<RoomInfo | null>;
@@ -234,6 +257,12 @@ export interface QrewingStore {
   /** private.qrewing_usage rows of the room with this action at or after `since`; only this user's rows when given (0029). */
   usageCountSince(roomId: string, action: UsageAction, since: string, userId?: string): Promise<number>;
   roomExtras(roomId: string): Promise<RoomExtras>;
+  /** E2E (a): up to `limit` latest 'status' and 'emergency' messages of the room, newest first. */
+  roomEvents(roomId: string, limit: number): Promise<Msg[]>;
+  /** E2E (a): up to `limit` latest emergency_events of the room with their acks, newest first. */
+  emergencies(roomId: string, limit: number): Promise<Emergency[]>;
+  /** E2E (b): the room's live_presence rows, each with its member's share_location. */
+  livePositions(roomId: string): Promise<LivePosition[]>;
 }
 
 export type Deps = {
@@ -718,7 +747,8 @@ async function recap(ctx: Ctx): Promise<Reply> {
     .filter((m) => ok(m.senderId) && m.body?.trim())
     .slice(0, RECAP_MESSAGES)
     .reverse();
-  const names = await store.displayNames([...new Set(msgs.map((m) => m.senderId!))]);
+  const hist = roomHistory(await store.roomEvents(room.id, ASK_EVENT_LINES * 2), await store.emergencies(room.id, ASK_EMERGENCIES * 2), ok);
+  const names = await store.displayNames(historyIds(msgs, hist));
   const media = await store.mediaCounts(room.id);
 
   const r = await callModel(ctx, 'recap', {
@@ -733,7 +763,8 @@ async function recap(ctx: Ctx): Promise<Reply> {
       startsAt: room.startsAt,
       photos: media.photos,
       videos: media.videos,
-      lines: msgs.map((m) => recapLine(names.get(m.senderId!), m.body)),
+      lines: timeline(msgs, hist.lines, names),
+      emergencies: recapAlerts(hist.alerts, names),
     }),
     schema: RECAP_SCHEMA,
   });
@@ -768,13 +799,19 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
     .filter((m) => ok(m.senderId) && m.body?.trim())
     .slice(0, RECAP_REFRESH_MESSAGES)
     .reverse();
-  if (newer.length === 0) return { status: 200, body: recapBody(existing, true) };
+  const all = roomHistory(await store.roomEvents(room.id, ASK_EVENT_LINES * 2), await store.emergencies(room.id, ASK_EMERGENCIES * 2), ok);
+  const hist = {
+    lines: all.lines.filter((m) => m.createdAt > existing.createdAt),
+    // An Emergency is new, or newly resolved (its resolving line came after the recap).
+    alerts: all.alerts.filter((e) => e.createdAt > existing.createdAt || (e.resolved && all.lines.some((m) => m.kind === 'status' && m.senderId === e.userId && m.createdAt > existing.createdAt))),
+  };
+  if (newer.length === 0 && hist.lines.length === 0) return { status: 200, body: recapBody(existing, true) };
   if (!(await store.claimRecapRefresh(room.id))) {
     const again = await store.recap(room.id);
     return { status: 200, body: recapBody(again?.state === 'done' ? again : existing, true) };
   }
 
-  const names = await store.displayNames([...new Set(newer.map((m) => m.senderId!))]);
+  const names = await store.displayNames(historyIds(newer, hist));
   const r = await callModel(ctx, 'recap', {
     model: RECAP_MODEL,
     effort: 'medium',
@@ -783,7 +820,8 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
     system: RECAP_REFRESH_SYSTEM,
     user: recapRefreshUser({
       previous: { title: existing.title ?? '', summary: existing.summary ?? '', highlights: existing.highlights ?? [] },
-      lines: newer.map((m) => recapLine(names.get(m.senderId!), m.body)),
+      lines: timeline(newer, hist.lines, names),
+      emergencies: recapAlerts(hist.alerts, names),
     }),
     schema: RECAP_SCHEMA,
   });
@@ -792,6 +830,27 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
   if (!out) return AI_FAILED;
   const saved = await store.saveRecapRefresh(room.id, out);
   return { status: 200, body: recapBody(saved ?? { ...existing, ...out }, false) };
+}
+
+function historyIds(msgs: Msg[], hist: ReturnType<typeof roomHistory>): string[] {
+  return [...new Set([...msgs, ...hist.lines].map((m) => m.senderId!).concat(hist.alerts.flatMap((e) => [e.userId, ...e.ackedBy])))];
+}
+
+/** E2E (a): chat and status/Emergency lines in time order; event lines are marked so they read as app-posted. */
+function timeline(msgs: Msg[], events: Msg[], names: Map<string, string>) {
+  return [...msgs, ...events]
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
+    .map((m) => {
+      const name = names.get(m.senderId!);
+      if (m.kind === 'text') return recapLine(name, m.body);
+      const tag = m.kind === 'emergency' ? '[Emergency]' : '[status change]';
+      return recapLine(name, `${tag} ${eventText(m.body ?? '', name)}`);
+    });
+}
+
+function recapAlerts(alerts: ReturnType<typeof roomHistory>['alerts'], names: Map<string, string>) {
+  const n = (id: string) => cut((names.get(id) || 'Member').replace(/\s+/g, ' '), 40) || 'Member';
+  return alerts.map((e) => ({ who: n(e.userId), resolved: e.resolved, seenBy: e.ackedBy.map(n) }));
 }
 
 /** L5: one chat line per message ("sender: text"), so a newline in a name or body cannot fake another speaker. */
@@ -986,7 +1045,7 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
   const contextStart = ctx.clock();
   const since = new Date(now.getTime() - ASK_WINDOW_MS).toISOString();
   // Latency: all reads start together; unwrapped in the old order (consent gate → caps → context), so the replies match.
-  const [consentsS, userS, roomUseS, extrasS, membersS, msgsS, questionsS, profilesS] = await Promise.allSettled([
+  const [consentsS, userS, roomUseS, extrasS, membersS, msgsS, questionsS, profilesS, eventsS, alertsS, positionsS] = await Promise.allSettled([
     store.consents(room.id),
     store.usageCountSince(room.id, 'ask', since, ctx.userId),
     store.usageCountSince(room.id, 'ask', since),
@@ -995,6 +1054,9 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
     store.latestText(room.id, ASK_CHAT_LINES * 2),
     store.entryQuestions(room.id),
     store.entryProfiles(room.id),
+    store.roomEvents(room.id, ASK_EVENT_LINES * 2),
+    store.emergencies(room.id, ASK_EMERGENCIES * 2),
+    store.livePositions(room.id),
   ]);
   const consents = got(consentsS);
   if (consents.get(ctx.userId)?.aiOk !== true) return { status: 403, body: { error: 'not_consented' } };
@@ -1005,7 +1067,9 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
 
   const ok = (id: string | null) => !!id && consents.get(id)?.aiOk === true;
   const [extras, members, msgsRaw, questionRows, profiles] = [got(extrasS), got(membersS), got(msgsS), got(questionsS), got(profilesS)];
+  const [eventsRaw, alertsRaw, positions] = [got(eventsS), got(alertsS), got(positionsS)];
   const memberSet = new Set(members);
+  const history = roomHistory(eventsRaw, alertsRaw, ok);
   // Newest first: keep consenting lines until ASK_CHAT_LINES or about ASK_CHAT_CHARS, then oldest first.
   const msgs: typeof msgsRaw = [];
   let chars = 0;
@@ -1023,8 +1087,20 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
       a.userId === ctx.userId ? -1 : b.userId === ctx.userId ? 1 : a.updatedAt !== b.updatedAt ? (a.updatedAt > b.updatedAt ? -1 : 1) : a.userId < b.userId ? -1 : 1,
     )
     .slice(0, ASK_ENTRY_PEOPLE);
-  const names = await store.displayNames([...new Set([ctx.userId, ...msgs.map((m) => m.senderId!), ...people.map((p) => p.userId)])]);
+  const sharers = positions.filter((p) => p.sharing && ok(p.userId) && memberSet.has(p.userId)).map((p) => p.userId);
+  const names = await store.displayNames([...new Set([
+    ctx.userId,
+    ...msgs.map((m) => m.senderId!),
+    ...people.map((p) => p.userId),
+    ...history.lines.map((m) => m.senderId!),
+    ...history.alerts.flatMap((e) => [e.userId, ...e.ackedBy]),
+    ...sharers,
+  ])]);
   const nameOf = (id: string) => names.get(id) ?? 'Member';
+  // E2E (h): the asker is "You" everywhere in the context, never their own name.
+  const who = (id: string) => (id === ctx.userId ? 'You' : flatCut(nameOf(id), MATCH_FIELD_MAX.name));
+  const at = (isoStr: string) => friendlyTime(isoStr, body.tz, now, lang);
+  const group = groupView(extras, positions.filter((p) => memberSet.has(p.userId)), ctx.userId, ok, nameOf, now.getTime());
   const { questions, keyOf } = matchLegend(questionRows);
   const compact = people.map((p) => compactPerson(nameOf(p.userId), p, keyOf));
   if (compact.some((c) => c.legacy)) questions.push(...LEGACY_QUESTIONS.map(({ key, kind, prompt }) => ({ key, kind, prompt })));
@@ -1056,7 +1132,15 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
       history: body.history,
       questions,
       people: compact.map(({ name, answers }) => ({ name, answers })),
-      lines: msgs.map((m) => ({ sender: flatCut(nameOf(m.senderId!), MATCH_FIELD_MAX.name), text: cut(m.body!, ASK_LINE_MAX) })),
+      lines: msgs.map((m) => ({ at: at(m.createdAt), sender: who(m.senderId!), text: cut(m.body!, ASK_LINE_MAX) })),
+      events: history.lines.map((m) => ({
+        at: at(m.createdAt),
+        who: who(m.senderId!),
+        kind: m.kind,
+        text: eventText(m.body!, names.get(m.senderId!)),
+      })),
+      emergencies: history.alerts.map((e) => ({ who: who(e.userId), at: at(e.createdAt), resolved: e.resolved, seenBy: e.ackedBy.map(who) })),
+      group,
       question: body.question,
     }),
     schema: ASK_SCHEMA,
@@ -1077,6 +1161,128 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
     return AI_FAILED;
   }
   return { status: 200, body: { answer: cut(answer, ASK_ANSWER_MAX), usage: r.usage } };
+}
+
+// ---- E2E fixes (a), (b): room events and the group view for ask ----
+
+function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Metres along the route to the point's projection on the nearest segment (the client's progressAlongRoute). */
+export function progressAlongRoute(p: { lat: number; lng: number }, route: { lat: number; lng: number }[]): number {
+  const rad = Math.PI / 180;
+  const kx = Math.cos(p.lat * rad) * rad * 6_371_000;
+  const ky = rad * 6_371_000;
+  const xy = (q: { lat: number; lng: number }) => ({ x: q.lng * kx, y: q.lat * ky });
+  const q = xy(p);
+  let best = { dist: Infinity, progress: 0 };
+  let along = 0;
+  for (let i = 1; i < route.length; i++) {
+    const a = xy(route[i - 1]);
+    const b = xy(route[i]);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 > 0 ? Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.y - a.y) * dy) / len2)) : 0;
+    const dist = Math.hypot(q.x - (a.x + t * dx), q.y - (a.y + t * dy));
+    const seg = haversineM(route[i - 1], route[i]);
+    if (dist < best.dist) best = { dist, progress: along + t * seg };
+    along += seg;
+  }
+  return best.progress;
+}
+
+const round10 = (m: number) => Math.round(m / 10) * 10;
+
+/**
+ * E2E (b): the asker's group while an activity runs. Only members who share their location (opt-in), allow AI and
+ * have a position newer than POSITION_FRESH_MS. Never coordinates: progress (along the route, else from the place
+ * pin) and distances only. Null when no activity runs or the host does not allow location.
+ */
+export function groupView(
+  extras: RoomExtras,
+  positions: LivePosition[],
+  askerId: string,
+  allowed: (id: string) => boolean,
+  nameOf: (id: string) => string,
+  nowMs: number,
+): AskGroup | null {
+  if (extras.activityState !== 'active' || !extras.locationAllowed) return null;
+  const route = extras.route.filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lng));
+  const seen = new Set<string>();
+  const live = positions.filter((p) => {
+    const age = nowMs - Date.parse(p.updatedAt);
+    const fresh = p.sharing && allowed(p.userId) && !seen.has(p.userId) && Number.isFinite(p.lat) && Number.isFinite(p.lng) && age >= -60_000 && age <= POSITION_FRESH_MS;
+    if (fresh) seen.add(p.userId);
+    return fresh;
+  });
+  const progressOf = (p: LivePosition): number | null =>
+    route.length >= 2 ? progressAlongRoute(p, route) : extras.place ? haversineM(extras.place, p) : null;
+  const rows = live.map((p) => ({ p, progressM: progressOf(p) }));
+  const ranked = rows.filter((r) => r.progressM !== null) as { p: LivePosition; progressM: number }[];
+  const frontM = ranked.length ? Math.max(...ranked.map((r) => r.progressM)) : null;
+  const inLead = (r: { progressM: number | null }) => frontM !== null && r.progressM !== null && r.progressM >= frontM - LEAD_GROUP_SPAN_M;
+  const moving = (p: LivePosition) => (p.speedMps === null || !Number.isFinite(p.speedMps) ? undefined : p.speedMps >= MOVING_MPS);
+  const seenS = (p: LivePosition) => Math.max(0, Math.round((nowMs - Date.parse(p.updatedAt)) / 1000));
+  const me = rows.find((r) => r.p.userId === askerId) ?? null;
+  const leadRows = ranked.filter(inLead).sort((a, b) => b.progressM - a.progressM);
+  const others = rows
+    .filter((r) => r.p.userId !== askerId)
+    .sort((a, b) => (b.progressM ?? -1) - (a.progressM ?? -1) || (a.p.userId < b.p.userId ? -1 : 1))
+    .slice(0, ASK_GROUP_MAX);
+  return {
+    sharing: live.length,
+    basis: route.length >= 2 ? 'route' : extras.place ? 'place' : 'none',
+    lead: frontM === null ? null : {
+      names: leadRows.map((r) => (r.p.userId === askerId ? 'You' : flatCut(nameOf(r.p.userId), MATCH_FIELD_MAX.name))),
+      frontM: round10(frontM),
+      rearM: round10(Math.min(...leadRows.map((r) => r.progressM))),
+    },
+    you: me && {
+      progressM: me.progressM === null ? null : round10(me.progressM),
+      inLead: inLead(me),
+      gapToLeadM: me.progressM === null || frontM === null ? null : round10(Math.max(0, frontM - me.progressM)),
+      moving: moving(me.p),
+      seenSAgo: seenS(me.p),
+    },
+    members: others.map((r) => ({
+      name: flatCut(nameOf(r.p.userId), MATCH_FIELD_MAX.name),
+      progressM: r.progressM === null ? null : round10(r.progressM),
+      inLead: inLead(r),
+      fromYouM: me ? round10(haversineM(me.p, r.p)) : null,
+      moving: moving(r.p),
+      seenSAgo: seenS(r.p),
+    })),
+  };
+}
+
+/** The sender's name at the start of a status/emergency body ("Mina: Lost", "Mina needs help ...") is dropped. */
+export function eventText(body: string, name: string | undefined): string {
+  const flat = body.replace(/\s+/g, ' ').trim();
+  const rest = name && flat.startsWith(name) ? flat.slice(name.length).replace(/^:\s*/, '').trim() : flat;
+  return cut(rest || flat, ASK_EVENT_LINE_MAX);
+}
+
+/**
+ * E2E (a): consenting members' status/Emergency lines (oldest first) and their Emergencies with who saw them
+ * (consenting ackers only) and whether they were resolved (a later status line from the same member).
+ */
+export function roomHistory(events: Msg[], emergencies: Emergency[], allowed: (id: string | null) => boolean) {
+  const lines = events.filter((m) => allowed(m.senderId) && m.body?.trim()).slice(0, ASK_EVENT_LINES).reverse();
+  const alerts = emergencies
+    .filter((e) => allowed(e.userId))
+    .slice(0, ASK_EMERGENCIES)
+    .reverse()
+    .map((e) => ({
+      userId: e.userId,
+      createdAt: e.createdAt,
+      ackedBy: [...new Set(e.ackedBy)].filter((u) => u !== e.userId && allowed(u)),
+      resolved: events.some((m) => m.kind === 'status' && m.senderId === e.userId && m.createdAt > e.createdAt),
+    }));
+  return { lines, alerts };
 }
 
 /** Route length in km (haversine), 1 decimal; null with fewer than 2 valid points. */

@@ -756,11 +756,15 @@ export function currentPaceSnapshot(input: {
   return { elapsedSec, distanceM, paceSecPerKm, activity: movingNow(t, input.nowMs) ? 'moving' : 'stopped' };
 }
 
-/** The newest trail point added moving time over the one before it, and it is at most SNAPSHOT_MOVING_FRESH_MS old. */
+/**
+ * Moving time grew within the last SNAPSHOT_MOVING_FRESH_MS. Not just the newest step: with frequent fixes most land
+ * inside the noise circle and add no time, so a steady run would read "stopped" between moves (E2E finding b).
+ */
 function movingNow(t: Tracker, nowMs: number): boolean {
-  const n = t.trail.length;
-  if (n < 2) return false;
-  const last = t.trail[n - 1];
-  const prev = t.trail[n - 2];
-  return last.movingMs > prev.movingMs && nowMs - last.atMs <= SNAPSHOT_MOVING_FRESH_MS;
+  for (let i = t.trail.length - 1; i > 0; i--) {
+    const p = t.trail[i];
+    if (nowMs - p.atMs > SNAPSHOT_MOVING_FRESH_MS) return false;
+    if (p.movingMs > t.trail[i - 1].movingMs) return p.atMs <= nowMs;
+  }
+  return false;
 }
