@@ -154,7 +154,7 @@ export default function RoomInfoScreen() {
     new Date(expiresMs).toLocaleDateString([], { month: 'short', day: 'numeric' }),
     new Date(expiresMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
   );
-  // Q 03.03 "12 people · 8 arrived · View participants": arrivals of the current activity, current members only.
+  // Q 03.03 "12 people · 8 arrived · View participants": arrivals across the whole room (any activity), current members only, each once.
   const arrivedCount = arrived === null ? null : arrivedMemberCount(members.map((m) => m.user_id), arrived);
   const peopleSub = [
     arrivedCount === null ? null : en.room.arrived(arrivedCount),
