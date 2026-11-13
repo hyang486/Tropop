@@ -31,6 +31,7 @@ export function DisclosureSheet({
 }) {
   const insets = useSafeAreaInsets();
   const settled = useSettledFocus();
+  const present = usePresentRetry(visible && settled);
   const [busy, setBusy] = useState<'agree' | 'later' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +49,9 @@ export function DisclosureSheet({
 
   return (
     <Modal
+      key={present.key}
       visible={visible && settled}
+      onShow={present.onShow}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
@@ -104,6 +107,37 @@ function useSettledFocus() {
     };
   }, [focused, navigation]);
   return focused && settled;
+}
+
+/** A page sheet's slide-in takes about 0.5 s; past this without onShow, UIKit refused the presentation. */
+const SHOW_TIMEOUT_MS = 1500;
+const MAX_SHOW_RETRIES = 4;
+
+/**
+ * qa 2026-11-13 (f234327): host's first entry via the invite modal's Done showed no sheet. RN's Modal marks itself
+ * presented before UIKit accepts it and never retries; the room screen's controller was still dismissing the invite
+ * modal, so UIKit refused the presentation silently (no onShow). Until onShow arrives, remount the Modal to present
+ * again. A refused presentation is not in the window, so it takes no taps meanwhile.
+ */
+function usePresentRetry(want: boolean) {
+  const [shown, setShown] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!want) return;
+    return () => {
+      setShown(false);
+      setAttempt(0);
+    };
+  }, [want]);
+  useEffect(() => {
+    if (!want || shown || attempt >= MAX_SHOW_RETRIES) return;
+    const t = setTimeout(() => {
+      if (__DEV__) console.log('[disclosure] no onShow, presenting again', attempt + 1);
+      setAttempt(attempt + 1);
+    }, SHOW_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [want, shown, attempt]);
+  return { key: attempt, onShow: () => setShown(true) };
 }
 
 const styles = StyleSheet.create({
