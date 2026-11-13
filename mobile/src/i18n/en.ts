@@ -635,7 +635,8 @@ export const en = {
     nextMonth: 'Next month',
     add: 'Add event',
     ask: 'Ask Qrewing to add an event',
-    dayLabel: (date: string, titles: string[]) => (titles.length ? `${date}: ${titles.join(', ')}` : `${date}, nothing planned`),
+    dayLabel: (date: string, titles: string[], today = false) =>
+      `${today ? 'Today, ' : ''}${titles.length ? `${date}: ${titles.join(', ')}` : `${date}, nothing planned`}`,
     itemLabel: (title: string, range: string, past: boolean) => `${title}, ${range}${past ? ', past room, shows its diary' : ''}`,
     more: (n: number) => `+${n}`,
     nothing: 'Nothing planned this day.',
@@ -669,7 +670,7 @@ export const en = {
     askErrors: {
       unclear: "Qrewing couldn't tell the date. Try with a day, like \"next Friday\".",
       rate_limited: 'Too many requests. Try again in a little while.',
-      other: "Qrewing couldn't add that right now. You can add it with +.",
+      other: "Qrewing couldn't add that right now. You can add it yourself with Add event (+).",
     },
   },
   auth: {
