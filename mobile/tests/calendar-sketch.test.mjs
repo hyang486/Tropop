@@ -61,6 +61,9 @@ test('pencil: the core stroke drifts at most PENCIL_DRIFT and has pressure varia
   }
   assert.ok(new Set(core.map((p) => p.opacity)).size >= 2, 'pressure varies');
   assert.ok(passes.some((p) => p.width < 1), 'has a grain pass');
+  const ends = core.flatMap((p) => pieces(p.d)).flatMap(([x1, y1, x2, y2]) => [[x1, y1], [x2, y2]]);
+  assert.ok(ends.some(([x, y]) => x === 0 && y === 10), 'starts exactly on its endpoint');
+  assert.ok(ends.some(([x, y]) => x === 300 && y === 10), 'ends exactly on its endpoint');
   assert.deepEqual(pencilStrokes([[5, 5, 5, 5]], 'z'), [], 'zero-length line draws nothing');
 });
 

@@ -61,7 +61,8 @@ export function pencilStrokes(lines: readonly (readonly [number, number, number,
     while (t < len) {
       const step = Math.min(len - t, 3 + rand() * 4);
       pressure = Math.min(1, Math.max(0, pressure + jitter(rand, 0.25)));
-      const next = Math.min(PENCIL_DRIFT, Math.max(-PENCIL_DRIFT, drift + jitter(rand, 0.2)));
+      // The last piece lands back on the line, so both ends are exact.
+      const next = t + step >= len ? 0 : Math.min(PENCIL_DRIFT, Math.max(-PENCIL_DRIFT, drift + jitter(rand, 0.2)));
       // A rare break in the lead (never at the very ends, so corners still meet).
       const gap = t > 4 && t + step < len - 4 && rand() < 0.05 ? 0.8 + rand() * 0.8 : 0;
       const o = PRESSURE_OPACITY[Math.min(3, Math.floor(pressure * 4))];
