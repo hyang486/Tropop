@@ -78,7 +78,7 @@ Checked read-only against the pace code on qrewing-pace (0a1854b). The script dr
   - Members whose location is older than 60 s drop out of the lead group. Keep all five processes running.
   - Map pills: pins within 48 px on screen share one pill. Zoom to about 1 km so that "Mina · Jun" and "Sora · Leo" (80 m apart) get separate pills.
 - **Scene 11 (Dani still running):** keep Dani's `steady` process running through the Ask, so Dani reads as moving.
-- **Cleanup:** stop each process with Ctrl-C, which clears its own device. Do not run `clear --host <udid>` for the other sims, because `clear` also clears the default guest (iPhone 17, Jun). Use `xcrun simctl location <udid> clear` per sim instead.
+- **Cleanup:** stop each process with Ctrl-C, which clears its own device. To clear one sim, run `node scripts/pace-gps-demo.mjs clear --host <udid>`, which clears only that sim. Plain `clear` clears the two default sims (17 Pro and 17).
 
 ## Not covered by this video
 

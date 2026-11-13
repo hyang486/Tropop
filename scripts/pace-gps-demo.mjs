@@ -5,6 +5,7 @@
 // `start` from where the last one ended, after waiting for it to finish.
 //
 //   node scripts/pace-gps-demo.mjs <steady|gap|stop|clear> [--host <udid>] [--guest <udid>] [--dry-run]
+//   clear --host <udid> clears only that device; plain `clear` clears both default devices.
 
 import { spawn } from 'node:child_process';
 
@@ -128,13 +129,18 @@ export function commands(udid, leg) {
 
 // --- runner -----------------------------------------------------------------------------------------------------
 
-function parseArgs(argv) {
-  const args = { scenario: null, host: DEFAULT_HOST, guest: DEFAULT_GUEST, dryRun: false };
+/** `clear` clears only the devices named with --host/--guest; with neither, both defaults. */
+export function clearTargets(args) {
+  return [...new Set(args.named.length ? args.named : [args.host, args.guest])].filter(Boolean);
+}
+
+export function parseArgs(argv) {
+  const args = { scenario: null, host: DEFAULT_HOST, guest: DEFAULT_GUEST, dryRun: false, named: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dry-run') args.dryRun = true;
-    else if (a === '--host') args.host = argv[++i];
-    else if (a === '--guest') args.guest = argv[++i];
+    else if (a === '--host') args.named.push((args.host = argv[++i]));
+    else if (a === '--guest') args.named.push((args.guest = argv[++i]));
     else if (!a.startsWith('--') && !args.scenario) args.scenario = a;
     else throw new Error(`unknown argument: ${a}`);
   }
@@ -172,7 +178,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const devices = { host: args.host, guest: args.guest };
   if (args.scenario === 'clear') {
-    for (const udid of [args.host, args.guest].filter(Boolean)) {
+    for (const udid of clearTargets(args)) {
       await exec(['xcrun', 'simctl', 'location', udid, 'clear'], args.dryRun);
     }
     return;
