@@ -15,6 +15,7 @@ can't read its key, so it opens on Welcome signed out (cause of the 891b759 gues
 |---|---|---|
 | 17 Pro host `91F3BFB3` | `9K6BKSS4U6.com.iyaproject.moment` | normal `expo run:ios` / `xcodebuild` |
 | 17 Pro spare `20541309` | `9K6BKSS4U6.com.iyaproject.moment` | normal (since 2026-11-12: a Release build of 335f700, no Metro) |
+| "Siri Test 27.2" 17 Pro `56FB44E7` (iOS 27.2) | `9K6BKSS4U6.com.iyaproject.moment` | Release 335f700 (qa, 2026-11-12), signed out |
 | 17 guest `F11BA960` | `FAKETEAMID.com.iyaproject.moment` | `xcodebuild … -sdk iphonesimulator DEVELOPMENT_TEAM=FAKETEAMID build`, then `simctl install` |
 | 17e guest `6E0F2097` | `FAKETEAMID.com.iyaproject.moment` | same as above |
 | 17 Pro Max guest 4 `99A2323F` | `FAKETEAMID.com.iyaproject.moment` | same as above (Moment.app → Qrew.app ba7470d, 2026-11-09) |
@@ -32,14 +33,17 @@ team value is passed only on the command line.
   list_migrations. Edge Function qrewing v5 ACTIVE, verify_jwt false, deployed from ea1f217 (human 13:05 FINAL;
   supervisor confirmed). Byte check against git: index.ts and prompts.ts identical; core.ts differs only where EMOJI_RE's
   ‍️⃣ escapes were uploaded as literal characters (same match set).
-- Siri 10.5: BUILT AND PACKAGED, BLOCKED ON SIMULATOR. ea1f217 Debug rebuild (prebuild --clean) installed over the
+- Siri 10.5: PASS on iOS 27.2 simulator (signed-out path, qa ~18:32; 56FB44E7, Release 335f700: shortcut runs, prompts,
+  speaks the signed-out line; 2026-11-12-siri-272-prompt.jpg, 2026-11-12-siri-272-signed-out.jpg). The 26.5 failure is
+  FB23504349. Real-answer path pending (needs a sign-in on 56FB44E7, separate human approval). Real iPhone not verified.
+  26.5 history: ea1f217 Debug rebuild (prebuild --clean) installed over the
   existing app on host 91F3BFB3 (9K6BKSS4U6) and guests F11BA960, 6E0F2097, 99A2323F (FAKETEAMID); app-id checked
   before and after. Each installed app has Metadata.appintents (AskQrewIntent, provider 4Qrew12AppShortcutsV) and
   INAlternativeAppNames[0] "Qrewing". The Shortcuts tile "Ask Qrewing" shows, but running it fails with "Couldn't find
   AppShortcutsProvider" (2026-11-12-siri-unable-to-run.jpg, 2026-11-12-siri-shortcut-fail-log.txt). A Release build
   (no debug dylib, provider in the main binary) on the spare fails the same way (2026-11-12-siri-release-spare-unable.jpg),
   matching Apple forum thread 836585 / FB23504349 (iOS Simulator 26.5 through 27.0 beta 2, Apple's sample too). No code
-  change. To verify on a real iPhone (human: "Not now").
+  change.
 - A11y/dark: per qa, 44 pt targets and dark mode PASS. VoiceOver announcements are NOT verified.
 - Open (not changed): app.json `web.output: "server"` turns on API-routes server export in `expo export:embed`, so any
   Release/EAS iOS build fails at "Exporting server" (PlatformColor is not a function, web eval in Node). The app has no
