@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { type ReactNode, useCallback, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HandTitle } from '@/components/hand-title';
@@ -8,7 +8,15 @@ import { Button, colors, Hint } from '@/components/ui';
 import { QREWING_FAB_CLEARANCE } from '@/features/event/qrewing-fab';
 import { en } from '@/i18n/en';
 import { clearMatchRun, type FaceData, lastMatchRun, loadFaceData, runFaceMatch } from '@/lib/face';
-import { faceJobCounts, faceViewState, type MatchRun, photosOfMe, shouldRunMatch } from '@/lib/face-plan';
+import {
+  faceJobCounts,
+  faceViewState,
+  hasNewReadyPhoto,
+  type MatchRun,
+  photosOfMe,
+  readyPhotoIds,
+  shouldRunMatch,
+} from '@/lib/face-plan';
 import { errorMessage } from '@/lib/errors';
 import { createLatestLoader } from '@/lib/latest-load';
 import type { Media } from '@/lib/media';
@@ -52,6 +60,7 @@ export function PhotosOfMe({
   const [run, setRun] = useState<MatchRun | null>(() => lastMatchRun(roomId));
   const [running, setRunning] = useState(false);
   const runningRef = useRef(false);
+  const rerunRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   // FG-L1: focus, pull and post-run loads can overlap; only the newest one is applied.
   const [runLatest] = useState(createLatestLoader);
@@ -75,17 +84,33 @@ export function PhotosOfMe({
     return applied as FaceData | null;
   }, [roomId, userId, runLatest]);
 
-  /** Only while jobs are pending (FG-2), asks the service once to process them, then reloads. */
+  /**
+   * Only while jobs are pending (FG-2), asks the service to process them, then reloads. A request that arrives
+   * during a run (pull, new photo) cannot join it, so it marks `rerunRef` and the run goes once more if jobs that
+   * were queued meanwhile are still pending.
+   */
   const runIfPending = useCallback(async (next: FaceData | null) => {
     // F7-2: pick up a run made elsewhere (the enrollment screen) while this view stayed mounted.
     setRun(lastMatchRun(roomId));
-    if (readOnly || !next?.enrollment || runningRef.current) return;
+    if (readOnly || !next?.enrollment) return;
+    if (runningRef.current) {
+      rerunRef.current = true;
+      return;
+    }
     if (!shouldRunMatch(false, faceJobCounts(next.jobs, Date.now()).pending)) return;
     runningRef.current = true;
     setRunning(true);
     try {
-      setRun(await runFaceMatch(roomId));
-      await load();
+      let after: FaceData | null;
+      do {
+        rerunRef.current = false;
+        setRun(await runFaceMatch(roomId));
+        after = await load();
+      } while (
+        rerunRef.current &&
+        after?.enrollment &&
+        shouldRunMatch(false, faceJobCounts(after.jobs, Date.now()).pending)
+      );
     } finally {
       runningRef.current = false;
       setRunning(false);
@@ -102,6 +127,16 @@ export function PhotosOfMe({
       refresh();
     }, [refresh]),
   );
+
+  // A new ready photo (my upload, or another member's via the media realtime path) was queued for my enrollment by
+  // the server trigger; reload and match while the view stays open instead of waiting for the next focus.
+  const photoIds = readyPhotoIds(media);
+  const seenPhotoIds = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = seenPhotoIds.current;
+    seenPhotoIds.current = photoIds;
+    if (hasNewReadyPhoto(prev, photoIds)) refresh();
+  }, [photoIds, refresh]);
 
   /** Non-grid states scroll too, so the notices above them never squeeze them off screen. */
   const scroll = (children: ReactNode) => (
