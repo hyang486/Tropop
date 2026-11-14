@@ -135,6 +135,7 @@ export const en = {
     loadFailed: "Couldn't load open rooms.",
     count: (n: number, max: number) => `${n}/${max}`,
     joined: 'Joined',
+    gone: 'This room is no longer open.',
     joinHint: 'Joins without a code',
     dailyLimit: 'You can create up to 5 public rooms per day.',
   },

@@ -70,3 +70,10 @@ test('create check: public needs an area; private never blocks', () => {
 test('every pickable icon key is a valid public_icon slug', () => {
   for (const { key } of p.ROOM_ICONS) assert.match(key, /^[a-z0-9-]{1,30}$/);
 });
+
+test('join_open_room: null (room went private, deleted or expired) is "gone", never a room id', () => {
+  assert.equal(p.joinedRoomId('2b1c0d1e-0000-4000-8000-000000000001'), '2b1c0d1e-0000-4000-8000-000000000001');
+  assert.equal(p.joinedRoomId(null), null);
+  assert.equal(p.joinedRoomId(undefined), null);
+  assert.equal(p.joinedRoomId(''), null);
+});

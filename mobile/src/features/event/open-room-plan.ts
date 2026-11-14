@@ -103,3 +103,11 @@ export function openRoomArgs(input: {
  * controls and calls the pre-0031 create_room, so live room creation keeps working. Flip once 0031 is applied.
  */
 export const OPEN_ROOMS_LIVE = false;
+
+/**
+ * join_open_room's result: the room id, or null when the room went private, was deleted or expired between the list
+ * read and the tap (0031 returns null without an error then). Anything that is not a non-empty string counts as gone.
+ */
+export function joinedRoomId(data: unknown): string | null {
+  return typeof data === 'string' && data ? data : null;
+}

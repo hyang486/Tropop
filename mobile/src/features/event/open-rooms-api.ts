@@ -7,7 +7,7 @@ import { placeTimeArgs, type LatLng } from '@/lib/place-time';
 import { RoomError, type Room, type RoomType } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
 
-import { openRoomArgs, type Capacity, type Visibility } from './open-room-plan';
+import { joinedRoomId, openRoomArgs, type Capacity, type Visibility } from './open-room-plan';
 
 export type OpenRoom = {
   room_id: string;
@@ -65,9 +65,12 @@ export async function listOpenRooms(limit = 50): Promise<OpenRoom[]> {
   return (data as OpenRoom[] | null) ?? [];
 }
 
-/** Joins a public room without a code and returns its id. */
+/** Joins a public room without a code and returns its id; throws "no longer open" when the room is gone. */
 export async function joinOpenRoom(roomId: string): Promise<string> {
   const { data, error } = await rpc('join_open_room', { p_room_id: roomId });
   if (error) throw openRoomError(error);
-  return data as string;
+  // F-D1: null without an error when the room went private, was deleted or expired after the list was read.
+  const id = joinedRoomId(data);
+  if (!id) throw new RoomError('other', en.openChat.gone);
+  return id;
 }
