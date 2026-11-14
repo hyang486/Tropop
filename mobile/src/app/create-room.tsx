@@ -256,14 +256,15 @@ export default function CreateRoom() {
     }
     const expiresAt = new Date(endMs(choice, Date.now()));
     const endProblem = endError(expiresAt.getTime(), Date.now(), plus);
-    if (endProblem === 'tooLong' && !plus) {
+    if (endProblem === 'tooLong' && plus === false) {
       // UX2-24 (pattern G, as PT402): not an error. Snap End back to 2 days and say why, with See Plus.
       pickPreset(FREE_MAX_HOURS);
       setEndSnapped(true);
       setError(null);
       return;
     }
-    if (endProblem) {
+    // Plan still unknown: a long End goes to the server, which answers PT402 (the Plus page) if it is too long.
+    if (endProblem && !(endProblem === 'tooLong' && plus === null)) {
       fail(endProblem === 'tooSoon' ? en.createRoom.endTooSoon : en.createRoom.endTooLong(!!plus));
       return;
     }
