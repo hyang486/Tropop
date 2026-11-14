@@ -112,7 +112,7 @@ export default function ProfileEdit() {
               onPress={() => chooseDefault(a.key)}
               disabled={busy !== null}
               accessibilityRole="button"
-              accessibilityLabel={`${en.profile.avatarOption} ${a.key}`}
+              accessibilityLabel={`${a.name} ${en.profile.avatarOption.toLowerCase()}`}
               accessibilityState={{ selected }}
               style={[styles.pick, selected && styles.pickSelected]}
             >

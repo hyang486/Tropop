@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -24,7 +25,14 @@ export function Avatar({ path, name, size = 32 }: Props) {
     if (preset.source) return <Image style={round} source={preset.source} accessibilityIgnoresInvertColors />;
     return (
       <View style={[round, styles.empty, { backgroundColor: preset.tint }]}>
-        <Text style={[styles.initial, { fontSize: Math.round(size * 0.5), color: '#2B2B2B' }]}>{preset.glyph}</Text>
+        {/* UX2-43b: filled SF Symbol, ink, semibold, 0.42 x the diameter; the text glyph is the fallback. */}
+        <SymbolView
+          name={preset.symbol}
+          size={Math.round(size * 0.42)}
+          tintColor="#2B2B2B"
+          weight="semibold"
+          fallback={<Text style={[styles.initial, { fontSize: Math.round(size * 0.5), color: '#2B2B2B' }]}>{preset.glyph}</Text>}
+        />
       </View>
     );
   }
