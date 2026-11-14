@@ -604,12 +604,12 @@ function MessageRow({
   }
 
   if (NOTICE_KINDS.has(item.kind)) {
-    // UX P1-2: one grey line, no red or bold (the pinned bar carries the Emergency itself).
+    // UX P1-2: grey, no red or bold (the pinned bar carries the Emergency itself). UX2-56: up to 2 centered lines so the time is kept.
     const line = chatLine(item.kind, item.body ?? '');
     if (line.kind === 'activityStarted' && onMapPress) {
       return (
         <Pressable style={styles.noticeRow} accessibilityRole="button" accessibilityHint={en.chat.openMapHint} onPress={onMapPress}>
-          <Text style={styles.notice} numberOfLines={1}>
+          <Text style={styles.notice} numberOfLines={2}>
             {en.chat.activityStarted} · {en.chat.openMapLink} ›
           </Text>
         </Pressable>
@@ -619,7 +619,7 @@ function MessageRow({
       line.kind === 'emergency' ? en.chat.emergencySet(line.name) : line.kind === 'activityStarted' ? en.chat.activityStarted : line.text;
     return (
       <View style={styles.noticeRow}>
-        <Text style={styles.notice} numberOfLines={1}>
+        <Text style={styles.notice} numberOfLines={2}>
           {text} · {time}
         </Text>
       </View>
