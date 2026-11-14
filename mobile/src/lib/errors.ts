@@ -21,7 +21,7 @@ export function appError(message: string): Error {
   return Object.assign(new Error(message), { appCopy: true });
 }
 
-const COPY: Record<ErrorKind, string> = {
+const COPY: Record<Exclude<ErrorKind, 'asIs'>, string> = {
   offline: en.errors.offline,
   ended: en.errors.ended,
   notMember: en.errors.notMember,
@@ -37,5 +37,8 @@ export function errorMessage(error: unknown) {
     const marked = 'appCopy' in error || 'deadEnd' in error;
     if (marked || isAppCopy(error.message)) return error.message;
   }
-  return COPY[errorKind(error)];
+  const kind = errorKind(error);
+  // The server's own user-facing exception text (SERVER_COPY) is shown unchanged.
+  if (kind === 'asIs') return (error as { message: string }).message;
+  return COPY[kind];
 }

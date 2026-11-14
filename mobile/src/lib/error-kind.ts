@@ -14,17 +14,74 @@ function isOfflineError(error: unknown): boolean {
 }
 
 /**
+ * Server exception texts (supabase/migrations `raise exception`) that are deliberate user-facing copy: shown as-is
+ * whatever their errcode. Internal ones (Invalid value, Unknown status, paths, plan_limit, ...) are not listed and map
+ * by kind. 'This room has ended.', 'This room is full.' and the throttle text map by kind to the same meaning.
+ */
+export const SERVER_COPY: ReadonlySet<string> = new Set([
+  'A notice is at most 1000 characters',
+  'A pin needs a place name',
+  'A pin needs both latitude and longitude',
+  'A public room needs a location of 1 to 60 characters',
+  'A public room needs an icon',
+  'Add 1 to 8 questions',
+  'Add at least one entry question first',
+  'An answer is 1 to 2000 characters',
+  'Answer every required question',
+  'Answer is too long',
+  'Both people must be members of an open room.',
+  'Capacity must be between 2 and 30',
+  'Declared size must be 1 byte to 50 MB',
+  'Each question needs 1 to 120 characters',
+  'Entry info can be required only in an event room with Qrewing AI on',
+  'Entry questions are only for event rooms',
+  'Expiration must be between 5 minutes and 7 days from now',
+  'Headline must be 1 to 80 characters',
+  'Host account required',
+  'Icon and location are only for public rooms',
+  'Interests and looking for must be at most 300 characters each',
+  'Location sharing is not allowed in this room.',
+  'Mute small talk needs Qrewing AI consent',
+  'Only the host can change location sharing.',
+  'Only the host can change the expiration.',
+  'Only the host can edit statuses.',
+  'Only the host can edit the route.',
+  'Only the host can end this room.',
+  'Only the host can reissue the invite.',
+  'Only the host can start or end the activity.',
+  'Only the host of an open room can change Qrewing AI',
+  'Only the host of an open room can set entry questions',
+  'Place name must be at most 80 characters',
+  'Qrewing AI is off in this room',
+  'Questions are locked after the first answer',
+  'Sign in first',
+  'Sign in required',
+  'Start time must be before the room closes and not more than a day ago',
+  'The host cannot leave. End the room instead.',
+  'The pin is outside the valid range',
+  'This question was already answered.',
+  'This question was moved to the chat.',
+  'Too many unanswered questions.',
+  'Up to 3 links, each starting with https:// and at most 200 characters',
+  'Wait for the answer a little longer.',
+  'You can create up to 5 public rooms per day.',
+]);
+
+/**
  * offline: the request never reached the server. ended: the room is closed (P0002, or the server's "not a member
  * of an open room", which is what an ended or expired room returns). notMember: removed from the room.
  * notAllowed: any other permission refusal (42501, RLS, 401/403). full / throttled: the server's own limits.
  */
-export type ErrorKind = 'offline' | 'ended' | 'notMember' | 'notAllowed' | 'full' | 'throttled' | 'generic';
+export type ErrorKind =
+  | 'asIs'
+  | 'offline' | 'ended' | 'notMember' | 'notAllowed' | 'full' | 'throttled' | 'generic';
 
 export function errorKind(error: unknown): ErrorKind {
   if (isOfflineError(error)) return 'offline';
   if (!error || typeof error !== 'object') return 'generic';
   const { code, message, status } = error as { code?: unknown; message?: unknown; status?: unknown };
   const text = typeof message === 'string' ? message : '';
+  if (SERVER_COPY.has(text)) return 'asIs';
   if (code === 'PT409' || /room is full/i.test(text)) return 'full';
   if (code === 'PT429' || /too many attempts/i.test(text)) return 'throttled';
   if (code === 'P0002' || /room has ended|not a member of an open room|room (has )?expired/i.test(text)) return 'ended';
