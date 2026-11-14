@@ -671,7 +671,7 @@ export const en = {
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
   },
   planPreview: {
-    // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (human copy review pending).
+    // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).
     title: 'Qrew Plus',
     pill: 'Qrew Plus',
     close: 'Close',
