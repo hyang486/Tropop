@@ -1,7 +1,7 @@
 -- UX2-52 test: while in Emergency, set_my_status rejects an ordinary status (PT409 'emergency_active') and treats
 -- Emergency again as a no-op; clear_my_status (I'm OK) is the way out and still posts the resolved line.
--- Requires migrations through 0034 (emergency_status_guard). One transaction, ends with ROLLBACK.
--- Local: node supabase/tests/local/run.mjs supabase/migrations 20261104000034 supabase/tests/emergency_guard_test.sql
+-- Requires migrations through 0035 (emergency_status_guard). One transaction, ends with ROLLBACK.
+-- Local: node supabase/tests/local/run.mjs supabase/migrations 20261104000035 supabase/tests/emergency_guard_test.sql
 -- Success ends with the row 'EMERGENCY GUARD TESTS PASSED'.
 --
 -- Actors: H host, G guest member, O outsider (never joins).
