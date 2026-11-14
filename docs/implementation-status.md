@@ -356,6 +356,7 @@ GPS-stripped copies.
 | Check | Command | Result |
 |---|---|---|
 | No nested repo | `find . -name .git -not -path ./.git` | none |
+| 0033 room storage cap, live (2026-11-14, human approved, supervisor PASS c91ea47) | pre-check; `capacity_b_test.sql` on live in BEGIN…ROLLBACK; `apply_migration`; post-check | pre: last 0032, media_integrity md5 = 0015 body (11ab723e…), no helpers, 0 idle tx. Live test PASSED, 0 leftovers. Applied as `20261114081433 room_storage_cap`. Post: media_integrity md5 = 0033 body (f74e9854…), both helpers SECURITY DEFINER with EXECUTE revoked from public/anon/authenticated, trigger BEFORE INSERT OR UPDATE on public.media, security advisors unchanged vs baseline. Local PGlite run of the same test also PASSED. App upload flow against live not yet tested. |
 | Typecheck | `cd mobile && npx tsc --noEmit` | exit 0 |
 | Lint | `cd mobile && npx expo lint` | exit 0 (eslint 9, eslint-config-expo 58) |
 | iOS dev build | `cd mobile && CI=1 npx expo run:ios --device 20541309-C36F-4864-94CA-D8A341F70EEB --no-bundler` | exit 0; "Build Succeeded, 0 error(s), 2 warning(s)"; installed and opened on iPhone 17 Pro (iOS 26.5) |

@@ -180,9 +180,8 @@ select ctests.expect_ok($$ select ctests.ready('c3310000-0000-4000-8000-00000000
 -- 6. 0015 behavior unchanged: a ready row stays immutable; a missing original is still refused.
 reset role;
 select ctests.expect_state($$ update public.media set original_path = original_path || 'x' where id = 'c3310000-0000-4000-8000-000000000001' $$, '42501', 'ready row immutable');
-select ctests.register((select room_id from ctests.made where label = 'rf'), 'c3310000-0000-4000-8000-000000000006', 1);
-reset role;
-delete from storage.objects where name like '%/c3310000-0000-4000-8000-000000000006/%';
+-- No Storage object for this row (live Storage refuses direct deletes, so none is created).
+select ctests.declare((select room_id from ctests.made where label = 'rf'), 'c3310000-0000-4000-8000-000000000006', null);
 select ctests.expect_state($$ select ctests.ready('c3310000-0000-4000-8000-000000000006') $$, '22023', 'missing original still refused');
 
 select 'CAPACITY B TESTS PASSED' as result;
