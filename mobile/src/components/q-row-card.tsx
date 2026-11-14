@@ -20,6 +20,7 @@ export function QRowCard({
   accessibilityLabel,
   accessibilityHint,
   expanded,
+  action,
 }: {
   /** SF Symbol name for the leading icon. */
   icon?: string;
@@ -35,6 +36,8 @@ export function QRowCard({
   accessibilityHint?: string;
   /** For a card that shows and hides a section below it. */
   expanded?: boolean;
+  /** UX2-62: a row that does something here (Log out) rather than opening a screen: no chevron. */
+  action?: boolean;
 }) {
   const ink = useInk();
   const body = (
@@ -47,7 +50,7 @@ export function QRowCard({
       {value ? <Text style={styles.value}>{value}</Text> : null}
       {busy ? (
         <ActivityIndicator />
-      ) : onPress ? (
+      ) : onPress && !action ? (
         <SymbolView
           name={expanded === undefined ? 'chevron.right' : expanded ? 'chevron.up' : 'chevron.down'}
           size={14}

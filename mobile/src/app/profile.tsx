@@ -6,7 +6,7 @@ import { Avatar } from '@/components/avatar';
 import { QLink, QScreen } from '@/components/q-screen';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QRowCard } from '@/components/q-row-card';
-import { Button, Hint } from '@/components/ui';
+import { Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { deleteAccount, signOut, useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
@@ -72,16 +72,6 @@ export default function Profile() {
     <QScreen
       title={en.profile.title}
       subtitle={isGuest ? en.profile.guestAccount : en.profile.hostAccount}
-      actions={
-        isGuest ? (
-          <>
-            <Button title={en.profile.becomeHost} onPress={() => router.push('/upgrade')} />
-            <Button title={en.profile.editProfile} variant="secondary" onPress={editProfile} />
-          </>
-        ) : (
-          <Button title={en.profile.editProfile} variant="secondary" onPress={editProfile} />
-        )
-      }
     >
       <ProfileRetry />
       <QRowCard
@@ -89,6 +79,9 @@ export default function Profile() {
         title={name || '—'}
         subtitle={en.profile.nameLabel}
         accessibilityLabel={`${en.profile.nameLabel}: ${name}`}
+        // UX2-62: the name row is the way into Edit profile (no separate button).
+        accessibilityHint={en.profile.editProfile}
+        onPress={editProfile}
       />
       {/* UX P2-7: a plain info row (Account · Host/Guest), not a checkmark that reads as a selected option. */}
       <QRowCard
@@ -111,6 +104,7 @@ export default function Profile() {
           title={en.profile.signOut}
           subtitle={isGuest ? en.profile.guestSignOutWarning : undefined}
           onPress={confirmLogOut}
+          action
           busy={busy === 'signout'}
         />
       </View>

@@ -790,7 +790,7 @@ export const en = {
     guestAccount: 'Guest account',
     hostAccount: 'Host account',
     account: 'Account',
-    guestAccessBody: 'Join a room using an invitation.',
+    guestAccessBody: 'Guest profile on this phone',
     hostAccessBody: 'Create rooms and invite your group.',
     editProfile: 'Edit profile',
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
