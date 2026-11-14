@@ -71,9 +71,15 @@ export async function askQrewing(
   return ok ? { answer: ok.answer } : { error: 'ai_failed' };
 }
 
-export async function probeQrewing(roomId: string): Promise<{ ok: true } | { error: QrewingError }> {
-  const res = await invokeQrewing<{ ok: true }>({ action: 'probe', roomId });
-  return 'error' in res ? res : { ok: true };
+/** `roomAi` and `plan` are kept only when the server sends them (qrewing caller-plan contract). */
+export async function probeQrewing(
+  roomId: string,
+): Promise<{ ok: true; roomAi?: boolean; plan?: 'free' | 'plus' } | { error: QrewingError }> {
+  const res = await invokeQrewing<{ ok: true; roomAi?: unknown; plan?: unknown }>({ action: 'probe', roomId });
+  if ('error' in res) return res;
+  const roomAi = typeof res.data?.roomAi === 'boolean' ? res.data.roomAi : undefined;
+  const plan = res.data?.plan === 'plus' || res.data?.plan === 'free' ? res.data.plan : undefined;
+  return { ok: true, ...(roomAi === undefined ? {} : { roomAi }), ...(plan ? { plan } : {}) };
 }
 
 export async function triageMessages(roomId: string, messageIds: string[]): Promise<TriageResult[] | { error: QrewingError }> {

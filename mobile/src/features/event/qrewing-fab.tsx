@@ -1,5 +1,6 @@
 // Ask Qrewing (spec 10.1, UX P0-2): a floating button in chat, a header icon on map, info and photos; only when the
-// room has Qrewing AI on and the probe answers ok. Before the asker agrees to Qrewing AI here, a tap shows consent.
+// room has Qrewing AI on and the probe answers ok, or AI is off and the asker is on Plus (askMode). With AI on, a
+// tap shows consent before the asker agrees to Qrewing AI here; the personal (AI off) mode needs no consent.
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -10,7 +11,7 @@ import { EnterView } from '@/components/enter-view';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 
-import { askFabVisible } from './ask-plan';
+import { type AskProbe, askMode } from './ask-plan';
 import { DisclosureSheet } from './disclosure-sheet';
 import { probeQrewing, useQrewingRoom } from './qrewing-api';
 import { QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './qrewing-fab-size';
@@ -19,20 +20,22 @@ const s = en.qrewing.ask;
 const ART = require('../../../assets/images/icon.png');
 export { QREWING_FAB_CLEARANCE, QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './qrewing-fab-size';
 
-/** The room's Qrewing switch plus a probe ok (no plan check), and my consent. `available` is false until both answer. */
+/**
+ * The room's Qrewing switch, the probe (room AI and my plan, no model call) and my consent. `available` is false
+ * until the probe answers; it runs again when the switch changes. The personal mode counts as agreed (no consent).
+ */
 export function useQrewingAsk(roomId: string) {
   const q = useQrewingRoom(roomId);
-  const [probe, setProbe] = useState<{ roomId: string; ok: boolean } | null>(null);
+  const [probe, setProbe] = useState<AskProbe | null>(null);
   useEffect(() => {
-    if (!q.aiEnabled) return;
     let alive = true;
-    probeQrewing(roomId).then((r) => alive && setProbe({ roomId, ok: !('error' in r) }));
+    probeQrewing(roomId).then((r) => alive && setProbe('error' in r ? { roomId, ok: false } : { roomId, ...r }));
     return () => {
       alive = false;
     };
   }, [roomId, q.aiEnabled]);
-  const available = askFabVisible(q.aiEnabled, probe, roomId);
-  return { available, agreed: !!q.me?.aiOk, reload: q.reload };
+  const mode = askMode(q.aiEnabled, probe, roomId);
+  return { available: mode !== null, agreed: mode === 'personal' || !!q.me?.aiOk, reload: q.reload };
 }
 
 /**

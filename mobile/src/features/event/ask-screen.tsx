@@ -23,7 +23,7 @@ import { type AskError, ASK_LIMITS, askAnchor, askQuestion, type AskTurn } from 
 import { appendAskTurn, loadAskHistory, purgeAskHistory } from './ask-store';
 import { DisclosureSheet } from './disclosure-sheet';
 import { isPlanLimit } from './qrewing-plan';
-import { askQrewing } from './qrewing-api';
+import { askQrewing, useQrewingRoom } from './qrewing-api';
 
 const s = en.qrewing.ask;
 
@@ -32,6 +32,8 @@ export function AskScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
+  // With room AI off (a Plus asker, capacity B item 4) Qrewing relays no questions, so no relayed cards.
+  const roomAi = useQrewingRoom(id).aiEnabled;
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState('');
@@ -139,7 +141,7 @@ export function AskScreen() {
             </View>
           ))}
           {/* Spec 11 C: questions Qrewing passed on to a person, their answers and the ask-in-chat offer. */}
-          <RelayedCards roomId={id} refreshKey={turns.length} />
+          {roomAi ? <RelayedCards roomId={id} refreshKey={turns.length} /> : null}
           {sending ? (
             <View style={styles.turn} ref={!error ? lastRef : undefined}>
               <Bubble mine text={sending} />

@@ -10,12 +10,19 @@ export type AskTurn = { q: string; a: string; at: number };
  */
 export type AskMe = { elapsedSec: number; distanceM: number; paceSecPerKm: number | null; activity: 'moving' | 'stopped' };
 
+/** The probe for one room: `roomAi` and `plan` come from the server (an older server sends neither and answers only with AI on). */
+export type AskProbe = { roomId: string; ok: boolean; roomAi?: boolean; plan?: 'free' | 'plus' };
+
 /**
- * The Ask Qrewing button shows only when the room has Qrewing AI on and the probe for this room answered ok. With AI on
- * every member may ask, Free or Plus: the plan is deliberately not an input (human, via qa 2026-11-13). AI off → none.
+ * How Ask Qrewing works in this room, or null for no button (capacity B item 4, qrewing caller-plan contract).
+ * room: the room has Qrewing AI on (client read and probe agree); every member sees the button, a Free asker gets 402
+ * and the Plus link, and consent is asked first. personal: AI is off and the asker is on Plus; the answer uses room
+ * details only, so there is no consent step and no relayed question cards. AI off on Free → none.
  */
-export function askFabVisible(aiEnabled: boolean, probe: { roomId: string; ok: boolean } | null, roomId: string): boolean {
-  return aiEnabled && probe?.roomId === roomId && probe.ok;
+export function askMode(aiEnabled: boolean, probe: AskProbe | null, roomId: string): 'room' | 'personal' | null {
+  if (probe?.roomId !== roomId || !probe.ok) return null;
+  if (probe.roomAi ?? true) return aiEnabled ? 'room' : null;
+  return probe.plan === 'plus' ? 'personal' : null;
 }
 
 export const ASK_LIMITS = { question: 300, keep: 30, send: 4 } as const;
