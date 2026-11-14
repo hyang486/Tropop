@@ -12,6 +12,8 @@ export const en = {
     title: "What's your name?",
     who: 'Only the people in your rooms can see it.\nYou can join without creating an account.',
     submit: 'Join as guest',
+    // UX2-28: Join stays off until a name is typed.
+    namePlaceholder: 'Your name',
   },
   signIn: {
     title: 'Host log in',

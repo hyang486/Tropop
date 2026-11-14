@@ -14,7 +14,11 @@ export default function Guest() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // UX2-28: a blank (or spaces-only) name can't join.
+  const named = name.trim().length > 0;
+
   async function submit() {
+    if (!named) return;
     setBusy(true);
     setError(null);
     try {
@@ -34,12 +38,13 @@ export default function Guest() {
       actions={
         <>
           {error && <Hint tone="error">{error}</Hint>}
-          <Button title={en.guest.submit} onPress={submit} busy={busy} />
+          <Button title={en.guest.submit} onPress={submit} busy={busy} disabled={!named} />
         </>
       }
     >
       <QField
         label={en.fields.name}
+        placeholder={en.guest.namePlaceholder}
         value={name}
         onChangeText={setName}
         maxLength={40}
