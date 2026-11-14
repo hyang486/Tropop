@@ -59,10 +59,15 @@ export function SheetRow({
   onPress,
   chevron = true,
   right,
+  lead,
+  a11yLabel,
 }: {
   symbol: SFSymbol;
   label: string;
   detail?: string;
+  /** UX2-04b: a 13 pt line above the detail; the detail then reads at 15 pt, up to 3 lines. */
+  lead?: string;
+  a11yLabel?: string;
   onPress?: () => void;
   chevron?: boolean;
   right?: ReactNode;
@@ -72,7 +77,16 @@ export function SheetRow({
       <SymbolView name={symbol} size={20} tintColor={colors.label} style={styles.rowIcon} />
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{label}</Text>
-        {detail ? <Text style={styles.rowDetail}>{detail}</Text> : null}
+        {lead ? (
+          <Text style={styles.rowDetail} numberOfLines={1}>
+            {lead}
+          </Text>
+        ) : null}
+        {detail ? (
+          <Text style={lead ? styles.rowBody : styles.rowDetail} numberOfLines={lead ? 3 : undefined} ellipsizeMode="tail">
+            {detail}
+          </Text>
+        ) : null}
       </View>
       {right}
       {onPress && chevron ? <SymbolView name="chevron.right" size={14} tintColor={colors.secondaryLabel} /> : null}
@@ -82,7 +96,7 @@ export function SheetRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={detail ? `${label}, ${detail}` : label}
+      accessibilityLabel={a11yLabel ?? (detail ? `${label}, ${detail}` : label)}
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
@@ -121,6 +135,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2 },
   rowLabel: { fontSize: 16, color: colors.label },
   rowDetail: { fontSize: 13, color: colors.ink2 },
+  rowBody: { fontSize: 15, color: colors.ink2 },
   pressed: { opacity: 0.5 },
   close: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
   closeText: { fontSize: 15, color: colors.ink2 },

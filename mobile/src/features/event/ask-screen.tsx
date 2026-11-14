@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { EmptyState } from '@/components/empty-state';
 import { useAnnounce } from '@/features/event/announce';
-import { RelayedCards } from '@/features/questions/relayed-cards';
+import { AnsweredCards, RelayedCards } from '@/features/questions/relayed-cards';
 import { Composer } from '@/components/composer';
 import { QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
@@ -139,7 +139,11 @@ export function AskScreen() {
         }}
       />
       {plusGate ? (
-        <EmptyState art="meetup" artWidth={160} title={s.plusTitle} body={s.plusBody} />
+        <>
+          {/* UX2-04b: answers people gave to my questions stay readable on Free. */}
+          <AnsweredCards roomId={id} />
+          <EmptyState art="meetup" artWidth={160} title={s.plusTitle} body={s.plusBody} />
+        </>
       ) : !loaded ? (
         <ActivityIndicator />
       ) : (

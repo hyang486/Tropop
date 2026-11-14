@@ -17,23 +17,13 @@ export function RelayedCards({ roomId, refreshKey }: { roomId: string; refreshKe
   const { session } = useAuth();
   const { cards } = useRoomCards(roomId);
   const mine = cardsIAsked(cards, session?.user.id);
-  const [names, setNames] = useState<ReadonlyMap<string, string>>(new Map());
+  const name = useMemberNames(roomId, mine.length);
   const [now, setNow] = useState(() => Date.now());
 
   // A new ask may have created a card: refetch after each answer from Qrewing.
   useEffect(() => {
     loadCards(roomId);
   }, [roomId, refreshKey]);
-
-  useEffect(() => {
-    let live = true;
-    listMembers(roomId)
-      .then((m) => live && setNames(new Map(m.map((x) => [x.user_id, x.display_name]))))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [roomId, mine.length]);
 
   // Wake when the next offer is due.
   const nextDue = Math.min(...mine.map((c) => msUntilOffer(c, now)).filter((ms) => ms > 0), Infinity);
@@ -44,13 +34,71 @@ export function RelayedCards({ roomId, refreshKey }: { roomId: string; refreshKe
   }, [nextDue]);
 
   if (mine.length === 0) return null;
-  const name = (uid: string) => names.get(uid) ?? en.chat.formerMember;
   return (
     <View style={styles.wrap}>
       <Text style={styles.section}>{s.relayed}</Text>
       {mine.map((c) => (
         <Relayed key={c.id} card={c} answerer={name(c.answererId)} now={now} />
       ))}
+    </View>
+  );
+}
+
+/** Member names by user id, read again when `key` changes. */
+function useMemberNames(roomId: string, key: number) {
+  const [names, setNames] = useState<ReadonlyMap<string, string>>(new Map());
+  useEffect(() => {
+    let live = true;
+    listMembers(roomId)
+      .then((m) => live && setNames(new Map(m.map((x) => [x.user_id, x.display_name]))))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [roomId, key]);
+  return (uid: string) => names.get(uid) ?? en.chat.formerMember;
+}
+
+/**
+ * UX2-04b: my answered questions, read only (no ask-in-chat, no composer), for a Free asker. Reading a person's
+ * answer is never behind Plus. Nothing when there are none.
+ */
+export function AnsweredCards({ roomId }: { roomId: string }) {
+  const { session } = useAuth();
+  const { cards } = useRoomCards(roomId);
+  const answered = cardsIAsked(cards, session?.user.id).filter((c) => c.status === 'answered');
+  const name = useMemberNames(roomId, answered.length);
+  useEffect(() => {
+    loadCards(roomId);
+  }, [roomId]);
+  if (answered.length === 0) return null;
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.section}>{s.relayed}</Text>
+      {answered.map((c) => (
+        <AnsweredCard key={c.id} card={c} answerer={name(c.answererId)} />
+      ))}
+    </View>
+  );
+}
+
+/** UX2-04b: one answered question: my bubble, then the answer with the answerer's name and time. */
+export function AnsweredCard({ card, answerer }: { card: QuestionCard; answerer: string }) {
+  const at = card.answeredAt ? new Date(card.answeredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+  const by = at ? s.answerBy(answerer, at) : answerer;
+  return (
+    <View style={styles.card}>
+      <View style={[styles.bubble, styles.mine]} accessible accessibilityLabel={`${en.qrewing.ask.you}: ${card.question}`}>
+        <Text style={[styles.text, { color: colors.onTint }]} selectable>
+          {card.question}
+        </Text>
+      </View>
+      <View style={[styles.bubble, styles.bot]} accessible accessibilityLabel={`${by}: ${card.answer ?? ''}`}>
+        <Text style={styles.by}>{by}</Text>
+        <Text style={styles.text} selectable>
+          {card.answer}
+        </Text>
+      </View>
     </View>
   );
 }

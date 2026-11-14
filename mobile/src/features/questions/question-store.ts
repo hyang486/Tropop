@@ -181,9 +181,12 @@ export function useQuestionCards(room: ActivityRoom, userId: string | undefined,
           roomId,
           kind: 'question',
           title: s.answered(names.get(c.answererId) ?? en.chat.formerMember),
-          body: c.question,
+          // UX2-04b: the answer itself is in the notice; reading it is never behind Plus.
+          lead: s.youAsked(c.question),
+          body: s.answerLine(names.get(c.answererId) ?? en.chat.formerMember, c.answer ?? ''),
+          label: s.answeredLabel(names.get(c.answererId) ?? en.chat.formerMember, c.answer ?? ''),
           createdAt: c.answeredAt ?? c.createdAt,
-          action: { kind: 'open-ask' },
+          action: { kind: 'open-ask', cardId: c.id },
         });
       }
     }

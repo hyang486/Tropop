@@ -95,6 +95,8 @@ export function NoticesSheet({
           symbol={NOTICE_SYMBOL[n.kind]}
           label={n.title}
           detail={n.body}
+          lead={n.lead}
+          a11yLabel={n.label}
           onPress={n.action ? () => onOpen(n) : undefined}
         />
       ))}

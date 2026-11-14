@@ -31,7 +31,8 @@ test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   // UX2-04: a 402 re-reads my plan and shows the Plus empty state with See Plus in the composer's place.
   assert.match(a, /isPlanLimit\(res\.error\)\) \{\s*\/\/.*\n\s*if \(userId\) refreshPlus\(userId\);\s*setPlusGate\(true\);\s*setSending\(null\);\s*return;/);
   assert.match(a, /plusGate \? \(\s*<Button title=\{en\.planPreview\.seePlus\}[\s\S]{0,160}plusIntroHref\('ask'\)/);
-  assert.match(a, /plusGate \? \(\s*<EmptyState art="meetup" artWidth=\{160\} title=\{s\.plusTitle\} body=\{s\.plusBody\} \/>/);
+  // UX2-04b: my answered questions stay readable above the gate.
+  assert.match(a, /plusGate \? \(\s*<>[\s\S]{0,120}<AnsweredCards roomId=\{id\} \/>\s*<EmptyState art="meetup" artWidth=\{160\} title=\{s\.plusTitle\} body=\{s\.plusBody\} \/>/);
   const p = src('features/event/people-screen.tsx');
   // UX2-01: the plan gate's pinned button opens the people slide; a 402 re-reads my plan; no red plan line.
   assert.match(p, /gate === 'plus' \? \(\s*<Button\s*title=\{en\.planPreview\.seePlus\}[\s\S]{0,120}plusIntroHref\('meet'\)/);
@@ -49,4 +50,31 @@ test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   assert.match(info, /if \(res\.planLimit\) \{\s*if \(uid\) refreshPlus\(uid\);\s*router\.push\(plusIntroHref\('room-ai'\)\);/);
   assert.match(src('features/event/qrewing-api.ts'), /isPlanLimit\(error\) \? \{ planLimit: true \}/);
   assert.match(info, /plus === false\s*\? router\.push\(plusIntroHref\('meet'\)\)/);
+});
+
+test('UX2-04b: a person\'s answer to my question is readable on Free', () => {
+  // The notice carries the answer: "You asked: …" above "<name>: <answer>" (3 lines), its own VoiceOver label.
+  const store = src('features/questions/question-store.ts');
+  assert.match(store, /lead: s\.youAsked\(c\.question\)/);
+  assert.match(store, /body: s\.answerLine\(/);
+  assert.match(store, /label: s\.answeredLabel\(/);
+  assert.match(store, /action: \{ kind: 'open-ask', cardId: c\.id \}/);
+  const row = src('features/chat/chat-sheet.tsx');
+  assert.match(row, /numberOfLines=\{lead \? 3 : undefined\} ellipsizeMode="tail"/);
+  assert.match(row, /rowBody: \{ fontSize: 15, color: colors\.ink2 \}/);
+  assert.match(row, /accessibilityLabel=\{a11yLabel \?\? /);
+  assert.match(src('features/chat/chat-header.tsx'), /lead=\{n\.lead\}\s*a11yLabel=\{n\.label\}/);
+  // Free → the read-only sheet; Plus (or plan unknown) → Ask as before.
+  const chat = src('app/room/[id]/index.tsx');
+  assert.match(chat, /if \(plus === false && cardId\) setTimeout\(\(\) => setAnswerCard\(cardId\), 400\);\s*\/\/.*\n\s*else if \(ask\.available\) ask\.open\(\);/);
+  assert.match(chat, /onSeePlus=\{\(\) => router\.push\(plusIntroHref\('ask'\)\)\}/);
+  // The sheet: no composer, no red; secondary See Plus, primary Done.
+  const sheet = src('features/questions/answer-sheet.tsx');
+  assert.match(sheet, /<HandTitle>\{s\.yourQuestion\}<\/HandTitle>/);
+  assert.match(sheet, /<AnsweredCard card=\{card\}/);
+  assert.match(sheet, /title=\{en\.planPreview\.seePlus\}\s*variant="secondary"/);
+  assert.match(sheet, /<Button title=\{s\.done\} onPress=\{onClose\} \/>/);
+  assert.doesNotMatch(sheet, /Composer|tone="error"|colors\.danger/);
+  // Reading is a plain RLS select (asker or answerer, room open), not the plan-gated qrewing function.
+  assert.match(src('features/questions/question-store.ts'), /\.from\('question_cards'\)/);
 });

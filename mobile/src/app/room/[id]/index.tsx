@@ -36,6 +36,9 @@ import { useQuestionCards, useRoomCards } from '@/features/questions/question-st
 import { chatLine } from '@/lib/chat-line';
 import { useRoomActivity } from '@/lib/activity';
 import { clearRoomNotices, type Notice } from '@/lib/room-notices';
+import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { plusIntroHref } from '@/features/calendar/plus-intro';
+import { AnswerSheet } from '@/features/questions/answer-sheet';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
@@ -211,6 +214,9 @@ function ChatRoom({
   const [askConsent, setAskConsent] = useState(false);
   // UX2-04: one Ask probe for the FAB and the "answered your question" notice (Free → Plus intro, like the FAB).
   const ask = useQrewingAskButton(room.id);
+  // UX2-04b: my stored plan; a Free asker's "answered your question" notice opens AnswerSheet with this card.
+  const plus = usePlusPreview(userId);
+  const [answerCard, setAnswerCard] = useState<string | null>(null);
   const showDisclosure = (qrewing.gates.disclosure && !disclosureClosed) || askConsent;
   const isEvent = room.type === 'event';
   const smallTalk = useSmallTalk({
@@ -306,8 +312,11 @@ function ChatRoom({
     else if (n.action?.kind === 'open-question') openQuestions(n.action.cardId);
     else if (n.action?.kind === 'open-ask') {
       setPlusOpen(false);
+      const cardId = n.action.cardId;
+      // UX2-04b: a Free asker reads the answer in a read-only sheet (once the notices sheet has slid away).
+      if (plus === false && cardId) setTimeout(() => setAnswerCard(cardId), 400);
       // Before the probe answers, open the ask screen; its own plan_limit check shows the Plus state.
-      if (ask.available) ask.open();
+      else if (ask.available) ask.open();
       else router.push({ pathname: '/room/[id]/ask', params: { id: room.id } });
     }
     // open-chat (Emergency): the card is already on this screen, above the messages.
@@ -524,6 +533,13 @@ function ChatRoom({
           />
         ) : null}
       </SettingsSheet>
+      <AnswerSheet
+        roomId={room.id}
+        cardId={answerCard}
+        answerer={(uid) => names.get(uid) ?? en.chat.formerMember}
+        onClose={() => setAnswerCard(null)}
+        onSeePlus={() => router.push(plusIntroHref('ask'))}
+      />
       <DisclosureSheet
         roomId={room.id}
         visible={showDisclosure}

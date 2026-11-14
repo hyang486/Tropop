@@ -10,7 +10,7 @@ export type NoticeKind = 'room-ending' | 'question' | 'emergency' | 'reminder';
 /** What tapping the notice opens. */
 export type NoticeAction =
   | { kind: 'open-question'; cardId: string }
-  | { kind: 'open-ask' }
+  | { kind: 'open-ask'; cardId?: string }
   | { kind: 'open-chat' }
   | { kind: 'open-info' };
 
@@ -21,6 +21,10 @@ export type Notice = {
   kind: NoticeKind;
   title: string;
   body?: string;
+  /** UX2-04b: a short line above the body ("You asked: …"); the body then shows up to 3 lines at 15 pt. */
+  lead?: string;
+  /** VoiceOver label for the row, when title + body would read badly. */
+  label?: string;
   /** ms since epoch; newest first in the list. */
   createdAt: number;
   action?: NoticeAction;
