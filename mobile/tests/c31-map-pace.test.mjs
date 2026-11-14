@@ -146,7 +146,8 @@ test('V4 Map: full-bleed map under a transparent header with a glass title pill,
   const map = src('app/room/[id]/map.tsx');
   assert.match(map, /headerTransparent: true/);
   assert.match(map, /headerTitle: \(\) => \(\s*<MapGlass style=\{styles\.titlePill\}>/);
-  assert.match(map, /style=\{StyleSheet\.absoluteFill\}/);
+  // The map ends at the sheet's top edge so the Apple Maps logo and Legal link stay visible.
+  assert.match(map, /style=\{\[styles\.mapFill, \{ bottom: sheetHeight \}\]\}/);
   assert.match(map, /sheet: \{[^}]*borderTopLeftRadius: 30, borderTopRightRadius: 30/);
   assert.match(map, /grabber: \{[^}]*width: 36, height: 5[^}]*colors\.wash2/);
   assert.match(map, /circle: \{ width: 44, height: 44, borderRadius: 22/);

@@ -547,9 +547,10 @@ function RoomMap({
   return (
     // Qrewing pace maker: its cue banner and stationary sheet sit over the map (PaceLayer).
     <View style={styles.root}>
-      {/* V4: the map is full bleed under the header and the sheet. */}
+      {/* V4: the map is full bleed under the header and ends at the sheet's top edge, so MapKit's Apple Maps logo and
+          Legal link (bottom corners; expo-maps has no padding prop for Apple Maps) stay visible. */}
       <View
-        style={StyleSheet.absoluteFill}
+        style={[styles.mapFill, { bottom: sheetHeight }]}
         accessibilityLabel={pinsSpoken ? `${en.map.title}: ${pinsSpoken}` : undefined}
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
@@ -925,6 +926,7 @@ const styles = StyleSheet.create({
   sheetCount: { fontSize: 15, color: colors.ink2, fontVariant: ['tabular-nums'] },
   rowLine: { height: 1, marginLeft: 40, backgroundColor: colors.wash },
   map: { flex: 1 },
+  mapFill: { position: 'absolute', top: 0, left: 0, right: 0 },
   // Top left: MapKit's own controls (compass, pitch toggle, user location button) stack in the top right
   // corner, and expo-maps 58 cannot move them. The scale bar (top left) is off by default. Pen and the
   // route length sit in one row inside the top overlay band (ROOM_MAP_PADDING.top keeps the fit clear of it).
