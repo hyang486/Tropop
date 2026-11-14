@@ -459,6 +459,13 @@ function createStore(admin: any): QrewingStore {
         ackedBy: (r.emergency_acks ?? []).map((a) => a.user_id),
       }));
     },
+    async createQuestionCard(roomId, askerId, answererId, question) {
+      const row = must(
+        await admin.from('question_cards').insert({ room_id: roomId, asker_id: askerId, answerer_id: answererId, question }).select('id, timeout_at').single(),
+        'question_card',
+      );
+      return { id: row.id as string, timeoutAt: row.timeout_at as string };
+    },
     async livePositions(roomId) {
       const [posRes, memRes] = await Promise.all([
         admin.from('live_presence').select('user_id, lat, lng, speed_mps, updated_at').eq('room_id', roomId),

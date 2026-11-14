@@ -35,7 +35,7 @@ export function useMarkerIcons(wanted: ReadonlySet<string>, accessToken: string 
     }
     if (!accessToken) return;
     for (const path of wanted) {
-      if (requested.current.has(path) || failed.current.has(path)) continue;
+      if (path.startsWith('default:') || requested.current.has(path) || failed.current.has(path)) continue;
       requested.current.add(path);
       Image.loadAsync(
         { uri: avatarUrl(path), headers: authHeaders(accessToken), cacheKey: path },

@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
+import { defaultAvatarPath } from './default-avatars';
 import { supabase, SUPABASE_URL } from './supabase';
 
 /**
@@ -46,6 +47,12 @@ export async function setProfilePhoto(userId: string, imageUri: string) {
     .upload(path, bytes, { contentType: 'image/jpeg', upsert: false });
   if (uploadError) throw uploadError;
   const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', userId);
+  if (error) throw error;
+}
+
+/** Picks a bundled default avatar (no upload). The server queues a replaced uploaded photo for deletion. */
+export async function setDefaultAvatar(userId: string, key: string) {
+  const { error } = await supabase.from('profiles').update({ avatar_path: defaultAvatarPath(key) }).eq('id', userId);
   if (error) throw error;
 }
 

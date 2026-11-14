@@ -93,6 +93,8 @@ type World = {
   /** ask rows already in private.qrewing_usage before the test (plus w.usage asks): room total, and per user. */
   askUsed: number;
   askUsedBy: Record<string, number>;
+  cards: { roomId: string; askerId: string; answererId: string; question: string }[];
+  cardFails: boolean;
 };
 
 // The default four (0028 backfill), stored out of order to prove core sorts by position.
@@ -142,6 +144,8 @@ function world(over: Partial<World> = {}): World {
     positions: [],
     askUsed: 0,
     askUsedBy: {},
+    cards: [],
+    cardFails: false,
     ...over,
   };
 }
@@ -304,6 +308,11 @@ function store(w: World): QrewingStore {
     },
     async livePositions() {
       return w.positions;
+    },
+    async createQuestionCard(roomId, askerId, answererId, question) {
+      if (w.cardFails) throw new Error('card insert failed');
+      w.cards.push({ roomId, askerId, answererId, question });
+      return { id: `card-${w.cards.length}`, timeoutAt: '2026-11-13T12:03:00Z' };
     },
   };
 }
@@ -1660,4 +1669,33 @@ test('calendar_add: per-user cap; calendar rows never count toward a room ask ca
   // Bob still has his in-room asks and the room is one below its cap: 21 calendar rows changed neither.
   assert.equal((await run(w, m, BOB, ASK('hi'))).status, 200);
   assert.deepEqual(await run(w, m, CAT, ASK('hi')), { status: 429, body: { error: 'ask_limit' } });
+});
+
+// ---- Spec 11 C: question cards ----
+const needsHuman = (contact: string) => () => ({ text: JSON.stringify({ answer: 'x', needs_human: true, contact }) });
+
+test('ask needs a human: card goes to the named member who spoke, else the host; never the asker; failure falls back to the plain answer', async () => {
+  const w = world({ messages: [msg(1, CAT, 'I know the parking', 10)] });
+  w.names.set(CAT, 'Cat');
+  const r = await run(w, model(needsHuman('Cat')).m, BOB, ASK('Where do I park?'));
+  assert.equal(r.status, 200);
+  assert.deepEqual(w.cards, [{ roomId: ROOM, askerId: BOB, answererId: CAT, question: 'Where do I park?' }]);
+  assert.deepEqual((r.body as { card: unknown }).card, { id: 'card-1', answererName: 'Cat', timeoutAt: '2026-11-13T12:03:00Z' });
+  // unknown contact -> host
+  const w2 = world();
+  await run(w2, model(needsHuman('Nobody')).m, BOB, ASK('Where do I park?'));
+  assert.equal(w2.cards[0].answererId, HOST);
+  // the host asking with nobody else to ask -> plain answer, no card
+  const w3 = world();
+  const r3 = await run(w3, model(needsHuman('')).m, HOST, ASK('Where do I park?'));
+  assert.equal(w3.cards.length, 0);
+  assert.equal((r3.body as { card?: unknown }).card, undefined);
+  // the asker is never the contact
+  const w4 = world({ messages: [msg(1, BOB, 'I wonder about parking', 10)] });
+  await run(w4, model(needsHuman('Bob')).m, BOB, ASK('Where do I park?'));
+  assert.equal(w4.cards[0].answererId, HOST);
+  // card insert fails -> the model's text, no card
+  const w5 = world({ cardFails: true });
+  const r5 = await run(w5, model(needsHuman('')).m, BOB, ASK('Where do I park?'));
+  assert.deepEqual(r5.body, { answer: 'x', usage: { input: 100, output: 20 } });
 });
