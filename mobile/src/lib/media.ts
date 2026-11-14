@@ -309,6 +309,8 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
       height: item.height ?? null,
       duration_ms: item.durationMs != null ? Math.round(item.durationMs) : null,
       content_sha256: sha256,
+      // 0033: the declared size (1..MAX_MEDIA_BYTES, checked above) lets a full room refuse here, before any upload.
+      size_bytes: size,
       status: 'uploading',
     });
     if (error) throw new Error(uploadErrorText(error));
@@ -332,8 +334,8 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
     await putObject(job.originalPath, item.uri, item.mimeType, (f) => onProgress(0.02 + f * 0.97), signal);
     throwIfAborted(signal);
     const { error } = await supabase.from('media').update({ status: 'ready' }).eq('id', job.id);
-    // A full room (PT507) leaves the uploaded object behind; clients cannot delete room-media, so it goes with the
-    // failed row's room. The row is marked failed below.
+    // A full room (PT507) at 'ready' leaves the uploaded object behind; clients cannot delete room-media, so
+    // room-janitor removes it at expiry. The row is marked failed below.
     if (error) throw new Error(uploadErrorText(error));
     onProgress(1);
     return { ...job, rowCreated, previewPath };
