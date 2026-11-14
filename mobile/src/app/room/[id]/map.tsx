@@ -2,7 +2,7 @@ import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
@@ -87,6 +87,16 @@ const OVERLAY_HIT_SLOP = { top: 5, bottom: 5 };
 const EMERGENCY_LABEL_TEXT = palette.light.errorText;
 /** UX P0-3: pins never show a photo (the mockup shows initials). */
 const NO_ICONS: ReadonlyMap<string, null> = new Map<string, null>();
+type MapProperties = NonNullable<ComponentProps<typeof AppleMaps.View>['properties']>;
+/**
+ * UX3-B11: Apple's muted map style (no points of interest, flat) so the full-color map doesn't fight the ink
+ * theme, in light and dark. expo-maps' entry doesn't export the emphasis enum, so its string value is used.
+ */
+const MAP_STYLE: MapProperties = {
+  emphasis: 'MUTED' as NonNullable<MapProperties['emphasis']>,
+  pointsOfInterest: { including: [] },
+  elevation: AppleMaps.MapStyleElevation.FLAT,
+};
 
 export default function RoomMapScreen() {
   // focus: an Emergency sender to center on (Q 04.04 "Open last shared location" from chat, Photos or Info).
@@ -599,7 +609,7 @@ function RoomMap({
               ? [{ id: 'route', coordinates: shownRoute, color: routeColor, width: ROUTE_LINE_WIDTH }]
               : []
           }
-          properties={{ isMyLocationEnabled: showsMyLocation }}
+          properties={{ ...MAP_STYLE, isMyLocationEnabled: showsMyLocation }}
           onCameraMove={onCameraMove}
           onAnnotationClick={(event) => {
             const id = event.id ?? '';
