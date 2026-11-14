@@ -77,3 +77,24 @@ test('V1 QRowCard: standalone wash fill with no border; grouped drops its own fi
   assert.match(row, /<View style=\{\[styles\.card, grouped && styles\.grouped\]\} accessible/);
   assert.match(row, /\[styles\.card, grouped && styles\.grouped, pressed && \{ opacity: 0\.6 \}\]/);
 });
+
+test('V1 fields: wash fill, no border, radius 12; a 1.5 pt ink border only while focused (as the join-code box)', () => {
+  const q = src('components/q-screen.tsx');
+  assert.match(q, /field: \{\s*minHeight: 48,\s*borderWidth: 1\.5,\s*borderColor: 'transparent',\s*borderRadius: 12,/);
+  assert.match(q, /color: colors\.label,\s*backgroundColor: colors\.field,\s*\}/);
+  assert.match(q, /fieldFocused: \{ borderColor: colors\.tint \}/);
+  assert.match(q, /fieldOnSheet: \{ backgroundColor: colors\.sheetField \}/);
+  assert.match(q, /focused && styles\.fieldFocused/);
+  // The caller's onFocus/onBlur still run.
+  assert.match(q, /setFocused\(true\);\s*onFocus\?\.\(e\);/);
+  assert.match(q, /setFocused\(false\);\s*onBlur\?\.\(e\);/);
+  assert.doesNotMatch(q, /borderWidth: StyleSheet\.hairlineWidth \* 2,\s*borderColor: colors\.separator,\s*borderRadius: 12,\s*borderCurve: 'continuous',\s*paddingHorizontal: 14,\s*fontSize: 17/);
+  const create = src('app/create-room.tsx');
+  assert.match(create, /fieldRow: \{[^}]*backgroundColor: colors\.field,\s*borderWidth: 1\.5,\s*borderColor: 'transparent',\s*borderRadius: 12,/);
+  assert.match(create, /fieldRowFocused: \{ borderColor: colors\.tint \}/);
+  assert.match(create, /styles\.fieldRow, focusedRow === 'area' && styles\.fieldRowFocused/);
+  assert.match(create, /styles\.fieldRow, focusedRow === 'place' && styles\.fieldRowFocused/);
+  // Outlined switch rows and the Status options box stay for V5.
+  assert.match(create, /row: \{ \.\.\.outline,/);
+  assert.match(src('components/join-code-screen.tsx'), /borderWidth: 1\.5,\s*borderColor: 'transparent',/);
+});

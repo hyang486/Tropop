@@ -162,6 +162,8 @@ export default function CreateRoom() {
   // Place and time (0026), all optional: a place name, a pin found from the name (tap the map to move it) and a
   // start time. A pin is kept only while there is a place name (create_room rule).
   const [placeName, setPlaceName] = useState('');
+  // V1: the area and meeting place rows are text fields: a 1.5 pt ink border only while focused.
+  const [focusedRow, setFocusedRow] = useState<'area' | 'place' | null>(null);
   const [pin, setPin] = useState<LatLng | null>(null);
   const [finding, setFinding] = useState(false);
   const [placeNote, setPlaceNote] = useState<string | null>(null);
@@ -493,9 +495,11 @@ export default function CreateRoom() {
                   </Pressable>
                 ))}
               </View>
-              <View style={styles.row}>
+              <View style={[styles.fieldRow, focusedRow === 'area' && styles.fieldRowFocused]}>
                 <TextInput
                   selectionColor={colors.label}
+                  onFocus={() => setFocusedRow('area')}
+                  onBlur={() => setFocusedRow(null)}
                   placeholder={en.createRoom.areaPlaceholder}
                   placeholderTextColor={colors.secondaryLabel}
                   accessibilityLabel={en.createRoom.areaPlaceholder}
@@ -554,10 +558,12 @@ export default function CreateRoom() {
 
       <QLabel>{en.createRoom.whenLabel}</QLabel>
       {/* A7: one place row (pin icon, name, Find on map at the end), Luma style. */}
-      <View style={styles.row}>
+      <View style={[styles.fieldRow, focusedRow === 'place' && styles.fieldRowFocused]}>
         <InkIcon emoji="📍" size={22} />
         <TextInput
           selectionColor={colors.label}
+          onFocus={() => setFocusedRow('place')}
+          onBlur={() => setFocusedRow(null)}
           placeholder={en.createRoom.placeLabel}
           placeholderTextColor={colors.secondaryLabel}
           accessibilityLabel={en.createRoom.placeLabel}
@@ -729,6 +735,21 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 15, color: colors.label },
   // A3: outlined rows, no grey fill.
   row: { ...outline, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10 },
+  // V1: text-field rows (area, meeting place): wash fill, no border, radius 12; ink border only while focused.
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 52,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: colors.field,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    borderRadius: 12,
+    borderCurve: 'continuous',
+  },
+  fieldRowFocused: { borderColor: colors.tint },
   rowInput: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 4 },
   rowAction: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
   box: { ...outline, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },

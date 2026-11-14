@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   field: {
     backgroundColor: colors.field,
     color: colors.label,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 17,

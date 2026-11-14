@@ -418,7 +418,8 @@ export function QCard({ children, row }: { children: ReactNode; row?: boolean })
 }
 
 /**
- * Q text field (Q 01.02, 02.01): white with a thin border, the label shown as the placeholder and read by
+ * Q text field (Q 01.02, 02.01). V1: a wash fill with no border, radius 12; a 1.5 pt ink border only while focused
+ * (as the join-code box). The border is always 1.5 pt (transparent when idle), so focus never shifts the text. The label shown as the placeholder and read by
  * VoiceOver as the field's name.
  * UX3-A05: `labelAbove` shows the label above the field (13 pt semibold ink2, 6 pt gap) instead of as the
  * placeholder, so it stays once you type; `placeholder` is then an example only. `helper` is a 13 pt ink2 line
@@ -430,9 +431,12 @@ export function QField({
   helper,
   style,
   secureTextEntry,
+  onFocus,
+  onBlur,
   ...props
 }: ComponentProps<typeof TextInput> & { label: string; labelAbove?: boolean; helper?: string }) {
   const [shown, setShown] = useState(false);
+  const [focused, setFocused] = useState(false);
   const eye = labelAbove && secureTextEntry;
   const input = (
     <TextInput
@@ -442,7 +446,15 @@ export function QField({
       accessibilityLabel={label}
       accessibilityHint={helper}
       secureTextEntry={secureTextEntry && !shown}
-      style={[styles.field, use(OnSheet) && styles.fieldOnSheet, eye && styles.fieldWithEye, style]}
+      style={[styles.field, use(OnSheet) && styles.fieldOnSheet, focused && styles.fieldFocused, eye && styles.fieldWithEye, style]}
+      onFocus={(e) => {
+        setFocused(true);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        setFocused(false);
+        onBlur?.(e);
+      }}
       {...props}
     />
   );
@@ -518,7 +530,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardOnSheet: { backgroundColor: colors.sheetField },
-  fieldOnSheet: { backgroundColor: colors.sheet },
+  fieldOnSheet: { backgroundColor: colors.sheetField },
+  fieldFocused: { borderColor: colors.tint },
   fieldBlock: { gap: 6 },
   fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   fieldHelper: { fontSize: 13, color: colors.ink2 },
@@ -526,14 +539,14 @@ const styles = StyleSheet.create({
   eye: { position: 'absolute', right: 2, top: 2, bottom: 2, width: 44, alignItems: 'center', justifyContent: 'center' },
   field: {
     minHeight: 48,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.separator,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     borderRadius: 12,
     borderCurve: 'continuous',
     paddingHorizontal: 14,
     fontSize: 17,
     color: colors.label,
-    backgroundColor: colors.background,
+    backgroundColor: colors.field,
   },
   link: { alignSelf: 'center', paddingVertical: 8 },
   linkText: { fontSize: 15, color: colors.label },
