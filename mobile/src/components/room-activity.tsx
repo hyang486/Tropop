@@ -53,6 +53,9 @@ const announcer = createAnnouncer();
  * "I'm OK" call the same RPCs everywhere (ack_emergency, clear_my_status). Vibrates once per new Emergency
  * raised by someone else, app-wide, while any of these screens is open.
  */
+/** V3 P1: the lift shadow's reach below and beside a card (0 8 24), kept inside the alerts ScrollView. */
+const SHADOW_ROOM = { side: 16, bottom: 24 } as const;
+
 export function EmergencyAlerts({
   roomId,
   activity,
@@ -198,14 +201,22 @@ export function EmergencyAlerts({
   return (
     <ScrollView
       ref={scrollRef}
-      style={{ maxHeight: Math.round(windowHeight * EMERGENCY_MAX_HEIGHT_SHARE), flexGrow: 0, backgroundColor: 'transparent' }}
-      contentContainerStyle={styles.alerts}
+      // V3 P1: room for the card's lift shadow (0 8 24) inside the scroll bounds, so the ScrollView doesn't clip it into
+      // a square block at the corners; the negative margin cancels the padding, so the cards keep their place and size.
+      style={{
+        maxHeight: Math.round(windowHeight * EMERGENCY_MAX_HEIGHT_SHARE) + SHADOW_ROOM.bottom,
+        flexGrow: 0,
+        backgroundColor: 'transparent',
+        marginHorizontal: -SHADOW_ROOM.side,
+        marginBottom: -SHADOW_ROOM.bottom,
+      }}
+      contentContainerStyle={[styles.alerts, styles.shadowRoom]}
       contentInsetAdjustmentBehavior="never"
       alwaysBounceVertical={false}
       nestedScrollEnabled
       // When the cards overflow the box, show the indicator so it is clear the actions are below.
       onContentSizeChange={(_w, h) => {
-        if (h > windowHeight * EMERGENCY_MAX_HEIGHT_SHARE) scrollRef.current?.flashScrollIndicators();
+        if (h - SHADOW_ROOM.bottom > windowHeight * EMERGENCY_MAX_HEIGHT_SHARE) scrollRef.current?.flashScrollIndicators();
       }}
     >
       {area === 'failed' ? (
@@ -696,6 +707,7 @@ function Pill({
 
 const styles = StyleSheet.create({
   alerts: { gap: 8 },
+  shadowRoom: { paddingHorizontal: SHADOW_ROOM.side, paddingBottom: SHADOW_ROOM.bottom },
   // V3: the Emergency card is redwash, radius 22, with the lift shadow (inline); no frame (was a 2 pt ink border).
   bar: {
     minHeight: 60,

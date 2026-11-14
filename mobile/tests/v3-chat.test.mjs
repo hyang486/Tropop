@@ -61,7 +61,7 @@ test('V3 P1: Emergency wrapper has no fill; a 16 pt paper fade sits under the ca
   assert.match(block(s, 'alerts'), /backgroundColor: 'transparent'/);
   assert.match(block(s, 'alertFade'), /top: 0[\s\S]*height: 16/);
   assert.match(s, /activity\.emergencies\.length > 0 \? \(\s*<View\s+pointerEvents="none"\s+style=\{\[styles\.alertFade, \{ backgroundImage: `linear-gradient\(\$\{paper\} 0%, \$\{paper\}00 100%\)` \}\]\}/);
-  assert.match(src('components/room-activity.tsx'), /flexGrow: 0, backgroundColor: 'transparent' \}\}/);
+  assert.match(src('components/room-activity.tsx'), /flexGrow: 0,\s+backgroundColor: 'transparent',/);
 });
 
 test('V3 P2: the collapsed run is one tappable capsule line with a chevron and a spoken Show', async () => {
@@ -74,4 +74,13 @@ test('V3 P2: the collapsed run is one tappable capsule line with a chevron and a
   assert.equal(en.chat.showLinesRun('Sora is OK now · 18 more'), 'Sora is OK now · 18 more ›');
   assert.equal(en.chat.showLinesLabel('Sora is OK now · 18 more'), 'Sora is OK now, 18 more. Show.');
   assert.equal(en.chat.showLinesLabel('Sora is OK now'), 'Sora is OK now. Show.');
+});
+
+test('V3 P1: the alerts ScrollView keeps room for the lift shadow, offset by negative margins', () => {
+  const s = src('components/room-activity.tsx');
+  assert.match(s, /const SHADOW_ROOM = \{ side: 16, bottom: 24 \} as const;/);
+  assert.match(s, /marginHorizontal: -SHADOW_ROOM\.side,\s+marginBottom: -SHADOW_ROOM\.bottom,/);
+  assert.match(s, /EMERGENCY_MAX_HEIGHT_SHARE\) \+ SHADOW_ROOM\.bottom/);
+  assert.match(s, /contentContainerStyle=\{\[styles\.alerts, styles\.shadowRoom\]\}/);
+  assert.match(block(s, 'shadowRoom'), /paddingHorizontal: SHADOW_ROOM\.side, paddingBottom: SHADOW_ROOM\.bottom/);
 });
