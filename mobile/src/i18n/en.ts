@@ -671,6 +671,8 @@ export const en = {
     tryAgain: 'Try again',
     // UX2-117: a refetch failed while rows were already on screen.
     presenceStale: 'Couldn’t refresh. Showing the last update.',
+    // UX2-86
+    shareUnknown: 'Couldn’t check your sharing.',
     you: 'You',
     stale: (age: string) => `Last seen ${age}`,
     stalePin: 'stale',

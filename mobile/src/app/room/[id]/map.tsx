@@ -11,6 +11,7 @@ import { useInlineHeaderTitle } from '@/components/inline-header-title';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
+import { QLink } from '@/components/q-screen';
 import { Button, colors, Hint, palette, radius, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
@@ -686,16 +687,27 @@ function RoomMap({
         {!allowed ? (isHost ? null : <Hint>{en.map.notAllowed}</Hint>) : !active ? <Hint>{en.map.activityIdleHint}</Hint> : null}
         {allowed ? (
           <>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{en.map.shareMine}</Text>
-              <InkSwitch
-                value={my.share}
-                disabled={busy === 'share'}
-                onValueChange={toggleShare}
-                accessibilityLabel={en.map.shareMine}
-              />
-            </View>
-            <Hint>{en.map.shareMineHint}</Hint>
+            {my.unknown ? (
+              <>
+                {/* UX2-86 (C15): my share is unknown, so no switch that might lie. */}
+                <Hint tone="error">{en.map.shareUnknown}</Hint>
+                <Button title={en.map.tryAgain} variant="secondary" onPress={() => void my.reload()} />
+                <QLink title={en.map.stopSharing} onPress={() => toggleShare(false)} />
+              </>
+            ) : (
+              <>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>{en.map.shareMine}</Text>
+                  <InkSwitch
+                    value={my.share}
+                    disabled={busy === 'share'}
+                    onValueChange={toggleShare}
+                    accessibilityLabel={en.map.shareMine}
+                  />
+                </View>
+                <Hint>{en.map.shareMineHint}</Hint>
+              </>
+            )}
             {permissionDenied ? (
               <>
                 <Hint tone="error">{en.map.permissionDenied}</Hint>

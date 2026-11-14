@@ -307,6 +307,8 @@ async function fetchMyShare(roomId: string, userId: string) {
  */
 export function useMyShare(roomId: string, userId: string | undefined) {
   const [share, setShare] = useState(false);
+  // UX2-86: the last read failed, so my share is unknown (Map hides the switch).
+  const [unknown, setUnknown] = useState(false);
   const seq = useRef(0);
 
   const reload = useCallback(async () => {
@@ -319,7 +321,9 @@ export function useMyShare(roomId: string, userId: string | undefined) {
     } catch {
       server = null;
     }
-    if (server === null || mine !== seq.current) return;
+    if (mine !== seq.current) return;
+    setUnknown(server === null);
+    if (server === null) return;
     const decision = reconcileShare({
       server,
       consented: sharing.rooms.has(roomId),
@@ -374,7 +378,11 @@ export function useMyShare(roomId: string, userId: string | undefined) {
     return () => sub.remove();
   }, [reload]);
 
-  return { share, setShareLocal: setShare, reload };
+  const setShareLocal = useCallback((next: boolean) => {
+    setShare(next);
+    setUnknown(false);
+  }, []);
+  return { share, unknown, setShareLocal, reload };
 }
 
 // Reporting -------------------------------------------------------------------

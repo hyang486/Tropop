@@ -66,3 +66,16 @@ test('UX2-88/119: plan unknown offline has Try again, re-reads on focus and fore
   assert.match(src('features/pace/pace-card.tsx'), /<PlanOfflineLine uid=\{userId\} \/>/);
   assert.match(src('features/pace/pace-layer.tsx'), /const plan = usePlanState\(userId\);/);
 });
+
+test('UX2-86: own share unknown hides the switch; Try again and Stop sharing', () => {
+  assert.equal(en.map.shareUnknown, 'Couldn’t check your sharing.');
+  const loc = src('lib/location.ts');
+  assert.match(loc, /setUnknown\(server === null\);/);
+  assert.match(loc, /return \{ share, unknown, setShareLocal, reload \};/);
+  const map = src('app/room/[id]/map.tsx');
+  assert.match(map, /\{my\.unknown \? \([\s\S]*?en\.map\.shareUnknown[\s\S]*?my\.reload\(\)[\s\S]*?<QLink title=\{en\.map\.stopSharing\} onPress=\{\(\) => toggleShare\(false\)\} \/>/);
+});
+
+test('UX2-120 edge: an older failed pace toggle never reverts a newer one', () => {
+  assert.match(src('features/pace/settings.ts'), /if \(onSeq\.get\(roomId\) !== mine\) return;/);
+});
