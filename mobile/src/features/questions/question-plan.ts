@@ -137,3 +137,10 @@ export function cardsToSpeak(
 ): QuestionCard[] {
   return moving ? toAnswer.filter((c) => !spoken.has(c.id)) : [];
 }
+
+/** The spoken answer from a recognition result: the first transcript, trimmed and cut to the answer limit. */
+export function voiceTranscript(results: readonly { transcript: string }[] | undefined): string | null {
+  const t = results?.[0]?.transcript?.trim();
+  if (!t) return null;
+  return [...t].slice(0, CARD_LIMITS.answer).join('');
+}

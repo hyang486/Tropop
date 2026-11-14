@@ -12,6 +12,7 @@ import { listMembers } from '@/lib/rooms';
 
 import { cardAnswer, type CardError, cardsIAnswered, cardsToAnswer, CARD_LIMITS, type QuestionCard } from './question-plan';
 import { answerCard, loadCards, useRoomCards } from './question-store';
+import { clearVoiceDraft, useVoiceDraft } from './voice-answer';
 
 const s = en.questions;
 
@@ -80,7 +81,10 @@ export function QuestionsScreen() {
 }
 
 function AnswerCard({ card, asker }: { card: QuestionCard; asker: string }) {
-  const [draft, setDraft] = useState('');
+  // A spoken answer (heard after the card was read aloud) is the draft until I type; I still confirm with Send.
+  const voice = useVoiceDraft(card.id);
+  const [typed, setTyped] = useState<string | null>(null);
+  const draft = typed ?? voice ?? '';
   const [asNotice, setAsNotice] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CardError | 'notice_long' | null>(null);
@@ -98,6 +102,7 @@ function AnswerCard({ card, asker }: { card: QuestionCard; asker: string }) {
     setBusy(false);
     // On success the card leaves this list (the store merged it as answered).
     if ('error' in res) setError(res.error);
+    else clearVoiceDraft(card.id);
   }
 
   return (
@@ -106,7 +111,8 @@ function AnswerCard({ card, asker }: { card: QuestionCard; asker: string }) {
       <Text style={styles.question} selectable>
         {card.question}
       </Text>
-      <QField label={s.answerLabel} value={draft} onChangeText={setDraft} maxLength={CARD_LIMITS.answer} multiline style={styles.field} />
+      {voice && draft === voice ? <Hint>{s.heardHint}</Hint> : null}
+      <QField label={s.answerLabel} value={draft} onChangeText={setTyped} maxLength={CARD_LIMITS.answer} multiline style={styles.field} />
       <View style={styles.row}>
         <View style={styles.flex}>
           <Text style={styles.rowTitle}>{s.postAsNotice}</Text>

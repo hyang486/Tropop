@@ -89,3 +89,11 @@ test('cards are read aloud only while moving, each once', () => {
   assert.deepEqual(p.cardsToSpeak(cards, new Set(), false), []);
   assert.deepEqual(p.cardsToSpeak(cards, new Set(['a']), true).map((c) => c.id), ['b']);
 });
+
+test('voiceTranscript takes the first transcript, trimmed and bounded', () => {
+  assert.equal(p.voiceTranscript([{ transcript: '  Gate 3 at noon ' }, { transcript: 'other' }]), 'Gate 3 at noon');
+  assert.equal(p.voiceTranscript([]), null);
+  assert.equal(p.voiceTranscript(undefined), null);
+  assert.equal(p.voiceTranscript([{ transcript: '   ' }]), null);
+  assert.equal([...p.voiceTranscript([{ transcript: 'a'.repeat(p.CARD_LIMITS.answer + 50) }])].length, p.CARD_LIMITS.answer);
+});

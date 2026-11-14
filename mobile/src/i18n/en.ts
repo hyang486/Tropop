@@ -772,6 +772,8 @@ export const en = {
     fromAsker: (name: string, q: string) => `${name} asked: ${q}`,
     answered: (name: string) => `${name} answered your question`,
     spoken: (name: string, q: string) => `Question from ${name}. ${q}`,
+    heardSpoken: 'Got it. Check your answer on screen, then tap Send.',
+    heardHint: 'Heard by voice. Check it, then send.',
     intro: 'Qrewing could not answer these, so it asked you. Your answer goes only to the person who asked.',
     empty: 'No questions for you right now.',
     asker: (name: string) => `From ${name}`,
