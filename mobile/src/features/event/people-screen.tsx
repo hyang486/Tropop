@@ -118,10 +118,16 @@ export function PeopleScreen() {
 
   // Spec 11 A15: each suggestion shows the member's profile photo (or initial). A failed read keeps the initials.
   const [avatars, setAvatars] = useState<ReadonlyMap<string, string | null>>(new Map());
+  // UX2-137: the same read tells whether I am the host (for the no-questions wording).
+  const [hostId, setHostId] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     listMembers(id)
-      .then((members) => live && setAvatars(new Map(members.map((m) => [m.user_id, m.avatar_path]))))
+      .then((members) => {
+        if (!live) return;
+        setAvatars(new Map(members.map((m) => [m.user_id, m.avatar_path])));
+        setHostId(members.find((m) => m.role === 'host')?.user_id ?? null);
+      })
       .catch(() => {});
     return () => {
       live = false;
@@ -129,6 +135,7 @@ export function PeopleScreen() {
   }, [id]);
 
   const notConsented = q.me !== null && !q.me.aiOk;
+  const noQuestionsBody = !!uid && hostId === uid ? s.noQuestionsHost : s.noQuestions;
   // A failed re-ask on a kept list counts too: if Qrewing went off or I left, the old list must not stay up.
   const gate = peopleGate({
     plus: plan === 'free' ? false : plan === 'plus' ? true : null,
@@ -214,7 +221,7 @@ export function PeopleScreen() {
         <Hint>{state.final ? s.pendingFinal : s.pending}</Hint>
       ) : state.status === 'error' ? (
         empty === 'noQuestions' ? (
-          <EmptyState art="meetup" title={s.noQuestionsTitle} body={s.noQuestions} />
+          <EmptyState art="meetup" title={s.noQuestionsTitle} body={noQuestionsBody} />
         ) : empty === 'noEntry' ? (
           <EmptyState art="meetup" title={s.noEntryTitle} body={s.noEntry} />
         ) : (
@@ -222,7 +229,7 @@ export function PeopleScreen() {
           <Hint tone="error">{en.qrewing.errors[state.error]}</Hint>
         )
       ) : empty === 'noQuestions' ? (
-        <EmptyState art="meetup" title={s.noQuestionsTitle} body={s.noQuestions} />
+        <EmptyState art="meetup" title={s.noQuestionsTitle} body={noQuestionsBody} />
       ) : state.result.matches.length === 0 ? (
         <EmptyState art="meetup" title={s.emptyTitle} body={s.empty} />
       ) : (
