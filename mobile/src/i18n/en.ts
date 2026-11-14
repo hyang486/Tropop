@@ -1130,12 +1130,13 @@ export const en = {
       updating: 'Showing the last list while Qrewing updates it.',
       updatingFinal: 'Showing the last list. Tap Refresh to check again.',
       updateFailed: 'Could not update the list. Tap Refresh to try again.',
-      notConsented: 'Agree to Qrewing AI to get suggestions.',
+      // UX2-49: the no-consent empty state says what the screen is for, then what to do.
+      notConsented: 'Qrewing suggests people here you might get along with. Agree to Qrewing AI first.',
       // UX2-01: plan and consent gates are calm empty states, not errors.
       plusTitle: 'Find who to meet',
       plus: "Qrewing suggests people from the entry info members share. It's part of Qrew Plus.",
       seePlusHint: 'Opens the Qrew Plus page',
-      consentTitle: 'Turn on Qrewing for you',
+      consentTitle: 'See who to meet',
       agree: 'Agree',
       // UX2-09: dead ends (pattern D), neutral with Back instead of a red Refresh.
       off: 'Qrewing is off in this room.',
