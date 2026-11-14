@@ -6,7 +6,8 @@ export type DefaultAvatar = { key: string; glyph: string; tint: string; source?:
 export const DEFAULT_AVATARS: DefaultAvatar[] = [
   { key: 'star', glyph: '★', tint: '#FDE9B8' },
   { key: 'moon', glyph: '☾', tint: '#DCE3F7' },
-  { key: 'sun', glyph: '☀', tint: '#FFE1C2' },
+  // UX2-43: U+FE0E (text presentation) so iOS draws the ink glyph, not the yellow color emoji.
+  { key: 'sun', glyph: '\u2600\uFE0E', tint: '#FFE1C2' },
   { key: 'flower', glyph: '✿', tint: '#F9D9E4' },
   { key: 'note', glyph: '♪', tint: '#E3D9F5' },
   { key: 'peak', glyph: '▲', tint: '#D5ECE0' },
