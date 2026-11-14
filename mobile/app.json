@@ -52,7 +52,7 @@
         "expo-camera",
         {
           "cameraPermission": "Qrew uses the camera to scan room invite QR codes, to take photos for your room, and, only if you turn on face matching, to take your face reference photo.",
-          "microphonePermission": false,
+          "microphonePermission": "Qrew listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved.",
           "recordAudioAndroid": false
         }
       ],
@@ -62,7 +62,7 @@
         {
           "photosPermission": "Qrew reads the original photos and videos you choose so they can be shared at full quality in your room.",
           "cameraPermission": "Qrew uses the camera to scan room invite QR codes, to take photos for your room, and, only if you turn on face matching, to take your face reference photo.",
-          "microphonePermission": false
+          "microphonePermission": "Qrew listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved."
         }
       ],
       [
@@ -91,7 +91,14 @@
         }
       ],
       "expo-maps",
-      "expo-app-intents"
+      "expo-app-intents",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Qrew listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved.",
+          "speechRecognitionPermission": "Qrew turns your spoken answer into text so you can answer a question while you're moving. Audio is never saved."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
