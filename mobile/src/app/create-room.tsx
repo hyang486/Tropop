@@ -437,7 +437,7 @@ export default function CreateRoom() {
                   <Pressable
                     key={i.key}
                     accessibilityRole="radio"
-                    accessibilityLabel={i.key}
+                    accessibilityLabel={en.createRoom.iconNames[i.key] ?? en.createRoom.iconLabel}
                     accessibilityState={{ selected: icon === i.key }}
                     onPress={() => setPickedIcon(i.key)}
                     style={[styles.iconChip, icon === i.key && styles.iconChipOn]}

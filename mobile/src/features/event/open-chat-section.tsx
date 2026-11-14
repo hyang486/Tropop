@@ -105,7 +105,7 @@ export function OpenChatSection({ refreshKey = 0, onNotice }: { refreshKey?: num
         <Pressable
           key={room.room_id}
           accessibilityRole="button"
-          accessibilityLabel={openRowSpoken(room.public_icon, room.name, room.public_location)}
+          accessibilityLabel={openRowSpoken(room.name, room.public_location)}
           accessibilityValue={{ text: `${rowWhen(room, new Date())}, ${en.openChat.count(room.member_count, room.max_members)}` }}
           accessibilityHint={room.already_member ? undefined : en.openChat.joinHint}
           accessibilityState={{ busy: joining === room.room_id }}

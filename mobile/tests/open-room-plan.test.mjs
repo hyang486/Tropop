@@ -40,13 +40,18 @@ test('every room icon maps back to its own ink icon', () => {
   assert.equal(p.iconEmoji('nope'), '📍');
 });
 
-test('area is trimmed, collapsed and capped; the row reads icon, name, area', () => {
+test('area is trimmed, collapsed and capped; the row reads name, area (the icon is decorative)', () => {
   assert.equal(p.normalizeArea('  Los   Angeles  DTLA '), 'Los Angeles DTLA');
   assert.equal(p.normalizeArea('   '), null);
   assert.equal(p.MAX_AREA, 60);
   assert.equal(p.normalizeArea('x'.repeat(80)).length, 60);
-  assert.equal(p.openRowSpoken('Run', 'Saturday Lake Loop', 'Los Angeles DTLA'), 'Run, Saturday Lake Loop, Los Angeles DTLA');
-  assert.equal(p.openRowSpoken('Run', 'Loop', null), 'Run, Loop');
+  assert.equal(p.openRowSpoken('Saturday Lake Loop', 'Los Angeles DTLA'), 'Saturday Lake Loop, Los Angeles DTLA');
+  assert.equal(p.openRowSpoken('Loop', null), 'Loop');
+});
+
+test('UX2-42: every room icon has a spoken "<Name> icon" label, never the slug', async () => {
+  const { en } = await import('../src/i18n/en.ts');
+  for (const i of p.ROOM_ICONS) assert.match(en.createRoom.iconNames[i.key], /^[A-Z][a-z]+ icon$/, i.key);
 });
 
 test('create args: private sends capacity only; public adds icon and trimmed area; unchanged sends the plan max, no p_no_limit', () => {

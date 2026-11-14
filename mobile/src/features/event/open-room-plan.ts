@@ -99,8 +99,9 @@ export function normalizeArea(text: string): string | null {
 }
 
 /** One Open chat row, as VoiceOver reads it: "Run, Saturday Lake Loop, Los Angeles DTLA". */
-export function openRowSpoken(iconLabel: string, name: string, area: string | null) {
-  return [iconLabel, name, area].filter(Boolean).join(', ');
+export function openRowSpoken(name: string, area: string | null) {
+  // UX2-42: the row has a title, so the icon is decorative and not read (it was the slug, "run").
+  return [name, area].filter(Boolean).join(', ');
 }
 
 /**
