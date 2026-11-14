@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { type ComponentRef, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { EmptyState } from '@/components/empty-state';
 import { RoomEnded } from '@/components/room-ended';
@@ -24,6 +24,7 @@ import {
   answersDirty,
   type EntryQuestion,
   ordered,
+  requiredAnswered,
   validateAnswers,
 } from './entry-questions';
 import { saveEntryAnswers, useEntryQuestions } from './qrewing-api';
@@ -219,7 +220,7 @@ export function EntryScreen() {
             {loadFailed ? (
               <Button title={s.retry} variant="secondary" onPress={retry} />
             ) : (
-              <Button title={s.save} onPress={save} busy={busy} disabled={!ready} />
+              <Button title={s.save} onPress={save} busy={busy} disabled={!ready || !requiredAnswered(questions, current)} />
             )}
           </>
         )
@@ -229,19 +230,8 @@ export function EntryScreen() {
         options={{
           title: s.title,
           headerTitle: '',
-          // qa F1: Save stays reachable from the header while the keyboard covers the bottom.
-          headerRight: () =>
-            !ready ? null : (
-              <Pressable
-                onPress={save}
-                disabled={busy}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: busy, busy }}
-                style={styles.headerHit}
-              >
-                <Text style={[styles.headerSave, busy && styles.headerSaveBusy]}>{s.save}</Text>
-              </Pressable>
-            ),
+          // UX2-75: the bottom Save is the only Save (as Save event and Save name).
+          headerRight: () => null,
         }}
       />
       {loading ? (
@@ -345,7 +335,4 @@ const styles = StyleSheet.create({
   // Matches QLabel (q-screen.tsx), which only takes a plain string.
   label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
   star: { color: colors.label },
-  headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
-  headerSave: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 8 },
-  headerSaveBusy: { opacity: 0.4 },
 });

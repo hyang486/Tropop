@@ -145,6 +145,15 @@ export function answerLimit(kind: EntryQuestionKind): number {
  * Trims every answer and drops empty links; the answers to send (empty optional answers left out), or the first
  * problem in position order with its question id. Mirrors upsert_entry_answers (22023).
  */
+/** UX2-75: Save stays off until every required answer has text (as Send answer). */
+export function requiredAnswered(questions: EntryQuestion[], draft: AnswerDraft): boolean {
+  return questions.every((q) => {
+    if (!q.required) return true;
+    const raw = draft[q.id];
+    return Array.isArray(raw) ? raw.some((l) => l.trim().length > 0) : typeof raw === 'string' && raw.trim().length > 0;
+  });
+}
+
 export function validateAnswers(
   questions: EntryQuestion[],
   draft: AnswerDraft,
