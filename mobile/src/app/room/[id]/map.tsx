@@ -58,6 +58,7 @@ import {
 import { useMarkerIcons } from '@/lib/marker-icons';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
+import { editorStartCamera } from '@/lib/route-editor-plan';
 import { useNow } from '@/lib/use-now';
 import { useRoomOver } from '@/lib/use-room-over';
 
@@ -388,7 +389,14 @@ function RoomMap({
   }
 
   function openEditor() {
-    setEditor({ start: lastView.current ?? camera });
+    // UI v2 (2): never the world view; with no room points or my position, a regional default.
+    setEditor({
+      start: editorStartCamera({
+        lastView: lastView.current,
+        roomCamera: camera,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    });
   }
 
   function saveEdited(route: LatLng[]) {

@@ -495,6 +495,7 @@ export const en = {
     penOffHint: 'Move the map, then tap Draw to keep drawing.',
     penWait: 'Move the map a little, then tap Draw again.',
     penNorthUp: 'Turn the map flat with north up, then tap Draw again.',
+    routeTooFar: (km: number) => `This route is over ${km} km, so it wasn't saved. Undo or Clear, then draw it again.`,
     undo: 'Undo',
     clear: 'Clear',
     done: 'Done',
