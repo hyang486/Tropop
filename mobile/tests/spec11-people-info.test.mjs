@@ -13,7 +13,8 @@ test('A15: the People to meet title is in the header, with an avatar left of eac
 });
 
 test('A16: the empty state has an ink drawing', () => {
-  assert.match(read('features/event/people-screen.tsx'), /<InkArt art="meetup"/);
+  assert.match(read('features/event/people-screen.tsx'), /<EmptyState art="meetup"/);
+  assert.match(read('components/empty-state.tsx'), /<InkArt art=\{art\}/);
 });
 
 test('A18: read-only status options sit in one grouped box', () => {

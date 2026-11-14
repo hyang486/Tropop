@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HandTitle } from '@/components/hand-title';
 import { Avatar } from '@/components/avatar';
 import { Composer } from '@/components/composer';
+import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
@@ -396,10 +397,7 @@ function ChatRoom({
           {chat.loading ? (
             <ActivityIndicator style={styles.loading} />
           ) : chat.error && chat.messages.length === 0 ? (
-            <View style={styles.center}>
-              <Hint tone="error">{en.chat.loadError}</Hint>
-              <Button title={en.home.retry} variant="secondary" onPress={chat.reload} />
-            </View>
+            <EmptyState title={en.chat.loadError} action={{ title: en.home.retry, onPress: chat.reload }} />
           ) : (
             <FlatList
               ref={listRef}
@@ -418,7 +416,7 @@ function ChatRoom({
               onEndReachedThreshold={0.5}
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
-                  <Hint>{en.chat.empty}</Hint>
+                  <EmptyState art="gathering" artWidth={120} title={en.chat.emptyTitle} body={en.chat.empty} />
                 </View>
               }
               renderItem={({ item: row }) => {
@@ -662,7 +660,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   clip: { overflow: 'hidden' },
   loading: { marginTop: 48 },
-  center: { padding: 20, gap: 12 },
   // The nav bar title: smaller than a screen title so a long room name fits beside back, bell and gear.
   headerTitle: { fontSize: 24, lineHeight: 30, maxWidth: 210 },
   alerts: { paddingHorizontal: 24 },

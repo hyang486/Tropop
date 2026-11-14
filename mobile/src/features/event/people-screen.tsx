@@ -4,7 +4,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
-import { InkArt } from '@/components/ink-art';
+import { EmptyState } from '@/components/empty-state';
 import { QCard, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 
@@ -150,16 +150,16 @@ export function PeopleScreen() {
         <Hint>{state.final ? s.pendingFinal : s.pending}</Hint>
       ) : state.status === 'error' ? (
         empty === 'noQuestions' ? (
-          <EmptyState title={s.noQuestionsTitle} body={s.noQuestions} />
+          <EmptyState art="meetup" title={s.noQuestionsTitle} body={s.noQuestions} />
         ) : empty === 'noEntry' ? (
-          <EmptyState title={s.noEntryTitle} body={s.noEntry} />
+          <EmptyState art="meetup" title={s.noEntryTitle} body={s.noEntry} />
         ) : (
           <Hint tone="error">{notConsented ? s.notConsented : en.qrewing.errors[state.error]}</Hint>
         )
       ) : empty === 'noQuestions' ? (
-        <EmptyState title={s.noQuestionsTitle} body={s.noQuestions} />
+        <EmptyState art="meetup" title={s.noQuestionsTitle} body={s.noQuestions} />
       ) : state.result.matches.length === 0 ? (
-        <EmptyState title={s.emptyTitle} body={s.empty} />
+        <EmptyState art="meetup" title={s.emptyTitle} body={s.empty} />
       ) : (
         <>
           {state.error ? (
@@ -195,23 +195,7 @@ export function PeopleScreen() {
 }
 
 /** UI audit 7: a neutral empty state; the screen's one pinned action is its CTA. */
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <View style={styles.empty}>
-      {/* Spec 11 A16: an ink drawing so the empty screen does not look blank (decorative, hidden from VoiceOver). */}
-      <InkArt art="meetup" width={160} />
-      <Text style={styles.emptyTitle} accessibilityRole="header">
-        {title}
-      </Text>
-      <Text style={styles.emptyBody}>{body}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  empty: { alignItems: 'center', gap: 8, paddingVertical: 48, paddingHorizontal: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label, textAlign: 'center' },
-  emptyBody: { fontSize: 15, color: colors.ink2, textAlign: 'center' },
   center: { alignItems: 'center', gap: 12, paddingVertical: 24 },
   headerTitle: { fontSize: 24, lineHeight: 30 },
   who: { flexDirection: 'row', alignItems: 'center', gap: 12 },
