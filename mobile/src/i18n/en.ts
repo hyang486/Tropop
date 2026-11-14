@@ -893,6 +893,10 @@ export const en = {
     // Audit-2 rule E: the request never reached the server.
     offline: "You're offline. Try again when you're back.",
     tryAgain: 'Try again',
+    // UX2-34 (ux C5): plain text for raw server refusals.
+    ended: 'This room has ended.',
+    notMember: "You're not in this room anymore.",
+    notAllowed: "You don't have access to this anymore.",
     emailPasswordRequired: 'Enter an email and password.',
     nameEmpty: 'Name cannot be empty.',
     notSignedIn: 'You are signed out. Sign in and try again.',

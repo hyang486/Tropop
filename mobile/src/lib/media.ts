@@ -12,7 +12,7 @@ import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
 import { CameraError, cameraStep } from './camera-plan';
-import { errorMessage } from './errors';
+import { appError, errorMessage } from './errors';
 import { EXT_BY_MIME, exportFileName, extensionFor } from './file-name';
 import { clearImageDiskCache } from './image-cache';
 import { loadLatest } from './latest-load';
@@ -291,7 +291,7 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
   if (!file.exists) throw deadEndError('file', en.errors.fileGone);
   const size = Number(file.size ?? 0);
   if (size <= 0) throw deadEndError('file', en.media.emptyFile);
-  if (size > MAX_MEDIA_BYTES) throw new Error(en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
+  if (size > MAX_MEDIA_BYTES) throw appError(en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
 
   let rowCreated = job.rowCreated;
   let previewPath = job.previewPath;
@@ -343,7 +343,7 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
     return { ...job, rowCreated, previewPath };
   } catch (e) {
     await supabase.from('media').update({ status: 'failed' }).eq('id', job.id);
-    throw Object.assign(isAbortError(e) ? abortError() : new Error(errorMessage(e)), {
+    throw Object.assign(isAbortError(e) ? abortError() : appError(errorMessage(e)), {
       deadEnd: deadEndOf(e),
       job: { ...job, rowCreated, previewPath },
     });
