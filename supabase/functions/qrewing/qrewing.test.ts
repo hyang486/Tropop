@@ -1365,14 +1365,19 @@ test('E2E (a) ask: status and Emergency lines with times, who saw the Emergency,
   assert.ok(calls[0].system.includes('<room_events>'), 'events rule');
 });
 
-test('E2E (a) ask: an Emergency with no later status is unresolved and seen by nobody yet', async () => {
+test('E2E (a) ask: an Emergency with no later status is unresolved and seen by no one yet', async () => {
   const w = world({
     messages: [msg(1, CAT, 'Cat needs help (Emergency)', 5, 'emergency')],
     emergencies: [{ id: 'e1', userId: CAT, createdAt: iso(-5 * MIN), ackedBy: [] }],
   });
   const { m, calls } = model(answer('ok'));
   await run(w, m, BOB, ASK('Anything wrong?'));
-  assert.match(calls[0].user, /<emergency who="Cat" at="[^"]+" resolved="false" seen_by="nobody yet"\/>/);
+  assert.match(calls[0].user, /<emergency who="Cat" at="[^"]+" resolved="false" seen_by="no one yet"\/>/);
+  assert.ok(!/nobody/i.test(calls[0].user));
+});
+
+test('ask: the system prompt says an unseen Emergency plainly, suggests checking on them, blames no one (ux)', () => {
+  assert.ok(ASK_SYSTEM.includes("If no one has seen it, say so plainly and suggest checking on them. Don't blame anyone."));
 });
 
 test('E2E (a) recap: status and Emergency lines merge into the chat in time order, tagged; <emergencies> block', async () => {

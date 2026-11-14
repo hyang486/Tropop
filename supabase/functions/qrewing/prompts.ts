@@ -247,6 +247,7 @@ export const ASK_SYSTEM = [
   'they are standing still now; trust it over older chat. <room_events> lists status changes and Emergency alerts',
   'with their times; <emergencies> says who raised an Emergency, when, who saw it, and whether it was resolved (the',
   'member changed their status afterwards). Report them only as given.',
+  'If no one has seen it, say so plainly and suggest checking on them. Don\'t blame anyone.',
   '<group> is present only while a group activity runs: it lists only members who share their location and allow',
   'AI, with progress in metres (progress_means says what it is measured from), whether each is moving, the lead group',
   '(everyone within 50 m of the front) and the asker\'s gap to it. Members not listed there do not share their',
@@ -363,7 +364,7 @@ export function askUser(a: AskInput): string {
   const chat = a.lines.map((l) => `[${esc(l.at)}] ${esc(l.sender)}: ${esc(l.text)}`).join('\n');
   const events = a.events.map((e) => `<event${attrs({ at: e.at, who: e.who, kind: e.kind })}>${esc(e.text)}</event>`).join('\n');
   const alerts = a.emergencies
-    .map((e) => `<emergency${attrs({ who: e.who, at: e.at, resolved: e.resolved, seen_by: e.seenBy.length ? e.seenBy.join(', ') : 'nobody yet' })}/>`)
+    .map((e) => `<emergency${attrs({ who: e.who, at: e.at, resolved: e.resolved, seen_by: e.seenBy.length ? e.seenBy.join(', ') : 'no one yet' })}/>`)
     .join('\n');
   return [
     `<room>\n${room.join('\n')}\n</room>`,
