@@ -674,7 +674,7 @@ export const en = {
     title: 'Plus preview',
     badge: 'Preview — no payment',
     heading: 'Qrew Plus',
-    intro: 'A look at planned Plus benefits. Nothing can be bought yet, and nothing changes in your account.',
+    intro: 'This is a preview of Plus. No payment is taken, and you can turn it off anytime.',
     benefit: 'Benefit',
     free: 'Free',
     plus: 'Plus',
