@@ -165,6 +165,7 @@ export function StatusEditor({ roomId, isHost, editing = true }: { roomId: strin
         ? rows.map((row, i) => (
             <View key={row.key} style={styles.row}>
               <TextInput
+                selectionColor={colors.label}
                 style={styles.input}
                 value={row.text}
                 onChangeText={(text) => {

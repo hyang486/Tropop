@@ -393,6 +393,7 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
           <GlassIconButton symbol="xmark" label={t.cancel} onPress={close} />
         </View>
         <TextInput
+          selectionColor={colors.label}
           value={text}
           onChangeText={(v) => {
             setText(v);

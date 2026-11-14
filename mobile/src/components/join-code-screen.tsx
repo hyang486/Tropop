@@ -62,6 +62,7 @@ export function JoinCodeScreen() {
           })}
         </View>
         <TextInput
+          selectionColor={colors.label}
           ref={inputRef}
           value={code}
           onChangeText={(t) => setCode(t.replace(/[^0-9]/g, '').slice(0, CODE_LENGTH))}
