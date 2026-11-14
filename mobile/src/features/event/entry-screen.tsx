@@ -1,12 +1,16 @@
 import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
-import { type ComponentRef, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentRef, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { EmptyState } from '@/components/empty-state';
+import { RoomEnded } from '@/components/room-ended';
 import { useAnnounce } from '@/features/event/announce';
 import { QField, QLabel, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { useRoomEvents } from '@/lib/room-channel';
+import { getRoom, type Room } from '@/lib/rooms';
+import { useRoomOver } from '@/lib/use-room-over';
 
 import { getEntryProfile } from './entry-api';
 import { en } from '@/i18n/en';
@@ -55,6 +59,33 @@ export function EntryScreen() {
   const userId = session?.user.id;
   const room = useEntryQuestions(id);
   const questions = useMemo(() => ordered(room.questions), [room.questions]);
+  // UX2-31 (pattern D): the room ending mid-edit (host End, expiry, removal) shows the shared Room ended screen
+  // with Back to Rooms, not a generic error and a Try again that can't succeed. `gone`: the room read is empty.
+  const [roomRow, setRoomRow] = useState<Room | null>(null);
+  const [gone, setGone] = useState(false);
+  const readRoom = useCallback(
+    (isActive: () => boolean = () => true) =>
+      getRoom(id)
+        .then((r) => {
+          if (!isActive()) return;
+          setGone(r === null);
+          if (r) setRoomRow(r);
+        })
+        .catch(() => {}),
+    [id],
+  );
+  useEffect(() => {
+    let active = true;
+    void readRoom(() => active);
+    return () => {
+      active = false;
+    };
+  }, [readRoom]);
+  useRoomEvents(id, (event) => {
+    if (event.table === 'rooms' || event.table === 'room_members') void readRoom();
+  });
+  const roomOver = useRoomOver(roomRow);
+  const over = gone || roomOver.over;
   // My saved answers (entry_profiles.answers). `failed`: Save stays off so an empty form never replaces them.
   const [profile, setProfile] = useState<{ done: boolean; failed: boolean; answers: unknown }>({
     done: false,
@@ -118,7 +149,7 @@ export function EntryScreen() {
   }, [invalid, list]);
 
   // `repeat` turns prevention off and then runs the blocked action (dispatching alone would be blocked again).
-  usePreventRemove(dirty && !busy && !saved, ({ repeat }) => {
+  usePreventRemove(dirty && !busy && !saved && !over, ({ repeat }) => {
     Alert.alert(s.discardTitle, s.discardBody, [
       { text: s.keepEditing, style: 'cancel' },
       { text: s.discard, style: 'destructive', onPress: repeat },
@@ -132,6 +163,7 @@ export function EntryScreen() {
   }, [saved, gate, id, router]);
 
   function retry() {
+    void readRoom();
     setProfile({ done: false, failed: false, answers: null });
     setEdits({});
     setLoadTick((n) => n + 1);
@@ -164,11 +196,15 @@ export function EntryScreen() {
     const res = await saveEntryAnswers(id, checked.value);
     setBusy(false);
     if ('error' in res) {
+      // 42501 here means "not a member of an open room": re-read the room so an ended room shows Room ended.
+      if (res.error === 'notHost') void readRoom();
       setError(res.error === 'network' ? en.qrewing.errors.network : s.saveFailed);
       return;
     }
     setSaved(true);
   }
+
+  if (over) return <RoomEnded room={gone ? null : roomRow} nowMs={roomOver.nowMs} />;
 
   return (
     <QScreen
