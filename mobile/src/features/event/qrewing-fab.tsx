@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EnterView } from '@/components/enter-view';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 
@@ -79,16 +80,18 @@ export function QrewingFab({ roomId }: { roomId: string }) {
   if (!available) return null;
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={s.fabLabel}
-        onPress={open}
-        hitSlop={6}
-        style={({ pressed }) => [styles.fab, { bottom: QREWING_FAB_MARGIN, right: insets.right + 16 }, pressed && styles.pressed]}
-      >
-        <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
-        <View style={styles.ring} pointerEvents="none" />
-      </Pressable>
+      <EnterView style={[styles.fab, { bottom: QREWING_FAB_MARGIN, right: insets.right + 16 }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={s.fabLabel}
+          onPress={open}
+          hitSlop={6}
+          style={({ pressed }) => [styles.fabHit, pressed && styles.pressed]}
+        >
+          <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
+          <View style={styles.ring} pointerEvents="none" />
+        </Pressable>
+      </EnterView>
       {sheet}
     </>
   );
@@ -118,6 +121,7 @@ const styles = StyleSheet.create({
     height: QREWING_FAB_SIZE,
     borderRadius: QREWING_FAB_SIZE / 2,
   },
+  fabHit: { width: '100%', height: '100%', borderRadius: QREWING_FAB_SIZE / 2 },
   // A thin ink ring, so the cream art stays visible on the cream screen (themed, no hard-coded shadow color).
   ring: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: QREWING_FAB_SIZE / 2, borderWidth: 1.5, borderColor: colors.label },
   art: { width: '100%', height: '100%', borderRadius: 999 },

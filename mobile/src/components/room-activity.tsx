@@ -14,6 +14,7 @@ import {
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 
+import { EnterView } from '@/components/enter-view';
 import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
@@ -144,25 +145,26 @@ export function EmergencyAlerts({
         if (mode === 'line') {
           // UX P0-1: after "I see it" (and on Map, Photos, Info) a 44 pt line; "Open" expands the bar.
           return (
-            <Pressable
-              key={e.id}
-              style={({ pressed }) => [styles.line, pressed && { opacity: 0.6 }]}
-              onPress={() => toggle(e.id, true)}
-              accessibilityRole="button"
-              accessibilityLabel={`${title}. ${meta}`}
-              accessibilityHint={en.activity.openEmergency}
-            >
-              <View style={[styles.ring, styles.ringSmall]}>
-                <SymbolView name="exclamationmark.triangle" size={12} tintColor={colors.danger} />
-              </View>
-              <Text style={styles.lineText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-                {mine ? en.activity.emergencyLineMine : en.activity.emergencyLine(name)}
-              </Text>
-              <Text style={styles.lineOpen} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-                {en.activity.openEmergency}
-              </Text>
-              <SymbolView name="chevron.down" size={11} weight="semibold" tintColor={colors.label} />
-            </Pressable>
+            <EnterView key={e.id}>
+              <Pressable
+                style={({ pressed }) => [styles.line, pressed && { opacity: 0.6 }]}
+                onPress={() => toggle(e.id, true)}
+                accessibilityRole="button"
+                accessibilityLabel={`${title}. ${meta}`}
+                accessibilityHint={en.activity.openEmergency}
+              >
+                <View style={[styles.ring, styles.ringSmall]}>
+                  <SymbolView name="exclamationmark.triangle" size={12} tintColor={colors.danger} />
+                </View>
+                <Text style={styles.lineText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                  {mine ? en.activity.emergencyLineMine : en.activity.emergencyLine(name)}
+                </Text>
+                <Text style={styles.lineOpen} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                  {en.activity.openEmergency}
+                </Text>
+                <SymbolView name="chevron.down" size={11} weight="semibold" tintColor={colors.label} />
+              </Pressable>
+            </EnterView>
           );
         }
 
@@ -175,56 +177,58 @@ export function EmergencyAlerts({
           location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
         ].join('. ');
         return (
-          <View key={e.id} style={styles.bar} accessibilityRole="alert">
-            <View style={styles.ring}>
-              <SymbolView name="exclamationmark.triangle" size={16} tintColor={colors.danger} />
-            </View>
-            <Pressable
-              style={styles.barText}
-              disabled={!canOpenLocation}
-              onPress={canOpenLocation ? () => openLocation(e.userId, location.coordinates) : undefined}
-              accessibilityRole={canOpenLocation ? 'button' : 'text'}
-              accessibilityLabel={spoken}
-              accessibilityHint={
-                canOpenLocation ? en.activity.locationHint(formatAge(location.updatedAt, now)) : undefined
-              }
-            >
-              <Text style={styles.barTitle} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-                {title}
-              </Text>
-              <View style={styles.barMetaRow}>
-                {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} /> : null}
-                <Text style={styles.barMeta} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-                  {meta}
-                </Text>
+          <EnterView key={e.id}>
+            <View style={styles.bar} accessibilityRole="alert">
+              <View style={styles.ring}>
+                <SymbolView name="exclamationmark.triangle" size={16} tintColor={colors.danger} />
               </View>
-            </Pressable>
-            {mine ? (
-              <Pill label={en.activity.imOkNow} busy={busy === 'ok'} onPress={() => run('ok', activity.clearStatus)} />
-            ) : !iAcked ? (
-              <Pill
-                label={en.activity.acknowledge}
-                busy={busy === `ack:${e.id}`}
-                onPress={() =>
-                  run(`ack:${e.id}`, async () => {
-                    await activity.acknowledge(e.id);
-                    toggle(e.id, false);
-                  })
-                }
-              />
-            ) : null}
-            {collapsible ? (
               <Pressable
-                onPress={() => toggle(e.id, false)}
-                hitSlop={8}
-                style={styles.hide}
-                accessibilityRole="button"
-                accessibilityLabel={en.activity.hideEmergency}
+                style={styles.barText}
+                disabled={!canOpenLocation}
+                onPress={canOpenLocation ? () => openLocation(e.userId, location.coordinates) : undefined}
+                accessibilityRole={canOpenLocation ? 'button' : 'text'}
+                accessibilityLabel={spoken}
+                accessibilityHint={
+                  canOpenLocation ? en.activity.locationHint(formatAge(location.updatedAt, now)) : undefined
+                }
               >
-                <SymbolView name="chevron.up" size={13} weight="semibold" tintColor={colors.label} />
+                <Text style={styles.barTitle} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                  {title}
+                </Text>
+                <View style={styles.barMetaRow}>
+                  {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} /> : null}
+                  <Text style={styles.barMeta} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                    {meta}
+                  </Text>
+                </View>
               </Pressable>
-            ) : null}
-          </View>
+              {mine ? (
+                <Pill label={en.activity.imOkNow} busy={busy === 'ok'} onPress={() => run('ok', activity.clearStatus)} />
+              ) : !iAcked ? (
+                <Pill
+                  label={en.activity.acknowledge}
+                  busy={busy === `ack:${e.id}`}
+                  onPress={() =>
+                    run(`ack:${e.id}`, async () => {
+                      await activity.acknowledge(e.id);
+                      toggle(e.id, false);
+                    })
+                  }
+                />
+              ) : null}
+              {collapsible ? (
+                <Pressable
+                  onPress={() => toggle(e.id, false)}
+                  hitSlop={8}
+                  style={styles.hide}
+                  accessibilityRole="button"
+                  accessibilityLabel={en.activity.hideEmergency}
+                >
+                  <SymbolView name="chevron.up" size={13} weight="semibold" tintColor={colors.label} />
+                </Pressable>
+              ) : null}
+            </View>
+          </EnterView>
         );
       })}
     </ScrollView>
