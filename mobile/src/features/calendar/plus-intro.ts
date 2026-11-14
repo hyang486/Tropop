@@ -1,6 +1,7 @@
 /**
  * Plus page v2 (/plan-preview?from=...), built to docs/evidence/plus-page-mockup/v2.html: one screen, a feature
- * preview and headline picked by `from`, then three one-line benefits that skip the one already previewed.
+ * preview and headline picked by `from`, then the three one-line benefits (UX2-64: the same set, in the same
+ * order with the same icons, on the Free and the Plus page).
  * Pushers: calendar (Add with Qrewing, Free tap or 402), diary (calendar diary upsell), room-ai (room Qrewing
  * button), more (create-room "More" end time / PT402), people (room size, no caller yet), capacity (create-room
  * People + at the Free max, capacity option B). The profile link sends
@@ -10,19 +11,13 @@
 export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity', 'ask', 'pace', 'meet', 'storage'] as const;
 export type PlusFrom = (typeof PLUS_FROM)[number];
 
-// Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): calendar AI add, diary, room Qrewing AI, rooms
-// up to 30 people and 7 days. `recap` is part of room Qrewing AI, worded for the room preview.
-export const PLUS_LINES = ['ai', 'rooms', 'add', 'diary', 'recap'] as const;
+// Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): room Qrewing AI, rooms up to 30 people and 7 days,
+// calendar AI add. UX2-64: one set for Free and Plus (the diary has its own preview card).
+export const PLUS_LINES = ['ai', 'rooms', 'add'] as const;
 export type PlusLine = (typeof PLUS_LINES)[number];
 
 export const PLUS_PREVIEWS = ['diary', 'chat', 'trip'] as const;
 export type PlusPreview = (typeof PLUS_PREVIEWS)[number];
-
-const PITCH: Record<PlusPreview, readonly [PlusLine, PlusLine, PlusLine]> = {
-  diary: ['ai', 'rooms', 'add'],
-  chat: ['recap', 'rooms', 'diary'],
-  trip: ['ai', 'diary', 'add'],
-};
 
 const PREVIEW: Record<PlusFrom, PlusPreview> = {
   calendar: 'diary',
@@ -45,10 +40,10 @@ export function plusFrom(param: unknown): PlusFrom | null {
   return (PLUS_FROM as readonly unknown[]).includes(v) ? (v as PlusFrom) : null;
 }
 
-/** The preview card and the three benefit lines for a source (none: the diary pitch). */
+/** The preview card for a source (none: the diary pitch) and the three benefit lines (the same for every source). */
 export function plusPitch(from: PlusFrom | null): { preview: PlusPreview; lines: readonly PlusLine[] } {
   const preview = from ? PREVIEW[from] : 'diary';
-  return { preview, lines: PITCH[preview] };
+  return { preview, lines: PLUS_LINES };
 }
 
 /**

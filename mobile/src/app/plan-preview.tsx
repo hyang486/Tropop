@@ -10,7 +10,7 @@ import { InkArt } from '@/components/ink-art';
 import { QCaption, QScreen } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
 import { setPlusPreview, usePlusPreview } from '@/features/calendar/calendar-store';
-import { type PlusLine, type PlusPreview, plusFrom, plusPitch } from '@/features/calendar/plus-intro';
+import { PLUS_LINES, type PlusLine, type PlusPreview, plusFrom, plusPitch } from '@/features/calendar/plus-intro';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { HAND_FONT_LATIN } from '@/lib/hand-font';
@@ -19,13 +19,11 @@ import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 const t = en.planPreview;
 const s = t.sample;
 
-// Black line icons (v2 mockup: magnifier, person+, pencil, calendar, chat).
+// Black line icons (v2 mockup: magnifier, person+, pencil); UX2-64: shared by the Free and the Plus list.
 const ICON: Record<PlusLine, SymbolViewProps['name']> = {
   ai: 'plus.magnifyingglass',
   rooms: 'person.badge.plus',
   add: 'pencil',
-  diary: 'calendar',
-  recap: 'text.bubble',
 };
 
 /**
@@ -95,8 +93,8 @@ export default function PlanPreview() {
             <Text style={[styles.sub, styles.onBadge]}>{t.onBadge}</Text>
           </View>
           <View style={styles.list}>
-            {t.now.map((n) => (
-              <Line key={n.key} icon={ICON[n.key as PlusLine]} parts={[n.line]} />
+            {PLUS_LINES.map((k) => (
+              <Line key={k} icon={ICON[k]} parts={t.lines[k]} />
             ))}
           </View>
         </>

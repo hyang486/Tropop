@@ -829,13 +829,11 @@ export const en = {
       tripOpen: 'open until Fri',
       a11y: 'Example',
     },
-    // One-line benefits; odd-index parts are bold.
+    // One-line benefits, the same on the Free and the Plus page (UX2-64); odd-index parts are bold.
     lines: {
       ai: ['', 'Qrewing', ' in every room you host'],
       rooms: ['Rooms up to ', '30 people', ' and ', '7 days', ''],
       add: ['', 'Add with Qrewing', ': just say the plan'],
-      diary: ['A ', 'diary page', ' for every room'],
-      recap: ['Flags what matters, writes the ', 'recap', ''],
     },
     tryCta: 'Try Plus free',
     fine: 'Preview · no payment · ',
@@ -859,11 +857,6 @@ export const en = {
     // Plus state.
     onHeading: 'You’re on Plus',
     onBadge: '✓ Preview on this account',
-    now: [
-      { key: 'ai', line: 'Turn on Qrewing AI when you create a room.' },
-      { key: 'rooms', line: 'Rooms up to 30 people and 7 days.' },
-      { key: 'diary', line: 'Diary and Add with Qrewing in Qrewing Calendar.' },
-    ],
     offCta: 'Turn off Plus preview',
     offFine: 'Rooms you already made keep their settings.',
     profileLink: 'Plus plan preview',

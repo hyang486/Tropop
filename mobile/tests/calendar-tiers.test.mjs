@@ -45,6 +45,7 @@ test('bar labels name the action: open diary, Plus feature, edit event', () => {
 
 test('Plus intro: Calendar stays free; Qrewing diary and Add with Qrewing are Plus benefits', () => {
   assert.match(en, /alwaysFree: '[^']*your own calendar events/);
-  assert.match(en, /diary: \['A ', 'diary page', ' for every room'\]/);
+  // UX2-64: the diary left the shared benefit lines; it stays a Plus row in the Free vs Plus table.
+  assert.match(en, /\{ label: 'Calendar diary', free: null, plus: true \}/);
   assert.match(en, /add: \['', 'Add with Qrewing', ': just say the plan'\]/);
 });
