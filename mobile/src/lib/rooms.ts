@@ -4,6 +4,7 @@ import { en } from '@/i18n/en';
 
 import type { Database, Tables } from './database.types';
 import type { Invite } from './invite';
+import { withMemberCount } from './member-count';
 import { placeTimeArgs, type LatLng } from './place-time';
 import { verifyAccount } from './auth';
 import { supabase } from './supabase';
@@ -86,11 +87,20 @@ export async function createRoom(input: {
   return data;
 }
 
-/** Rooms the user can still open. RLS hides rooms that expired, ended, or that the user left. */
-export async function listMyRooms(): Promise<Room[]> {
-  const { data, error } = await supabase.from('rooms').select('*').order('expires_at', { ascending: true });
+/** A listed room with its member count (UX P1-5); null when the count could not be read. */
+export type RoomWithCount = Room & { member_count: number | null };
+
+/**
+ * Rooms the user can still open. RLS hides rooms that expired, ended, or that the user left.
+ * The embedded count is visible because members_select lets a member read every member row of the room.
+ */
+export async function listMyRooms(): Promise<RoomWithCount[]> {
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('*, room_members(count)')
+    .order('expires_at', { ascending: true });
   if (error) throw error;
-  return data;
+  return data.map(withMemberCount);
 }
 
 /** Null when the room is gone or no longer accessible (expired, ended, left). */

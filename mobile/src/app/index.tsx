@@ -13,7 +13,7 @@ import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-remin
 import { pruneRoomCaches } from '@/lib/media';
 import { placeTimeOf } from '@/lib/place-time';
 import { resumePendingInvite } from '@/lib/invite';
-import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
+import { formatRemaining, listMyRooms, type Room, type RoomWithCount } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
 import { OpenChatSection } from '@/features/event/open-chat-section';
@@ -29,7 +29,7 @@ export default function Rooms() {
   const { profile, isGuest, session } = useAuth();
   const uid = session?.user.id;
   const now = useNow();
-  const [rooms, setRooms] = useState<Room[] | null>(null);
+  const [rooms, setRooms] = useState<RoomWithCount[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
   const [refreshing, setRefreshing] = useState(false);
@@ -186,6 +186,10 @@ export default function Rooms() {
                 </>
               )}
             </View>
+            {/* UX P1-5: people count at the trailing edge; ended rows and an unread count show none. */}
+            {!ended && room.member_count !== null ? (
+              <Text style={styles.count}>{en.room.people(room.member_count)}</Text>
+            ) : null}
           </Pressable>
           );
         })}
@@ -198,7 +202,7 @@ export default function Rooms() {
 }
 
 /** Visible rows, live ones first (server order kept) and ended (grace) rows last. */
-function sortEndedLast(rooms: Room[], now: number) {
+function sortEndedLast(rooms: RoomWithCount[], now: number) {
   const rows = rooms.map((room) => ({ room, entry: roomListEntry(room, now) })).filter((r) => r.entry.kind !== 'hidden');
   return [...rows.filter((r) => r.entry.kind !== 'grace'), ...rows.filter((r) => r.entry.kind === 'grace')];
 }
@@ -264,5 +268,6 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, gap: 2 },
   rowTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
+  count: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'] },
   rowSubtitle: { fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
 });
