@@ -9,7 +9,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SymbolView } from 'expo-symbols';
@@ -17,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
 import { Avatar } from '@/components/avatar';
+import { Composer } from '@/components/composer';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
@@ -465,31 +465,20 @@ function ChatRoom({
               >
                 <SymbolView name={plusOpen ? 'xmark' : 'plus'} size={20} tintColor={colors.label} />
               </Pressable>
-              <View style={styles.inputWrap}>
-                <TextInput
+              {/* UX P1-11: the shared Composer (same field and ink up-arrow as Ask Qrewing). */}
+              <View style={styles.composerField}>
+                <Composer
                   key={composer.key}
                   autoFocus={composerAutoFocus(composer)}
-                  style={styles.input}
                   value={draft}
-                  onChange={(e) => dispatchComposer({ type: 'change', key: composer.key, text: e.nativeEvent.text })}
+                  onChangeText={(text) => dispatchComposer({ type: 'change', key: composer.key, text })}
                   onFocus={() => setPlusOpen(false)}
+                  onSend={submit}
                   placeholder={en.chat.placeholder}
-                  placeholderTextColor={colors.secondaryLabel}
-                  accessibilityLabel={en.chat.placeholder}
-                  multiline
+                  sendLabel={en.chat.send}
+                  canSend={canSend}
                   maxLength={MAX_MESSAGE_LENGTH}
                 />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={en.chat.send}
-                  accessibilityState={{ disabled: !canSend }}
-                  disabled={!canSend}
-                  onPress={submit}
-                  hitSlop={6}
-                  style={({ pressed }) => [styles.sendButton, (!canSend || pressed) && { opacity: 0.3 }]}
-                >
-                  <SymbolView name="arrow.right" size={20} tintColor={colors.label} />
-                </Pressable>
               </View>
             </View>
           )}
@@ -716,25 +705,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   plusButton: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
-  inputWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.separator,
-    borderRadius: 22,
-    borderCurve: 'continuous',
-    paddingLeft: 16,
-    paddingRight: 6,
-  },
-  input: {
-    flex: 1,
-    maxHeight: 120,
-    minHeight: 42,
-    color: colors.label,
-    paddingTop: 11,
-    paddingBottom: 11,
-    fontSize: 16,
-  },
-  sendButton: { width: 36, height: 42, alignItems: 'center', justifyContent: 'center' },
+  composerField: { flex: 1 },
 });
