@@ -390,6 +390,15 @@ export const en = {
     reminderCardTitle: 'Get a reminder a day before this room ends?',
     reminderCardTurnOn: 'Turn on',
     reminderCardNotNow: 'Not now',
+    // UX3-B09 (S3): one ink check per message; long-press menu, double-tap, the pill and its "Checked by" sheet.
+    checkAdd: 'Got it',
+    checkRemove: 'Remove check',
+    copy: 'Copy',
+    checkCount: (n: number) => (n === 1 ? '1 check' : `${n} checks`),
+    checkValue: (n: number, mine: boolean) => `${n === 1 ? '1 check' : `${n} checks`}${mine ? ', checked by you' : ''}`,
+    checkedByTitle: 'Checked by',
+    checkedByHint: 'Shows who checked this',
+    checkFailed: 'Your check could not be saved. Try again.',
     // Qrew unit 3 (Q 03.01): nav title and the room's tab row.
     title: 'Chat',
     tabs: 'Room sections',

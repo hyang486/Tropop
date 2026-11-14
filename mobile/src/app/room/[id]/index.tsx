@@ -29,8 +29,11 @@ import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
 import { useSmallTalk } from '@/features/event/use-small-talk';
 import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { ChatHeaderButtons, NoticesSheet, SettingsSheet, useChatNoticeProducers } from '@/features/chat/chat-header';
+import { CheckBlock, CheckedBySheet } from '@/features/chat/check-block';
 import { ChatMedia } from '@/features/chat/chat-media';
 import { mediaForLines } from '@/features/chat/chat-media-plan';
+import { useMessageChecks } from '@/features/chat/message-checks';
+import { canCheck, type CheckSummary } from '@/features/chat/message-checks-plan';
 import { buildTimeline, resolvedCopy, type TimelineRow } from '@/features/chat/chat-timeline-plan';
 import { useMarkRoomRead } from '@/features/event/room-summary-api';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
@@ -222,6 +225,16 @@ function ChatRoom({
   const lineMedia = useMemo(() => mediaForLines(chat.messages, roomMedia.items, chat.hasMore),
     [chat.messages, roomMedia.items, chat.hasMore],
   );
+  // UX3-B09 (S3): one ink check per message; the pill opens "Checked by".
+  const messageChecks = useMessageChecks(room.id, userId);
+  const [checkedByFor, setCheckedByFor] = useState<string | null>(null);
+  const checkedBy = checkedByFor
+    ? (messageChecks.checks.get(checkedByFor)?.userIds ?? []).map((uid) => ({
+        id: uid,
+        name: memberName(names, uid, room.host_id, en.chat),
+        avatarPath: avatars.get(uid),
+      }))
+    : null;
   // Spec 11: one activity read for the Emergency cards, the "+" panel (Arrived, Set status) and the bell.
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const presence = useEmergencyPresence(room.id, activity);
@@ -593,6 +606,10 @@ function ChatRoom({
                       onMediaPress={openPhotos}
                       media={lineMedia.get(item.id)}
                       token={token}
+                      checksReady={messageChecks.ready}
+                      check={messageChecks.checks.get(item.id)}
+                      onToggleCheck={(viaDoubleTap) => void messageChecks.toggle(item.id, viaDoubleTap)}
+                      onShowCheckedBy={() => setCheckedByFor(item.id)}
                       onOpenMedia={(mediaId) =>
                         router.push({ pathname: '/room/[id]/media/[mediaId]', params: { id: room.id, mediaId } })
                       }
@@ -687,6 +704,7 @@ function ChatRoom({
           />
         ) : null}
       </SettingsSheet>
+      <CheckedBySheet people={checkedBy} onClose={() => setCheckedByFor(null)} />
       <AnswerSheet
         roomId={room.id}
         cardId={answerCard}
@@ -735,6 +753,10 @@ function MessageRow({
   media,
   token,
   onOpenMedia,
+  checksReady,
+  check,
+  onToggleCheck,
+  onShowCheckedBy,
 }: {
   item: ChatItem;
   mine: boolean;
@@ -749,6 +771,12 @@ function MessageRow({
   onOpenMedia?: (mediaId: string) => void;
   /** Set when this person can open the Map, so "Activity started" links there. */
   onMapPress?: () => void;
+  /** UX3-B09 (S3): false until message_reactions (0038) reads; then no menu, no double-tap, text stays selectable. */
+  checksReady: boolean;
+  /** UX3-B09 (S3): this message's ink checks. */
+  check?: CheckSummary;
+  onToggleCheck: (viaDoubleTap: boolean) => void;
+  onShowCheckedBy: () => void;
 }) {
   const time = useMemo(
     () => new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
@@ -757,7 +785,8 @@ function MessageRow({
 
   if (item.kind === 'media' && media && media.length > 0 && onOpenMedia) {
     // UX3-B08: drawn as a message from the uploader (avatar + name for others; own items right-aligned).
-    const block = (
+    // UX3-B09 (b): long-press only (a tap opens the item), no Copy.
+    const media_ = (
       <ChatMedia
         items={media}
         token={token}
@@ -765,6 +794,13 @@ function MessageRow({
         onOpenItem={onOpenMedia}
         onOpenPhotos={onMediaPress}
       />
+    );
+    const block = checksReady && canCheck(item, true) ? (
+      <CheckBlock mine={mine} check={check} doubleTap={false} onToggle={onToggleCheck} onShowCheckedBy={onShowCheckedBy}>
+        {media_}
+      </CheckBlock>
+    ) : (
+      media_
     );
     if (mine) {
       return (
@@ -841,12 +877,27 @@ function MessageRow({
   // UX P1-3: others show "Jay · 8:48 AM" above the bubble; your own time sits under it. Sending and failed replace the time.
   const failed = item.pending === 'failed';
   const when = item.pending === 'sending' ? en.chat.sending : failed ? en.chat.failed : time;
-  const bubble = (
+  const plain = (
     <View style={[styles.bubble, mine ? styles.mine : styles.theirs, failed && styles.failedBubble]}>
-      <Text selectable style={[styles.body, mine && styles.bodyMine]}>
+      <Text selectable={!(checksReady && canCheck(item, false))} style={[styles.body, mine && styles.bodyMine]}>
         {item.body}
       </Text>
     </View>
+  );
+  // UX3-B09 (S3): sent text takes a check (long-press menu with Copy, or double-tap); sending/failed stay plain.
+  const bubble = checksReady && canCheck(item, false) ? (
+    <CheckBlock
+      mine={mine}
+      check={check}
+      copyText={item.body ?? ''}
+      doubleTap
+      onToggle={onToggleCheck}
+      onShowCheckedBy={onShowCheckedBy}
+    >
+      {plain}
+    </CheckBlock>
+  ) : (
+    plain
   );
 
   if (mine) {
