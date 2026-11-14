@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from '@/lib/auth';
 import { reminderRoomFromResponse, setPendingReminderRoom } from '@/lib/expiry-reminders';
 import { hasOpenModal, setRootLinkHandler } from '@/lib/root-link';
 import { pushFromRoot, resetToRoot } from '@/lib/root-nav';
+import { useReduceMotion } from '@/components/enter-view';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,6 +26,8 @@ const ROOT_SCREENS = new Set(['index', 'welcome', 'join/[token]']);
 function RootNavigator() {
   const { session, loading } = useAuth();
   const signedIn = !!session;
+  // A11y sweep: with Reduce Motion on, the media viewer cross-fades in instead of sliding.
+  const reduceMotion = useReduceMotion();
   // Qrew: the bundled title fonts load from assets at runtime (no rebuild). The splash waits for them so the
   // first title is not drawn in the system font; a failed load just keeps the system font.
   const [fontsLoaded, fontError] = useFonts(HAND_FONTS);
@@ -102,7 +105,7 @@ function RootNavigator() {
         <Stack.Screen name="room/[id]/end-activity" options={{ title: en.endActivity.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/end-room" options={{ title: en.endRoom.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/face" options={{ title: en.face.title }} />
-        <Stack.Screen name="room/[id]/media/[mediaId]" options={{ title: '' }} />
+        <Stack.Screen name="room/[id]/media/[mediaId]" options={{ title: '', animation: reduceMotion ? 'fade' : 'default' }} />
         <Stack.Screen name="room/[id]/invite" options={{ title: en.invite.title, presentation: 'modal' }} />
         {/* Spec 10.4: the private Ask Qrewing chat opens as a sheet over the room. */}
         <Stack.Screen name="room/[id]/ask" options={{ title: en.qrewing.ask.title, presentation: 'modal' }} />
