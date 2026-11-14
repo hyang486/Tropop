@@ -25,7 +25,15 @@ import {
 } from './pace-core';
 import { paceAllowed, paceApplies } from './pace-layer';
 import { saveTarget, setOn, usePaceSettings } from './settings';
-import { initialPaceSec, TARGET_TICK, targetBarFill, targetFieldsFilled } from './target-form';
+import {
+  initialPaceSec,
+  TARGET_TICK,
+  targetBarFill,
+  targetFieldsFilled,
+  type TargetFormEvent,
+  type TargetFormStatus,
+  targetFormStatus,
+} from './target-form';
 import { en } from '@/i18n/en';
 const t = en.pace;
 
@@ -187,30 +195,31 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
   }, [usual, target.kind]);
   const [km, setKm] = useState(target.kind === 'time' ? String(target.distanceM / 1000) : '');
   const [time, setTime] = useState(target.kind === 'time' ? formatDuration(target.timeS) : '');
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [{ error, saved }, setStatus] = useState<TargetFormStatus>({ error: null, saved: false });
+  const status = (e: TargetFormEvent) => setStatus((s) => targetFormStatus(s, e));
+  const edit = (set: (v: string) => void) => (v: string) => {
+    set(v);
+    status({ type: 'edit' });
+  };
 
   function choose(next: Mode) {
     setMode(next);
-    setError(null);
-    setSaved(false);
+    status({ type: 'choose' });
     if (next === 'usual') saveTarget({ kind: 'usual' });
   }
 
   function save() {
-    setSaved(false);
     if (mode === 'pace') {
       const secPerKm = parsePace(pace);
-      if (secPerKm == null) return setError(t.invalidPace);
+      if (secPerKm == null) return status({ type: 'invalid', error: t.invalidPace });
       saveTarget({ kind: 'pace', secPerKm });
     } else if (mode === 'time') {
       const distanceM = parseKm(km);
       const timeS = parseDuration(time);
-      if (distanceM == null || timeS == null) return setError(t.invalidTime);
+      if (distanceM == null || timeS == null) return status({ type: 'invalid', error: t.invalidTime });
       saveTarget({ kind: 'time', distanceM, timeS });
     }
-    setError(null);
-    setSaved(true);
+    status({ type: 'saved' });
   }
 
   // Short segment labels on one line; VoiceOver keeps the full names.
@@ -268,6 +277,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
             onChangeText={(v) => {
               paceTouched.current = true;
               setPace(v);
+              status({ type: 'edit' });
             }}
             placeholder={t.pacePlaceholder}
             keyboardType="numbers-and-punctuation"
@@ -282,7 +292,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
         <View style={styles.inputRow}>
           <TextInput
             value={km}
-            onChangeText={setKm}
+            onChangeText={edit(setKm)}
             placeholder={t.distancePlaceholder}
             keyboardType="decimal-pad"
             accessibilityLabel={t.distanceLabel}
@@ -291,7 +301,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
           />
           <TextInput
             value={time}
-            onChangeText={setTime}
+            onChangeText={edit(setTime)}
             placeholder={t.timePlaceholder}
             keyboardType="numbers-and-punctuation"
             accessibilityLabel={t.timeLabel}

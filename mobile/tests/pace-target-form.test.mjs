@@ -20,3 +20,14 @@ test('targetFieldsFilled: empty or blank fields keep Save disabled', () => {
   assert.equal(f.targetFieldsFilled('time', '', '10', '50:00'), true);
   assert.equal(f.targetFieldsFilled('usual', '', '', ''), true);
 });
+
+test('sweep 8: a field edit clears "Saved"; an error stays until the next save or mode change', () => {
+  const saved = f.targetFormStatus({ error: null, saved: false }, { type: 'saved' });
+  assert.deepEqual(saved, { error: null, saved: true });
+  assert.deepEqual(f.targetFormStatus(saved, { type: 'edit' }), { error: null, saved: false });
+  const bad = f.targetFormStatus(saved, { type: 'invalid', error: 'Bad pace' });
+  assert.deepEqual(bad, { error: 'Bad pace', saved: false });
+  assert.equal(f.targetFormStatus(bad, { type: 'edit' }), bad);
+  assert.deepEqual(f.targetFormStatus(bad, { type: 'choose' }), { error: null, saved: false });
+  assert.deepEqual(f.targetFormStatus(bad, { type: 'saved' }), { error: null, saved: true });
+});

@@ -26,3 +26,15 @@ export function targetBarFill(currentSecPerKm: number | null, goalSecPerKm: numb
   if (currentSecPerKm == null || goalSecPerKm == null || currentSecPerKm <= 0 || goalSecPerKm <= 0) return null;
   return Math.max(0, Math.min(1, (TARGET_TICK * goalSecPerKm) / currentSecPerKm));
 }
+
+/** The target sheet's status line: a validation error, or "Saved" after a good save. */
+export type TargetFormStatus = { error: string | null; saved: boolean };
+export type TargetFormEvent = { type: 'edit' } | { type: 'choose' } | { type: 'saved' } | { type: 'invalid'; error: string };
+
+/** Sweep 8: any field edit clears "Saved" (the new text is not saved yet); a mode change clears both. */
+export function targetFormStatus(s: TargetFormStatus, e: TargetFormEvent): TargetFormStatus {
+  if (e.type === 'edit') return s.saved ? { ...s, saved: false } : s;
+  if (e.type === 'choose') return { error: null, saved: false };
+  if (e.type === 'saved') return { error: null, saved: true };
+  return { error: e.error, saved: false };
+}
