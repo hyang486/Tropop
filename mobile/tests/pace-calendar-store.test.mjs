@@ -154,3 +154,77 @@ test('syncCalendarRooms: a failed read writes nothing and marks the calendar fai
   await cal.reloadCalendar('u2');
   assert.equal(cal.useCalendarFailed('u2'), false);
 });
+
+const conn = await import('../src/features/pace/connection.ts');
+const paceStore = await import('../src/features/pace/storage.ts');
+
+test('UX2-118 connection: waiting is per room, and setting the same value twice is a no-op', () => {
+  assert.equal(conn.usePaceWaiting('w1'), false);
+  conn.setPaceWaiting('w1', true);
+  conn.setPaceWaiting('w1', true);
+  assert.equal(conn.usePaceWaiting('w1'), true);
+  assert.equal(conn.usePaceWaiting('w2'), false);
+  conn.setPaceWaiting('w1', false);
+  conn.setPaceWaiting('w1', false);
+  assert.equal(conn.usePaceWaiting('w1'), false);
+});
+
+test('paceSnapshot: null unless the room\'s activity is running and my run has a fix', () => {
+  const roomId = 'room-snap';
+  const active = { id: roomId, activity_state: 'active', activity_seq: 4 };
+  assert.equal(engine.paceSnapshot(active, 0), null, 'no run yet');
+  const t0 = 500_000;
+  engine.feedFix(engine.runKey(roomId, 4), fixAt(0, t0), ctx(roomId, t0));
+  assert.equal(engine.paceSnapshot({ ...active, activity_state: 'idle' }, t0), null);
+  assert.equal(engine.paceSnapshot({ ...active, activity_seq: 5 }, t0), null, 'another activity of the same room');
+  const snap = engine.paceSnapshot(active, t0);
+  assert.equal(snap.distanceM, 0);
+  assert.equal(snap.paceSecPerKm, null);
+});
+
+test('pace storage: the switch is per room; a failed read means off', async () => {
+  assert.equal(await paceStore.getPaceOn('s1'), false);
+  await paceStore.setPaceOn('s1', true);
+  assert.equal(await paceStore.getPaceOn('s1'), true);
+  assert.equal(await paceStore.getPaceOn('s2'), false);
+  store.failGet = true;
+  assert.equal(await paceStore.getPaceOn('s1'), false);
+  store.failGet = false;
+  await paceStore.setPaceOn('s1', false);
+  assert.equal(await paceStore.getPaceOn('s1'), false);
+});
+
+test('pace storage: a target round-trips; a bad, unknown or unreadable target falls back to usual', async () => {
+  const KEY = 'qrewing.pace.v1.target';
+  assert.deepEqual(await paceStore.getTarget(), { kind: 'usual' });
+  await paceStore.setTarget({ kind: 'pace', secPerKm: 330 });
+  assert.deepEqual(await paceStore.getTarget(), { kind: 'pace', secPerKm: 330 });
+  await paceStore.setTarget({ kind: 'time', distanceM: 5000, timeS: 1500 });
+  assert.deepEqual(await paceStore.getTarget(), { kind: 'time', distanceM: 5000, timeS: 1500 });
+  for (const raw of ['{"kind":"pace","secPerKm":0}', '{"kind":"time","distanceM":5000,"timeS":0}', '{"kind":"other"}', 'not json', 'null']) {
+    store.m.set(KEY, raw);
+    assert.deepEqual(await paceStore.getTarget(), { kind: 'usual' }, raw);
+  }
+  store.failGet = true;
+  assert.deepEqual(await paceStore.getTarget(), { kind: 'usual' });
+  store.failGet = false;
+});
+
+test('saveEvent/removeEvent: write the signed-in user\'s events; a failed write resolves false and keeps memory', async () => {
+  globalThis.__auth('SIGNED_IN', { user: { id: 'u3' } });
+  const ev = { title: ' Dinner ', start: '2026-11-20', end: '2026-11-20', emoji: '🍜' };
+  assert.equal(await cal.saveEvent('u3', 'e1', ev), true);
+  assert.deepEqual(savedDoc('u3').events, [{ id: 'e1', title: 'Dinner', start: '2026-11-20', end: '2026-11-20', emoji: '🍜' }]);
+  assert.equal(await cal.saveEvent('u3', 'e1', { ...ev, title: 'Lunch' }), true);
+  assert.equal(savedDoc('u3').events.length, 1);
+  assert.equal(savedDoc('u3').events[0].title, 'Lunch');
+  assert.equal(await cal.saveEvent('u4', 'e9', ev), false, 'not the signed-in user');
+  assert.equal(savedDoc('u4'), null);
+
+  store.failSet = 1;
+  assert.equal(await cal.removeEvent('u3', 'e1'), false);
+  assert.equal(savedDoc('u3').events.length, 1, 'the phone copy is unchanged');
+  assert.equal(cal.useCalendar('u3').events.length, 0, 'memory already has the change');
+  assert.equal(await cal.removeEvent('u3', 'e1'), true);
+  assert.deepEqual(savedDoc('u3').events, []);
+});
