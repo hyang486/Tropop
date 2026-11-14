@@ -89,8 +89,9 @@ export const en = {
     locationLabel: 'Allow location sharing',
     locationHint: 'Members still choose for themselves. Sharing starts only after you start the activity.',
     statusesLabel: 'Status options',
-    statusesDefault: 'Resting, Giving up, Need water, Need help',
-    statusesHint: 'Separate with commas. Emergency is always included.',
+    statusesDefault: ['Resting', 'Giving up', 'Need water', 'Need help'] as const,
+    statusesAdd: '+ Add',
+    statusesHint: 'Emergency is always included.',
     submit: 'Create room',
     nameRequired: 'Enter a room name.',
     // Place and time unit (0026): optional meeting place and start time.

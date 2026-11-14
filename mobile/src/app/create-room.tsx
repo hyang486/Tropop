@@ -44,6 +44,7 @@ import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api'
 import { QField, QLabel, QLink, QScreen } from '@/components/q-screen';
 import { useAuth } from '@/lib/auth';
 import { Button, colors, Hint, radius } from '@/components/ui';
+import { StatusChips } from '@/features/event/status-chips';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { createRoom, ROOM_TYPES, type RoomType } from '@/lib/rooms';
@@ -82,7 +83,7 @@ export default function CreateRoom() {
   const [pickedEnd, setPickedEnd] = useState<EndChoice | null>(null);
   const choice: EndChoice = pickedEnd ?? { kind: 'preset', hours: defaultEndHours(type, plus) };
   const [locationAllowed, setLocationAllowed] = useState(true);
-  const [statuses, setStatuses] = useState<string>(en.createRoom.statusesDefault);
+  const [statuses, setStatuses] = useState<string[]>([...en.createRoom.statusesDefault]);
   // Qrewing AI (spec 3.2): off by default for every type; entry info is offered for event rooms only.
   const [aiEnabled, setAiEnabled] = useState(false);
   const [entryRequired, setEntryRequired] = useState(false);
@@ -287,10 +288,7 @@ export default function CreateRoom() {
         placeName,
         pin,
         startsAt,
-        statuses: statuses
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
+        statuses,
       };
       const room = OPEN_ROOMS_LIVE
         ? await createOpenAwareRoom({ ...input, capacity, plus, visibility, icon, area })
@@ -604,16 +602,7 @@ export default function CreateRoom() {
 
       <View style={styles.box}>
         <Text style={styles.cardTitle}>{en.createRoom.statusesLabel}</Text>
-        <TextInput
-          value={statuses}
-          onChangeText={setStatuses}
-          accessibilityLabel={en.createRoom.statusesLabel}
-          accessibilityHint={en.createRoom.statusesHint}
-          style={styles.statuses}
-          multiline
-          submitBehavior="blurAndSubmit"
-          returnKeyType="done"
-        />
+        <StatusChips labels={statuses} onChange={setStatuses} />
         <Text style={styles.cardNote}>{en.createRoom.statusesHint}</Text>
       </View>
     </QScreen>
@@ -646,7 +635,6 @@ const styles = StyleSheet.create({
   rowAction: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
   box: { ...outline, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
-  statuses: { fontSize: 14, color: colors.ink2, paddingVertical: 2 },
   cardNote: { fontSize: 12, color: colors.ink2 },
   pinArea: { fontSize: 14, color: colors.label },
   stepOff: { opacity: 0.3 },
