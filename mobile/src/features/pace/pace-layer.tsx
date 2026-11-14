@@ -2,7 +2,7 @@ import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { StatusPicker } from '@/components/status-picker';
+import { confirmEmergency, StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
@@ -148,22 +148,16 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
       Alert.alert(en.activity.actionFailed, errorMessage(e));
     }
   }
-  // Same rules as the chat status bar: Emergency is never set without its confirm.
   function pick(def: StatusDefinition) {
     close();
     if (def.id === myStatusId) return;
-    if (def.is_emergency) {
-      Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [
-        { text: en.room.cancel, style: 'cancel' },
-        {
-          text: en.activity.sendEmergency,
-          style: 'destructive',
-          onPress: () => run(() => activity.setStatus(def.id)),
-        },
-      ]);
-    } else {
-      run(() => activity.setStatus(def.id));
-    }
+    run(() => activity.setStatus(def.id));
+  }
+  // Same rules as the chat status bar (UX2-05b): confirm first, works without the list, a failure offers Try again.
+  function emergency() {
+    close();
+    if (activity.statuses.some((s) => s.is_emergency && s.id === myStatusId)) return;
+    confirmEmergency(activity.setEmergency);
   }
   function clear() {
     close();
@@ -180,8 +174,11 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
         statuses={activity.statuses}
         currentId={myStatusId}
         onPick={pick}
+        onEmergency={emergency}
         onClear={clear}
         onClose={close}
+        failed={!!activity.error}
+        onRetry={activity.reload}
       />
     </>
   );

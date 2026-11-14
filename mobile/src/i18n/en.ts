@@ -464,6 +464,11 @@ export const en = {
     // UX2-05 (pattern E): the Emergency read failed; never shown as "no Emergency".
     readFailed: "Can't check for Emergencies. Try again.",
     readRetry: 'Try again',
+    // UX2-05b: the status picker when the status list failed to load.
+    statusesFailed: "Couldn't load statuses.",
+    emergencyTile: 'Emergency',
+    emergencyTileA11y: 'Emergency, alerts everyone in the room',
+    emergencyNotSent: 'Emergency not sent',
     arrived: 'Arrived',
     arrivedAt: (time: string) => `Arrived ${time}`,
     status: 'Status',

@@ -66,3 +66,19 @@ export function emergencyBarMode(o: {
   if (o.place === 'other') return 'line';
   return o.mine || !o.acked ? 'bar' : 'line';
 }
+
+/**
+ * UX2-05b: the status picker's tiles. Emergency is always first: the room's own row, or a built-in tile when the
+ * list failed with no cached copy (the write then resolves the room's Emergency id). Clear status only when my
+ * current status is known and set. The error line shows whenever the last read failed.
+ */
+export function statusPickerPlan<S extends { id: string; is_emergency: boolean }>(o: {
+  statuses: readonly S[];
+  currentId: string | undefined;
+  failed: boolean;
+}): { emergency: S | 'builtin'; others: S[]; showClear: boolean; showError: boolean } {
+  const emergency = o.statuses.find((s) => s.is_emergency) ?? 'builtin';
+  const others = o.statuses.filter((s) => !s.is_emergency);
+  const showClear = !!o.currentId && o.statuses.some((s) => s.id === o.currentId);
+  return { emergency, others, showClear, showError: o.failed };
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { en } from '@/i18n/en';
 import type { Tables } from './database.types';
 import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
@@ -95,6 +96,9 @@ async function fetchActivity(roomId: string, userId: string, activitySeq: number
   return { error: null, statuses, memberStatus, myArrivedAt: arrival.data?.arrived_at ?? null, emergencies: open };
 }
 
+// UX2-05b: the last status list read per room, so a failed read (even after reopening the room) keeps its tiles.
+const statusCache = new Map<string, StatusDefinition[]>();
+
 /**
  * Arrival, statuses and open Emergencies for a room. Refetches on any related room change notice,
  * after a (re)subscribe, when activity_seq changes and when the app returns to the foreground.
@@ -108,9 +112,16 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
     const mine = ++seq.current;
     try {
       const next = await fetchActivity(roomId, userId, activitySeq);
+      statusCache.set(roomId, next.statuses);
       if (mine === seq.current) setState({ ...next, loading: false });
     } catch (error) {
-      if (mine === seq.current) setState((s) => ({ ...s, loading: false, error }));
+      if (mine === seq.current)
+        setState((s) => ({
+          ...s,
+          statuses: s.statuses.length > 0 ? s.statuses : (statusCache.get(roomId) ?? []),
+          loading: false,
+          error,
+        }));
     }
   }, [roomId, userId, activitySeq]);
 
@@ -148,6 +159,30 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
     [roomId, reload],
   );
 
+  /**
+   * UX2-05b: sets my status to the room's Emergency even when the status list failed: the loaded or cached row,
+   * else one read of the room's Emergency row (every room has one), then the usual set_my_status.
+   */
+  const statuses = state.statuses;
+  const setEmergency = useCallback(async () => {
+    let id = (statuses.length > 0 ? statuses : (statusCache.get(roomId) ?? [])).find((s) => s.is_emergency)?.id;
+    if (!id) {
+      const { data, error } = await supabase
+        .from('status_definitions')
+        .select('id')
+        .eq('room_id', roomId)
+        .eq('is_emergency', true)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error(en.activity.actionFailed);
+      id = data.id;
+    }
+    const { error } = await supabase.rpc('set_my_status', { p_room_id: roomId, p_status_id: id });
+    if (error) throw error;
+    await reload();
+  }, [roomId, statuses, reload]);
+
   const clearStatus = useCallback(async () => {
     const { error } = await supabase.rpc('clear_my_status', { p_room_id: roomId });
     if (error) throw error;
@@ -163,5 +198,5 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
     [reload],
   );
 
-  return { ...state, reload, arrive, setStatus, clearStatus, acknowledge };
+  return { ...state, reload, arrive, setStatus, setEmergency, clearStatus, acknowledge };
 }

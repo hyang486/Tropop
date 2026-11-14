@@ -69,3 +69,48 @@ test('UX2-05: a failed Emergency read shows the error, never an empty "no Emerge
   assert.equal(en.activity.readFailed, "Can't check for Emergencies. Try again.");
   assert.equal(en.activity.readRetry, 'Try again');
 });
+
+test('UX2-05b: the status picker always offers Emergency first; Clear only for a known, set status', async () => {
+  const { statusPickerPlan } = await import('../src/lib/emergency-plan.ts');
+  const ok = { id: 'ok', is_emergency: false };
+  const em = { id: 'em', is_emergency: true };
+  // Failed with no cache: the built-in Emergency tile, no Clear, the error line.
+  assert.deepEqual(statusPickerPlan({ statuses: [], currentId: undefined, failed: true }), {
+    emergency: 'builtin',
+    others: [],
+    showClear: false,
+    showError: true,
+  });
+  // Server order puts Emergency last; the picker puts it first.
+  const p = statusPickerPlan({ statuses: [ok, em], currentId: 'ok', failed: false });
+  assert.equal(p.emergency, em);
+  assert.deepEqual(p.others, [ok]);
+  assert.equal(p.showClear, true);
+  assert.equal(p.showError, false);
+  // No current status, or one not in the list (unknown): no Clear.
+  assert.equal(statusPickerPlan({ statuses: [ok, em], currentId: undefined, failed: false }).showClear, false);
+  assert.equal(statusPickerPlan({ statuses: [ok, em], currentId: 'gone', failed: true }).showClear, false);
+});
+
+test('UX2-05b: Emergency resolves its id without the list and a failed send offers Try again', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { en } = await import('../src/i18n/en.ts');
+  const activity = readFileSync(new URL('../src/lib/activity.ts', import.meta.url), 'utf8');
+  const set = activity.slice(activity.indexOf('const setEmergency'), activity.indexOf('const clearStatus'));
+  assert.match(set, /statusCache\.get\(roomId\)/);
+  assert.match(set, /\.eq\('is_emergency', true\)/);
+  assert.match(set, /rpc\('set_my_status'/);
+  const picker = readFileSync(new URL('../src/components/status-picker.tsx', import.meta.url), 'utf8');
+  const confirm = picker.slice(picker.indexOf('export function confirmEmergency'), picker.indexOf('export function StatusPicker'));
+  assert.match(confirm, /en\.activity\.emergencyNotSent/);
+  assert.match(confirm, /isPreferred: true, onPress: \(\) => void attempt\(\)/);
+  for (const f of ['../src/features/chat/plus-panel.tsx', '../src/features/pace/pace-layer.tsx']) {
+    const src = readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.match(src, /onEmergency=\{emergency\}/, f);
+    assert.match(src, /confirmEmergency\(/, f);
+    assert.doesNotMatch(src, /emergencyConfirmTitle/, f);
+  }
+  assert.equal(en.activity.statusesFailed, "Couldn't load statuses.");
+  assert.equal(en.activity.emergencyTileA11y, 'Emergency, alerts everyone in the room');
+  assert.equal(en.activity.emergencyNotSent, 'Emergency not sent');
+});

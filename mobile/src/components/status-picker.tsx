@@ -1,25 +1,53 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
-import { colors } from '@/components/ui';
+import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import type { StatusDefinition } from '@/lib/activity';
 import { statusSymbol } from '@/lib/chat-plan';
+import { statusPickerPlan } from '@/lib/emergency-plan';
+
+/**
+ * UX2-05b: Emergency is never set without its confirm, and a failed write is never dropped silently: "Emergency not
+ * sent" offers Try again (preferred) or Cancel. `send` throws on failure; `after` runs once it went through.
+ */
+export function confirmEmergency(send: () => Promise<void>, after?: () => void) {
+  async function attempt() {
+    try {
+      await send();
+      after?.();
+    } catch {
+      Alert.alert(en.activity.emergencyNotSent, en.activity.actionFailed, [
+        { text: en.room.cancel, style: 'cancel' },
+        { text: en.activity.readRetry, isPreferred: true, onPress: () => void attempt() },
+      ]);
+    }
+  }
+  Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [
+    { text: en.room.cancel, style: 'cancel' },
+    { text: en.activity.sendEmergency, style: 'destructive', onPress: () => void attempt() },
+  ]);
+}
 
 /**
  * Q 03.02 "Set your status": a bottom sheet with the room's statuses as an icon + text grid (icon by keyword,
- * a generic icon for custom statuses), Emergency in red, then Clear status and Cancel. Choosing only reports
- * the choice; the caller confirms Emergency and calls the RPC, as before with the action sheet.
+ * a generic icon for custom statuses), then Clear status and Cancel. Choosing only reports the choice; the caller
+ * confirms Emergency (confirmEmergency) and calls the RPC. UX2-05b: Emergency is always the first tile, red, even
+ * when the list failed (a built-in tile); a failed list adds a red line with "Try again" above the grid.
  */
 export function StatusPicker({
   visible,
   statuses,
   currentId,
   onPick,
+  onEmergency,
   onClear,
   onClose,
+  failed = false,
+  onRetry,
   title = en.activity.chooseStatus,
   cancelLabel = en.room.cancel,
 }: {
@@ -30,11 +58,19 @@ export function StatusPicker({
   visible: boolean;
   statuses: StatusDefinition[];
   currentId: string | undefined;
+  /** A status other than Emergency. */
   onPick: (status: StatusDefinition) => void;
+  /** The Emergency tile (the room's row or the built-in one). */
+  onEmergency: () => void;
   onClear: () => void;
   onClose: () => void;
+  /** The last status read failed (tiles may come from the cache). */
+  failed?: boolean;
+  onRetry?: () => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
+  const plan = statusPickerPlan({ statuses, currentId, failed });
+  const emergencyId = plan.emergency === 'builtin' ? undefined : plan.emergency.id;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -44,18 +80,28 @@ export function StatusPicker({
           {/* flexShrink: inside the sheet's maxHeight the grid scrolls and Cancel stays below it (never over the last row). */}
           <ScrollView style={styles.scroll} contentContainerStyle={styles.body} bounces={false}>
             <HandTitle style={styles.title}>{title}</HandTitle>
+            {plan.showError && onRetry ? <FailedLine onRetry={onRetry} /> : null}
             <View style={styles.grid}>
-              {statuses.map((s) => (
+              <Tile
+                label={plan.emergency === 'builtin' ? en.activity.emergencyTile : plan.emergency.label}
+                a11yLabel={en.activity.emergencyTileA11y}
+                symbol={statusSymbol('', true) as SFSymbol}
+                danger
+                selected={!!emergencyId && emergencyId === currentId}
+                onPress={onEmergency}
+              />
+              {plan.others.map((s) => (
                 <Tile
                   key={s.id}
                   label={s.label}
-                  symbol={statusSymbol(s.label, s.is_emergency) as SFSymbol}
-                  danger={s.is_emergency}
+                  symbol={statusSymbol(s.label, false) as SFSymbol}
                   selected={s.id === currentId}
                   onPress={() => onPick(s)}
                 />
               ))}
-              <Tile label={en.activity.clearStatus} symbol="checkmark" selected={false} onPress={onClear} />
+              {plan.showClear ? (
+                <Tile label={en.activity.clearStatus} symbol="checkmark" selected={false} onPress={onClear} />
+              ) : null}
             </View>
           </ScrollView>
           <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8} style={({ pressed }) => [styles.cancel, pressed && { opacity: 0.5 }]}>
@@ -69,14 +115,46 @@ export function StatusPicker({
   );
 }
 
+/** UX2-05b (pattern E): red cause line + one ink-outline "Try again" (36 pt in a 44 pt hit area, busy while it runs). */
+function FailedLine({ onRetry }: { onRetry: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  async function retry() {
+    setBusy(true);
+    try {
+      await onRetry();
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <View style={styles.failed} accessibilityLiveRegion="polite">
+      <Text style={styles.failedText}>{en.activity.statusesFailed}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: busy, busy }}
+        disabled={busy}
+        onPress={retry}
+        hitSlop={4}
+        style={({ pressed }) => [styles.failedButton, (pressed || busy) && { opacity: 0.5 }]}
+      >
+        <Text style={styles.failedButtonText} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+          {en.activity.readRetry}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function Tile({
   label,
+  a11yLabel,
   symbol,
   danger,
   selected,
   onPress,
 }: {
   label: string;
+  a11yLabel?: string;
   symbol: SFSymbol;
   danger?: boolean;
   selected: boolean;
@@ -86,7 +164,7 @@ function Tile({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={a11yLabel ?? label}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -144,4 +222,16 @@ const styles = StyleSheet.create({
   tileText: { fontSize: 15 },
   cancel: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
   cancelText: { fontSize: 15, color: colors.ink2 },
+  failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  failedText: { flex: 1, fontSize: 15, color: colors.danger },
+  failedButton: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    borderCurve: 'continuous',
+    borderWidth: 1.5,
+    borderColor: colors.label,
+  },
+  failedButtonText: { fontSize: 15, fontWeight: '600', color: colors.label },
 });

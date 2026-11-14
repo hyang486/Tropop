@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
 
-import { StatusPicker } from '@/components/status-picker';
+import { confirmEmergency, StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
@@ -65,14 +65,21 @@ export function PlusPanel({
   function pick(def: StatusDefinition) {
     setPicking(false);
     if (def.id === userStatusId) return;
-    if (def.is_emergency) {
-      Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [
-        { text: en.room.cancel, style: 'cancel' },
-        { text: en.activity.sendEmergency, style: 'destructive', onPress: () => run('status', () => activity.setStatus(def.id)) },
-      ]);
-    } else {
-      run('status', () => activity.setStatus(def.id));
-    }
+    run('status', () => activity.setStatus(def.id));
+  }
+
+  // UX2-05b: works without the status list; a failed send asks to try again (never dropped silently).
+  function emergency() {
+    setPicking(false);
+    if (myStatus?.is_emergency) return;
+    confirmEmergency(async () => {
+      setBusy('status');
+      try {
+        await activity.setEmergency();
+      } finally {
+        setBusy(null);
+      }
+    }, onDone);
   }
 
   function clear() {
@@ -116,8 +123,11 @@ export function PlusPanel({
         statuses={activity.statuses}
         currentId={userStatusId}
         onPick={pick}
+        onEmergency={emergency}
         onClear={clear}
         onClose={() => setPicking(false)}
+        failed={!!activity.error}
+        onRetry={activity.reload}
       />
     </View>
   );
