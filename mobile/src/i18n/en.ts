@@ -403,10 +403,10 @@ export const en = {
       [`Photos`, pending > 0 ? `${pending} uploading` : '', failed > 0 ? `${failed} failed` : ''].filter(Boolean).join(', '),
     emptyFile: 'The selected file is empty.',
     // Capacity option B (0033 PT507): the room's storage cap by the host's plan.
-    roomStorageFull: "This room's space is full. Only files that fit the space left can be added.",
+    roomStorageFull: 'This file is too big for the space left in this room. Smaller files may still fit.',
     // UX2-06 (pattern D): dead-end upload rows; no Retry.
-    outOfSpace: 'This room is out of space.',
-    askHostSpace: 'Ask the host to free up space.',
+    outOfSpace: 'Not enough space left in this room for this file.',
+    outOfSpaceHint: 'Smaller files may still fit.',
     cantUpload: "This file can't be uploaded.",
     seePlus: 'See Plus',
     tooLarge: (limit: string, size: string) => `Files up to ${limit} can be shared. This one is ${size}.`,

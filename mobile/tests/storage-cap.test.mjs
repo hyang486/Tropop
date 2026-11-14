@@ -16,7 +16,7 @@ test('only PT507 room_storage_full counts as a full room', () => {
 });
 
 test('the copy is the approved line', () => {
-  assert.equal(en.media.roomStorageFull, "This room's space is full. Only files that fit the space left can be added.");
+  assert.equal(en.media.roomStorageFull, 'This file is too big for the space left in this room. Smaller files may still fit.');
 });
 
 test('runJob maps both the insert and the ready update through the room-space check', () => {
@@ -36,9 +36,9 @@ test('UX2-06: dead-end uploads carry their kind and the right next step', async 
   assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: false }), 'plus');
   assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: true }), null);
   assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: null }), null);
-  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: false, hostPlus: null }), 'ask-host');
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: false, hostPlus: null }), null);
   assert.equal(deadEndStep({ deadEnd: 'file', isHost: false, hostPlus: null }), null);
-  assert.equal(en.media.outOfSpace, 'This room is out of space.');
-  assert.equal(en.media.askHostSpace, 'Ask the host to free up space.');
+  assert.equal(en.media.outOfSpace, 'Not enough space left in this room for this file.');
+  assert.equal(en.media.outOfSpaceHint, 'Smaller files may still fit.');
   assert.equal(en.media.cantUpload, "This file can't be uploaded.");
 });

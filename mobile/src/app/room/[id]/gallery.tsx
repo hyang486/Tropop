@@ -375,7 +375,7 @@ function UploadRow({
   onSeePlus,
 }: {
   /** UX2-06: the next step on a dead-end row (no Retry). */
-  step: 'plus' | 'ask-host' | null;
+  step: 'plus' | null;
   onSeePlus: () => void;
   job: UploadJob;
   onRetry: () => void;
@@ -391,9 +391,7 @@ function UploadRow({
   const size = formatBytes(job.item.size);
   const status = deadEnd
     ? deadEnd === 'storage'
-      ? step === 'ask-host'
-        ? `${en.media.outOfSpace} ${en.media.askHostSpace}`
-        : en.media.outOfSpace
+      ? `${en.media.outOfSpace}\n${en.media.outOfSpaceHint}`
       : en.media.cantUpload
     : failed
       ? closed

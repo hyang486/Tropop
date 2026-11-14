@@ -22,11 +22,9 @@ export function deadEndOf(error: unknown): UploadDeadEnd | undefined {
 }
 
 /**
- * The next step on a dead-end row: a Free host gets "See Plus" (from=storage); a guest is told to ask the host;
- * a Plus host (or a plan still loading) and a bad file get only Remove.
+ * The next step on a dead-end row: a Free host gets "See Plus" (from=storage); everyone else (guests, a Plus host,
+ * a plan still loading) and a bad file get only Remove.
  */
-export function deadEndStep(o: { deadEnd: UploadDeadEnd; isHost: boolean; hostPlus: boolean | null }): 'plus' | 'ask-host' | null {
-  if (o.deadEnd !== 'storage') return null;
-  if (!o.isHost) return 'ask-host';
-  return o.hostPlus === false ? 'plus' : null;
+export function deadEndStep(o: { deadEnd: UploadDeadEnd; isHost: boolean; hostPlus: boolean | null }): 'plus' | null {
+  return o.deadEnd === 'storage' && o.isHost && o.hostPlus === false ? 'plus' : null;
 }
