@@ -42,3 +42,14 @@ test('UX2-90/92/94/95/125: copy and small Map fixes', () => {
   assert.equal(en.calendar.askErrors.network, "You're offline. Try again when you're back.");
   assert.match(src('features/calendar/calendar-screen.tsx'), /code === 'network'\s*\? t\.askErrors\.network/);
 });
+
+test('UX2-120/121: pace switch and target save revert on a failed write; Saved only after success', () => {
+  const settings = src('features/pace/settings.ts');
+  assert.match(settings, /export async function setOn[\s\S]*?catch \(e\) \{[\s\S]*?update\(\{ on: next \}\);\s*throw e;/);
+  assert.match(settings, /export async function saveTarget[\s\S]*?catch \(e\) \{\s*update\(\{ target: before \}\);\s*throw e;/);
+  const card = src('features/pace/pace-card.tsx');
+  assert.match(card, /setOn\(room\.id, on\)\.catch\(\(\) => setSwitchFailed\(true\)\)/);
+  assert.match(card, /await saveTarget\(next\);\s*if \(showSaved\) status\(\{ type: 'saved' \}\);/);
+  assert.equal(en.pace.switchSaveFailed, 'Couldn’t save. Try again.');
+  assert.equal(en.pace.targetSaveFailed, 'Couldn’t save your target.');
+});

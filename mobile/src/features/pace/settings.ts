@@ -44,12 +44,28 @@ export function reloadHistory() {
   loadHistory().then((history) => update({ history }));
 }
 
+// UX2-120/121: shown at once, reverted if the write fails; the caller shows the error.
 export async function setOn(roomId: string, on: boolean) {
+  const before = settings.on.get(roomId);
   update({ on: new Map(settings.on).set(roomId, on) });
-  await setPaceOn(roomId, on);
+  try {
+    await setPaceOn(roomId, on);
+  } catch (e) {
+    const next = new Map(settings.on);
+    if (before === undefined) next.delete(roomId);
+    else next.set(roomId, before);
+    update({ on: next });
+    throw e;
+  }
 }
 
 export async function saveTarget(target: PaceTarget) {
+  const before = settings.target;
   update({ target });
-  await setTarget(target);
+  try {
+    await setTarget(target);
+  } catch (e) {
+    update({ target: before });
+    throw e;
+  }
 }
