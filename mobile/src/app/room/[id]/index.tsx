@@ -21,7 +21,7 @@ import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QrewingComposerMark, useQrewingAskButton } from '@/features/event/qrewing-fab';
-import { colors, Hint, Screen, size } from '@/components/ui';
+import { colors, Hint, Screen, size, useLift, usePalette } from '@/components/ui';
 import { EntryGate, HiddenRow, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
 import { noteSiriRoomOpened } from '@/features/event/siri-mirror';
@@ -242,6 +242,10 @@ function ChatRoom({
   const reminderCard = useReminderCard(room, remainingMs, activity.emergencies.length > 0);
   const [sheet, setSheet] = useState<'notices' | 'settings' | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
+  // V3: the composer floats over the list; its measured height (pill + bottom gap) is the list's bottom inset.
+  const [dockHeight, setDockHeight] = useState(0);
+  const lift = useLift();
+  const paper = usePalette().paper;
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
   // Qrewing AI (spec 3.2): disclosure, entry gate, Mute small talk with important-message alerts.
   const qrewing = useQrewingChat(room.id, room.type, userId);
@@ -512,6 +516,13 @@ function ChatRoom({
           {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it.
               Clipped so a message scrolled past the top never shows behind the Emergency card above. */}
           <View style={[styles.flex, styles.clip]}>
+          {/* V3 P1: a 16 pt paper fade under the Emergency card so scrolled text doesn't cut off hard below it. */}
+          {activity.emergencies.length > 0 ? (
+            <View
+              pointerEvents="none"
+              style={[styles.alertFade, { backgroundImage: `linear-gradient(${paper} 0%, ${paper}00 100%)` }]}
+            />
+          ) : null}
           {chat.loading ? (
             <ActivityIndicator style={styles.loading} />
           ) : chat.error && chat.messages.length === 0 ? (
@@ -527,7 +538,8 @@ function ChatRoom({
               onScrollToIndexFailed={({ averageItemLength, index }) =>
                 listRef.current?.scrollToOffset({ offset: averageItemLength * index, animated: true })
               }
-              contentContainerStyle={styles.list}
+              // V3: inverted, so paddingTop is the visual bottom: clear the floating composer plus 12 pt.
+              contentContainerStyle={[styles.list, { paddingTop: dockHeight + 12 }]}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
               onEndReached={chat.hasMore ? chat.loadOlder : undefined}
@@ -564,20 +576,18 @@ function ChatRoom({
                   return (
                     <>
                       {card}
-                      <View style={styles.noticeRow}>
-                        <Text style={styles.notice} numberOfLines={2}>
-                          {row.summary} ·{' '}
+                      {/* V3 P2: one line, "Sora is OK now · 18 more ›"; the whole capsule is the tap target (44 pt). */}
+                      <Pressable
+                        onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
+                        hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={en.chat.showLinesLabel(row.summary)}
+                        style={({ pressed }) => [styles.noticeRow, pressed && { opacity: 0.6 }]}
+                      >
+                        <Text style={styles.notice} numberOfLines={1} ellipsizeMode="tail">
+                          {en.chat.showLinesRun(row.summary)}
                         </Text>
-                        <Pressable
-                          onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
-                          hitSlop={14}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${row.summary}. ${en.chat.showLines}`}
-                          style={styles.showHit}
-                        >
-                          <Text style={styles.showLink}>{en.chat.showLines}</Text>
-                        </Pressable>
-                      </View>
+                      </Pressable>
                     </>
                   );
                 }
@@ -621,11 +631,20 @@ function ChatRoom({
             />
           )}
           {ask.sheet}
-          </View>
 
           {/* UX P1-1 / UX2-02 / UX2-74 (a): before entry info only Send is gated. The entry card takes the text field's place; the
-              "+" and its panel (Emergency, Arrived, Photos, Map) stay, since Emergency must never sit behind a form. */}
-          <View style={[styles.composer, { paddingBottom: plusOpen ? 8 : Math.max(insets.bottom, 8) }]}>
+              "+" and its panel (Emergency, Arrived, Photos, Map) stay, since Emergency must never sit behind a form.
+              V3: the composer floats: one lift pill 12 pt from the sides and above the home indicator, over a 110 pt
+              paper fade (transparent, then paper from 55%), with the list scrolling under it. */}
+          <View
+            style={[styles.composerDock, { paddingBottom: plusOpen ? 8 : Math.max(insets.bottom, 12) }]}
+            onLayout={(e) => setDockHeight(e.nativeEvent.layout.height)}
+          >
+            <View
+              pointerEvents="none"
+              style={[styles.composerFade, { backgroundImage: `linear-gradient(${paper}00 0%, ${paper} 55%, ${paper} 100%)` }]}
+            />
+          <View style={[styles.composer, lift]}>
             {/* Spec 11 A11: "+" left of the field (KakaoTalk); it turns into a cross while the grid is open. */}
             <Pressable
               accessibilityRole="button"
@@ -635,7 +654,7 @@ function ChatRoom({
               hitSlop={6}
               style={({ pressed }) => [styles.plusButton, pressed && { opacity: 0.5 }]}
             >
-              <SymbolView name={plusOpen ? 'xmark' : 'plus'} size={20} tintColor={colors.label} />
+              <SymbolView name={plusOpen ? 'xmark' : 'plus'} size={18} weight="semibold" tintColor={colors.label} />
             </Pressable>
             {/* UX P1-11: the shared Composer (same field and ink up-arrow as Ask Qrewing). */}
             {qrewing.gates.entry ? (
@@ -643,6 +662,7 @@ function ChatRoom({
             ) : (
               <View style={styles.composerField}>
                 <Composer
+                  inPill
                   key={composer.key}
                   autoFocus={composerAutoFocus(composer)}
                   value={draft}
@@ -663,6 +683,8 @@ function ChatRoom({
                 />
               </View>
             )}
+          </View>
+          </View>
           </View>
           {userId ? (
             <PlusPanel
@@ -778,6 +800,7 @@ function MessageRow({
   onToggleCheck: (viaDoubleTap: boolean) => void;
   onShowCheckedBy: () => void;
 }) {
+  const lift = useLift();
   const time = useMemo(
     () => new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     [item.created_at],
@@ -878,7 +901,7 @@ function MessageRow({
   const failed = item.pending === 'failed';
   const when = item.pending === 'sending' ? en.chat.sending : failed ? en.chat.failed : time;
   const plain = (
-    <View style={[styles.bubble, mine ? styles.mine : styles.theirs, failed && styles.failedBubble]}>
+    <View style={[styles.bubble, mine ? styles.mine : [styles.theirs, lift], failed && styles.failedBubble]}>
       <Text selectable={!(checksReady && canCheck(item, false))} style={[styles.body, mine && styles.bodyMine]}>
         {item.body}
       </Text>
@@ -952,7 +975,9 @@ const styles = StyleSheet.create({
   // UX3-B01: the title block is one ≥44 pt button; the second line is 12 pt ink2, tail-truncated.
   headerTitleBlock: { minHeight: 44, justifyContent: 'center', alignItems: 'center', maxWidth: 210 },
   headerSub: { fontSize: 12, lineHeight: 15, color: colors.ink2, maxWidth: 210 },
-  alerts: { paddingHorizontal: 24 },
+  // V3 P1: no fill, so the paper page shows behind the Emergency card's rounded corners (not a square block).
+  alerts: { paddingHorizontal: 24, backgroundColor: 'transparent' },
+  alertFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 16, zIndex: 1 },
   aiNote: { paddingHorizontal: 24, paddingBottom: 6 },
   compactStrip: { paddingHorizontal: 24, paddingVertical: 6, alignItems: 'flex-end' },
   offline: { fontSize: 13, color: colors.warning },
@@ -973,33 +998,53 @@ const styles = StyleSheet.create({
   // UX P1-4: "Host" tag, 11 pt semibold, 1 pt ink outline, 4 pt radius.
   hostTag: { paddingHorizontal: 4, borderRadius: 4, borderWidth: 1, borderColor: colors.label },
   hostTagText: { fontSize: 11, fontWeight: '600', color: colors.label },
-  // UX P1-3: own bubbles are ink with paper text and a 4 pt tail corner; others keep the card color.
+  // V3: radius 18 with a 6 pt tail corner: own bubbles ink (paper text), tail bottom-right; others lift with the lift
+  // shadow (inline) and ink text, tail bottom-left.
   bubble: { borderRadius: 18, borderCurve: 'continuous', paddingHorizontal: 13, paddingVertical: 9 },
-  mine: { backgroundColor: colors.tint, borderBottomRightRadius: 4 },
-  theirs: { backgroundColor: colors.field, borderTopLeftRadius: 4 },
+  mine: { backgroundColor: colors.tint, borderBottomRightRadius: 6 },
+  theirs: { backgroundColor: colors.lift, borderBottomLeftRadius: 6 },
   failedBubble: { opacity: 0.6 },
   body: { fontSize: 16, color: colors.label },
   bodyMine: { color: colors.onTint },
   meta: { fontSize: 12, color: colors.ink2 },
   failedMeta: { color: colors.errorText },
-  noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
+  // V3 system lines: a wash capsule, radius 10, 4 x 10 pt padding, centred (13 pt ink2 text below).
+  noticeRow: {
+    alignSelf: 'center',
+    marginVertical: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderCurve: 'continuous',
+    backgroundColor: colors.wash,
+  },
   // UX3-B04: day separator (12 pt semibold ink2, 12 above, 6 below; inverted list, so margins are flipped) and the
   // collapsed run's "Show" (13 pt semibold ink, 44 pt hit via hitSlop).
   dayLabel: { alignSelf: 'center', fontSize: 12, fontWeight: '600', color: colors.ink2, marginTop: 12, marginBottom: 6 },
-  showHit: { justifyContent: 'center' },
-  showLink: { fontSize: 13, fontWeight: '600', color: colors.label },
   // UX2-56 follow-up: 44 pt tap target; less outer margin so the gap to its neighbours stays about the same.
   mediaRow: { minHeight: 44, justifyContent: 'center', marginVertical: 2 },
   notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },
+  // V3 floating composer: dock over the list's bottom; the pill is lift, 54 pt, radius 27 (lift shadow added inline).
+  composerDock: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12 },
+  composerFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 110 },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
-    paddingLeft: 12,
-    paddingRight: 24,
-    paddingTop: 8,
-    backgroundColor: colors.background,
+    gap: 4,
+    minHeight: 54,
+    padding: 7,
+    borderRadius: 27,
+    borderCurve: 'continuous',
+    backgroundColor: colors.lift,
   },
-  plusButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // V3: a 40 pt wash "+" circle (44 pt hit via hitSlop).
+  plusButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.wash,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   composerField: { flex: 1 },
 });

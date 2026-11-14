@@ -49,6 +49,6 @@ test('C39 open: only someone else\'s shared Emergency opens the Map at the sende
   assert.match(src, /canOpenLocation\s*\?\s*en\.activity\.locationHint\(formatAge\(location\.updatedAt, now\)\)/);
   // Open style + pin icon only when it opens; your own shows "Your last location" with no link styling.
   assert.match(src, /\{canOpenLocation \? <SymbolView name="location\.fill"/);
-  assert.match(src, /styles\.barLocation, canOpenLocation && styles\.barLocationOpen/);
+  assert.match(src, /styles\.barLocation, canOpenLocation && \[styles\.barLocationOpen, styles\.barLocationLink\]/);
   assert.match(src, /mine \? \(\s*en\.activity\.yourLastLocation\(formatAge\(location\.updatedAt, now\)\)\s*\) : \(\s*en\.activity\.openLastLocationAge/);
 });
