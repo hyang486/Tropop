@@ -47,7 +47,6 @@ export const en = {
     empty: 'No rooms yet.',
     emptyHintHost: 'Create a room, or join one with a QR or 5-digit code.',
     emptyHintGuest: 'Join a room with a QR or 5-digit code.',
-    signedInAs: (name: string, kind: string) => `Signed in as ${name} · ${kind}`,
     yourRooms: 'Your rooms',
     profile: 'Profile',
     create: 'Create a room',
