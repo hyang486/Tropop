@@ -766,6 +766,8 @@ export const en = {
       refused: 'Sharing stopped because the activity or room settings changed.',
     },
     members: 'Sharing now',
+    // V4: the sheet header's count, e.g. "3 of 5".
+    sharingCount: (n: number, max: number) => `${n} of ${max}`,
     nobody: 'Nobody is sharing yet.',
     // UX2-85: before the first read that worked, and after a failed read with nobody on screen.
     presenceLoading: 'Checking who’s sharing…',

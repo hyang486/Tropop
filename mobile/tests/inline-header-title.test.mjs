@@ -31,11 +31,7 @@ test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to
   for (const p of ['features/calendar/event-editor.tsx', 'app/room/[id]/map.tsx', 'app/profile.tsx', 'app/profile-edit.tsx', 'features/calendar/calendar-screen.tsx', 'app/room/[id]/info.tsx', 'components/join-code-screen.tsx']) {
     assert.doesNotMatch(src(p), /headerTitle: ''/, p);
   }
-  const map = src('app/room/[id]/map.tsx');
-  assert.match(map, /const headerHeight = useHeaderHeight\(\);\s*const inlineTitle = useInlineHeaderTitle\(en\.map\.title, headerHeight\)/);
-  // Map has no title measure, so it keeps the block's bottom; UX2-93 (C31) adds the block fade.
-  assert.match(map, /<Animated\.View style=\{\[styles\.head, \{ opacity: inlineTitle\.blockOpacity \}\]\} onLayout=\{inlineTitle\.onTitleLayout\}>/);
-  assert.doesNotMatch(map, /onTitleTextLayout/);
+  // V4: Map has no inline large title; the header holds a glass title pill (see c31-map-pace.test.mjs).
 });
 
 test('UX2-59 C28: the title block fades 1 → 0 over the 24 pt before its bottom meets the header, from the scroll value', () => {
