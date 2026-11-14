@@ -102,7 +102,10 @@ export function unreadLabel(unread: number | undefined): string | null {
   return unread > 99 ? "99+" : String(unread);
 }
 
-/** Live: an activity is running, or now is between the room's start (starts_at, else created) and its end. */
+/**
+ * Live: an activity is running, or the room has a start time and now is between it and the end. No start time
+ * and no activity is not Live (creation time does not count).
+ */
 export function isLive(
   room: {
     activity_state: string;
@@ -112,9 +115,39 @@ export function isLive(
   nowMs: number,
 ): boolean {
   if (room.activity_state === "active") return true;
-  if (room.starts_at && new Date(room.starts_at).getTime() > nowMs)
-    return false;
-  return nowMs < new Date(room.expires_at).getTime();
+  if (!room.starts_at) return false;
+  return (
+    new Date(room.starts_at).getTime() <= nowMs &&
+    nowMs < new Date(room.expires_at).getTime()
+  );
+}
+
+/**
+ * Row line 3, one line: before the start "Starts Sat 7:00 AM · Golden Gate" (the place only here, last, so it is
+ * what gets cut); otherwise "Public · 5 people · ends in 5h 27m" ("Public" only for public rooms, UX2-58).
+ */
+export function rowMetaLine(
+  room: {
+    starts_at: string | null;
+    expires_at: string;
+    place_name?: string | null;
+    visibility?: string | null;
+    member_count: number | null;
+  },
+  nowMs: number,
+  en: Copy,
+  remaining: (ms: number) => string,
+): string {
+  const starts = startsLabel(room.starts_at, nowMs, en);
+  const place = room.place_name?.trim();
+  if (starts) return place ? `${starts} · ${place}` : starts;
+  return [
+    room.visibility === "public" ? en.createRoom.public : null,
+    room.member_count !== null ? en.room.people(room.member_count) : null,
+    en.home.row.endsIn(remaining(new Date(room.expires_at).getTime() - nowMs)),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** "Starts Sat 7:00 AM" within the week, "Starts Nov 20 7:00 AM" further out; null once started. */

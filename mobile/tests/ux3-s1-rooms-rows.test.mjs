@@ -42,7 +42,9 @@ test('Live and Starts', () => {
   const now = new Date(2026, 10, 14, 15, 0).getTime();
   const later = new Date(2026, 10, 15, 7, 0).toISOString();
   const end = new Date(2026, 10, 16).toISOString();
-  assert.equal(m.isLive({ activity_state: 'idle', starts_at: null, expires_at: end }, now), true);
+  assert.equal(m.isLive({ activity_state: 'idle', starts_at: null, expires_at: end }, now), false); // no start, no activity: not Live
+  assert.equal(m.isLive({ activity_state: 'idle', starts_at: new Date(2026, 10, 14, 9).toISOString(), expires_at: end }, now), true);
+  assert.equal(m.isLive({ activity_state: 'idle', starts_at: new Date(2026, 10, 14, 9).toISOString(), expires_at: new Date(2026, 10, 14, 14).toISOString() }, now), false);
   assert.equal(m.isLive({ activity_state: 'idle', starts_at: later, expires_at: end }, now), false);
   assert.equal(m.isLive({ activity_state: 'active', starts_at: later, expires_at: end }, now), true);
   assert.equal(m.startsLabel(later, now, en), 'Starts Sun 7:00 AM');
@@ -75,4 +77,17 @@ test('Rooms home wires summaries, drops the type word, uses the shared Pill; cha
   const api = src('features/event/room-summary-api.ts');
   assert.match(api, /rpc\('room_list_summaries', \{ p_room_ids: roomIds \}\)/);
   assert.match(api, /rpc\('mark_room_read', \{ p_room_id: roomId \}\)/);
+});
+
+test('line 3: Public · people · ends; before the start the time then the place', () => {
+  const now = new Date(2026, 10, 14, 15, 0).getTime();
+  const end = new Date(2026, 10, 14, 20, 27).toISOString();
+  const rem = () => '5h 27m';
+  const base = { starts_at: null, expires_at: end, place_name: 'Golden Gate', member_count: 5 };
+  assert.equal(m.rowMetaLine({ ...base, visibility: 'public' }, now, en, rem), 'Public · 5 people · ends in 5h 27m');
+  assert.equal(m.rowMetaLine({ ...base, visibility: 'private' }, now, en, rem), '5 people · ends in 5h 27m');
+  assert.equal(m.rowMetaLine({ ...base, member_count: null }, now, en, rem), 'ends in 5h 27m');
+  const later = new Date(2026, 10, 15, 7, 0).toISOString();
+  assert.equal(m.rowMetaLine({ ...base, starts_at: later, visibility: 'public' }, now, en, rem), 'Starts Sun 7:00 AM · Golden Gate');
+  assert.equal(m.rowMetaLine({ ...base, starts_at: later, place_name: '  ' }, now, en, rem), 'Starts Sun 7:00 AM');
 });

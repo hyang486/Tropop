@@ -27,7 +27,7 @@ import {
   rowAccessibilityLabel,
   rowTimeLabel,
   sortByLastItem,
-  startsLabel,
+  rowMetaLine,
   unreadLabel,
   type RoomSummary,
 } from '@/features/event/room-summary';
@@ -231,10 +231,8 @@ export default function Rooms() {
           const summary = summaries?.get(room.id);
           const line = summaries ? lastItemLine(summary, uid, en, chatLine) : null;
           const live = isLive(room, now);
-          const people = room.member_count !== null ? `${en.room.people(room.member_count)} · ` : '';
-          const meta =
-            startsLabel(room.starts_at, now, en) ??
-            `${people}${en.home.row.endsIn(formatRemaining(new Date(room.expires_at).getTime() - now))}`;
+          // rooms.visibility (0031) is not in the generated types yet; select('*') returns it.
+          const meta = rowMetaLine(room as typeof room & { visibility?: string | null }, now, en, formatRemaining);
           const time = rowTimeLabel(summary?.last_at ?? null, now, en);
           const unread = unreadLabel(summary?.unread);
           return (
