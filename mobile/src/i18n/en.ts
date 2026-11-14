@@ -126,8 +126,8 @@ export const en = {
     capacityHintPlus: (plus: number) => `Plus rooms hold up to ${plus}.`,
     // Capacity option B: shown under the stepper at the plan max.
     // UX2-131: under the stepper when a typed count was clamped down to the plan max.
-    clampFree: (n: number) => `Free rooms hold up to ${n}.`,
-    clampPlus: (n: number) => `Rooms hold up to ${n}.`,
+    clampFree: (n: number) => `Set to ${n}, the Free max.`,
+    clampPlus: (n: number) => `Set to ${n}, the max.`,
     seePlus: 'See Plus',
     capacityAtMax: (n: number, plus: boolean) => `${n} · ${plus ? 'Plus' : 'Free'} max`,
     // Spec 11 D: public rooms in Open chat.

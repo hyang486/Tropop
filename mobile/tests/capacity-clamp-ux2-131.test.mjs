@@ -12,13 +12,13 @@ const copy = en.createRoom;
 const note = (text, plus) => capacityClampNote(text, plus, capacityMax(plus), copy);
 
 test('UX2-131: Free host typing above 6 gets the Free line with See Plus', () => {
-  assert.deepEqual(note('99', false), { text: 'Free rooms hold up to 6.', link: true });
-  assert.deepEqual(note('7', false), { text: 'Free rooms hold up to 6.', link: true });
+  assert.deepEqual(note('99', false), { text: 'Set to 6, the Free max.', link: true });
+  assert.deepEqual(note('7', false), { text: 'Set to 6, the Free max.', link: true });
   assert.equal(copy.seePlus, 'See Plus');
 });
 
-test('UX2-131: Plus host typing above 30 gets "Rooms hold up to 30." with no link', () => {
-  assert.deepEqual(note('99', true), { text: 'Rooms hold up to 30.', link: false });
+test('UX2-131: Plus host typing above 30 gets "Set to 30, the max." with no link', () => {
+  assert.deepEqual(note('99', true), { text: 'Set to 30, the max.', link: false });
 });
 
 test('UX2-131: no line when nothing was clamped down (in range, at max, below 2, not a number, plan loading)', () => {

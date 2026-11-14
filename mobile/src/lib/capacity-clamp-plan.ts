@@ -1,8 +1,8 @@
 /** UX2-131: pure helper for the Create room people stepper (no runtime imports, so `npm test` can load it). */
 
 /**
- * The line under the stepper when a typed count was clamped DOWN to the plan max, else null. Free: "Free rooms hold
- * up to 6." with a See Plus link. Plus: "Rooms hold up to 30." with no link. A plan still loading (null) shows
+ * The line under the stepper when a typed count was clamped DOWN to the plan max, else null. Free: "Set to 6, the
+ * Free max." with a See Plus link. Plus: "Set to 30, the max." with no link. A plan still loading (null) shows
  * nothing. `max` is capacityMax(plus).
  */
 export function capacityClampNote(
