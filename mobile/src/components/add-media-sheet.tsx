@@ -7,6 +7,7 @@ import { HandTitle } from '@/components/hand-title';
 import { qSpacing } from '@/components/q-screen';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 export type AddChoice = 'camera' | 'library' | 'file';
 
@@ -32,12 +33,14 @@ export function AddMediaSheet({
 }) {
   const insets = useSafeAreaInsets();
   const chosen = useRef<AddChoice | null>(null);
+  // UX2-46: closes at once when a link or notification tap navigates (nothing chosen, so onDismiss does nothing).
+  const instant = useDismissOnLink(visible ? onClose : null);
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType={instant ? 'none' : 'slide'}
       onRequestClose={onClose}
       onDismiss={() => {
         const choice = chosen.current;

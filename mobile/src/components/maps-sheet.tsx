@@ -7,6 +7,7 @@ import { QLink, qSpacing } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { mapsUrl, type LatLng } from '@/lib/place-time';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 type MapsApp = 'apple' | 'google';
 
@@ -24,6 +25,8 @@ export function MapsSheet({
 }) {
   const insets = useSafeAreaInsets();
   const chosen = useRef<{ app: MapsApp; placeName: string; pin: LatLng | null } | null>(null);
+  // UX2-46: closes at once when a link or notification tap navigates (nothing chosen, so onDismiss does nothing).
+  const instant = useDismissOnLink(target !== null ? onClose : null);
 
   function choose(app: MapsApp) {
     if (target) chosen.current = { app, ...target };
@@ -34,7 +37,7 @@ export function MapsSheet({
     <Modal
       visible={target !== null}
       transparent
-      animationType="slide"
+      animationType={instant ? 'none' : 'slide'}
       onRequestClose={onClose}
       onDismiss={() => {
         const c = chosen.current;
