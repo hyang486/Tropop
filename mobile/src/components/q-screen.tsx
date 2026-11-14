@@ -9,6 +9,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -28,10 +29,11 @@ import {
 import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ArtFitContext, type ArtFit } from '@/components/art-fit';
 import { HandTitle } from '@/components/hand-title';
 import { colors, usePalette } from '@/components/ui';
 import { QSCREEN_FLOATING_CLEARANCE } from '@/features/event/qrewing-fab-size';
-import { keyboardOverlap, revealScrollY, type Span } from '@/lib/keyboard-plan';
+import { artHidden, keyboardOverlap, revealScrollY, type Span } from '@/lib/keyboard-plan';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 /**
@@ -106,6 +108,7 @@ export function QScreen({
   // (Welcome) still clears the status bar.
   const { rootRef, onLayout, overlap } = useHeaderOverlap();
   const { scrollRef, keyboardPad, scrollProps, revealView } = useKeyboardReveal(overlap, keepVisible);
+  const artFit = useArtFitState(keyboardPad > 0);
   // UX2-44: once the body scrolls, a top scroll-edge fade (paper → transparent, 56 pt below the safe area) keeps
   // content and the handwritten title from colliding with the floating glass header buttons. Only under a header.
   const [scrolled, setScrolled] = useState(false);
@@ -128,6 +131,14 @@ export function QScreen({
           ref={scrollRef}
           {...scrollProps}
           onScroll={onScroll}
+          onLayout={(e) => {
+            scrollProps.onLayout(e);
+            artFit.onView(e.nativeEvent.layout.height);
+          }}
+          onContentSizeChange={(w, h) => {
+            scrollProps.onContentSizeChange(w, h);
+            artFit.onContent(h);
+          }}
           style={styles.flex}
           refreshControl={refreshControl}
           contentContainerStyle={[styles.body, { paddingTop: Math.max(overlap, insets.top) + 8 }, floating ? styles.floatingClear : null]}
@@ -144,11 +155,13 @@ export function QScreen({
           ) : null}
           {children}
           {bottom ? (
-            <>
-              <View style={styles.spacer} />
+            <ArtFitContext value={artFit.context}>
+              <View style={styles.spacer} onLayout={(e) => artFit.onSpacer(0, e.nativeEvent.layout.height)} />
               {bottom}
-              {bottomAlign === 'center' ? <View style={styles.spacer} /> : null}
-            </>
+              {bottomAlign === 'center' ? (
+                <View style={styles.spacer} onLayout={(e) => artFit.onSpacer(1, e.nativeEvent.layout.height)} />
+              ) : null}
+            </ArtFitContext>
           ) : null}
         </ScrollView>
   );
@@ -178,6 +191,65 @@ export function QScreen({
     </View>
     </OnSheet>
   );
+}
+
+/**
+ * UX2-61: whether art in the `bottom` block can show whole (see artHidden). The slack covers the body gap before
+ * the art and up to 24 pt of padding a screen puts around it, so a returning art never overflows again.
+ */
+function useArtFitState(keyboardUp: boolean) {
+  const art = useRef(0);
+  const content = useRef(0);
+  const view = useRef(0);
+  const spacers = useRef([0, 0]);
+  const hiddenRef = useRef(false);
+  const keyboardRef = useRef(keyboardUp);
+  const [overflowHidden, setOverflowHidden] = useState(false);
+  useLayoutEffect(() => {
+    keyboardRef.current = keyboardUp;
+  }, [keyboardUp]);
+
+  const check = useCallback(() => {
+    // Measures taken with the keyboard up (art gone, body shortened) say nothing about the resting layout.
+    if (keyboardRef.current || art.current === 0 || view.current === 0) return;
+    const next = artHidden({
+      keyboardUp: false,
+      shown: !hiddenRef.current,
+      content: content.current,
+      view: view.current,
+      free: spacers.current[0] + spacers.current[1],
+      art: art.current,
+      slack: qSpacing.gap + 24,
+    });
+    if (next !== hiddenRef.current) {
+      hiddenRef.current = next;
+      setOverflowHidden(next);
+    }
+  }, []);
+
+  const report = useCallback(
+    (h: number) => {
+      art.current = h;
+      check();
+    },
+    [check],
+  );
+  const context = useMemo<ArtFit>(() => ({ hidden: keyboardUp || overflowHidden, report }), [keyboardUp, overflowHidden, report]);
+  return {
+    context,
+    onView: (h: number) => {
+      view.current = h;
+      check();
+    },
+    onContent: (h: number) => {
+      content.current = h;
+      check();
+    },
+    onSpacer: (i: 0 | 1, h: number) => {
+      spacers.current[i] = h;
+      check();
+    },
+  };
 }
 
 type Measurable = { measureInWindow: ComponentRef<typeof View>['measureInWindow'] };

@@ -1,6 +1,7 @@
 import { type ColorValue, Image, StyleSheet, useColorScheme, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { useArtFit } from '@/components/art-fit';
 import { useInk } from '@/components/hand-title';
 import { usePalette } from '@/components/ui';
 import { artEntry, type ArtKey, INK_DRAWINGS, themeArt } from '@/lib/ink-art';
@@ -56,8 +57,14 @@ export function InkArt({
   const fill = ground ?? paper;
   const entry = art ? artEntry(art) : themeArt(roomTheme(roomName));
   const height = Math.round(width / entry.aspect);
+  // UX2-61: in a QScreen `bottom` block the art shows whole or not at all.
+  const fit = useArtFit();
+  if (fit?.hidden) return null;
   return (
-    <View style={styles.wrap} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View
+      style={styles.wrap}
+      onLayout={fit ? (e) => fit.report(e.nativeEvent.layout.height) : undefined}
+      accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {entry.kind === 'image' ? (
         <View style={{ width, height }}>
           {bold

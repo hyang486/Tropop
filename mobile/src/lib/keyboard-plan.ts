@@ -48,3 +48,22 @@ export function revealScrollY(
   const next = Math.min(Math.max(0, currentY + delta), Math.max(0, maxY));
   return Math.abs(next - currentY) < 1 ? null : next;
 }
+
+/**
+ * UX2-61: art in a QScreen `bottom` block shows whole or not at all. Hidden while the keyboard is up. Otherwise a
+ * shown art hides once the body overflows the scroll view (it would sit partly under the actions), and a hidden
+ * art comes back only when the free space (the spacers' heights) holds it plus `slack`, so it can't flip back.
+ */
+export function artHidden(s: {
+  keyboardUp: boolean;
+  shown: boolean;
+  content: number;
+  view: number;
+  free: number;
+  art: number;
+  slack: number;
+}): boolean {
+  if (s.keyboardUp) return true;
+  if (s.shown) return s.content > s.view + 1;
+  return s.free < s.art + s.slack;
+}
