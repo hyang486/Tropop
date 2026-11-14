@@ -40,7 +40,9 @@ export function EmergencyCheckNote({ line, onRetry }: { line: 'failed' | 'checki
   const retry = () => {
     if (retrying) return;
     setRetrying(true);
-    void onRetry().finally(() => setRetrying(false));
+    void onRetry()
+      .catch(() => {})
+      .finally(() => setRetrying(false));
   };
   if (line === 'checking') {
     return (
