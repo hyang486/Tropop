@@ -13,7 +13,7 @@ test('UX2-140: Button label defaults to title (kept while busy), caller label wi
   const button = ui.slice(at, ui.indexOf('\n}\n', at));
   assert.match(button, /accessibilityLabel=\{accessibilityLabel \?\? title\}/);
   assert.match(button, /accessibilityState=\{\{ disabled: disabled \|\| busy, busy \}\}/);
-  assert.match(ui, /accessibilityLabel\?: string;\n\};\n\nexport function Button\(/);
+  assert.match(ui, /accessibilityLabel\?: string;\n(?:  \/\*\*[^\n]*\*\/\n  \w+\?: \w+;\n)*\};\n\nexport function Button\(/);
 });
 
 for (const [file, label] of [

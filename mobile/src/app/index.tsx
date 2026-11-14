@@ -3,10 +3,10 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar/ink-icon';
-import { EmptyState } from '@/components/empty-state';
+import { InkArt } from '@/components/ink-art';
 import { placeTimeLine } from '@/components/place-time-cards';
 import { ProfileRetry } from '@/components/profile-retry';
-import { QLabel, QScreen } from '@/components/q-screen';
+import { QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, size, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -19,6 +19,7 @@ import { formatRemaining, listMyRooms, type Room, type RoomWithCount } from '@/l
 import { useNow } from '@/lib/use-now';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
 import { OpenChatSection } from '@/features/event/open-chat-section';
+import { groupBySection, roomSection } from '@/features/event/rooms-sections';
 import { defaultRoomIcon, iconEmoji } from '@/features/event/open-room-plan';
 import { Snackbar } from '@/features/event/snackbar';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
@@ -43,6 +44,9 @@ export default function Rooms() {
   const [notice, setNotice] = useState<{ id: number; text: string } | null>(null);
   const showNotice = useCallback((text: string) => setNotice((n) => ({ id: (n?.id ?? 0) + 1, text })), []);
   const hideNotice = useCallback(() => setNotice(null), []);
+  const rows = visibleRows(rooms ?? [], now);
+  // UX3-A02: the empty layout only once the read answered with no rows (not while loading or on an error).
+  const empty = rooms !== null && rows.length === 0 && !error;
 
   const load = useCallback(async () => {
     try {
@@ -123,24 +127,39 @@ export default function Rooms() {
           />
         }
         title={en.home.title}
-        // UX2-42: no '…' placeholder; an unread profile shows the role alone (and ProfileRetry below).
-        subtitle={[profile?.display_name, isGuest ? en.profile.guest : en.profile.host].filter(Boolean).join(' · ')}
       >
-        <Button title={en.home.join} onPress={() => router.push('/join')} />
-        {isGuest ? (
-          // UX P2-8: a guest gets a next step, not a dead-end "Only hosts can create rooms."
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={`${en.home.guestCreateHint} ${en.profile.becomeHost}`}
-            onPress={() => router.push('/upgrade')}
-            style={({ pressed }) => [styles.hostLink, pressed && { opacity: 0.5 }]}
-          >
-            <Text style={styles.hostLinkText}>
-              {en.home.guestCreateHint} <Text style={styles.hostLinkAction}>{en.profile.becomeHost} ›</Text>
-            </Text>
-          </Pressable>
+        {/* UX3-A02: no subtitle (the "Name · Host" line said nothing useful). With rooms (or while they load):
+            one row of two 48 pt buttons, Join and Create; a guest gets Join alone, full width, and the
+            Create account link moves under the list. No rooms: the gathering art and one line above today's
+            two big buttons. */}
+        {empty ? (
+          <>
+            <View style={styles.empty}>
+              <InkArt art="gathering" width={240} />
+              <Text style={styles.emptyLine}>{en.home.emptyLine}</Text>
+            </View>
+            <Button title={en.home.join} onPress={() => router.push('/join')} />
+            {isGuest ? (
+              <GuestCreateLink />
+            ) : (
+              <Button title={en.home.create} variant="secondary" onPress={() => router.push('/create-room')} />
+            )}
+          </>
+        ) : isGuest ? (
+          <View style={styles.pair}>
+            <View style={styles.flex}>
+              <Button compact title={en.home.joinShort} onPress={() => router.push('/join')} />
+            </View>
+          </View>
         ) : (
-          <Button title={en.home.create} variant="secondary" onPress={() => router.push('/create-room')} />
+          <View style={styles.pair}>
+            <View style={styles.flex}>
+              <Button compact title={en.home.joinShort} onPress={() => router.push('/join')} />
+            </View>
+            <View style={styles.flex}>
+              <Button compact title={en.home.createShort} variant="secondary" onPress={() => router.push('/create-room')} />
+            </View>
+          </View>
         )}
 
         <ProfileRetry />
@@ -164,20 +183,17 @@ export default function Rooms() {
           <ActivityIndicator style={styles.loading} accessibilityLabel={en.home.loading} />
         ) : null}
 
-        {rooms?.length === 0 ? (
-          <EmptyState
-            art="gathering"
-            title={en.home.empty}
-            body={isGuest ? en.home.emptyHintGuest : en.home.emptyHintHost}
-          />
-        ) : null}
-
-        {/* The label counts only rows that show: a grace row dropping out may leave none. */}
-        {rooms && rooms.some((r) => roomListEntry(r, now).kind !== 'hidden') ? <QLabel>{en.home.yourRooms}</QLabel> : null}
-        {sortEndedLast(rooms ?? [], now).map(({ room, entry }) => {
+        {/* UX3-A02: Happening now / Coming up / Ending soon; a header shows only over rows that show (a grace row
+            dropping out may leave none). */}
+        {groupBySection(rows, (r) => roomSection(r.room, r.entry.kind === 'grace', now)).map((group) => (
+          <View key={group.section} style={styles.section}>
+            <Text style={styles.sectionHeader} accessibilityRole="header">
+              {en.home.sections[group.section]}
+            </Text>
+            {group.rows.map(({ room, entry }) => {
           // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
           // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.
-          // UX P1-5: those ended rows sit last, dimmed to 45%.
+          // UX P1-5: those ended rows are dimmed to 45% (UX3-A02: under Ending soon).
           const ended = entry.kind === 'grace';
           return (
           <Pressable
@@ -214,7 +230,10 @@ export default function Rooms() {
             ) : null}
           </Pressable>
           );
-        })}
+            })}
+          </View>
+        ))}
+        {isGuest && rows.length > 0 ? <GuestCreateLink /> : null}
 
         {/* Spec 11 D: public rooms anyone can join without a code (hidden until 0031 is live). */}
         <OpenChatSection refreshKey={openChatKey} onNotice={showNotice} roomsOffline={offline} />
@@ -223,10 +242,26 @@ export default function Rooms() {
   );
 }
 
-/** Visible rows, live ones first (server order kept) and ended (grace) rows last. */
-function sortEndedLast(rooms: RoomWithCount[], now: number) {
-  const rows = rooms.map((room) => ({ room, entry: roomListEntry(room, now) })).filter((r) => r.entry.kind !== 'hidden');
-  return [...rows.filter((r) => r.entry.kind !== 'grace'), ...rows.filter((r) => r.entry.kind === 'grace')];
+/** Visible rows in server order (UX3-A02 sections replace sorting ended rows last). */
+function visibleRows(rooms: RoomWithCount[], now: number) {
+  return rooms.map((room) => ({ room, entry: roomListEntry(room, now) })).filter((r) => r.entry.kind !== 'hidden');
+}
+
+/** UX P2-8: a guest gets a next step, not a dead-end "Only hosts can create rooms." UX3-A07: "Create account". */
+function GuestCreateLink() {
+  const router = useRouter();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`${en.home.guestCreateHint} ${en.profile.becomeHost}`}
+      onPress={() => router.push('/upgrade')}
+      style={({ pressed }) => [styles.hostLink, pressed && { opacity: 0.5 }]}
+    >
+      <Text style={styles.hostLinkText}>
+        {en.home.guestCreateHint} <Text style={styles.hostLinkAction}>{en.profile.becomeHost} ›</Text>
+      </Text>
+    </Pressable>
+  );
 }
 
 /** A public room's chosen icon (0031; not in the generated types yet), else the default for its type. */
@@ -255,6 +290,14 @@ function PlaceTimeLine({ room }: { room: Room }) {
 
 const styles = StyleSheet.create({
   loading: { marginTop: 24 },
+  flex: { flex: 1 },
+  // UX3-A02: 12 pt between the pair, about 16 pt under the title (the title block's 6 + body gap 12, less 2).
+  pair: { flexDirection: 'row', gap: 12, marginTop: -2 },
+  empty: { alignItems: 'center', gap: 16, marginVertical: 8 },
+  emptyLine: { ...textRole.secondary, textAlign: 'center' },
+  // Section header 13 pt semibold ink2, 22 pt above (10 + body gap 12) and 8 pt below.
+  section: { gap: 12 },
+  sectionHeader: { ...textRole.section, marginTop: 10, marginBottom: -4 },
   hostLink: { minHeight: size.hit, justifyContent: 'center' },
   hostLinkText: textRole.secondary,
   hostLinkAction: { color: colors.label, fontWeight: '600' },

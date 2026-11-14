@@ -70,3 +70,29 @@ test('UX3-A07 (ux): the Profile Account row shows the email or "Guest on this ph
   assert.match(r, /ellipsizeMode=\{valueTruncate \? 'middle' : undefined\}/);
   assert.match(r, /valueTruncate: \{ fontSize: 15/);
 });
+
+test('UX3-A02: rooms group into Happening now, Coming up and Ending soon', async () => {
+  const { roomSection, groupBySection } = await import('../src/features/event/rooms-sections.ts');
+  const now = Date.parse('2026-11-14T12:00:00Z');
+  const r = (activity_state, starts_at) => ({ activity_state, starts_at });
+  assert.equal(roomSection(r('idle', null), false, now), 'now');
+  assert.equal(roomSection(r('idle', '2026-11-14T11:00:00Z'), false, now), 'now');
+  assert.equal(roomSection(r('idle', '2026-11-15T07:00:00Z'), false, now), 'upcoming');
+  assert.equal(roomSection(r('active', '2026-11-15T07:00:00Z'), false, now), 'now');
+  assert.equal(roomSection(r('active', null), true, now), 'ending');
+  const groups = groupBySection(['e1', 'u1', 'n1', 'n2'], (x) => ({ e: 'ending', u: 'upcoming', n: 'now' })[x[0]]);
+  assert.deepEqual(groups.map((g) => [g.section, g.rows]), [['now', ['n1', 'n2']], ['upcoming', ['u1']], ['ending', ['e1']]]);
+  assert.deepEqual(groupBySection([], () => 'now'), []);
+});
+
+test('UX3-A02: Rooms has no subtitle, a 48 pt Join/Create pair over a list, and section headers', () => {
+  const h = src('app/index.tsx');
+  assert.doesNotMatch(h, /subtitle=/);
+  assert.match(h, /<Button compact title=\{en\.home\.joinShort\}/);
+  assert.match(h, /<Button compact title=\{en\.home\.createShort\} variant="secondary"/);
+  assert.match(h, /pair: \{ flexDirection: 'row', gap: 12/);
+  assert.match(h, /\{isGuest && rows\.length > 0 \? <GuestCreateLink \/> : null\}/);
+  assert.match(h, /groupBySection\(rows, \(r\) => roomSection\(r\.room, r\.entry\.kind === 'grace', now\)\)/);
+  assert.match(src('components/ui.tsx'), /compact && \{ minHeight: 48 \}/);
+  assert.match(src('i18n/en.ts'), /sections: \{ now: 'Happening now', upcoming: 'Coming up', ending: 'Ending soon' \}/);
+});

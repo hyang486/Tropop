@@ -178,6 +178,8 @@ type ButtonProps = {
   accessibilityHint?: string;
   /** UX2-140: defaults to title so VoiceOver keeps the name while busy shows the spinner. */
   accessibilityLabel?: string;
+  /** UX3-A02: 48 pt instead of 52, for the Join / Create pair on Rooms. */
+  compact?: boolean;
 };
 
 export function Button({
@@ -189,6 +191,7 @@ export function Button({
   maxFontSizeMultiplier,
   accessibilityHint,
   accessibilityLabel,
+  compact,
 }: ButtonProps) {
   const filled = variant === 'primary' || variant === 'destructiveFill';
   // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red. UX2-72: destructiveFill
@@ -206,6 +209,7 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        compact && { minHeight: 48 },
         filled ? { backgroundColor: fill } : [styles.outlined, { borderColor: accent }],
         // UX2-138: disabled is the enabled style at 40% (0.6 read as an enabled gray fill in light mode).
         disabled ? { opacity: 0.4 } : pressed && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
