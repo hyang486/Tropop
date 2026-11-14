@@ -57,7 +57,10 @@ test('UX2-131 (ux): the clamp line takes the Free at-max slot; at-max returns wh
 
 test('UX2-131: the line is ink2 13 pt; See Plus uses the + route with a 44 pt hit', () => {
   assert.match(screen, /clampNote: \{[^}]*fontSize: 13[^}]*color: colors\.ink2/);
-  assert.match(screen, /clampLink: \{[^}]*minHeight: 44/);
+  // UX2-131b: 44 pt hit via hitSlop, not minHeight, so the row matches the one-line at-max slot.
+  assert.match(screen, /clampNote: \{[^}]*lineHeight: 18/);
+  assert.match(screen, /hitSlop=\{\{ top: 13, bottom: 13 \}\}/);
+  assert.doesNotMatch(screen, /clampLink: \{[^}]*minHeight/);
   const link = screen.slice(screen.indexOf('{clampNote ?'), screen.indexOf('{clampNote ?') + 900);
   assert.match(link, /pathname: '\/plan-preview', params: \{ from: 'capacity' \}/);
 });
