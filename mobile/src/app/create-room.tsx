@@ -187,7 +187,7 @@ export default function CreateRoom() {
   // A5: "More" opens 3–7 days on Plus and the Plus screen on Free; nothing while the Plus flag loads.
   function openMore() {
     const action = moreAction(plus);
-    if (action === 'upgrade') router.push('/plan-preview');
+    if (action === 'upgrade') router.push({ pathname: '/plan-preview', params: { from: 'more' } });
     if (action !== 'choices') return;
     const labels = MORE_PRESETS.map((h) => en.createRoom.presetLabel(h));
     ActionSheetIOS.showActionSheetWithOptions(
@@ -317,7 +317,7 @@ export default function CreateRoom() {
     } catch (e) {
       setBusy(false);
       // 0032 PT402: the Free plan's 6 people / 2 days; the same Plus screen as "More" on Free.
-      if (isPlanLimit(e)) return router.push('/plan-preview');
+      if (isPlanLimit(e)) return router.push({ pathname: '/plan-preview', params: { from: 'more' } });
       fail(errorMessage(e));
     }
   }
