@@ -28,6 +28,7 @@ import {
   type Capacity,
   capacityMax,
   defaultRoomIcon,
+  isPlanLimit,
   MAX_AREA,
   MIN_MEMBERS,
   OPEN_ROOMS_LIVE,
@@ -283,8 +284,10 @@ export default function CreateRoom() {
       router.push({ pathname: '/room/[id]/invite', params: { id: room.id } });
       if (questionsNote) Alert.alert(questionsNote);
     } catch (e) {
-      fail(errorMessage(e));
       setBusy(false);
+      // 0032 PT402: the Free plan's 6 people / 2 days; the same Plus screen as "More" on Free.
+      if (isPlanLimit(e)) return router.push('/plan-preview');
+      fail(errorMessage(e));
     }
   }
 

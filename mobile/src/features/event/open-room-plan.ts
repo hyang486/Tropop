@@ -31,6 +31,16 @@ export function stepCapacity(capacity: Capacity, delta: 1 | -1, plus: boolean | 
   return capacityValue(capacityValue(capacity, plus) + delta, plus);
 }
 
+/**
+ * 0032: create_room and update_room_expiry raise PT402 'plan_limit' when a Free host asks past 6 people or 2 days.
+ * That opens the Plus screen, not an error line. 22023 (outside every plan) stays a plain error.
+ */
+export function isPlanLimit(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const { code, message } = error as { code?: unknown; message?: unknown };
+  return code === 'PT402' && message === 'plan_limit';
+}
+
 /** The ink icons a host can pick for a public room. public_icon stores the key (a slug); the emoji only draws it. */
 export const ROOM_ICONS: readonly { key: InkIconKey; emoji: string }[] = [
   { key: 'run', emoji: '🏃' },

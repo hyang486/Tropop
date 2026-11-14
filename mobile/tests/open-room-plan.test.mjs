@@ -77,3 +77,13 @@ test('join_open_room: null (room went private, deleted or expired) is "gone", ne
   assert.equal(p.joinedRoomId(undefined), null);
   assert.equal(p.joinedRoomId(''), null);
 });
+
+test('0032 plan limit: only PT402 plan_limit opens the Plus screen', () => {
+  assert.equal(p.isPlanLimit({ code: 'PT402', message: 'plan_limit' }), true);
+  assert.equal(p.isPlanLimit({ code: 'PT402', message: 'other' }), false);
+  assert.equal(p.isPlanLimit({ code: '22023', message: 'plan_limit' }), false);
+  assert.equal(p.isPlanLimit({ code: 'PT422', message: 'daily' }), false);
+  assert.equal(p.isPlanLimit(new Error('plan_limit')), false);
+  assert.equal(p.isPlanLimit(null), false);
+  assert.equal(p.isPlanLimit('plan_limit'), false);
+});
