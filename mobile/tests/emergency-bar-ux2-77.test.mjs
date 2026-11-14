@@ -33,7 +33,10 @@ test('UX2-77c: spokenSeparators turns " · " into ", " for VoiceOver only', asyn
 });
 
 test('UX2-77c: the bar label passes the seen part through spokenSeparators; the visible meta keeps "·"', () => {
-  assert.match(src, /spokenSeparators\(en\.activity\.seenByNames\(who, seen, recipients\)\)/);
+  // UX2-126: the seen part now comes from seenPart (lib/emergency-plan.ts); the bar reads its `spoken` form.
+  const plan = readFileSync(new URL('../src/lib/emergency-plan.ts', import.meta.url), 'utf8');
+  assert.match(plan, /spoken: spokenSeparators\(text\)/);
+  assert.match(src, /seenText\.spoken/);
   const copy = readFileSync(new URL('../src/i18n/en.ts', import.meta.url), 'utf8');
   assert.match(copy, /`Seen by \$\{who\.join\(', '\)\} · \$\{n\} of \$\{total\}`/);
 });

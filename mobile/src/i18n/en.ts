@@ -555,8 +555,9 @@ export const en = {
     acknowledge: 'I see it',
     acknowledged: 'You saw this',
     // UX P0-1: the pinned bar and its collapsed 44 pt line.
-    seenCount: (n: number, total: number) => `${n} of ${total} saw it`,
-    noneSeen: 'No one saw it yet',
+    // UX2-126: the seen part on someone else's Emergency at 0; "Seen by n" while the member names are unknown.
+    noOneSeen: 'No one has seen it yet.',
+    seenByCount: (n: number) => `Seen by ${n}`,
     emergencyLine: (name: string) => `${name} · Emergency`,
     emergencyLineMine: 'You · Emergency',
     openEmergency: 'Open',

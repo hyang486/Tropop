@@ -20,7 +20,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, emergencySender, emergencyBarMode, emergenciesFolded, seenSummary, spokenSentence, spokenSeparators } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
@@ -116,9 +116,6 @@ export function EmergencyAlerts({
 
   const folded = emergenciesFolded({ place, count: activity.emergencies.length, shown: shownAll });
 
-  // Recipients are the current members other than the sender.
-  const recipients = Math.max(0, (names?.size ?? 0) - 1);
-
   function openLocation(senderId: string, coordinates: LatLng) {
     if (onOpenLocation) onOpenLocation(senderId, coordinates);
     else router.push({ pathname: '/room/[id]/map', params: { id: roomId, focus: senderId } });
@@ -162,7 +159,7 @@ export function EmergencyAlerts({
       ) : null}
       {(folded ? [] : activity.emergencies).map((e) => {
         const mine = e.userId === userId;
-        const { who, seen } = seenSummary(e.ackedBy, names ?? new Map());
+        const seenText = seenPart({ mine, ackedBy: e.ackedBy, names, copy: en.activity });
         const iAcked = e.ackedBy.has(userId);
         const location = emergencyLocation(lastSeen.get(e.userId));
         const sender = emergencySender(names, e.userId);
@@ -172,9 +169,7 @@ export function EmergencyAlerts({
           : sender.kind === 'unknown'
             ? en.activity.emergencyFromUnknown
             : en.activity.emergencyFrom(name);
-        const seenText = seen === 0 ? en.activity.noneSeen : en.activity.seenCount(seen, recipients);
-        // UX2-79: without the member list the seen count is unknown, so show only the time.
-        const meta = names === null ? timeOf(e.createdAt) : `${timeOf(e.createdAt)} · ${seenText}`;
+        const meta = `${timeOf(e.createdAt)} · ${seenText.visible}`;
         const mode = emergencyBarMode({ place, mine, acked: iAcked, expanded: expanded.has(e.id) });
         const collapsible = emergencyBarMode({ place, mine, acked: iAcked, expanded: false }) === 'line';
 
@@ -214,11 +209,7 @@ export function EmergencyAlerts({
         const spoken = spokenSentence([
           title,
           timeOf(e.createdAt),
-          names === null
-            ? ''
-            : seen === 0
-              ? en.activity.waitingSeen
-              : spokenSeparators(en.activity.seenByNames(who, seen, recipients)),
+          seenText.spoken,
           location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
         ]);
         return (

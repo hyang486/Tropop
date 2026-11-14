@@ -17,6 +17,34 @@ export function seenSummary(
 }
 
 /**
+ * UX2-126: the seen part of an Emergency, the same on every surface. The count comes from `ackedBy`, so it is
+ * known even while `names` is null (UX2-79 follow-up); only the names and the total wait for the members read.
+ */
+export function seenPart(o: {
+  mine: boolean;
+  ackedBy: ReadonlySet<string>;
+  names: ReadonlyMap<string, string> | null;
+  /** `en.activity` (passed in so this file stays free of app imports). */
+  copy: {
+    waitingSeen: string;
+    noOneSeen: string;
+    seenByCount: (n: number) => string;
+    seenByNames: (who: string[], n: number, total: number) => string;
+  };
+}): { visible: string; spoken: string } {
+  const zero = (text: string) => ({ visible: text, spoken: text });
+  if (o.names === null) {
+    const n = o.ackedBy.size;
+    if (n === 0) return zero(o.mine ? o.copy.waitingSeen : o.copy.noOneSeen);
+    return zero(o.copy.seenByCount(n));
+  }
+  const { who, seen } = seenSummary(o.ackedBy, o.names);
+  if (seen === 0) return zero(o.mine ? o.copy.waitingSeen : o.copy.noOneSeen);
+  const text = o.copy.seenByNames(who, seen, Math.max(0, o.names.size - 1));
+  return { visible: text, spoken: spokenSeparators(text) };
+}
+
+/**
  * UX2-79: who sent an Emergency. `names` is null while the member list is not known yet or its read failed, so a
  * current member never reads as "Former member"; "former" only when the read worked and the id is missing.
  */
