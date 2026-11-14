@@ -153,6 +153,7 @@ export function RouteEditor({
   }
 
   const canUndo = draft.length > undoFloor;
+  const canClear = draft.length > 0;
   // UI v2 (2): a route over MAX_ROUTE_KM is not saved (a swipe across a zoomed-out map drew an ocean crossing).
   function save() {
     if (routeTooLong(routeLengthMeters(route))) {
@@ -251,6 +252,9 @@ export function RouteEditor({
             </Pressable>
             <Pressable
               accessibilityRole="button"
+              // UX2-42: nothing to clear, so disabled.
+              accessibilityState={{ disabled: !canClear }}
+              disabled={!canClear}
               onPress={() => {
                 setNote('none');
                 setDraft([]);
@@ -258,7 +262,7 @@ export function RouteEditor({
               }}
               style={styles.tool}
             >
-              <Text style={styles.toolText} numberOfLines={1}>
+              <Text style={[styles.toolText, !canClear && styles.disabledText]} numberOfLines={1}>
                 {en.map.clear}
               </Text>
             </Pressable>
