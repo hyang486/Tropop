@@ -47,6 +47,7 @@ import { canSendDraft, composerAutoFocus, composerReducer, initialComposer } fro
 import { errorMessage } from '@/lib/errors';
 import { disclosureHeld } from '@/lib/emergency-plan';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
+import { ReminderCard, useReminderCard } from '@/features/event/reminder-card';
 import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { showEndsSoon } from '@/lib/expiry-plan';
@@ -90,7 +91,8 @@ export default function RoomScreen() {
         avatars: new Map(members.map((m) => [m.user_id, m.avatar_path])),
       });
       // Reschedules the local reminder when the host changed the expiry (rooms notice -> reload).
-      syncExpiryReminders([room], false);
+      // UX2-130: never prompts here; the in-chat reminder card is the only place that asks.
+      syncExpiryReminders([room], false, { ask: false });
     } catch (e) {
       setState((s) => (s.status === 'ready' ? s : { status: 'error', message: errorMessage(e) }));
     }
@@ -205,6 +207,8 @@ function ChatRoom({
   // Spec 11: one activity read for the Emergency cards, the "+" panel (Arrived, Set status) and the bell.
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const presence = useEmergencyPresence(room.id, activity);
+  // UX2-130: the reminder card, once per room, above the newest message (it scrolls with the list).
+  const reminderCard = useReminderCard(room, remainingMs, activity.emergencies.length > 0);
   const [sheet, setSheet] = useState<'notices' | 'settings' | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
@@ -433,6 +437,7 @@ function ChatRoom({
               style={styles.flex}
               inverted
               data={rows}
+              extraData={reminderCard.shown || reminderCard.busy}
               keyExtractor={(r) => (r.type === 'hidden' ? r.key : r.item.id)}
               onScrollToIndexFailed={({ averageItemLength, index }) =>
                 listRef.current?.scrollToOffset({ offset: averageItemLength * index, animated: true })
@@ -448,27 +453,38 @@ function ChatRoom({
                   <EmptyState art="gathering" artWidth={120} title={en.chat.emptyTitle} body={en.chat.empty} />
                 </View>
               }
-              renderItem={({ item: row }) => {
+              renderItem={({ item: row, index }) => {
+                // UX2-130: inside the newest row's cell, before it, so indices (scroll-to-message) don't shift.
+                const card =
+                  index === 0 && reminderCard.shown ? (
+                    <ReminderCard busy={reminderCard.busy} onTurnOn={reminderCard.turnOn} onNotNow={reminderCard.notNow} />
+                  ) : null;
                 if (row.type === 'hidden') {
                   return (
-                    <HiddenRow
-                      count={row.ids.length}
-                      onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
-                    />
+                    <>
+                      {card}
+                      <HiddenRow
+                        count={row.ids.length}
+                        onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
+                      />
+                    </>
                   );
                 }
                 const item = row.item;
                 return (
-                  <MessageRow
-                    item={item}
-                    mine={item.sender_id === userId}
-                    name={item.sender_id ? memberName(names, item.sender_id, room.host_id, en.chat) : ''}
-                    avatarPath={item.sender_id ? avatars.get(item.sender_id) : null}
-                    isHost={!!item.sender_id && item.sender_id === room.host_id}
-                    onFailedPress={onFailedPress}
-                    onMediaPress={openPhotos}
-                    onMapPress={room.location_allowed || room.host_id === userId ? () => go('/room/[id]/map') : undefined}
-                  />
+                  <>
+                    {card}
+                    <MessageRow
+                      item={item}
+                      mine={item.sender_id === userId}
+                      name={item.sender_id ? memberName(names, item.sender_id, room.host_id, en.chat) : ''}
+                      avatarPath={item.sender_id ? avatars.get(item.sender_id) : null}
+                      isHost={!!item.sender_id && item.sender_id === room.host_id}
+                      onFailedPress={onFailedPress}
+                      onMediaPress={openPhotos}
+                      onMapPress={room.location_allowed || room.host_id === userId ? () => go('/room/[id]/map') : undefined}
+                    />
+                  </>
                 );
               }}
             />

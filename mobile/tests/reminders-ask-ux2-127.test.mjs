@@ -24,7 +24,7 @@ test('UX2-127: the lib takes an optional { ask } and asks only on the ask step',
   assert.match(lib, /permissionStep\(current, options\)/);
 });
 
-test('UX2-127: Rooms passes ask:false; the chat call is unchanged (default, still prompts)', () => {
+test('UX2-127: Rooms passes ask:false; UX2-130: chat passes ask:false too (the in-chat card asks)', () => {
   assert.match(rooms, /syncExpiryReminders\(\s*list\.filter\(\(r\) => r\.deleted_at === null\),\s*true,\s*\{ ask: false \},?\s*\)/);
-  assert.match(chat, /syncExpiryReminders\(\[room\], false\);/);
+  assert.match(chat, /syncExpiryReminders\(\[room\], false, \{ ask: false \}\);/);
 });

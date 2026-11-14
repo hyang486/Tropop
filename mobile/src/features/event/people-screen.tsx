@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
@@ -136,9 +136,18 @@ export function PeopleScreen() {
     notConsented,
   });
   // UX2-09: not_member (left or removed) closes the screen, like Ask does.
+  // UX2-129: an alert says why first (once per visit); the screen closes on OK.
   const left = gate === 'left';
+  const leftAlerted = useRef(false);
   useEffect(() => {
-    if (left && router.canGoBack()) router.back();
+    if (!left || leftAlerted.current) return;
+    leftAlerted.current = true;
+    Alert.alert(
+      s.notMemberTitle,
+      s.notMemberMessage,
+      [{ text: s.notMemberOk, onPress: () => router.canGoBack() && router.back() }],
+      { cancelable: false },
+    );
   }, [left, router]);
   const questions = useEntryQuestions(id);
   const empty = peopleEmpty({

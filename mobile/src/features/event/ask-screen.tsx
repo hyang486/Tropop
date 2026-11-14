@@ -2,7 +2,7 @@
 // room, and the history stays on this phone (ask-store).
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/empty-state';
 import { useAnnounce } from '@/features/event/announce';
@@ -83,8 +83,13 @@ export function AskScreen() {
     if ('error' in res) {
       if (res.error === 'not_member') {
         // Spec 10.4: no longer in the room, so its history goes and the modal closes.
+        // UX2-129: say why first; the modal closes on OK.
         await purgeAskHistory(id);
-        if (mounted.current) router.back();
+        if (mounted.current) {
+          Alert.alert(s.notMemberTitle, s.notMemberMessage, [{ text: s.notMemberOk, onPress: () => router.back() }], {
+            cancelable: false,
+          });
+        }
         return;
       }
       if (!mounted.current) return;

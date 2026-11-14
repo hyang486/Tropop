@@ -360,6 +360,10 @@ export const en = {
     bodyLastHour: (name: string) => `${name} disappears in 1 hour. Download any photos and files you'd like to keep.`,
   },
   chat: {
+    // UX2-130 (R-C8): the in-chat reminder card, the only place the app asks for notifications.
+    reminderCardTitle: 'Get a reminder a day before this room ends?',
+    reminderCardTurnOn: 'Turn on',
+    reminderCardNotNow: 'Not now',
     // Qrew unit 3 (Q 03.01): nav title and the room's tab row.
     title: 'Chat',
     tabs: 'Room sections',
@@ -1145,6 +1149,10 @@ export const en = {
     },
     ask: {
       fabLabel: 'Ask Qrewing',
+      // UX2-129: not_member alert before the screen closes.
+      notMemberTitle: "You're not in this room anymore",
+      notMemberMessage: "The room ended or you left it. Your question wasn't sent.",
+      notMemberOk: 'OK',
       done: 'Done',
       doneLabel: 'Close Ask Qrewing',
       title: 'Ask Qrewing',
@@ -1219,6 +1227,10 @@ export const en = {
     },
     people: {
       title: 'People to meet',
+      // UX2-129: not_member alert before the screen closes.
+      notMemberTitle: "You're not in this room anymore",
+      notMemberMessage: 'The room ended or you left it.',
+      notMemberOk: 'OK',
       refresh: 'Refresh',
       loading: 'Qrewing is reading entry info…',
       emptyTitle: 'No suggestions yet',
