@@ -9,7 +9,7 @@ import { HandTitle } from '@/components/hand-title';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
-import { Button, colors, Hint, radius, usePalette } from '@/components/ui';
+import { Button, colors, Hint, palette, radius, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { PaceCard } from '@/features/pace/pace-card';
@@ -79,7 +79,8 @@ const OVERLAY_BOTTOM = 8;
 // UX2-35: the 34 pt overlay buttons reach 44 pt tall without growing.
 const OVERLAY_HIT_SLOP = { top: 5, bottom: 5 };
 // #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
-const EMERGENCY_RED = '#FF3B30';
+// C15: Emergency text on the fixed white pin label uses the light errorText (4.5:1+ on white).
+const EMERGENCY_LABEL_TEXT = palette.light.errorText;
 /** UX P0-3: pins never show a photo (the mockup shows initials). */
 const NO_ICONS: ReadonlyMap<string, null> = new Map<string, null>();
 
@@ -485,7 +486,7 @@ function RoomMap({
               text: en.map.emergencyPin(pin.names[0]),
               anchor: avatarPillAnchor(1, 'below'),
               backgroundColor: LABEL_BACKGROUND,
-              textColor: EMERGENCY_RED,
+              textColor: EMERGENCY_LABEL_TEXT,
             },
           ]
         : [],
@@ -789,7 +790,15 @@ function PresenceRow({
           {name}
           {status ? <Text style={[styles.presenceStatus, emergency && styles.emergencyText]}>{` · ${status}`}</Text> : null}
         </Text>
-        {meta ? <Text style={[styles.presenceMeta, stale && styles.staleText]}>{meta}</Text> : null}
+        {meta && stale ? (
+          // C15: a stale row reads "Last seen 4 min ago" in ink2 with a clock (no orange).
+          <View style={styles.staleRow}>
+            <SymbolView name="clock" size={13} tintColor={colors.ink2} />
+            <Text style={styles.presenceMeta}>{meta}</Text>
+          </View>
+        ) : meta ? (
+          <Text style={styles.presenceMeta}>{meta}</Text>
+        ) : null}
       </View>
     </View>
   );
@@ -869,7 +878,7 @@ const styles = StyleSheet.create({
   presenceText: { flex: 1, gap: 2 },
   presenceName: { fontSize: 17, color: colors.label },
   presenceMeta: { fontSize: 15, color: colors.ink2, fontVariant: ['tabular-nums'] },
-  staleText: { color: colors.warning },
+  staleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   presenceStatus: { color: colors.ink2 },
-  emergencyText: { color: EMERGENCY_RED, fontWeight: '600' },
+  emergencyText: { color: colors.errorText, fontWeight: '600' },
 });

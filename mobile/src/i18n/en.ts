@@ -646,7 +646,7 @@ export const en = {
     members: 'Sharing now',
     nobody: 'Nobody is sharing yet.',
     you: 'You',
-    stale: (age: string) => `Location stale · ${age}`,
+    stale: (age: string) => `Last seen ${age}`,
     stalePin: 'stale',
     emergencyPin: (name: string) => `${name} · help`,
     /** UX2-41 sweep: a pin for VoiceOver, "Mina, 2 min ago". */
