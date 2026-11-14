@@ -1724,10 +1724,19 @@ test('calendar_add is Plus-only (0032): Free or no plan row → 402 plan_limit b
 });
 
 test('recap diary is Plus-only (0032): Free diary:true → 402 before any count or model call', async () => {
-  const w = world({ plans: { [HOST]: 'free' } });
-  const { m, calls } = model(() => ({ text: '{}' }));
-  const r = await handle({ store: store(w), model: m, now: () => NOW }, HOST, { action: 'recap', roomId: ROOM, diary: true });
-  assert.deepEqual(r, { status: 402, body: { error: 'plan_limit' } });
+  const w = world({ plans: { [HOST]: 'free' }, messages: [msg(1, HOST, 'Start at 7', 5)] });
+  const { m, calls } = model(() => ({ text: RECAP_OUT }));
+  const before = w.recap;
+  for (const refresh of [false, true, false]) {
+    const r = await handle({ store: store(w), model: m, now: () => NOW }, HOST, { action: 'recap', roomId: ROOM, diary: true, refresh });
+    assert.deepEqual(r, { status: 402, body: { error: 'plan_limit' } });
+  }
   assert.equal(calls.length, 0);
   assert.deepEqual(w.usage, []);
+  assert.deepEqual(w.recap, before, 'no recap row write or refreshed_at change, so no F1 attempt is spent');
+  // The app's retry without the diary then succeeds.
+  const plain = await handle({ store: store(w), model: m, now: () => NOW }, HOST, { action: 'recap', roomId: ROOM });
+  assert.equal(plain.status, 200);
+  assert.equal(w.recap?.state, 'done');
+  assert.equal(calls.length, 1);
 });
