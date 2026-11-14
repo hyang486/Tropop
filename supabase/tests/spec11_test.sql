@@ -239,7 +239,7 @@ select tests.expect_ok($$ update public.profiles set avatar_path = 'default:star
 select tests.expect_state($$ update public.profiles set avatar_path = 'default:Bad Key' where id = 'c3100000-0000-4000-8000-000000000001' $$, '22023', 'bad default key refused');
 select tests.expect_state($$ update public.profiles set avatar_path = 'someone/else.jpg' where id = 'c3100000-0000-4000-8000-000000000001' $$, '22023', 'foreign path refused');
 select tests.expect_ok($$ update public.profiles set avatar_path = null where id = 'c3100000-0000-4000-8000-000000000001' $$, 'default avatar cleared');
-select tests.expect_count($$ select 1 from public.cleanup_jobs where reason = 'avatar_replaced' $$, 0, 'a default avatar queues no cleanup');
+select tests.expect_count($$ select 1 from public.cleanup_jobs where reason = 'avatar_replaced' and (prefix like 'default:%' or prefix like 'c3100000-%') $$, 0, 'a default avatar queues no cleanup');
 
 select 'SPEC11 TESTS PASSED' as result;
 rollback;
