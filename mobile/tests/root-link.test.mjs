@@ -9,6 +9,7 @@ import {
   handleRootLink,
   hasOpenModal,
   isRootLink,
+  isSignedOutOnlyLink,
   joinLinkHref,
   rootLinkPlan,
   setRootLinkHandler,
@@ -141,4 +142,19 @@ test('signed out (no handler): every link passes through', () => {
   setRootLinkHandler(null);
   assert.equal(handleRootLink('moment:///', false), false);
   assert.equal(handleRootLink(`moment://join/${TOKEN}`, false), false);
+});
+
+test('UX2-135: signed in, a warm link to a signed-out-only screen resets to Rooms (no second Rooms with Back)', () => {
+  for (const link of ['moment:///start/code', 'moment://start/code', '/start/code/', 'moment:///start/scan?x=1',
+    '/welcome', '/guest', '/sign-in', '/sign-up']) {
+    assert.equal(isSignedOutOnlyLink(link), true, link);
+    assert.equal(rootLinkPlan(link, false, true), 'reset', link);
+    assert.equal(rootLinkPlan(link, false, true, true), 'reset', link);
+  }
+  // Cold start and signed out (no handler) pass through; other screens are not signed-out-only.
+  assert.equal(rootLinkPlan('moment:///start/code', true, true), 'pass');
+  assert.equal(rootLinkPlan('moment:///start/code', false, false), 'pass');
+  for (const link of ['/start', '/start/code/x', '/join/abc', '/scan', '/profile', 'https://example.com/start/code']) {
+    assert.equal(isSignedOutOnlyLink(link), false, link);
+  }
 });

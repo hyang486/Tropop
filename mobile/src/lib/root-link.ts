@@ -34,6 +34,16 @@ export function isRootLink(path: string): boolean {
 }
 
 /**
+ * UX2-135: a link to a signed-out-only screen (welcome, start/code, start/scan, guest, sign-in, sign-up). The
+ * handler exists only while signed in, where Stack.Protected would redirect it to Rooms by pushing a second Rooms
+ * (with Back) on the stack; the handler resets to the Rooms root instead.
+ */
+export function isSignedOutOnlyLink(path: string): boolean {
+  const rest = linkPath(path);
+  return rest !== null && /^\/*(welcome|start\/code|start\/scan|guest|sign-in|sign-up)\/?$/i.test(rest);
+}
+
+/**
  * The in-app href for an invite link (`moment://join/<token>`, `moment:///join/<token>`,
  * `/join/<token>`), or null. The token is not validated here: `join/[token]` shows the invalid
  * invite message itself.
@@ -69,7 +79,7 @@ export type RootLinkPlan = 'reset' | 'join' | 'pass';
 
 export function rootLinkPlan(path: string, initial: boolean, hasHandler: boolean, modalOpen = false): RootLinkPlan {
   if (initial || !hasHandler) return 'pass';
-  if (isRootLink(path)) return 'reset';
+  if (isRootLink(path) || isSignedOutOnlyLink(path)) return 'reset';
   if (modalOpen && joinLinkHref(path) !== null) return 'join';
   return 'pass';
 }
