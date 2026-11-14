@@ -3,7 +3,7 @@ import { Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import { EmergencyOpenNote } from '@/components/emergency-open-note';
+import { EmergencyCheckNote, EmergencyOpenNote, useSlow } from '@/components/emergency-open-note';
 import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
@@ -17,7 +17,7 @@ import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { useAuth } from '@/lib/auth';
 import { endsDay } from '@/lib/chat-plan';
-import { endEmergencyNote } from '@/lib/emergency-plan';
+import { emergencyCheckLine, endEmergencyNote } from '@/lib/emergency-plan';
 import { endGate, runOnce, type RunState } from '@/lib/end-plan';
 import { errorMessage } from '@/lib/errors';
 import { cancelExpiryReminder } from '@/lib/expiry-reminders';
@@ -85,6 +85,8 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
     };
   }, [id, openCount]);
   const emergencyNote = endEmergencyNote({ kind, emergencies: activity.emergencies, userId, names, copy: en.emergencyOpen });
+  const slow = useSlow(activity.loading);
+  const checkLine = emergencyCheckLine({ loading: activity.loading, error: activity.error, slow, hasNote: !!emergencyNote });
   const ev = en.endRoom;
   const copy =
     kind === 'activity'
@@ -207,6 +209,7 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
       actions={
         <>
           {emergencyNote ? <EmergencyOpenNote text={emergencyNote} /> : null}
+          {checkLine ? <EmergencyCheckNote line={checkLine} onRetry={activity.reload} /> : null}
           {error ? <Hint tone="error">{error}</Hint> : null}
           {/* UX2-72: the destructive confirm is red-filled; Keep stays outlined. */}
           <Button title={copy.confirm} variant="destructiveFill" accessibilityHint={copy.confirmHint} busy={running} onPress={confirm} />

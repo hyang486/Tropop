@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
-import { EmergencyOpenNote } from '@/components/emergency-open-note';
+import { EmergencyCheckNote, EmergencyOpenNote, useSlow } from '@/components/emergency-open-note';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RoomEnded } from '@/components/room-ended';
@@ -19,7 +19,7 @@ import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { useAuth } from '@/lib/auth';
 import { endsDay } from '@/lib/chat-plan';
-import { endEmergencyNote } from '@/lib/emergency-plan';
+import { emergencyCheckLine, endEmergencyNote } from '@/lib/emergency-plan';
 import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
@@ -55,6 +55,7 @@ export default function RoomInfoScreen() {
   const now = useNow(30_000);
   // UX2-114: read-only use of the activity hook for the Leave note (my own open Emergency only).
   const activity = useRoomActivity(id, userId, 0);
+  const activitySlow = useSlow(activity.loading);
 
   const load = useCallback(async () => {
     try {
@@ -143,7 +144,7 @@ export default function RoomInfoScreen() {
       router.push({ pathname: '/room/[id]/end-room', params: { id: room.id } });
       return;
     }
-    Alert.alert(en.room.leaveConfirmTitle, en.room.leaveConfirmBody, [
+    Alert.alert(en.room.leaveConfirmTitle, leaveNote ?? en.room.leaveConfirmBody, [
       { text: en.room.cancel, style: 'cancel' },
       {
         text: en.room.leave,
@@ -170,6 +171,9 @@ export default function RoomInfoScreen() {
   const leaveNote = isHost
     ? null
     : endEmergencyNote({ kind: 'leave', emergencies: activity.emergencies, userId, names: null, copy: en.emergencyOpen });
+  const checkLine = isHost
+    ? null
+    : emergencyCheckLine({ loading: activity.loading, error: activity.error, slow: activitySlow, hasNote: !!leaveNote });
 
   const expiresMs = new Date(room.expires_at).getTime();
   const endsLine = en.room.endsOn(
@@ -196,6 +200,7 @@ export default function RoomInfoScreen() {
       actions={
         <>
           {leaveNote ? <EmergencyOpenNote text={leaveNote} /> : null}
+          {checkLine ? <EmergencyCheckNote line={checkLine} onRetry={activity.reload} /> : null}
           {isHost ? (
             <Button
               title={editingStatus ? en.room.doneEditingStatus : en.room.editStatusOptions}
