@@ -6,7 +6,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useAnnounce } from '@/features/event/announce';
 import { RelayedCards } from '@/features/questions/relayed-cards';
-import { QField, QScreen, type QScreenReveal } from '@/components/q-screen';
+import { Composer } from '@/components/composer';
+import { QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { paceSnapshot, paceStartPoint } from '@/features/pace/engine';
 import { en } from '@/i18n/en';
@@ -90,21 +91,16 @@ export function AskScreen() {
       subtitle={s.intro}
       revealRef={revealRef}
       actions={
-        <View style={styles.composer}>
-          <View style={styles.flex}>
-            <QField
-              label={s.placeholder}
-              value={draft}
-              onChangeText={setDraft}
-              maxLength={ASK_LIMITS.question}
-              multiline
-              style={styles.field}
-            />
-          </View>
-          <View style={styles.sendWrap}>
-            <Button title={s.send} onPress={send} busy={!!sending} disabled={!canSend} />
-          </View>
-        </View>
+        <Composer
+          value={draft}
+          onChangeText={setDraft}
+          onSend={send}
+          placeholder={s.placeholder}
+          sendLabel={s.send}
+          canSend={canSend}
+          busy={!!sending}
+          maxLength={ASK_LIMITS.question}
+        />
       }
     >
       <Stack.Screen
@@ -199,10 +195,6 @@ function Bubble({ text, mine }: { text: string; mine?: boolean }) {
 const styles = StyleSheet.create({
   headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
   done: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 6 },
-  flex: { flex: 1 },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  field: { maxHeight: 120, paddingTop: 13, paddingBottom: 13 },
-  sendWrap: { minWidth: 76 },
   turn: { gap: 8 },
   bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
