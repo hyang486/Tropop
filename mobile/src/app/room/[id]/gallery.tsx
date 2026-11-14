@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   jobActions: { flexDirection: 'row', minHeight: 44, marginStart: -8 },
   actionButton: { minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   action: { fontSize: 15, color: colors.label, fontWeight: '600' },
-  actionSecondary: { fontSize: 15, color: colors.secondaryLabel },
+  actionSecondary: { fontSize: 15, color: colors.ink2 },
   track: { height: 4, borderRadius: 2, backgroundColor: colors.separator, overflow: 'hidden' },
   bar: { height: 4, backgroundColor: colors.tint },
   fill: { width: '100%', height: '100%' },
