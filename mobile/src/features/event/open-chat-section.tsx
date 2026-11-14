@@ -6,7 +6,7 @@ import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from '
 
 import { InkIcon } from '@/components/calendar';
 import { QLabel } from '@/components/q-screen';
-import { Button, colors, Hint } from '@/components/ui';
+import { Button, Card, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { RoomError } from '@/lib/rooms';
@@ -128,7 +128,10 @@ export function OpenChatSection({
           />
         </>
       ) : null}
-      {rooms?.map((room) => (
+      {/* V2: one Card for the section; rows sit inside it (no own border), split by its inset wash line. */}
+      {rooms?.length ? (
+        <Card>
+      {rooms.map((room) => (
         <Pressable
           key={room.room_id}
           accessibilityRole="button"
@@ -141,7 +144,9 @@ export function OpenChatSection({
           // UX2-113: the other rows go to 50% while one joins.
           style={[styles.row, joining !== null && joining !== room.room_id && styles.dimmed]}
         >
-          <InkIcon emoji={iconEmoji(room.public_icon)} size={28} />
+          <View style={styles.tile}>
+            <InkIcon emoji={iconEmoji(room.public_icon)} size={22} />
+          </View>
           <View style={styles.text}>
             <Text style={styles.name} numberOfLines={1}>
               {room.name}
@@ -159,6 +164,8 @@ export function OpenChatSection({
           )}
         </Pressable>
       ))}
+        </Card>
+      ) : null}
     </View>
   );
 }
@@ -169,13 +176,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    minHeight: 60,
-    paddingHorizontal: 14,
+    minHeight: 76,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.separator,
-    borderRadius: 12,
+  },
+  // V2: the same 48 pt wash art tile (radius 14) as the Rooms rows.
+  tile: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.tile,
     borderCurve: 'continuous',
+    backgroundColor: colors.wash,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   text: { flex: 1, gap: 2 },
   name: { fontSize: 16, color: colors.label },

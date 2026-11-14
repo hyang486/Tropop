@@ -69,7 +69,8 @@ test('Rooms home wires summaries, drops the type word, uses the shared Pill; cha
   assert.match(h, /fetchRoomSummaries\(/);
   assert.match(h, /sortByLastItem\(group\.rows/);
   assert.doesNotMatch(h, /en\.rooms\.types\[/);
-  assert.match(h, /<Pill variant="tag" text=\{en\.home\.row\.live\} \/>/);
+  // V2: the Live tag is the V1 Tag (wash, dot), not the outlined Pill tag.
+  assert.match(h, /<Tag label=\{en\.home\.row\.live\} dot \/>/);
   assert.match(h, /<Pill variant="count" text=\{unread\} \/>/);
   assert.match(h, /minHeight: 76/);
   const chat = src('app/room/[id]/index.tsx');

@@ -7,7 +7,7 @@ import { InkArt } from '@/components/ink-art';
 import { Pill } from '@/components/pill';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QScreen } from '@/components/q-screen';
-import { Button, colors, Hint, size, textRole } from '@/components/ui';
+import { Button, Card, colors, Hint, radius, size, Tag, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
@@ -40,7 +40,7 @@ import { graceTime } from '@/features/recap/use-grace';
 
 export default function Rooms() {
   const router = useRouter();
-  const { profile, isGuest, session } = useAuth();
+  const { isGuest, session } = useAuth();
   const uid = session?.user.id;
   const now = useNow();
   const [rooms, setRooms] = useState<RoomWithCount[] | null>(null);
@@ -105,27 +105,15 @@ export default function Rooms() {
 
   return (
     <>
-      {/* UX P1-5: two separate 44 pt header buttons (they shared one glass pill and read as one). */}
+      {/* V2: one glass pill holding Calendar + Profile icons (44 pt each), no "Profile" text. */}
       <Stack.Toolbar placement="right">
         {/* Qrewing Calendar (Plus preview); the screen shows the upsell without it. */}
         <Stack.Toolbar.Button
           icon="calendar"
           accessibilityLabel={en.calendar.openLabel}
           onPress={() => router.push('/calendar')}
-          separateBackground
         />
-        <Stack.Toolbar.View hidesSharedBackground separateBackground>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={en.home.profile}
-            onPress={() => router.push('/profile')}
-            style={({ pressed }) => [styles.avatarHit, pressed && { opacity: 0.6 }]}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initialOf(profile?.display_name)}</Text>
-            </View>
-          </Pressable>
-        </Stack.Toolbar.View>
+        <Stack.Toolbar.Button icon="person" accessibilityLabel={en.home.profile} onPress={() => router.push('/profile')} />
       </Stack.Toolbar>
       <QScreen
         floating={notice ? <Snackbar notice={notice} onHide={hideNotice} /> : undefined}
@@ -163,16 +151,22 @@ export default function Rooms() {
         ) : isGuest ? (
           <View style={styles.pair}>
             <View style={styles.flex}>
-              <Button compact title={en.home.joinShort} onPress={() => router.push('/join')} />
+              <Button compact icon="qrcode.viewfinder" title={en.home.joinShort} onPress={() => router.push('/join')} />
             </View>
           </View>
         ) : (
           <View style={styles.pair}>
             <View style={styles.flex}>
-              <Button compact title={en.home.joinShort} onPress={() => router.push('/join')} />
+              <Button compact icon="qrcode.viewfinder" title={en.home.joinShort} onPress={() => router.push('/join')} />
             </View>
             <View style={styles.flex}>
-              <Button compact title={en.home.createShort} variant="secondary" onPress={() => router.push('/create-room')} />
+              <Button
+                compact
+                icon="plus"
+                title={en.home.createShort}
+                variant="secondary"
+                onPress={() => router.push('/create-room')}
+              />
             </View>
           </View>
         )}
@@ -205,6 +199,8 @@ export default function Rooms() {
             <Text style={styles.sectionHeader} accessibilityRole="header">
               {en.home.sections[group.section]}
             </Text>
+            {/* V2: one Card per section; rows sit inside it, split by its inset wash line. */}
+            <Card>
             {sortByLastItem(group.rows, (r) => summaries?.get(r.room.id)?.last_at).map(({ room, entry }) => {
           // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
           // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.
@@ -255,7 +251,7 @@ export default function Rooms() {
                 </Text>
               ) : null}
               <View style={styles.metaLine}>
-                {live ? <Pill variant="tag" text={en.home.row.live} /> : null}
+                {live ? <Tag label={en.home.row.live} dot /> : null}
                 <Text style={styles.rowMeta} numberOfLines={1}>
                   {meta}
                 </Text>
@@ -270,6 +266,7 @@ export default function Rooms() {
           </Pressable>
           );
             })}
+            </Card>
           </View>
         ))}
         {isGuest && rows.length > 0 ? <GuestCreateLink /> : null}
@@ -308,11 +305,7 @@ function roomIcon(room: Room): string {
   return (room as Room & { public_icon?: string | null }).public_icon ?? defaultRoomIcon(room.type);
 }
 
-function initialOf(name: string | null | undefined): string {
-  return name?.trim().charAt(0).toUpperCase() || '?';
-}
-
-/** UX P1-5: the room's own ink icon (the Create room set) in a 40 pt ring, not the same art on every row. */
+/** UX P1-5: the room's own ink icon (the Create room set). V2: on a 48 pt wash tile (radius 14), no ring. */
 function RoomRing({ room }: { room: Room }) {
   return (
     <View style={styles.ring}>
@@ -324,8 +317,8 @@ function RoomRing({ room }: { room: Room }) {
 const styles = StyleSheet.create({
   loading: { marginTop: 24 },
   flex: { flex: 1 },
-  // UX3-A02: 12 pt between the pair, about 16 pt under the title (the title block's 6 + body gap 12, less 2).
-  pair: { flexDirection: 'row', gap: 12, marginTop: -2 },
+  // V2: 10 pt between the pair, about 16 pt under the title underline (the title block's 6 + body gap 12, less 2).
+  pair: { flexDirection: 'row', gap: 10, marginTop: -2 },
   empty: { alignItems: 'center', gap: 16, marginVertical: 8 },
   emptyLine: { ...textRole.secondary, textAlign: 'center' },
   // Section header 13 pt semibold ink2, 22 pt above (10 + body gap 12) and 8 pt below.
@@ -334,36 +327,21 @@ const styles = StyleSheet.create({
   hostLink: { minHeight: size.hit, justifyContent: 'center' },
   hostLinkText: textRole.secondary,
   hostLinkAction: { color: colors.label, fontWeight: '600' },
-  avatarHit: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: colors.label,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 17, fontWeight: '600', color: colors.label },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 76,
-    borderWidth: 1,
-    borderColor: colors.separator,
-    borderRadius: 12,
-    borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 12,
   },
   ended: { opacity: 0.45 },
   ring: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: colors.label,
+    width: 48,
+    height: 48,
+    borderRadius: radius.tile,
+    borderCurve: 'continuous',
+    backgroundColor: colors.wash,
     alignItems: 'center',
     justifyContent: 'center',
   },
