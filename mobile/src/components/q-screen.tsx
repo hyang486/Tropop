@@ -27,7 +27,7 @@ import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
-import { colors } from '@/components/ui';
+import { colors, usePalette } from '@/components/ui';
 import { QSCREEN_FLOATING_CLEARANCE } from '@/features/event/qrewing-fab-size';
 import { keyboardOverlap, revealScrollY, type Span } from '@/lib/keyboard-plan';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
@@ -98,6 +98,14 @@ export function QScreen({
   // (Welcome) still clears the status bar.
   const { rootRef, onLayout, overlap } = useHeaderOverlap();
   const { scrollRef, keyboardPad, scrollProps, revealView } = useKeyboardReveal(overlap, keepVisible);
+  // UX2-44: once the body scrolls, a top scroll-edge fade (paper → transparent, 56 pt below the safe area) keeps
+  // content and the handwritten title from colliding with the floating glass header buttons. Only under a header.
+  const [scrolled, setScrolled] = useState(false);
+  const paper = usePalette().paper;
+  const onScroll = (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    scrollProps.onScroll(e);
+    setScrolled(e.nativeEvent.contentOffset.y > 1);
+  };
   useLayoutEffect(() => {
     if (!revealRef) return;
     revealRef.current = revealView;
@@ -109,6 +117,7 @@ export function QScreen({
         <ScrollView
           ref={scrollRef}
           {...scrollProps}
+          onScroll={onScroll}
           style={styles.flex}
           refreshControl={refreshControl}
           contentContainerStyle={[styles.body, { paddingTop: Math.max(overlap, insets.top) + 8 }, floating ? styles.floatingClear : null]}
@@ -144,6 +153,15 @@ export function QScreen({
         ) : (
           body
         )}
+        {scrolled && overlap > 0 ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.edgeFade,
+              { height: insets.top + 56, backgroundImage: `linear-gradient(${paper} 0%, ${paper} 50%, ${paper}00 100%)` },
+            ]}
+          />
+        ) : null}
         {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }, background ? { backgroundColor: background } : null]}>{actions}</View> : null}
       </View>
     </View>
@@ -331,6 +349,7 @@ export const qSpacing = { side: 24, gap: 12 } as const;
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+  edgeFade: { position: 'absolute', top: 0, left: 0, right: 0 },
   body: { flexGrow: 1, paddingHorizontal: qSpacing.side, paddingBottom: 24, gap: qSpacing.gap },
   // Room for a `floating` button (the Ask Qrewing footprint), so the last row scrolls clear of it.
   floatingClear: { paddingBottom: QSCREEN_FLOATING_CLEARANCE },
