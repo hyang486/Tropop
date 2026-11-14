@@ -20,7 +20,7 @@ import { Avatar } from '@/components/avatar';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
-import { Button, colors, Hint, Screen } from '@/components/ui';
+import { Button, colors, Hint, Screen, size } from '@/components/ui';
 import { EntryGate, HiddenRow, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
 import { noteSiriRoomOpened } from '@/features/event/siri-mirror';
@@ -598,12 +598,12 @@ function MessageRow({
     );
   }
 
-  // Q 03.01: "Jay · 8:48 AM" / "You · 8:53 AM" above each bubble; sending and failed states replace the time.
+  // UX P1-3: others show "Jay · 8:48 AM" above the bubble; your own time sits under it. Sending and failed replace the time.
   const failed = item.pending === 'failed';
   const when = item.pending === 'sending' ? en.chat.sending : failed ? en.chat.failed : time;
   const bubble = (
     <View style={[styles.bubble, mine ? styles.mine : styles.theirs, failed && styles.failedBubble]}>
-      <Text selectable style={styles.body}>
+      <Text selectable style={[styles.body, mine && styles.bodyMine]}>
         {item.body}
       </Text>
     </View>
@@ -612,9 +612,6 @@ function MessageRow({
   if (mine) {
     return (
       <View style={[styles.row, styles.rowMine]}>
-        <Text style={[styles.meta, failed && styles.failedMeta]}>
-          {en.chat.you} · {when}
-        </Text>
         {failed ? (
           <Pressable accessibilityRole="button" accessibilityHint={en.chat.failed} onPress={() => onFailedPress(item)}>
             {bubble}
@@ -622,6 +619,9 @@ function MessageRow({
         ) : (
           bubble
         )}
+        <Text style={[styles.meta, failed && styles.failedMeta]} accessibilityLabel={`${en.chat.you}, ${when}`}>
+          {when}
+        </Text>
       </View>
     );
   }
@@ -630,11 +630,11 @@ function MessageRow({
   return (
     <View style={styles.theirRow}>
       <View style={[styles.avatarRing, isHost && styles.avatarRingHost]}>
-        <Avatar path={avatarPath} name={name} size={34} />
+        <Avatar path={avatarPath} name={name} size={size.avatar} />
       </View>
       <View style={[styles.row, styles.rowTheirs]}>
         <View style={styles.nameLine}>
-          <Text style={[styles.name, isHost && styles.nameHost]} numberOfLines={1}>
+          <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
           {isHost ? (
@@ -670,24 +670,21 @@ const styles = StyleSheet.create({
   rowMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   rowTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start', marginVertical: 0, maxWidth: '100%', flexShrink: 1 },
   theirRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginVertical: 6, maxWidth: '86%' },
-  avatarRing: { padding: 2, borderRadius: 21, borderWidth: 1.5, borderColor: 'transparent' },
+  // UX P1-4: a 2 pt ink ring on the host's avatar (transparent for others, so rows line up).
+  avatarRing: { borderRadius: size.avatar / 2 + 2, borderWidth: 2, borderColor: 'transparent' },
   avatarRingHost: { borderColor: colors.label },
   nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { flexShrink: 1, fontSize: 13, color: colors.label },
-  nameHost: { fontWeight: '700' },
-  hostTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-    borderCurve: 'continuous',
-    backgroundColor: colors.tint,
-  },
-  hostTagText: { fontSize: 11, fontWeight: '600', color: colors.onTint },
-  bubble: { borderRadius: 10, borderCurve: 'continuous', paddingHorizontal: 12, paddingVertical: 9 },
-  mine: { backgroundColor: colors.fieldStrong },
-  theirs: { backgroundColor: colors.field },
+  name: { flexShrink: 1, fontSize: 13, fontWeight: '600', color: colors.label },
+  // UX P1-4: "Host" tag, 11 pt semibold, 1 pt ink outline, 4 pt radius.
+  hostTag: { paddingHorizontal: 4, borderRadius: 4, borderWidth: 1, borderColor: colors.label },
+  hostTagText: { fontSize: 11, fontWeight: '600', color: colors.label },
+  // UX P1-3: own bubbles are ink with paper text and a 4 pt tail corner; others keep the card color.
+  bubble: { borderRadius: 18, borderCurve: 'continuous', paddingHorizontal: 13, paddingVertical: 9 },
+  mine: { backgroundColor: colors.tint, borderBottomRightRadius: 4 },
+  theirs: { backgroundColor: colors.field, borderTopLeftRadius: 4 },
   failedBubble: { opacity: 0.6 },
   body: { fontSize: 16, color: colors.label },
+  bodyMine: { color: colors.onTint },
   meta: { fontSize: 12, color: colors.ink2 },
   failedMeta: { color: colors.danger },
   noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
