@@ -27,3 +27,15 @@ When the model lacks the answer it sets `needs_human`; the function then creates
 
 ## A1 default avatars
 `profiles.avatar_path` may be `default:<key>` (`[a-z0-9-]{1,30}`): a bundled picture, no Storage object, no cleanup job. Clients render unknown keys as the initial. Keys shipped as placeholders: star, moon, sun, flower, note, peak, gem, leaf.
+
+## 0032 plan (Free/Plus on the server)
+- `public.user_plans (user_id, plan 'free'|'plus', updated_at)`: select your own row only; no row = Free. No direct writes.
+- `rpc('set_my_plan', {p_plan})` → `'free'|'plus'`; bad value 22023. Anonymous guests may call it. The Plus preview switch
+  calls it on toggle; the app reads `rpc('get_my_plan')` (or its own row), keeps the AsyncStorage value only as an offline
+  cache, and never pushes the cached value on launch.
+- `create_room`: Free 2..6 people, closes ≤ 2 days from now; Plus 2..30, ≤ 7 days. `p_no_limit: true` (or no capacity) stores
+  the plan max (6 or 30). `update_room_expiry`: same day caps. A value the plan forbids → PT402 message `plan_limit`
+  (show the upsell); outside every plan (1 or 31 people, > 7 days) stays 22023.
+- Existing rooms keep their stored cap and time. Join checks the room's stored `max_members` (PT409), never the host's plan.
+- qrewing `calendar_add`: Free → `402 {error:'plan_limit'}` before any count or model call.
+- Not gated (listed for a decision): qrewing `recap` with `diary: true` (the Qrewing Calendar diary) stays open to any member.

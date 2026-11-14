@@ -275,6 +275,8 @@ export interface QrewingStore {
   logUsage(roomId: string, action: UsageAction, model: string, inputTokens: number, outputTokens: number, userId?: string): Promise<void>;
   /** private.qrewing_usage rows of the room with this action at or after `since`; only this user's rows when given (0029). */
   usageCountSince(roomId: string, action: UsageAction, since: string, userId?: string): Promise<number>;
+  /** public.user_plans (0032): 'plus' only with a row saying so; no row = 'free'. */
+  plan(userId: string): Promise<'free' | 'plus'>;
   roomExtras(roomId: string): Promise<RoomExtras>;
   /** E2E (a): up to `limit` latest 'status' and 'emergency' messages of the room, newest first. */
   roomEvents(roomId: string, limit: number): Promise<Msg[]>;
@@ -480,7 +482,7 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
   if (!body) return { status: 400, body: { error: 'bad_request' } };
   if (!deps.model) return { status: 503, body: { error: 'ai_not_configured' } };
   if (body.action === 'probe' && body.roomId === null) return { status: 200, body: { ok: true } };
-  // No room: authenticated user only (index.ts checked the JWT). No Plus check here; the server has no plan data.
+  // No room: authenticated user only (index.ts checked the JWT). Plus-only (0032): calendarAdd checks the plan first.
   if (body.action === 'calendar_add') return calendarAdd({ ...deps, model: deps.model, now, log: deps.log ?? (() => {}) }, userId, body);
 
   const clock = deps.clock ?? Date.now;
@@ -1026,10 +1028,12 @@ type CalendarCtx = Pick<Ctx, 'model' | 'store' | 'log' | 'now'>;
 
 /**
  * Qrewing Calendar: free text → one date-only entry. 200 {event:{title,start,end,emoji}} (end inclusive, ≥ start,
- * ≤ start + CALENDAR_SPAN_DAYS); 422 unclear; 429 rate_limited (CALENDAR_USER_CAP per 24 h); 502 ai_failed.
+ * ≤ start + CALENDAR_SPAN_DAYS); 402 plan_limit (Free, before any count or model call); 422 unclear;
+ * 429 rate_limited (CALENDAR_USER_CAP per 24 h); 502 ai_failed.
  * The text is never logged or stored.
  */
 async function calendarAdd(ctx: CalendarCtx, userId: string, body: { text: string; today: string; tz: string }): Promise<Reply> {
+  if ((await ctx.store.plan(userId)) !== 'plus') return { status: 402, body: { error: 'plan_limit' } };
   const key = calendarUsage(userId);
   const since = new Date(ctx.now.getTime() - ASK_WINDOW_MS).toISOString();
   if ((await ctx.store.usageCountSince(key.roomId, key.action, since, userId)) >= CALENDAR_USER_CAP) {
