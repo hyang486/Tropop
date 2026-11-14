@@ -1,11 +1,13 @@
 import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
+import { useInlineHeaderTitle } from '@/components/inline-header-title';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
@@ -514,6 +516,8 @@ function RoomMap({
   const showsMyLocation = granted === true && (my.share || showingMine);
 
   const reporterText = en.map.reporter[sharingState];
+  // UX2-59: "Map" moves into the nav bar once the large title scrolls under the header.
+  const inlineTitle = useInlineHeaderTitle(en.map.title, useHeaderHeight());
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission'; // UX2-32: 'refused' is a normal event (ink2)
 
   return (
@@ -523,17 +527,18 @@ function RoomMap({
         style={styles.screen}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
+        onScroll={(e) => inlineTitle.onScrollY(e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
       >
       <Stack.Screen
         options={{
           title: en.map.title,
-          headerTitle: '',
           headerRight: () => (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null),
         }}
       />
       {ask.sheet}
       {/* Qrew unit 4 (Q 04.02, 08.03): handwritten title and the room name; no art on the map. */}
-      <View style={styles.head}>
+      <View style={styles.head} onLayout={inlineTitle.onTitleLayout}>
         <HandTitle>{en.map.title}</HandTitle>
         <Text style={styles.roomName} numberOfLines={2}>
           {room.name}

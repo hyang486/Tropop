@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtFitContext, type ArtFit } from '@/components/art-fit';
 import { HandTitle } from '@/components/hand-title';
+import { useInlineHeaderTitle } from '@/components/inline-header-title';
 import { colors, usePalette } from '@/components/ui';
 import { QSCREEN_FLOATING_CLEARANCE } from '@/features/event/qrewing-fab-size';
 import { artHidden, keyboardOverlap, revealScrollY, type Span } from '@/lib/keyboard-plan';
@@ -65,6 +66,7 @@ export function QScreen({
   floating,
   background,
   sheet,
+  inlineTitle,
 }: {
   title?: string;
   /** Small gray line right under the title. */
@@ -97,6 +99,8 @@ export function QScreen({
   background?: string;
   /** UX2-48: the screen is a pageSheet: `sheet` ground (dark #1C1C1E) and `sheetField` cards and fields. */
   sheet?: boolean;
+  /** UX2-59: the title moves into the nav bar on scroll; default on, except on a sheet (pushed sheet-colored screens opt in). */
+  inlineTitle?: boolean;
   /** UX2-57: a 0.5 pt top separator on the pinned actions (as Create room's bar) where content scrolls under them. */
   actionsDivider?: boolean;
 }) {
@@ -113,11 +117,14 @@ export function QScreen({
   // content and the handwritten title from colliding with the floating glass header buttons. Only under a header.
   const [scrolled, setScrolled] = useState(false);
   const pal = usePalette();
+  // UX2-59: under a header (not on a sheet), the title moves into the nav bar once it scrolls under it.
+  const inline = useInlineHeaderTitle(title && (inlineTitle ?? !sheet) && overlap > 0 ? title : null, overlap);
   const paper = sheet ? pal.sheet : pal.paper;
   const ground = background ?? (sheet ? colors.sheet : undefined);
   const onScroll = (e: { nativeEvent: { contentOffset: { y: number } } }) => {
     scrollProps.onScroll(e);
     setScrolled(e.nativeEvent.contentOffset.y > 1);
+    inline.onScrollY(e.nativeEvent.contentOffset.y);
   };
   useLayoutEffect(() => {
     if (!revealRef) return;
@@ -148,7 +155,7 @@ export function QScreen({
           keyboardDismissMode="interactive"
         >
           {title ? (
-            <View style={styles.head}>
+            <View style={styles.head} onLayout={inline.onTitleLayout}>
               <HandTitle>{title}</HandTitle>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
@@ -182,7 +189,8 @@ export function QScreen({
             pointerEvents="none"
             style={[
               styles.edgeFade,
-              { height: insets.top + 56, backgroundImage: `linear-gradient(${paper} 0%, ${paper} 50%, ${paper}00 100%)` },
+              // UX2-59: solid down to the header's bottom, then a 16 pt fade, so no row shows through under the bar.
+              { height: overlap + 16, backgroundImage: `linear-gradient(${paper} 0%, ${paper} ${edgeSolid(overlap)}%, ${paper}00 100%)` },
             ]}
           />
         ) : null}
@@ -378,6 +386,11 @@ export function QLabel({ children }: { children: string }) {
       {children}
     </Text>
   );
+}
+
+/** UX2-59: the share of the top fade that stays solid (the header's bottom over the fade height). */
+export function edgeSolid(overlap: number): number {
+  return Math.round((overlap / (overlap + 16)) * 100);
 }
 
 /** UX2-48: true inside a pageSheet QScreen, so cards and fields take the sheet colors. */

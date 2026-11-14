@@ -51,6 +51,7 @@ export function EventEditor() {
     return (
       <QScreen
         sheet
+        inlineTitle
         title={t.editEvent}
         actions={
           <Button
@@ -59,7 +60,7 @@ export function EventEditor() {
           />
         }
       >
-        <Stack.Screen options={{ title: t.editEvent, headerTitle: '', headerShadowVisible: false }} />
+        <Stack.Screen options={{ title: t.editEvent, headerShadowVisible: false }} />
         <Hint>{t.eventGone}</Hint>
       </QScreen>
     );
@@ -125,6 +126,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
   return (
     <QScreen
       sheet
+      inlineTitle
       title={editing ? t.editEvent : t.newEvent}
       subtitle={params.ask === '1' ? t.askConfirm : undefined}
       actions={
@@ -138,7 +140,6 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
       <Stack.Screen
         options={{
           title: editing ? t.editEvent : t.newEvent,
-          headerTitle: '',
           headerShadowVisible: false,
         }}
       />
