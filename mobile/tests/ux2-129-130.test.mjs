@@ -90,3 +90,20 @@ test('UX2-130: look and VoiceOver', () => {
   assert.equal((card.match(/accessibilityRole="button"/g) ?? []).length, 2);
   assert.match(card, /text: \{\s*minHeight: 44,\s*minWidth: 44,/);
 });
+
+test('UX2-130 (ux): empty chat shows the same card 24 pt under the empty state, upright and after it', () => {
+  const at = room.indexOf('ListEmptyComponent={');
+  const empty = room.slice(at, room.indexOf('renderItem=', at));
+  assert.ok(empty.indexOf('<EmptyState') < empty.indexOf('<ReminderCard'), 'card after the empty state');
+  assert.match(empty, /<View style=\{styles\.emptyWrap\}>[\s\S]*<ReminderCard[\s\S]*<\/View>\s*\}/);
+  assert.match(empty, /reminderCard\.shown \?/);
+  assert.match(empty, /busy=\{reminderCard\.busy\} onTurnOn=\{reminderCard\.turnOn\} onNotNow=\{reminderCard\.notNow\}/);
+  // The wrap is flipped back once for the inverted list; the card adds no flip of its own.
+  assert.match(room, /emptyWrap: \{[^}]*transform: \[\{ scaleY: -1 \}\]/);
+  assert.doesNotMatch(card, /scaleY/);
+  assert.match(room, /emptyReminder: \{ alignSelf: 'stretch', marginTop: 16 \}/);
+  assert.match(card, /marginVertical: 8,/);
+  // One hook state for both slots, so "Not now" hides both.
+  assert.equal((room.match(/useReminderCard\(/g) ?? []).length, 1);
+  assert.equal((room.match(/<ReminderCard /g) ?? []).length, 2);
+});

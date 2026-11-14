@@ -451,6 +451,13 @@ function ChatRoom({
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
                   <EmptyState art="gathering" artWidth={120} title={en.chat.emptyTitle} body={en.chat.empty} />
+                  {/* UX2-130 (ux): the reminder card in an empty chat too, 24 pt below; inside the flipped wrap, so
+                      it is upright and read after the empty state. The first message moves it to the newest slot. */}
+                  {reminderCard.shown ? (
+                    <View style={styles.emptyReminder}>
+                      <ReminderCard busy={reminderCard.busy} onTurnOn={reminderCard.turnOn} onNotNow={reminderCard.notNow} />
+                    </View>
+                  ) : null}
                 </View>
               }
               renderItem={({ item: row, index }) => {
@@ -726,6 +733,8 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 24, paddingVertical: 8, gap: 2, flexGrow: 1 },
   // The list is inverted, so the empty state is flipped back.
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scaleY: -1 }] },
+  // 24 pt gap under the empty state: 16 here plus the card's own 8 pt vertical margin.
+  emptyReminder: { alignSelf: 'stretch', marginTop: 16 },
   row: { marginVertical: 6, maxWidth: '80%', gap: 4 },
   rowMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   rowTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start', marginVertical: 0, maxWidth: '100%', flexShrink: 1 },
