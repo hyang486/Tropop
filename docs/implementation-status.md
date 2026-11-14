@@ -2,6 +2,12 @@
 
 Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-14: UX2-127 / UX2-128 reminder permission, branch ux2-127-128-reminders (local, from 188b89f, not pushed)
+
+- UX2-127: `syncExpiryReminders(rooms, complete, options?: { ask?: boolean })`. The default still prompts. The Rooms list (`app/index.tsx`) passes `{ ask: false }`, so it schedules only when notifications are already allowed and never shows a cold prompt. The chat-screen call is unchanged. The rule is `permissionStep()` in `lib/reminders-plan.ts`.
+- UX2-128: `RemindersOffNote` sits under Room info's Ends card. It reads `getPermissionsAsync()` (no prompt) on mount and whenever the app becomes active. Only when the status is denied does it show an ink2 line and Open Settings (`Linking.openSettings`, 44 pt).
+- Verified: `npm test` 860/860, tsc 0, lint 0. Not verified: simulator (no device run).
+
 ## 2026-11-14: UX2-114 Emergency-open note, branch ux2-114-emergency-end-note (local, from 188b89f, not pushed)
 
 - End room / End activity (`components/end-confirm.tsx`) and the guest footer in Room info (`app/room/[id]/info.tsx`) read open Emergencies through `useRoomActivity` (read-only) and show `EmergencyOpenNote` (red triangle 13 pt, errorText 15 pt) above the buttons. Copy: `en.emergencyOpen`; logic: `endEmergencyNote()` in `lib/emergency-plan.ts`. Buttons unchanged (UX2-72).
