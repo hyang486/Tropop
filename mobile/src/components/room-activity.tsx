@@ -369,10 +369,10 @@ export function EmergencyAlerts({
         const canRetry = lineState === 'failed' && !!presenceReload;
         return (
           <EnterView key={e.id}>
-            <View style={styles.bar} accessibilityRole="alert">
+            <View style={[styles.bar, lift]} accessibilityRole="alert">
              <View style={styles.barRow}>
-              <View style={styles.ring}>
-                <SymbolView name="exclamationmark.triangle" size={16} tintColor={colors.danger} />
+              <View style={styles.disc}>
+                <SymbolView name="exclamationmark" size={18} weight="bold" tintColor="#FFFFFF" />
               </View>
               <Pressable
                 style={styles.barText}
@@ -413,7 +413,7 @@ export function EmergencyAlerts({
                 <View style={[styles.barLocationRow, presenceRetrying && lineState === 'failed' && { opacity: 0.5 }]}>
                   {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} /> : null}
                   <Text
-                    style={[styles.barLocation, canOpenLocation && styles.barLocationOpen]}
+                    style={[styles.barLocation, canOpenLocation && [styles.barLocationOpen, styles.barLocationLink]]}
                     numberOfLines={1}
                     maxFontSizeMultiplier={EMERGENCY_FONT_CAP}
                   >
@@ -696,18 +696,27 @@ function Pill({
 
 const styles = StyleSheet.create({
   alerts: { gap: 8 },
-  // UX P0-1: white (paper) fill, 1.5 pt ink border, 12 pt radius; only the icon ring is red (A17).
+  // V3: the Emergency card is redwash, radius 22, with the lift shadow (inline); no frame (was a 2 pt ink border).
   bar: {
     minHeight: 60,
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingLeft: 12,
-    paddingRight: 8,
-    backgroundColor: colors.background,
-    borderWidth: 1.5,
-    borderColor: colors.label,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingLeft: 8,
+    paddingRight: 10,
+    backgroundColor: colors.redwash,
+    borderRadius: radius.card,
     borderCurve: 'continuous',
+  },
+  // V3: a 40 pt solid danger disc with a white "!" and a 6 pt danger halo at 20%.
+  disc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    margin: 6,
+    backgroundColor: colors.danger,
+    boxShadow: '0 0 0 6px rgba(255, 59, 48, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ring: {
     width: 32,
@@ -720,11 +729,13 @@ const styles = StyleSheet.create({
   },
   ringSmall: { width: 24, height: 24, borderRadius: 12 },
   barText: { flex: 1, gap: 1 },
-  barTitle: { fontSize: 16, fontWeight: '600', color: colors.label },
+  barTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
   barMeta: { flexShrink: 1, fontSize: 13, color: colors.label },
   barLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   barLocation: { flexShrink: 1, fontSize: 13, color: colors.ink2 },
   barLocationOpen: { fontWeight: '600', color: colors.label },
+  // V3: "Open last location · 2 min ago" is underlined.
+  barLocationLink: { textDecorationLine: 'underline' },
   pill: {
     flexShrink: 0,
     minHeight: 36,
@@ -736,7 +747,8 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
   pillWide: { flex: 1, minHeight: 44, alignItems: 'center', borderRadius: 22 },
-  pillSecondary: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.label },
+  // V3: "I see it" is a lift fill with an ink label (no outline); "On my way" stays the ink fill.
+  pillSecondary: { backgroundColor: colors.lift },
   pillTextWide: { fontSize: 17 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   wayRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

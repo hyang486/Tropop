@@ -16,7 +16,7 @@ test('C37 (UX2-126): location line copy', () => {
 test('C37 (UX2-126): a third 1-line text line under barMeta; the icon left the meta row', () => {
   assert.doesNotMatch(src, /barMetaRow/);
   assert.match(src, /<Text style=\{styles\.barMeta\} numberOfLines=\{2\}/);
-  assert.match(src, /style=\{\[styles\.barLocation, canOpenLocation && styles\.barLocationOpen\]\}\s*numberOfLines=\{1\}/);
+  assert.match(src, /style=\{\[styles\.barLocation, canOpenLocation && \[styles\.barLocationOpen, styles\.barLocationLink\]\]\}\s*numberOfLines=\{1\}/);
   assert.match(src, /barLocation: \{[^}]*fontSize: 13[^}]*color: colors\.ink2/);
   assert.match(src, /barLocationOpen: \{[^}]*fontWeight: '600'[^}]*color: colors\.label/);
   assert.match(src, /canOpenLocation \? <SymbolView name="location\.fill" size=\{11\}/);
