@@ -15,6 +15,11 @@ import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
  * UX2-05b: Emergency is never set without its confirm, and a failed write is never dropped silently: "Emergency not
  * sent" offers Try again (preferred) or Cancel. `send` throws on failure; `after` runs once it went through.
  */
+/** UX2-52 server guard: the error setStatus throws for PT409 emergency_active (callers reopen the picker with it). */
+export function isEmergencyActiveNotice(error: unknown): boolean {
+  return error instanceof Error && error.message === en.activity.emergencyActiveError;
+}
+
 export function confirmEmergency(send: () => Promise<void>, after?: () => void) {
   async function attempt() {
     try {
@@ -51,7 +56,10 @@ export function StatusPicker({
   onRetry,
   title = en.activity.chooseStatus,
   cancelLabel = en.room.cancel,
+  notice,
 }: {
+  /** UX2-52 server guard: why the last pick did not go through (errorText under the title). */
+  notice?: string | null;
   /** Pace maker's stationary check asks its own question here; defaults to "Set your status". */
   title?: string;
   /** Defaults to Cancel; the stationary check says Dismiss. */
@@ -83,6 +91,11 @@ export function StatusPicker({
           {/* flexShrink: inside the sheet's maxHeight the grid scrolls and Cancel stays below it (never over the last row). */}
           <ScrollView style={styles.scroll} contentContainerStyle={styles.body} bounces={false}>
             <HandTitle style={styles.title}>{title}</HandTitle>
+            {notice ? (
+              <Text style={styles.failedText} accessibilityLiveRegion="polite">
+                {notice}
+              </Text>
+            ) : null}
             {plan.showError && onRetry ? <FailedLine onRetry={onRetry} /> : null}
             {/* UX2-52: one status slot, so while in Emergency only "I'm OK now" (clear_my_status) ends it. No alert. */}
             {plan.inEmergency ? (

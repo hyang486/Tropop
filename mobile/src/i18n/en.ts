@@ -522,6 +522,8 @@ export const en = {
     openLastLocation: 'Open last shared location',
     imOkNow: "I'm OK now",
     inEmergencyCaption: "You're in Emergency. Other statuses come back after you're OK.",
+    // UX2-52 server guard (PT409 emergency_active): shown in the picker, which reopens in its Emergency layout.
+    emergencyActiveError: "You're still in Emergency. Tap I'm OK now first.",
     unavailableInEmergency: (label: string) => `${label}, unavailable during Emergency`,
     clearStatus: 'Clear status',
     emergencyConfirmTitle: 'Send Emergency?',

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
 
-import { confirmEmergency, StatusPicker } from '@/components/status-picker';
+import { confirmEmergency, isEmergencyActiveNotice, StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
@@ -49,6 +49,7 @@ export function PlusPanel({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function run(key: string, action: () => Promise<void>) {
     setBusy(key);
@@ -56,7 +57,11 @@ export function PlusPanel({
       await action();
       onDone();
     } catch (e) {
-      Alert.alert(en.activity.actionFailed, errorMessage(e));
+      // UX2-52 server guard: Emergency is still on; reopen the picker (now in its Emergency layout) and say why.
+      if (isEmergencyActiveNotice(e)) {
+        setNotice(errorMessage(e));
+        setPicking(true);
+      } else Alert.alert(en.activity.actionFailed, errorMessage(e));
     } finally {
       setBusy(null);
     }
@@ -67,6 +72,7 @@ export function PlusPanel({
 
   function pick(def: StatusDefinition) {
     setPicking(false);
+    setNotice(null);
     if (def.id === userStatusId) return;
     run('status', () => activity.setStatus(def.id));
   }
@@ -128,7 +134,11 @@ export function PlusPanel({
       onPick={pick}
       onEmergency={emergency}
       onClear={clear}
-      onClose={() => setPicking(false)}
+      onClose={() => {
+        setPicking(false);
+        setNotice(null);
+      }}
+      notice={notice}
       failed={!!activity.error}
       onRetry={activity.reload}
     />

@@ -2,7 +2,7 @@ import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { confirmEmergency, StatusPicker } from '@/components/status-picker';
+import { confirmEmergency, isEmergencyActiveNotice, StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
@@ -69,6 +69,7 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
   const presence = useLivePresence(room.id, live);
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const [picking, setPicking] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Latest inputs for the fix effect, so it runs on a new fix only.
   const inputs = useRef({ settings, presence: presence.rows, room });
@@ -139,13 +140,18 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
   const myStatusId = activity.memberStatus.get(userId);
   function close() {
     setPicking(false);
+    setNotice(null);
     closeStationaryPrompt(key, Date.now());
   }
   async function run(action: () => Promise<void>) {
     try {
       await action();
     } catch (e) {
-      Alert.alert(en.activity.actionFailed, errorMessage(e));
+      // UX2-52 server guard: Emergency is still on; reopen the picker (now in its Emergency layout) and say why.
+      if (isEmergencyActiveNotice(e)) {
+        setNotice(errorMessage(e));
+        setPicking(true);
+      } else Alert.alert(en.activity.actionFailed, errorMessage(e));
     }
   }
   function pick(def: StatusDefinition) {
@@ -177,6 +183,7 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
         onEmergency={emergency}
         onClear={clear}
         onClose={close}
+        notice={notice}
         failed={!!activity.error}
         onRetry={activity.reload}
       />

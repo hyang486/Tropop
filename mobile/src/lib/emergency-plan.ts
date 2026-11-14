@@ -74,6 +74,16 @@ export function emergencyBarMode(o: {
 }
 
 /**
+ * UX2-52 server guard: set_my_status raises PT409 'emergency_active' for an ordinary status during Emergency.
+ * Both must match: PT409 alone also means "room full" (join_room).
+ */
+export function isEmergencyActiveError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const { code, message } = error as { code?: unknown; message?: unknown };
+  return code === 'PT409' && message === 'emergency_active';
+}
+
+/**
  * UX2-05b: the status picker's tiles. Emergency is always first: the room's own row, or a built-in tile when the
  * list failed with no cached copy (the write then resolves the room's Emergency id). Clear status only when my
  * current status is known and set. The error line shows whenever the last read failed.

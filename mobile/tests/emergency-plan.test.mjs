@@ -145,3 +145,27 @@ test('emergenciesFolded: UX2-30 folds three or more in chat until Show', async (
   assert.equal(emergenciesFolded({ place: 'chat', count: 3, shown: true }), false);
   assert.equal(emergenciesFolded({ place: 'other', count: 5, shown: false }), false);
 });
+
+test('UX2-52 server guard: PT409 emergency_active maps to its own copy (code AND message; PT409 alone is room full)', async () => {
+  const { isEmergencyActiveError } = await import('../src/lib/emergency-plan.ts');
+  const { readFileSync } = await import('node:fs');
+  const { en } = await import('../src/i18n/en.ts');
+  assert.equal(isEmergencyActiveError({ code: 'PT409', message: 'emergency_active' }), true);
+  assert.equal(isEmergencyActiveError({ code: 'PT409', message: 'Room is full' }), false);
+  assert.equal(isEmergencyActiveError({ code: 'P0001', message: 'emergency_active' }), false);
+  assert.equal(isEmergencyActiveError(null), false);
+  assert.equal(en.activity.emergencyActiveError, "You're still in Emergency. Tap I'm OK now first.");
+  // Both pickers reopen with the line in errorText under the title instead of the generic alert.
+  const picker = readFileSync(new URL('../src/components/status-picker.tsx', import.meta.url), 'utf8');
+  assert.match(picker, /\{notice \? \(\s*<Text style=\{styles\.failedText\}/);
+  assert.ok(picker.indexOf('{notice ?') > picker.indexOf('<HandTitle'));
+  for (const f of ['../src/features/chat/plus-panel.tsx', '../src/features/pace/pace-layer.tsx']) {
+    const c = readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.match(c, /if \(isEmergencyActiveNotice\(e\)\) \{\s*setNotice\(errorMessage\(e\)\);\s*setPicking\(true\);/, f);
+    assert.match(c, /notice=\{notice\}/, f);
+  }
+  const src = readFileSync(new URL('../src/lib/activity.ts', import.meta.url), 'utf8');
+  const set = src.slice(src.indexOf('const setStatus = useCallback'), src.indexOf('const setEmergency'));
+  // Reload first (the picker then shows "I'm OK now"), then throw app copy that errorMessage passes through.
+  assert.match(set, /isEmergencyActiveError\(error\)\) \{\s*(\/\/.*\s*)*await reload\(\)\.catch\(\(\) => \{\}\);\s*throw appError\(en\.activity\.emergencyActiveError\);/);
+});

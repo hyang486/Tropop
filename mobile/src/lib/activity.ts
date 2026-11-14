@@ -3,6 +3,8 @@ import { AppState } from 'react-native';
 
 import { en } from '@/i18n/en';
 import type { Tables } from './database.types';
+import { isEmergencyActiveError } from './emergency-plan';
+import { appError } from './errors';
 import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
 
@@ -153,6 +155,12 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
   const setStatus = useCallback(
     async (statusId: string) => {
       const { error } = await supabase.rpc('set_my_status', { p_room_id: roomId, p_status_id: statusId });
+      if (error && isEmergencyActiveError(error)) {
+        // UX2-52 server guard: my Emergency is still on (a race or stale list). Reload so the picker shows
+        // "I'm OK now", then say why instead of the generic error (PT409 alone would read as "room full").
+        await reload().catch(() => {});
+        throw appError(en.activity.emergencyActiveError);
+      }
       if (error) throw error;
       await reload();
     },
