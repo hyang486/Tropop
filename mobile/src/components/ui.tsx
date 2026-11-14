@@ -90,6 +90,9 @@ export const colors = {
   grabber: themed('grabber'),
   /** UX2-48: cards, fields and bubbles on a pageSheet screen (light #F6F6F2 as before; dark #2C2C2E on #1C1C1E). */
   sheetField: themed('sheetCard'),
+  /** UX2-84: badges on photos (video badge). Fixed, not themed: they sit on the image, not on paper. */
+  photoScrim: 'rgba(0,0,0,0.55)',
+  onPhotoScrim: '#FFFFFF',
 };
 
 /** UX2-45: one look for every custom bottom sheet: scrim, 16 pt top radius on `sheet`, a 36×5 grabber. */

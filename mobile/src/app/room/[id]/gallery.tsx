@@ -405,7 +405,7 @@ function Tile({ media, size, token, label }: { media: Media; size: number; token
         )}
         {media.kind === 'video' ? (
           <View style={styles.badge}>
-            <SymbolView name="play.fill" size={12} tintColor="white" />
+            <SymbolView name="play.fill" size={12} tintColor={colors.onPhotoScrim} />
           </View>
         ) : null}
       </Pressable>
@@ -571,6 +571,6 @@ const styles = StyleSheet.create({
     bottom: 6,
     padding: 4,
     borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: colors.photoScrim,
   },
 });

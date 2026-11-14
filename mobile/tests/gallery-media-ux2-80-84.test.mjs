@@ -43,3 +43,13 @@ test('UX2-83: the gallery title is always "Photos & files"; an ended read shows 
   assert.equal(en.media.title, 'Photos & files');
   assert.match(gallery, /if \(errorKind\(e\) === 'ended'\) setGone\(true\);/);
 });
+
+test('UX2-84: the video badge uses the fixed photoScrim / onPhotoScrim tokens; the themed scrim is unchanged', () => {
+  const ui = readFileSync(new URL('../src/components/ui.tsx', import.meta.url), 'utf8');
+  assert.match(ui, /photoScrim: 'rgba\(0,0,0,0\.55\)',/);
+  assert.match(ui, /onPhotoScrim: '#FFFFFF',/);
+  assert.match(ui, /scrim: themed\('scrim'\),/);
+  assert.match(gallery, /tintColor=\{colors\.onPhotoScrim\}/);
+  assert.match(gallery, /backgroundColor: colors\.photoScrim,/);
+  assert.doesNotMatch(gallery, /rgba\(0,0,0,0\.55\)|tintColor="white"/);
+});
