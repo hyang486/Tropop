@@ -50,3 +50,10 @@ test('C39 Map: the bar uses the Emergency presence source, enabled by an open Em
   assert.equal(locationLineState({ shared: false, loaded: true, error: false, late: true }), 'none');
   assert.equal(locationLineState({ shared: false, loaded: false, error: true, late: true }), 'failed');
 });
+
+test('C39 VO: the location part runs through spokenSeparators; own Emergency speaks "Your last location"', async () => {
+  const { spokenSeparators } = await import('../src/lib/emergency-plan.ts');
+  assert.match(src, /spokenSeparators\(\s*mine\s*\? en\.activity\.yourLastLocation\(formatAge\(location\.updatedAt, now\)\)\s*: en\.activity\.lastLocation\(/);
+  assert.equal(spokenSeparators(en.activity.lastLocation('just now')), 'Last location shared, just now');
+  assert.equal(spokenSeparators(en.activity.yourLastLocation('just now')), 'Your last location, just now');
+});
