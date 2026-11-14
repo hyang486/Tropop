@@ -23,8 +23,6 @@ export const en = {
     title: "What's your name?",
     who: 'Only the people in your rooms can see it.\nYou can join without creating an account.',
     submit: 'Join as guest',
-    // UX2-28: Join stays off until a name is typed.
-    namePlaceholder: 'Your name',
   },
   signIn: {
     title: 'Log in',
@@ -54,7 +52,11 @@ export const en = {
   fields: {
     email: 'Email address',
     password: 'Password',
-    passwordHint: 'At least 6 characters',
+    // UX3-A05: the password rule as a helper under the field, the eye button and example placeholders.
+    passwordHelper: 'At least 6 characters.',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    emailExample: 'name@example.com',
     name: 'Display name',
   },
   home: {

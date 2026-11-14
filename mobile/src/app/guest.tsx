@@ -46,7 +46,7 @@ export default function Guest() {
     >
       <QField
         label={en.fields.name}
-        placeholder={en.guest.namePlaceholder}
+        labelAbove
         value={name}
         onChangeText={setName}
         maxLength={40}

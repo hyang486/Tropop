@@ -28,12 +28,14 @@ import {
   View,
 } from 'react-native';
 import { useIsFocused } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtFitContext, type ArtFit } from '@/components/art-fit';
 import { HandTitle } from '@/components/hand-title';
 import { useInlineHeaderTitle } from '@/components/inline-header-title';
 import { colors, usePalette } from '@/components/ui';
+import { en } from '@/i18n/en';
 import { QSCREEN_FLOATING_CLEARANCE } from '@/features/event/qrewing-fab-size';
 import { artHidden, keyboardOverlap, revealScrollY, type Span } from '@/lib/keyboard-plan';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
@@ -413,17 +415,57 @@ export function QCard({ children, row }: { children: ReactNode; row?: boolean })
 /**
  * Q text field (Q 01.02, 02.01): white with a thin border, the label shown as the placeholder and read by
  * VoiceOver as the field's name.
+ * UX3-A05: `labelAbove` shows the label above the field (13 pt semibold ink2, 6 pt gap) instead of as the
+ * placeholder, so it stays once you type; `placeholder` is then an example only. `helper` is a 13 pt ink2 line
+ * 6 pt below (read with the field). A `secureTextEntry` field with `labelAbove` gets a 44 pt show-password eye.
  */
-export function QField({ label, style, ...props }: ComponentProps<typeof TextInput> & { label: string }) {
-  return (
+export function QField({
+  label,
+  labelAbove,
+  helper,
+  style,
+  secureTextEntry,
+  ...props
+}: ComponentProps<typeof TextInput> & { label: string; labelAbove?: boolean; helper?: string }) {
+  const [shown, setShown] = useState(false);
+  const eye = labelAbove && secureTextEntry;
+  const input = (
     <TextInput
       selectionColor={colors.label}
-      placeholder={label}
+      placeholder={labelAbove ? undefined : label}
       placeholderTextColor={colors.secondaryLabel}
       accessibilityLabel={label}
-      style={[styles.field, use(OnSheet) && styles.fieldOnSheet, style]}
+      accessibilityHint={helper}
+      secureTextEntry={secureTextEntry && !shown}
+      style={[styles.field, use(OnSheet) && styles.fieldOnSheet, eye && styles.fieldWithEye, style]}
       {...props}
     />
+  );
+  if (!labelAbove) return input;
+  return (
+    <View style={styles.fieldBlock}>
+      <Text style={styles.fieldLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {label}
+      </Text>
+      <View>
+        {input}
+        {eye ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={shown ? en.fields.hidePassword : en.fields.showPassword}
+            onPress={() => setShown((v) => !v)}
+            style={styles.eye}
+          >
+            <SymbolView name={shown ? 'eye.slash' : 'eye'} size={20} tintColor={colors.ink2} />
+          </Pressable>
+        ) : null}
+      </View>
+      {helper ? (
+        <Text style={styles.fieldHelper} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          {helper}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -472,6 +514,11 @@ const styles = StyleSheet.create({
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardOnSheet: { backgroundColor: colors.sheetField },
   fieldOnSheet: { backgroundColor: colors.sheet },
+  fieldBlock: { gap: 6 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
+  fieldHelper: { fontSize: 13, color: colors.ink2 },
+  fieldWithEye: { paddingRight: 48 },
+  eye: { position: 'absolute', right: 2, top: 2, bottom: 2, width: 44, alignItems: 'center', justifyContent: 'center' },
   field: {
     minHeight: 48,
     borderWidth: StyleSheet.hairlineWidth * 2,

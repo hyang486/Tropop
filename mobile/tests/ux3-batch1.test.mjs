@@ -29,3 +29,17 @@ test('UX3-A07: account wording is only Log in and Create account', () => {
   assert.match(src('components/host-account-form.tsx'), /mode === 'upgrade' \? en\.hostAccount\.upgradeSubtitle/);
   assert.match(src('app/profile.tsx'), /isGuest \? en\.profile\.guestAccount : \(session\?\.user\.email \?\? undefined\)/);
 });
+
+test('UX3-A05: labels sit above the fields on Log in, Create account, Guest and Create room', () => {
+  const q = src('components/q-screen.tsx');
+  assert.match(q, /placeholder=\{labelAbove \? undefined : label\}/);
+  assert.match(q, /secureTextEntry=\{secureTextEntry && !shown\}/);
+  assert.match(q, /fieldLabel: \{ fontSize: 13, fontWeight: '600', color: colors\.ink2 \}/);
+  assert.match(q, /fieldBlock: \{ gap: 6 \}/);
+  const form = src('components/host-account-form.tsx');
+  assert.equal(form.match(/labelAbove/g)?.length, 3);
+  assert.match(form, /helper=\{isNew \? en\.fields\.passwordHelper : undefined\}/);
+  assert.match(form, /placeholder=\{en\.fields\.emailExample\}/);
+  assert.match(src('app/guest.tsx'), /labelAbove/);
+  assert.match(src('app/create-room.tsx'), /labelAbove\n\s+placeholder=\{en\.createRoom\.namePlaceholder\}/);
+});

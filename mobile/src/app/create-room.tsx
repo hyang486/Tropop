@@ -370,6 +370,8 @@ export default function CreateRoom() {
     >
       <QField
         label={en.createRoom.nameLabel}
+        labelAbove
+        placeholder={en.createRoom.namePlaceholder}
         value={name}
         onChangeText={setName}
         maxLength={60}

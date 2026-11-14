@@ -66,6 +66,7 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
       {isNew && (
         <QField
           label={en.fields.name}
+          labelAbove
           value={name}
           onChangeText={setName}
           maxLength={40}
@@ -78,6 +79,8 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
       <QField
         ref={emailRef}
         label={en.fields.email}
+        labelAbove
+        placeholder={en.fields.emailExample}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -91,7 +94,9 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
       />
       <QField
         ref={passwordRef}
-        label={isNew ? `${en.fields.password} (${en.fields.passwordHint.toLowerCase()})` : en.fields.password}
+        label={en.fields.password}
+        labelAbove
+        helper={isNew ? en.fields.passwordHelper : undefined}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
