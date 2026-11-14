@@ -22,5 +22,23 @@ test('the copy is the approved line', () => {
 test('runJob maps both the insert and the ready update through the room-space check', () => {
   const src = readFileSync(new URL('../src/lib/media.ts', import.meta.url), 'utf8');
   const fn = src.slice(src.indexOf('export async function runJob'), src.indexOf('App-wide upload queue'));
-  assert.equal(fn.match(/throw new Error\(uploadErrorText\(error\)\)/g)?.length, 2);
+  assert.equal(fn.match(/throw uploadError\(error\)/g)?.length, 2);
+  // UX2-06: the wrapper keeps the dead end, so a full room or bad file never offers Retry.
+  assert.match(fn, /deadEnd: deadEndOf\(e\)/);
+});
+
+test('UX2-06: dead-end uploads carry their kind and the right next step', async () => {
+  const { deadEndError, deadEndOf, deadEndStep } = await import('../src/lib/storage-cap.ts');
+  assert.equal(deadEndOf(deadEndError('storage', 'x')), 'storage');
+  assert.equal(deadEndOf(deadEndError('file', 'x')), 'file');
+  assert.equal(deadEndOf(new Error('offline')), undefined);
+  assert.equal(deadEndOf(null), undefined);
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: false }), 'plus');
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: true }), null);
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: null }), null);
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: false, hostPlus: null }), 'ask-host');
+  assert.equal(deadEndStep({ deadEnd: 'file', isHost: false, hostPlus: null }), null);
+  assert.equal(en.media.outOfSpace, 'This room is out of space.');
+  assert.equal(en.media.askHostSpace, 'Ask the host to free up space.');
+  assert.equal(en.media.cantUpload, "This file can't be uploaded.");
 });

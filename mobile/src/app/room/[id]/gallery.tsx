@@ -46,6 +46,8 @@ import {
 import { takeSaved } from '@/lib/media-plan';
 import { confirmOriginalsNotice } from '@/lib/originals-notice';
 import { useRoomEvents } from '@/lib/room-channel';
+import { deadEndStep } from '@/lib/storage-cap';
+import { usePlusPreview } from '@/features/calendar/calendar-store';
 import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useNow } from '@/lib/use-now';
@@ -85,6 +87,9 @@ export default function GalleryScreen() {
   const [filter, setFilter] = useState<GalleryFilter>(initialFilter === 'me' ? 'me' : 'all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
+  // UX2-06: a Free host's out-of-space row offers "See Plus"; the room's plan is the host's.
+  const isHost = !!room && room.host_id === userId;
+  const hostPlus = usePlusPreview(isHost ? userId : null);
   // G-U6-1: the room read came back empty (RLS hides a room once it ends or expires, or after a leave).
   const [gone, setGone] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -195,6 +200,8 @@ export default function GalleryScreen() {
                 onDismiss={() => uploads.dismiss(job.id)}
                 onCancel={() => confirmCancel(job)}
                 closed={grace.grace}
+                step={job.deadEnd ? deadEndStep({ deadEnd: job.deadEnd, isHost, hostPlus }) : null}
+                onSeePlus={() => router.push({ pathname: '/plan-preview', params: { from: 'storage' } })}
               />
             ))}
           </View>
@@ -364,7 +371,12 @@ function UploadRow({
   onDismiss,
   onCancel,
   closed,
+  step,
+  onSeePlus,
 }: {
+  /** UX2-06: the next step on a dead-end row (no Retry). */
+  step: 'plus' | 'ask-host' | null;
+  onSeePlus: () => void;
   job: UploadJob;
   onRetry: () => void;
   onDismiss: () => void;
@@ -373,27 +385,35 @@ function UploadRow({
   closed?: boolean;
 }) {
   const failed = job.state === 'failed';
+  // UX2-06 (pattern D): out of space or a bad file is not red and has no Retry.
+  const deadEnd = failed && !closed ? job.deadEnd : undefined;
   const pct = Math.round(job.progress * 100);
   const size = formatBytes(job.item.size);
-  const status = failed
-    ? closed
-      ? `${en.media.uploadFailed}: ${en.qrewing.grace.writeClosed}`
-      : `${en.media.uploadFailed}: ${job.error ?? ''}`
-    : job.state === 'queued'
-      ? en.media.waiting
-      : en.media.uploading(pct);
+  const status = deadEnd
+    ? deadEnd === 'storage'
+      ? step === 'ask-host'
+        ? `${en.media.outOfSpace} ${en.media.askHostSpace}`
+        : en.media.outOfSpace
+      : en.media.cantUpload
+    : failed
+      ? closed
+        ? `${en.media.uploadFailed}: ${en.qrewing.grace.writeClosed}`
+        : `${en.media.uploadFailed}: ${job.error ?? ''}`
+      : job.state === 'queued'
+        ? en.media.waiting
+        : en.media.uploading(pct);
   return (
     <View style={styles.job} accessibilityLiveRegion="polite">
       <SymbolView
-        name={failed ? 'exclamationmark.triangle.fill' : job.item.kind === 'video' ? 'video' : job.item.kind === 'file' ? 'doc' : 'photo'}
+        name={deadEnd ? 'exclamationmark.circle' : failed ? 'exclamationmark.triangle.fill' : job.item.kind === 'video' ? 'video' : job.item.kind === 'file' ? 'doc' : 'photo'}
         size={20}
-        tintColor={failed ? colors.danger : colors.secondaryLabel}
+        tintColor={failed && !deadEnd ? colors.danger : colors.secondaryLabel}
       />
       <View style={styles.jobText}>
         <Text numberOfLines={1} style={styles.jobName}>
           {size ? `${job.item.fileName} · ${size}` : job.item.fileName}
         </Text>
-        <Text numberOfLines={3} style={[styles.jobStatus, failed && { color: colors.danger }]} selectable={failed}>
+        <Text numberOfLines={3} style={[styles.jobStatus, failed && !deadEnd && { color: colors.danger }]} selectable={failed && !deadEnd}>
           {status}
         </Text>
         {!failed ? (
@@ -408,7 +428,13 @@ function UploadRow({
       </View>
       {failed ? (
         <View style={styles.jobActions}>
-          {closed ? null : (
+          {deadEnd ? (
+            step === 'plus' ? (
+              <Pressable onPress={onSeePlus} accessibilityRole="button" hitSlop={6}>
+                <Text style={styles.action}>{en.media.seePlus}</Text>
+              </Pressable>
+            ) : null
+          ) : closed ? null : (
             <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={6}>
               <Text style={styles.action}>{en.media.retry}</Text>
             </Pressable>

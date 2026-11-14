@@ -32,7 +32,7 @@ import {
   roomSummary,
   sharedBody,
 } from './upload-plan';
-import { isRoomStorageFull } from './storage-cap';
+import { deadEndError, deadEndOf, isRoomStorageFull, type UploadDeadEnd } from './storage-cap';
 
 // G9 F2: the gallery tells camera problems apart from upload failures.
 export { CameraError };
@@ -192,6 +192,8 @@ export type UploadJob = QueueJob & {
   previewPath: string | null;
   /** True once the media row exists on the server (retries update it instead of inserting). */
   rowCreated: boolean;
+  /** UX2-06: set when the failure cannot be fixed by retrying (room out of space, file gone or empty). */
+  deadEnd?: UploadDeadEnd;
 };
 
 async function makePreview(item: PickedItem): Promise<string | null> {
@@ -272,9 +274,9 @@ export function createJob(roomId: string, uploaderId: string, item: PickedItem):
   };
 }
 
-/** Capacity option B: a full room reads as the room-space copy; anything else keeps the server text. */
-function uploadErrorText(error: { code?: string; message: string }): string {
-  return isRoomStorageFull(error) ? en.media.roomStorageFull : error.message;
+/** Capacity option B / UX2-06: a full room is a dead end (no Retry) with the room-space copy; else the server text. */
+function uploadError(error: { code?: string; message: string }): Error {
+  return isRoomStorageFull(error) ? deadEndError('storage', en.media.roomStorageFull) : new Error(error.message);
 }
 
 /**
@@ -286,9 +288,9 @@ function uploadErrorText(error: { code?: string; message: string }): string {
 export async function runJob(job: UploadJob, onProgress: (fraction: number) => void, signal?: AbortSignal): Promise<UploadJob> {
   const { item } = job;
   const file = new File(item.uri);
-  if (!file.exists) throw new Error(en.errors.fileGone);
+  if (!file.exists) throw deadEndError('file', en.errors.fileGone);
   const size = Number(file.size ?? 0);
-  if (size <= 0) throw new Error(en.media.emptyFile);
+  if (size <= 0) throw deadEndError('file', en.media.emptyFile);
   if (size > MAX_MEDIA_BYTES) throw new Error(en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
 
   let rowCreated = job.rowCreated;
@@ -313,7 +315,7 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
       size_bytes: size,
       status: 'uploading',
     });
-    if (error) throw new Error(uploadErrorText(error));
+    if (error) throw uploadError(error);
     rowCreated = true;
   }
 
@@ -336,12 +338,13 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
     const { error } = await supabase.from('media').update({ status: 'ready' }).eq('id', job.id);
     // A full room (PT507) at 'ready' leaves the uploaded object behind; clients cannot delete room-media, so
     // room-janitor removes it at expiry. The row is marked failed below.
-    if (error) throw new Error(uploadErrorText(error));
+    if (error) throw uploadError(error);
     onProgress(1);
     return { ...job, rowCreated, previewPath };
   } catch (e) {
     await supabase.from('media').update({ status: 'failed' }).eq('id', job.id);
     throw Object.assign(isAbortError(e) ? abortError() : new Error(errorMessage(e)), {
+      deadEnd: deadEndOf(e),
       job: { ...job, rowCreated, previewPath },
     });
   }
@@ -402,7 +405,7 @@ async function pump() {
       const current = job;
       const controller = new AbortController();
       controllers.set(current.id, controller);
-      setJobs((js) => patchJob(js, current.id, { state: 'uploading', progress: 0, error: undefined }));
+      setJobs((js) => patchJob(js, current.id, { state: 'uploading', progress: 0, error: undefined, deadEnd: undefined }));
       try {
         await runJob(current, (f) => setJobs((js) => applyProgress(js, current.id, f)), controller.signal);
         const done = { ...store.done, [current.roomId]: (store.done[current.roomId] ?? 0) + 1 };
@@ -418,7 +421,7 @@ async function pump() {
           const failed = (e as { job?: UploadJob }).job ?? current;
           setJobs((js) =>
             js.some((j) => j.id === current.id)
-              ? patchJob(js, current.id, { ...failed, state: 'failed', error: errorMessage(e) })
+              ? patchJob(js, current.id, { ...failed, state: 'failed', error: errorMessage(e), deadEnd: deadEndOf(e) })
               : js,
           );
         }

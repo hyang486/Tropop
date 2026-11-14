@@ -404,6 +404,11 @@ export const en = {
     emptyFile: 'The selected file is empty.',
     // Capacity option B (0033 PT507): the room's storage cap by the host's plan.
     roomStorageFull: "This room's space is full. Only files that fit the space left can be added.",
+    // UX2-06 (pattern D): dead-end upload rows; no Retry.
+    outOfSpace: 'This room is out of space.',
+    askHostSpace: 'Ask the host to free up space.',
+    cantUpload: "This file can't be uploaded.",
+    seePlus: 'See Plus',
     tooLarge: (limit: string, size: string) => `Files up to ${limit} can be shared. This one is ${size}.`,
     tooLargeTitle: 'Too large to share',
     tooLargeSkipped: (limit: string, list: string) =>
