@@ -19,7 +19,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, emergencyBarMode, emergenciesFolded, seenSummary, spokenSentence } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, emergencyBarMode, emergenciesFolded, seenSummary, spokenSentence, spokenSeparators } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
@@ -202,7 +202,7 @@ export function EmergencyAlerts({
         const spoken = spokenSentence([
           title,
           timeOf(e.createdAt),
-          seen === 0 ? en.activity.waitingSeen : en.activity.seenByNames(who, seen, recipients),
+          seen === 0 ? en.activity.waitingSeen : spokenSeparators(en.activity.seenByNames(who, seen, recipients)),
           location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
         ]);
         return (

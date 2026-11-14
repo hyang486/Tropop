@@ -107,3 +107,8 @@ export function spokenSentence(parts: string[]): string {
   const kept = parts.map((p) => p.trim().replace(/\.+$/, '')).filter(Boolean);
   return kept.length ? `${kept.join('. ')}.` : '';
 }
+
+/** UX2-77c: VoiceOver reads "·" inconsistently, so spoken labels use ", " in its place. Visible text keeps "·". */
+export function spokenSeparators(text: string): string {
+  return text.replace(/\s*·\s*/g, ', ');
+}
