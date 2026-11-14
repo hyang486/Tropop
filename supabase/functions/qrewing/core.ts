@@ -155,6 +155,8 @@ export type RoomInfo = {
   graceUntil: string | null;
   placeName: string | null;
   startsAt: string | null;
+  /** rooms.public_location: the Open chat area every member sees on the room row; null for private rooms. */
+  openArea: string | null;
 };
 export type Msg = { id: string; roomId: string; kind: string; senderId: string | null; body: string | null; createdAt: string };
 export type TriageRow = { messageId: string; state: 'pending' | 'done' | 'skipped'; important: boolean | null; reason: string | null; updatedAt: string };
@@ -1393,6 +1395,7 @@ function askFacts(room: RoomInfo, extras: RoomExtras, memberCount: number, tz: s
     roomName: room.name,
     roomType: room.type,
     placeName: room.placeName,
+    openArea: room.openArea,
     startsAt: room.startsAt ? friendlyTime(room.startsAt, tz, now, lang) : null,
     endsAt: friendlyTime(room.expiresAt, tz, now, lang),
     now: friendlyTime(now.toISOString(), tz, now, lang, true),

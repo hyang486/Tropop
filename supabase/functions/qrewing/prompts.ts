@@ -246,6 +246,8 @@ export const ASK_SYSTEM = [
   'location: say you cannot see where they are. <lead_group known="false"/> means the order is unknown: give only',
   'the distances from the asker and never say who is or is not in the lead group. Mention a route only when',
   'progress_from="route"; otherwise there is no route: describe progress as progress_means says.',
+  '<open_chat_area> is the area this public Open chat room is listed under; it is where the room is when there is no',
+  '<place>.',
   'If the data does not contain the answer, do not guess: set needs_human to true, and set contact to the exact name of',
   'one other member (as shown on a chat line) who talked about this topic, or "" when nobody did (the host is asked',
   'then). Otherwise set needs_human to false and contact to "". Never invent times, places,',
@@ -258,6 +260,7 @@ export type AskFacts = {
   roomName: string;
   roomType: string;
   placeName: string | null;
+  openArea: string | null;
   startsAt: string | null;
   endsAt: string;
   now: string;
@@ -332,6 +335,7 @@ export function askUser(a: AskInput): string {
     `<room_name>${esc(f.roomName)}</room_name>`,
     `<room_type>${esc(f.roomType)}</room_type>`,
     f.placeName ? `<place>${esc(f.placeName)}</place>` : '',
+    f.openArea ? `<open_chat_area>${esc(f.openArea)}</open_chat_area>` : '',
     f.startsAt ? `<starts_at>${esc(f.startsAt)}</starts_at>` : '',
     `<ends_at>${esc(f.endsAt)}</ends_at>`,
     `<now>${esc(f.now)}</now>`,

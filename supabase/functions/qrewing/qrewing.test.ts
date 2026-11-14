@@ -120,6 +120,7 @@ function world(over: Partial<World> = {}): World {
       graceUntil: null,
       placeName: 'Lake Merritt',
       startsAt: iso(-3600_000),
+      openArea: null,
     },
     members: [HOST, BOB, CAT],
     aiEnabled: true,
@@ -1804,4 +1805,20 @@ test('Free caller: ask and match 402 plan_limit in AI-on and AI-off rooms, also 
     const r = await run(world({ aiEnabled, plans: {} }), other.m, BOB, { action: 'recap', roomId: ROOM });
     assert.notEqual(r.status, 402);
   }
+});
+
+test('Open chat area (rooms.public_location) reaches the Ask prompt in the AI-on and AI-off paths; absent for private rooms', async () => {
+  for (const aiEnabled of [true, false]) {
+    const w = PROMPT_WORLD();
+    w.aiEnabled = aiEnabled;
+    w.room = { ...w.room, placeName: null, openArea: 'Golden Gate' };
+    const { m, calls } = model(answer('In the Golden Gate area.'));
+    assert.equal((await run(w, m, BOB, PROMPT_BODY)).status, 200);
+    assert.ok(calls[0].user.includes('<open_chat_area>Golden Gate</open_chat_area>'), `area missing (ai ${aiEnabled})`);
+    assert.ok(!calls[0].user.includes('<place>'), 'no place tag without a place');
+    assert.ok(calls[0].system.includes('<open_chat_area>'), 'system explains the area tag');
+  }
+  const { m, calls } = model(answer('At Lake Merritt.'));
+  await run(PROMPT_WORLD(), m, BOB, PROMPT_BODY);
+  assert.ok(!calls[0].user.includes('<open_chat_area>'), 'private room has no area tag');
 });

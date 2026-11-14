@@ -86,7 +86,7 @@ function createStore(admin: any): QrewingStore {
       const r = must(
         await admin
           .from('rooms')
-          .select('id, name, type, host_id, expires_at, deleted_at, grace_until, place_name, starts_at')
+          .select('id, name, type, host_id, expires_at, deleted_at, grace_until, place_name, starts_at, public_location')
           .eq('id', roomId)
           .maybeSingle(),
         'room',
@@ -102,6 +102,7 @@ function createStore(admin: any): QrewingStore {
             graceUntil: r.grace_until,
             placeName: r.place_name,
             startsAt: r.starts_at,
+            openArea: r.public_location,
           }
         : null;
     },
