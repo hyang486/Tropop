@@ -35,6 +35,10 @@ test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   assert.match(p, /isPlanLimit\(next\.error\) && uid\) refreshPlus\(uid\)/);
   assert.match(p, /if \(!skip\) run\(\);/);
   assert.doesNotMatch(p, /QLink/);
+  // The consent gate never saves consent itself: Agree opens the disclosure sheet, which saves and then refreshes.
+  assert.doesNotMatch(p, /setQrewingMember/);
+  assert.match(p, /gate === 'consent' \? \(\s*<Button title=\{s\.agree\} onPress=\{\(\) => setConsent\(true\)\} \/>/);
+  assert.match(p, /<DisclosureSheet\s*roomId=\{id\}\s*visible=\{consent\}\s*onDone=\{\(\) => \{\s*setConsent\(false\);\s*refresh\(\);/);
   const info = src('features/event/info-section.tsx');
   assert.match(info, /subtitle=\{plus === false \? s\.peopleToMeetPlus : undefined\}/);
   assert.match(info, /plus === false\s*\? router\.push\(plusIntroHref\('people'\)\)/);

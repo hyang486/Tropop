@@ -10,6 +10,7 @@ import { refreshPlus, usePlusPreview } from '@/features/calendar/calendar-store'
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { Button, colors, Hint } from '@/components/ui';
 
+import { DisclosureSheet } from './disclosure-sheet';
 import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
 import { QrewingHeaderButton, useQrewingAskButton } from './qrewing-fab';
@@ -18,7 +19,6 @@ import {
   type MatchResult,
   type QrewingError,
   requestMatches,
-  setQrewingMember,
   useEntryQuestions,
   useQrewingRoom,
 } from './qrewing-api';
@@ -73,8 +73,8 @@ export function PeopleScreen() {
   const plus = usePlusPreview(uid);
   const skip = plus === false;
   const [state, setState] = useState<State>({ status: 'loading' });
-  const [agreeing, setAgreeing] = useState(false);
-  const [agreeError, setAgreeError] = useState<string | null>(null);
+  // The consent gate's Agree opens the disclosure first, like every other consent entry; the sheet saves the answer.
+  const [consent, setConsent] = useState(false);
   // Only the newest request may set the state (a Refresh after leaving, or two quick taps, must not).
   const latest = useRef(0);
   // The last list shown, kept while a 202 pending answer is re-asked.
@@ -129,14 +129,6 @@ export function PeopleScreen() {
 
   const notConsented = q.me !== null && !q.me.aiOk;
   const gate = peopleGate({ plus, error: state.status === 'error' ? state.error : null, notConsented });
-  const agree = async () => {
-    setAgreeing(true);
-    setAgreeError(null);
-    const res = await setQrewingMember(id, true, false);
-    setAgreeing(false);
-    if (res.error) setAgreeError(res.offline ? en.qrewing.errors.network : en.qrewing.info.saveFailed);
-    else refresh();
-  };
   const questions = useEntryQuestions(id);
   const empty = peopleEmpty({
     status: state.status,
@@ -156,7 +148,7 @@ export function PeopleScreen() {
             onPress={() => router.push(plusIntroHref('people'))}
           />
         ) : gate === 'consent' ? (
-          <Button title={s.agree} onPress={agree} busy={agreeing} />
+          <Button title={s.agree} onPress={() => setConsent(true)} />
         ) : empty === 'noQuestions' ? undefined : empty === 'noEntry' ? (
           <Button
             title={en.qrewing.info.addEntry}
@@ -176,13 +168,19 @@ export function PeopleScreen() {
         }}
       />
       {ask.sheet}
+      <DisclosureSheet
+        roomId={id}
+        visible={consent}
+        onDone={() => {
+          setConsent(false);
+          refresh();
+        }}
+        onClose={() => setConsent(false)}
+      />
       {gate === 'plus' ? (
         <EmptyState art="meetup" artWidth={160} title={s.plusTitle} body={s.plus} />
       ) : gate === 'consent' ? (
-        <>
-          <EmptyState art="meetup" artWidth={160} title={s.consentTitle} body={s.notConsented} />
-          {agreeError ? <Hint tone="error">{agreeError}</Hint> : null}
-        </>
+        <EmptyState art="meetup" artWidth={160} title={s.consentTitle} body={s.notConsented} />
       ) : state.status === 'loading' ? (
         <View style={styles.center}>
           <ActivityIndicator />
