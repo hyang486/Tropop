@@ -694,8 +694,10 @@ export const en = {
     ctaAlertTitle: 'Preview only',
     ctaAlertBody: 'Purchases are not available in this version. No payment is taken and your plan stays Free.',
     profileLink: 'Plus plan preview',
-    tryPreview: 'Try Plus preview on this phone',
-    tryPreviewHint: 'Turns on Plus features such as the Qrewing diary for this account on this phone only. No payment, nothing is bought.',
+    tryPreview: 'Try Plus preview',
+    tryPreviewHint: 'Turns on Plus features such as the Qrewing diary for this account. No payment, nothing is bought.',
+    saveFailedTitle: 'Could not change your plan',
+    saveFailedBody: 'Check your connection and try again.',
   },
   calendar: {
     title: 'Qrewing Calendar',

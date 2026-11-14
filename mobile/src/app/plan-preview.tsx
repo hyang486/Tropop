@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button, colors, Hint, Screen } from '@/components/ui';
@@ -7,13 +8,21 @@ import { useAuth } from '@/lib/auth';
 
 /**
  * Plus plan preview (APP_CONCEPT_KO: plan and benefit demo only).
- * No purchase, billing, StoreKit or server entitlement is connected. Free values are the current
+ * No purchase, billing or StoreKit is connected; the preview switch saves the plan via set_my_plan (0032). Free values are the current
  * app limits; Plus price, capacity and duration are undecided, so they are shown as TBD.
  */
 export default function PlanPreview() {
   const t = en.planPreview;
   const uid = useAuth().session?.user.id;
   const on = usePlusPreview(uid);
+  const [saving, setSaving] = useState(false);
+  const onToggle = async (v: boolean) => {
+    if (!uid || saving) return;
+    setSaving(true);
+    const ok = await setPlusPreview(uid, v);
+    setSaving(false);
+    if (!ok) Alert.alert(t.saveFailedTitle, t.saveFailedBody);
+  };
   return (
     <Screen>
       <View style={styles.badge} accessibilityRole="text">
@@ -45,7 +54,12 @@ export default function PlanPreview() {
       {uid ? (
         <View style={styles.previewRow}>
           <Text style={styles.previewLabel}>{t.tryPreview}</Text>
-          <Switch value={!!on} onValueChange={(v) => void setPlusPreview(uid, v)} accessibilityLabel={t.tryPreview} />
+          <Switch
+            value={!!on}
+            disabled={saving || on === null}
+            onValueChange={(v) => void onToggle(v)}
+            accessibilityLabel={t.tryPreview}
+          />
         </View>
       ) : null}
       <Hint>{t.tryPreviewHint}</Hint>
