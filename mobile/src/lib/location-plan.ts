@@ -1238,3 +1238,8 @@ export function avatarPillAnchor(lines: number, where: 'above' | 'below'): Ancho
   const clear = AVATAR_PIN_RADIUS + AVATAR_RING_WIDTH + LABEL_GAP;
   return where === 'above' ? { x: 0.5, y: 1 + clear / height } : { x: 0.5, y: -clear / height };
 }
+
+/** Sweep fix 4: delay before the next watch start after a failure: 2 s, 4 s, 8 s ... capped at 60 s. */
+export function watchRetryDelayMs(attempt: number): number {
+  return Math.min(2000 * 2 ** Math.max(0, attempt), 60_000);
+}

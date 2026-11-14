@@ -22,6 +22,7 @@ import {
   shouldReport,
   toRoutePayload,
   withTimeout,
+  watchRetryDelayMs,
 } from './location-plan';
 import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
@@ -419,6 +420,9 @@ export function useLocationReporter({
     let cancelled = false;
     let watch: Location.LocationSubscription | null = null;
     let heartbeat: ReturnType<typeof setInterval> | null = null;
+    /** Sweep fix 4: a failed watch start is tried again with a capped backoff while the error says "Retrying…". */
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let watchAttempt = 0;
     let lastSent: Fix | null = null;
     /** Device timestamp of the last reported reading: a reading not newer than this is never re-sent. */
     let lastSentReadingMs: number | null = null;
@@ -433,6 +437,8 @@ export function useLocationReporter({
       watch = null;
       if (heartbeat) clearInterval(heartbeat);
       heartbeat = null;
+      if (retry) clearTimeout(retry);
+      retry = null;
     };
 
     const permissionLost = async () => {
@@ -519,8 +525,9 @@ export function useLocationReporter({
       if (fix) await report(fix);
     };
 
-    (async () => {
-      setState('starting');
+    const startWatch = async () => {
+      retry = null;
+      if (watchAttempt === 0) setState('starting');
       if (!(await hasForegroundPermission())) {
         if (!cancelled) await permissionLost();
         return;
@@ -549,9 +556,13 @@ export function useLocationReporter({
         // Checks every REPORT_MIN_INTERVAL_MS whether a fresh-fix heartbeat is due (heartbeatDue).
         heartbeat = setInterval(heartbeatTick, REPORT_MIN_INTERVAL_MS);
       } catch {
-        if (!cancelled) setState('error');
+        if (cancelled) return;
+        setState('error');
+        retry = setTimeout(() => void startWatch(), watchRetryDelayMs(watchAttempt++));
       }
-    })();
+    };
+
+    void startWatch();
 
     return stop;
   }, [roomId, enabled, appActive]);

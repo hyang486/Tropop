@@ -26,3 +26,12 @@ test('fix 3: location access granted in Settings clears the denied hint when the
   assert.match(map, /if \(ok\) \{\n\s+setAskDenied\(false\);\n\s+setLocate\(\(l\) => \(l === 'denied' \|\| l === 'settings' \? 'idle' : l\)\);/);
   assert.match(map, /if \(next === 'active'\) check\(\);/);
 });
+
+test('fix 4: a failed location watch start is retried with a capped backoff while the row says Retrying', async () => {
+  const { watchRetryDelayMs } = await import('../src/lib/location-plan.ts');
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 20].map(watchRetryDelayMs), [2000, 4000, 8000, 16000, 32000, 60000, 60000, 60000]);
+  assert.equal(watchRetryDelayMs(-1), 2000);
+  const loc = read('lib/location.ts');
+  assert.match(loc, /retry = setTimeout\(\(\) => void startWatch\(\), watchRetryDelayMs\(watchAttempt\+\+\)\)/);
+  assert.match(loc, /if \(retry\) clearTimeout\(retry\);/);
+});
