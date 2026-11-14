@@ -306,8 +306,15 @@ export default function FaceScreen() {
       refreshControl={refreshControl}
       actions={
         <>
-          <Button title={en.face.agree} busy={busy} disabled={!picked} onPress={save} />
-          <Button title={picked ? en.face.chooseAnother : en.face.pickPhoto} variant="secondary" disabled={busy} onPress={openPicker} />
+          {/* UX2-69: one filled "Choose a photo" until a photo is chosen; then Agree and save + Choose another. */}
+          {picked ? (
+            <>
+              <Button title={en.face.agree} busy={busy} onPress={save} />
+              <Button title={en.face.chooseAnother} variant="secondary" disabled={busy} onPress={openPicker} />
+            </>
+          ) : (
+            <Button title={en.face.pickPhoto} disabled={busy} onPress={openPicker} />
+          )}
           {replacing ? <QLink title={en.face.cancel} onPress={() => setReplacing(false)} /> : null}
         </>
       }
