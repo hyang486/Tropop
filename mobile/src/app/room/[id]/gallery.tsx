@@ -274,6 +274,11 @@ export default function GalleryScreen() {
         {filter === 'me' && userId ? (
           media.loading ? (
             scroll(<ActivityIndicator style={styles.loading} />)
+          ) : media.error && media.items.length === 0 ? (
+            // UX2-20 (E): a failed list is an error, never "No photos of you yet."
+            scroll(
+              <EmptyState title={en.media.loadError} action={{ title: en.home.retry, onPress: media.reload }} />,
+            )
           ) : (
             <PhotosOfMe
               roomId={id}
