@@ -521,6 +521,8 @@ export const en = {
     noLocation: 'No location shared',
     openLastLocation: 'Open last shared location',
     imOkNow: "I'm OK now",
+    inEmergencyCaption: "You're in Emergency. Other statuses come back after you're OK.",
+    unavailableInEmergency: (label: string) => `${label}, unavailable during Emergency`,
     clearStatus: 'Clear status',
     emergencyConfirmTitle: 'Send Emergency?',
     emergencyConfirmBody:

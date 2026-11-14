@@ -84,6 +84,22 @@ export function StatusPicker({
           <ScrollView style={styles.scroll} contentContainerStyle={styles.body} bounces={false}>
             <HandTitle style={styles.title}>{title}</HandTitle>
             {plan.showError && onRetry ? <FailedLine onRetry={onRetry} /> : null}
+            {/* UX2-52: one status slot, so while in Emergency only "I'm OK now" (clear_my_status) ends it. No alert. */}
+            {plan.inEmergency ? (
+              <View style={styles.okBlock}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onClear}
+                  hitSlop={4}
+                  style={({ pressed }) => [styles.okPill, pressed && { opacity: 0.5 }]}
+                >
+                  <Text style={styles.okPillText} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+                    {en.activity.imOkNow}
+                  </Text>
+                </Pressable>
+                <Text style={styles.okCaption}>{en.activity.inEmergencyCaption}</Text>
+              </View>
+            ) : null}
             <View style={styles.grid}>
               <Tile
                 label={plan.emergency === 'builtin' ? en.activity.emergencyTile : plan.emergency.label}
@@ -91,14 +107,19 @@ export function StatusPicker({
                 symbol={statusSymbol('', true) as SFSymbol}
                 danger
                 selected={!!emergencyId && emergencyId === currentId}
+                // Already in Emergency: a second tap would raise a new alert, so the selected tile stays put.
+                disabled={plan.inEmergency}
                 onPress={onEmergency}
               />
               {plan.others.map((s) => (
                 <Tile
                   key={s.id}
                   label={s.label}
+                  a11yLabel={plan.inEmergency ? en.activity.unavailableInEmergency(s.label) : undefined}
                   symbol={statusSymbol(s.label, false) as SFSymbol}
                   selected={s.id === currentId}
+                  dimmed={plan.inEmergency}
+                  disabled={plan.inEmergency}
                   onPress={() => onPick(s)}
                 />
               ))}
@@ -154,6 +175,8 @@ function Tile({
   symbol,
   danger,
   selected,
+  dimmed,
+  disabled,
   onPress,
 }: {
   label: string;
@@ -161,14 +184,18 @@ function Tile({
   symbol: SFSymbol;
   danger?: boolean;
   selected: boolean;
+  /** UX2-52: an ordinary status during Emergency (ink3-grey text and icon). */
+  dimmed?: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) {
-  const color = danger ? colors.danger : colors.label;
+  const color = danger ? colors.danger : dimmed ? colors.secondaryLabel : colors.label;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={a11yLabel ?? label}
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled: !!disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
@@ -224,6 +251,18 @@ const styles = StyleSheet.create({
   tileDanger: { backgroundColor: colors.dangerField },
   tileSelected: { borderWidth: 1.5, borderColor: colors.label },
   tileText: { fontSize: 15 },
+  // UX2-52: the Emergency bar's ink pill (36 pt in a 44 pt hit area) with its caption under it.
+  okBlock: { gap: 8, alignItems: 'flex-start' },
+  okPill: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    borderCurve: 'continuous',
+    backgroundColor: colors.tint,
+  },
+  okPillText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
+  okCaption: { fontSize: 15, color: colors.ink2 },
   cancel: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
   cancelText: { fontSize: 15, color: colors.ink2 },
   failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },

@@ -80,6 +80,7 @@ test('UX2-05b: the status picker always offers Emergency first; Clear only for a
     others: [],
     showClear: false,
     showError: true,
+    inEmergency: false,
   });
   // Server order puts Emergency last; the picker puts it first.
   const p = statusPickerPlan({ statuses: [ok, em], currentId: 'ok', failed: false });
@@ -90,6 +91,28 @@ test('UX2-05b: the status picker always offers Emergency first; Clear only for a
   // No current status, or one not in the list (unknown): no Clear.
   assert.equal(statusPickerPlan({ statuses: [ok, em], currentId: undefined, failed: false }).showClear, false);
   assert.equal(statusPickerPlan({ statuses: [ok, em], currentId: 'gone', failed: true }).showClear, false);
+  assert.equal(p.inEmergency, false);
+});
+
+test('UX2-52: while in Emergency the picker offers only "I\'m OK now"; ordinary rows are dimmed, no confirm alert', async () => {
+  const { statusPickerPlan } = await import('../src/lib/emergency-plan.ts');
+  const { readFileSync } = await import('node:fs');
+  const { en } = await import('../src/i18n/en.ts');
+  const ok = { id: 'ok', is_emergency: false };
+  const em = { id: 'em', is_emergency: true };
+  // One slot (member_status.status_id): an ordinary pick would overwrite Emergency and the server logs "resolved".
+  const p = statusPickerPlan({ statuses: [ok, em], currentId: 'em', failed: false });
+  assert.equal(p.inEmergency, true);
+  assert.equal(p.showClear, false); // the pill replaces Clear status
+  assert.deepEqual(p.others, [ok]);
+  assert.equal(en.activity.imOkNow, "I'm OK now");
+  assert.equal(en.activity.inEmergencyCaption, "You're in Emergency. Other statuses come back after you're OK.");
+  assert.equal(en.activity.unavailableInEmergency('Giving up'), 'Giving up, unavailable during Emergency');
+  const src = readFileSync(new URL('../src/components/status-picker.tsx', import.meta.url), 'utf8');
+  // The pill runs the existing clear path (clear_my_status); dimmed rows are disabled, and there is no Alert in that path.
+  assert.match(src, /plan\.inEmergency \?[\s\S]*?onPress=\{onClear\}/);
+  assert.match(src, /disabled=\{plan\.inEmergency\}/);
+  assert.match(src, /unavailableInEmergency\(s\.label\)/);
 });
 
 test('UX2-05b: Emergency resolves its id without the list and a failed send offers Try again', async () => {

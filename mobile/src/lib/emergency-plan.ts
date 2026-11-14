@@ -82,9 +82,12 @@ export function statusPickerPlan<S extends { id: string; is_emergency: boolean }
   statuses: readonly S[];
   currentId: string | undefined;
   failed: boolean;
-}): { emergency: S | 'builtin'; others: S[]; showClear: boolean; showError: boolean } {
+}): { emergency: S | 'builtin'; others: S[]; showClear: boolean; showError: boolean; inEmergency: boolean } {
   const emergency = o.statuses.find((s) => s.is_emergency) ?? 'builtin';
   const others = o.statuses.filter((s) => !s.is_emergency);
-  const showClear = !!o.currentId && o.statuses.some((s) => s.id === o.currentId);
-  return { emergency, others, showClear, showError: o.failed };
+  // UX2-52: Emergency and an ordinary status share one slot (member_status.status_id), and set_my_status logs
+  // "is OK (Emergency resolved)" when it overwrites Emergency. So while in Emergency only "I'm OK now" ends it.
+  const inEmergency = emergency !== 'builtin' && !!o.currentId && emergency.id === o.currentId;
+  const showClear = !inEmergency && !!o.currentId && o.statuses.some((s) => s.id === o.currentId);
+  return { emergency, others, showClear, showError: o.failed, inEmergency };
 }
