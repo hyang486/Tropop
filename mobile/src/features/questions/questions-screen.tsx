@@ -22,7 +22,12 @@ export function QuestionsScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const me = session?.user.id;
-  const { cards, loaded } = useRoomCards(id);
+  const { cards, loaded, failed } = useRoomCards(id);
+  const [retrying, setRetrying] = useState(false);
+  const retry = () => {
+    setRetrying(true);
+    loadCards(id).finally(() => setRetrying(false));
+  };
   const [names, setNames] = useState<ReadonlyMap<string, string>>(new Map());
 
   useEffect(() => {
@@ -55,7 +60,12 @@ export function QuestionsScreen() {
           ),
         }}
       />
-      {!loaded ? (
+      {!loaded && failed ? (
+        <>
+          <Hint tone="error">{s.loadFailed}</Hint>
+          <Button title={s.tryAgain} variant="secondary" onPress={retry} busy={retrying} />
+        </>
+      ) : !loaded ? (
         <ActivityIndicator />
       ) : (
         <>

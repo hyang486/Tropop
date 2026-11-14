@@ -884,6 +884,9 @@ export const en = {
   // Spec 11 C: Qrewing question cards (relay to a person who can answer).
   questions: {
     title: 'Question cards',
+    // UX2-11: a failed first load (pattern E).
+    loadFailed: "Couldn't load questions.",
+    tryAgain: 'Try again',
     tile: 'Questions',
     newQuestion: 'New question',
     waiting: (n: number) => `${n} questions waiting`,

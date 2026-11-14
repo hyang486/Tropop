@@ -34,8 +34,9 @@ import { clearVoiceDrafts, listenForAnswer } from './voice-answer';
 // question_cards and its RPCs (migration 0031) are not in database.types.ts yet.
 const db = supabase as unknown as SupabaseClient;
 
-type RoomCards = { cards: readonly QuestionCard[]; loaded: boolean };
-const EMPTY: RoomCards = { cards: [], loaded: false };
+/** failed (UX2-11): the last load failed (offline, server error); cards already loaded stay. */
+type RoomCards = { cards: readonly QuestionCard[]; loaded: boolean; failed: boolean };
+const EMPTY: RoomCards = { cards: [], loaded: false, failed: false };
 const state = new Map<string, RoomCards>();
 const listeners = new Set<() => void>();
 const loads = new Map<string, number>();
@@ -44,13 +45,18 @@ const spoken = new Set<string>();
 let owner: string | undefined;
 
 function set(roomId: string, cards: readonly QuestionCard[]) {
-  state.set(roomId, { cards, loaded: true });
+  state.set(roomId, { cards, loaded: true, failed: false });
   for (const l of listeners) l();
 }
 
 function merge(card: QuestionCard) {
   const cur = state.get(card.roomId)?.cards ?? [];
   set(card.roomId, [...cur.filter((c) => c.id !== card.id), card]);
+}
+
+function markFailed(roomId: string) {
+  state.set(roomId, { ...(state.get(roomId) ?? EMPTY), failed: true });
+  for (const l of listeners) l();
 }
 
 /** Refetches the room's cards. A late answer of an older load never overwrites a newer one. */
@@ -64,10 +70,12 @@ export async function loadCards(roomId: string): Promise<void> {
       .eq('room_id', roomId)
       .order('created_at', { ascending: true })
       .limit(200);
-    if (error || loads.get(roomId) !== seq) return;
+    if (loads.get(roomId) !== seq) return;
+    if (error) return markFailed(roomId);
     set(roomId, parseCards(data));
   } catch {
-    // Kept until the next broadcast or screen focus.
+    // Cards already loaded are kept until the next broadcast or screen focus; a first load shows Try again.
+    if (loads.get(roomId) === seq) markFailed(roomId);
   }
 }
 
