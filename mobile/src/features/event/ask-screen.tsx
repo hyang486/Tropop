@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { EmptyState } from '@/components/empty-state';
 import { useAnnounce } from '@/features/event/announce';
-import { AnsweredCards, RelayedCards } from '@/features/questions/relayed-cards';
+import { AnsweredCards, RelayState, useMyRelayCards } from '@/features/questions/relayed-cards';
 import { Composer } from '@/components/composer';
 import { QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
@@ -20,13 +20,14 @@ import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { useAuth } from '@/lib/auth';
 
 import { ASK_FAKE, fakeAskInvoke } from './ask-fake';
-import { type AskError, ASK_LIMITS, askAnchor, askQuestion, type AskTurn } from './ask-plan';
+import { type AskError, ASK_LIMITS, askAnchor, askQuestion, type AskTurn, threadCards } from './ask-plan';
 import { appendAskTurn, loadAskHistory, purgeAskHistory } from './ask-store';
 import { DisclosureSheet } from './disclosure-sheet';
 import { isPlanLimit } from './qrewing-plan';
 import { askQrewing, useQrewingRoom } from './qrewing-api';
 
 const s = en.qrewing.ask;
+const qs = en.questions;
 
 export function AskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +37,8 @@ export function AskScreen() {
   // With room AI off (a Plus asker, capacity B item 4) Qrewing relays no questions, so no relayed cards.
   const roomAi = useQrewingRoom(id).aiEnabled;
   const [turns, setTurns] = useState<AskTurn[]>([]);
+  const relay = useMyRelayCards(id, turns.length, !!roomAi);
+  const threads = threadCards(turns, relay.mine);
   const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState('');
   // The question waiting for its answer (shown as my bubble plus "thinking").
@@ -98,7 +101,12 @@ export function AskScreen() {
       setSending(null);
       return;
     }
-    const next = await appendAskTurn(id, { q, a: res.answer, at: Date.now() });
+    const next = await appendAskTurn(id, {
+      q,
+      a: res.answer,
+      at: Date.now(),
+      ...(res.cardId ? { cardId: res.cardId } : {}),
+    });
     if (!mounted.current) return;
     setTurns(next);
     setSending(null);
@@ -152,14 +160,25 @@ export function AskScreen() {
       ) : (
         <>
           {turns.length === 0 && !sending ? <Hint>{s.empty}</Hint> : null}
-          {turns.map((t, i) => (
-            <View key={`${t.at}:${i}`} style={styles.turn} ref={i === lastIndex && !sending && !error ? lastRef : undefined}>
-              <Bubble mine text={t.q} />
-              <Bubble text={t.a} />
+          {/* Spec 11 C, UX2-47: a question Qrewing passed on to a person keeps one thread: my question, Qrewing's
+              reply, then the waiting caption, the person's answer or the ask-in-chat offer under it. */}
+          {threads.rest.map((c) => (
+            <View key={c.id} style={styles.turn}>
+              <Bubble mine text={c.question} />
+              <Bubble text={qs.askedReply(relay.name(c.answererId))} />
+              <RelayState card={c} answerer={relay.name(c.answererId)} now={relay.now} />
             </View>
           ))}
-          {/* Spec 11 C: questions Qrewing passed on to a person, their answers and the ask-in-chat offer. */}
-          {roomAi ? <RelayedCards roomId={id} refreshKey={turns.length} /> : null}
+          {turns.map((t, i) => {
+            const card = threads.byTurn[i];
+            return (
+              <View key={`${t.at}:${i}`} style={styles.turn} ref={i === lastIndex && !sending && !error ? lastRef : undefined}>
+                <Bubble mine text={t.q} />
+                <Bubble text={card ? qs.askedReply(relay.name(card.answererId)) : t.a} />
+                {card ? <RelayState card={card} answerer={relay.name(card.answererId)} now={relay.now} /> : null}
+              </View>
+            );
+          })}
           {sending ? (
             <View style={styles.turn} ref={!error ? lastRef : undefined}>
               <Bubble mine text={sending} />

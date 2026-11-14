@@ -199,3 +199,32 @@ test('askMode: AI on â†’ room (Plus) or plus (Free, Plus intro first); AI off â†
   assert.equal(plan.askMode(false, { ...ok, roomAi: false, plan: 'free' }, 'r1'), null);
   assert.equal(plan.askMode(false, { ...ok, roomAi: false }, 'r1'), null);
 });
+
+test('UX2-47: parseAskAnswer keeps the passed-on card id', () => {
+  assert.deepEqual(plan.parseAskAnswer({ answer: 'x', card: { id: 'c1', answererName: 'Mina' } }), {
+    answer: 'x',
+    usage: { input: 0, output: 0 },
+    cardId: 'c1',
+  });
+  assert.equal('cardId' in plan.parseAskAnswer({ answer: 'x', card: { id: '' } }), false);
+});
+
+test('UX2-47: threadCards gives each question one thread; unclaimed cards stand alone', () => {
+  const at = 1_000_000;
+  const cards = [
+    { id: 'a', question: 'Where is dinner?', createdAt: at - 3_000 },
+    { id: 'b', question: 'When do we leave?', createdAt: at + 50_000 },
+    { id: 'c', question: 'Where is dinner?', createdAt: at - 999_000 },
+  ];
+  const turns = [
+    { q: 'Hi', a: 'Hello', at: at - 10_000 },
+    { q: ' Where is dinner? ', a: 'asked', at },
+    { q: 'When do we leave?', a: 'asked', at: at + 51_000, cardId: 'b' },
+  ];
+  const r = plan.threadCards(turns, cards);
+  assert.deepEqual(r.byTurn.map((c) => c?.id ?? null), [null, 'a', 'b']);
+  assert.deepEqual(r.rest.map((c) => c.id), ['c']);
+  // A turn whose cardId is gone (deleted card) never takes another card by text.
+  const gone = plan.threadCards([{ q: 'Where is dinner?', a: 'x', at, cardId: 'zz' }], cards);
+  assert.deepEqual(gone.byTurn, [null]);
+});

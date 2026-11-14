@@ -2,7 +2,8 @@
 // the `ask` request body and the errors the ask screen shows. No React Native imports (tested in node).
 
 /** One question and its answer, kept on this device only. `at` is ms since epoch. */
-export type AskTurn = { q: string; a: string; at: number };
+/** `cardId`: the question card Qrewing created when it passed this question on to a person (UX2-47). */
+export type AskTurn = { q: string; a: string; at: number; cardId?: string };
 
 /**
  * The asker's own activity (pace engine paceSnapshot), sent only for the asker. `paceSecPerKm` is null under 100 m
@@ -139,12 +140,50 @@ export function askBody(
 }
 
 /** A 200 answer, or null when the body is not `{answer: non-empty string, usage}` (then it is ai_failed). */
-export function parseAskAnswer(data: unknown): { answer: string; usage: { input: number; output: number } } | null {
-  const d = data as { answer?: unknown; usage?: { input?: unknown; output?: unknown } } | null;
+export function parseAskAnswer(
+  data: unknown,
+): { answer: string; usage: { input: number; output: number }; cardId?: string } | null {
+  const d = data as { answer?: unknown; usage?: { input?: unknown; output?: unknown }; card?: { id?: unknown } } | null;
   if (!d || typeof d.answer !== 'string' || !d.answer.trim()) return null;
   const input = typeof d.usage?.input === 'number' ? d.usage.input : 0;
   const output = typeof d.usage?.output === 'number' ? d.usage.output : 0;
-  return { answer: d.answer.trim(), usage: { input, output } };
+  const cardId = typeof d.card?.id === 'string' && d.card.id ? d.card.id : undefined;
+  return { answer: d.answer.trim(), usage: { input, output }, ...(cardId ? { cardId } : {}) };
+}
+
+/** How far a card's creation may sit from a turn without a cardId (older history) and still be its thread. */
+export const THREAD_MATCH_MS = 120_000;
+
+/**
+ * UX2-47: one thread per question. Each turn gets the card Qrewing created for it: by cardId, else (history saved
+ * before cardId) the unused card with the same question created within THREAD_MATCH_MS of the turn. `rest`: my
+ * cards no turn claims (history trimmed or cleared), shown as threads of their own.
+ */
+export function threadCards<C extends { id: string; question: string; createdAt: number }>(
+  turns: readonly AskTurn[],
+  cards: readonly C[],
+): { byTurn: (C | null)[]; rest: C[] } {
+  const used = new Set<string>();
+  const byTurn = turns.map((t) => {
+    const card = t.cardId ? cards.find((c) => c.id === t.cardId && !used.has(c.id)) : undefined;
+    if (card) {
+      used.add(card.id);
+      return card;
+    }
+    return null;
+  });
+  turns.forEach((t, i) => {
+    if (byTurn[i] || t.cardId) return;
+    const q = t.q.trim();
+    const card = cards.find(
+      (c) => !used.has(c.id) && c.question.trim() === q && Math.abs(c.createdAt - t.at) <= THREAD_MATCH_MS,
+    );
+    if (card) {
+      used.add(card.id);
+      byTurn[i] = card;
+    }
+  });
+  return { byTurn, rest: cards.filter((c) => !used.has(c.id)) };
 }
 
 /**

@@ -960,7 +960,7 @@ export const en = {
     spoken: (name: string, q: string) => `Question from ${name}. ${q}`,
     heardSpoken: 'Got it. Check your answer on screen, then tap Send.',
     heardHint: 'Heard by voice. Check it, then send.',
-    intro: 'Qrewing could not answer these, so it asked you. Your answer goes only to the person who asked.',
+    intro: "Qrewing couldn't answer these, so it asked you. Only the asker sees your answer unless you post it as a notice.",
     empty: 'No questions for you right now.',
     asker: (name: string) => `From ${name}`,
     answerLabel: 'Your answer',
@@ -970,9 +970,9 @@ export const en = {
     sent: 'Answer sent.',
     yourAnswers: 'You answered',
     noticeTooLong: 'A notice can be up to 1000 characters.',
-    // Ask Qrewing: questions Qrewing passed on.
-    relayed: 'Passed on by Qrewing',
-    waitingFor: (name: string) => `Waiting for ${name} to answer…`,
+    // Ask Qrewing, UX2-47: a question Qrewing passed on stays in its own thread.
+    askedReply: (name: string) => `I couldn't find a clear answer, so I asked ${name}.`,
+    askedWaiting: (name: string) => `Asked ${name} · waiting`,
     answerFrom: (name: string) => `${name} answered`,
     // UX2-04b: an answer to my question is mine to read on any plan; only asking Qrewing more is Plus.
     youAsked: (q: string) => `You asked: ${q}`,

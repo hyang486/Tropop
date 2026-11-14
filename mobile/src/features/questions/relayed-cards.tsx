@@ -13,19 +13,21 @@ import { askInChat, loadCards, useRoomCards } from './question-store';
 
 const s = en.questions;
 
-export function RelayedCards({ roomId, refreshKey }: { roomId: string; refreshKey?: number }) {
+/**
+ * UX2-47: my cards in this room (refetched when `refreshKey` changes, after each answer from Qrewing), member names,
+ * and a clock that wakes when the next ask-in-chat offer is due. The ask screen threads them under its turns.
+ */
+export function useMyRelayCards(roomId: string, refreshKey: number, enabled: boolean) {
   const { session } = useAuth();
   const { cards } = useRoomCards(roomId);
-  const mine = cardsIAsked(cards, session?.user.id);
+  const mine = enabled ? cardsIAsked(cards, session?.user.id) : [];
   const name = useMemberNames(roomId, mine.length);
   const [now, setNow] = useState(() => Date.now());
 
-  // A new ask may have created a card: refetch after each answer from Qrewing.
   useEffect(() => {
-    loadCards(roomId);
-  }, [roomId, refreshKey]);
+    if (enabled) loadCards(roomId);
+  }, [roomId, refreshKey, enabled]);
 
-  // Wake when the next offer is due.
   const nextDue = Math.min(...mine.map((c) => msUntilOffer(c, now)).filter((ms) => ms > 0), Infinity);
   useEffect(() => {
     if (!Number.isFinite(nextDue)) return;
@@ -33,15 +35,7 @@ export function RelayedCards({ roomId, refreshKey }: { roomId: string; refreshKe
     return () => clearTimeout(t);
   }, [nextDue]);
 
-  if (mine.length === 0) return null;
-  return (
-    <View style={styles.wrap}>
-      <Text style={styles.section}>{s.relayed}</Text>
-      {mine.map((c) => (
-        <Relayed key={c.id} card={c} answerer={name(c.answererId)} now={now} />
-      ))}
-    </View>
-  );
+  return { mine, name, now };
 }
 
 /** Member names by user id, read again when `key` changes. */
@@ -74,7 +68,6 @@ export function AnsweredCards({ roomId }: { roomId: string }) {
   if (answered.length === 0) return null;
   return (
     <View style={styles.wrap}>
-      <Text style={styles.section}>{s.relayed}</Text>
       {answered.map((c) => (
         <AnsweredCard key={c.id} card={c} answerer={name(c.answererId)} />
       ))}
@@ -103,7 +96,11 @@ export function AnsweredCard({ card, answerer, onSheet }: { card: QuestionCard; 
   );
 }
 
-function Relayed({ card, answerer, now }: { card: QuestionCard; answerer: string; now: number }) {
+/**
+ * UX2-47: what happened to a question Qrewing passed on, shown under Qrewing's reply in the same thread: a caption
+ * while waiting, the person's answer as its own bubble, the ask-in-chat offer, or the moved-to-chat note.
+ */
+export function RelayState({ card, answerer, now }: { card: QuestionCard; answerer: string; now: number }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CardError | null>(null);
 
@@ -117,14 +114,13 @@ function Relayed({ card, answerer, now }: { card: QuestionCard; answerer: string
   }
 
   return (
-    <View style={styles.card} accessible={card.status !== 'pending'}>
-      <View style={[styles.bubble, styles.mine]}>
-        <Text style={[styles.text, { color: colors.onTint }]} selectable>
-          {card.question}
-        </Text>
-      </View>
+    <>
       {card.status === 'answered' ? (
-        <View style={[styles.bubble, styles.bot]} accessibilityLabel={`${s.answerFrom(answerer)}: ${card.answer ?? ''}`}>
+        <View
+          style={[styles.bubble, styles.bot]}
+          accessible
+          accessibilityLabel={`${s.answerFrom(answerer)}: ${card.answer ?? ''}`}
+        >
           <Text style={styles.by}>{s.answerFrom(answerer)}</Text>
           <Text style={styles.text} selectable>
             {card.answer}
@@ -138,16 +134,15 @@ function Relayed({ card, answerer, now }: { card: QuestionCard; answerer: string
           <Button title={s.askInChat} variant="secondary" onPress={move} busy={busy} />
         </View>
       ) : (
-        <Text style={styles.note}>{s.waitingFor(answerer)}</Text>
+        <Text style={styles.note}>{s.askedWaiting(answerer)}</Text>
       )}
       {error ? <Hint tone="error">{s.errors[error]}</Hint> : null}
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  section: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 8 },
   card: { gap: 8 },
   bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },

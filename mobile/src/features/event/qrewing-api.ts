@@ -59,7 +59,7 @@ export async function askQrewing(
   me?: AskMe | null,
   invoke: (body: Record<string, unknown>) => Promise<Invoke<unknown>> = invokeQrewing,
   anchor?: { lat: number; lng: number },
-): Promise<{ answer: string } | { error: AskError }> {
+): Promise<{ answer: string; cardId?: string } | { error: AskError }> {
   let tz: string | undefined;
   try {
     tz = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
@@ -69,7 +69,8 @@ export async function askQrewing(
   const res = await invoke(askBody(roomId, question, history, me, tz, anchor));
   if ('error' in res) return { error: askErrorKind(res.error) };
   const ok = parseAskAnswer(res.data);
-  return ok ? { answer: ok.answer } : { error: 'ai_failed' };
+  if (!ok) return { error: 'ai_failed' };
+  return ok.cardId ? { answer: ok.answer, cardId: ok.cardId } : { answer: ok.answer };
 }
 
 /** `roomAi` and `plan` are kept only when the server sends them (qrewing caller-plan contract). */
