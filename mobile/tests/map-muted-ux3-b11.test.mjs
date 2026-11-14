@@ -1,4 +1,4 @@
-// Run: npm test. UX3-B11: the room map uses Apple's muted style (no POIs, flat) in light and dark.
+// Run: npm test. UX3-B11: the room map uses Apple's muted style (flat, POIs kept per R-1) in light and dark.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
@@ -6,10 +6,10 @@ import { test } from 'node:test';
 const map = readFileSync(new URL('../src/app/room/[id]/map.tsx', import.meta.url), 'utf8');
 const types = readFileSync(new URL('../node_modules/expo-maps/build/apple/AppleMaps.types.js', import.meta.url), 'utf8');
 
-test('map style: muted emphasis, no points of interest, flat elevation', () => {
-  const style = map.match(/const MAP_STYLE: MapProperties = \{([^}]+\}[^}]*)\};/s)?.[1] ?? '';
+test('map style: muted emphasis, flat elevation, points of interest kept', () => {
+  const style = map.match(/const MAP_STYLE: MapProperties = \{([^}]*)\};/s)?.[1] ?? '';
   assert.match(style, /emphasis: 'MUTED' as/);
-  assert.match(style, /pointsOfInterest: \{ including: \[\] \}/);
+  assert.doesNotMatch(style, /pointsOfInterest/);
   assert.match(style, /elevation: AppleMaps\.MapStyleElevation\.FLAT/);
   // The literal must stay a real enum value of the installed expo-maps.
   assert.match(types, /AppleMapsMapStyleEmphasis\["MUTED"\] = "MUTED"/);

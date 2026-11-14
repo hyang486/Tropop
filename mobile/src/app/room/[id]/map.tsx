@@ -89,12 +89,11 @@ const EMERGENCY_LABEL_TEXT = palette.light.errorText;
 const NO_ICONS: ReadonlyMap<string, null> = new Map<string, null>();
 type MapProperties = NonNullable<ComponentProps<typeof AppleMaps.View>['properties']>;
 /**
- * UX3-B11: Apple's muted map style (no points of interest, flat) so the full-color map doesn't fight the ink
+ * UX3-B11: Apple's muted map style (flat; points of interest stay, R-1) so the full-color map doesn't fight the ink
  * theme, in light and dark. expo-maps' entry doesn't export the emphasis enum, so its string value is used.
  */
 const MAP_STYLE: MapProperties = {
   emphasis: 'MUTED' as NonNullable<MapProperties['emphasis']>,
-  pointsOfInterest: { including: [] },
   elevation: AppleMaps.MapStyleElevation.FLAT,
 };
 
