@@ -456,6 +456,9 @@ export const en = {
     chooseLibrary: 'Choose from library',
   },
   activity: {
+    // UX2-05 (pattern E): the Emergency read failed; never shown as "no Emergency".
+    readFailed: "Can't check for Emergencies. Try again.",
+    readRetry: 'Try again',
     arrived: 'Arrived',
     arrivedAt: (time: string) => `Arrived ${time}`,
     status: 'Status',

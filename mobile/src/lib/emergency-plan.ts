@@ -46,6 +46,16 @@ export function createAnnouncer() {
  * ("Sora · Emergency · Open"). Chat shows the bar until you said "I see it"; your own Emergency keeps the bar there
  * so "I'm OK now" stays one tap away. Map, Photos and Info show the line. "Open" on a line expands that bar.
  */
+/**
+ * UX2-05: what the pinned Emergency area shows. A failed read is 'failed' (pattern E with "Try again"), never an empty
+ * area, because nothing pinned would read as "no Emergency" when we do not know. Earlier Emergencies stay listed below.
+ */
+export function emergencyAreaMode(o: { loading: boolean; error: unknown; count: number }): 'none' | 'failed' | 'list' {
+  if (o.loading) return 'none';
+  if (o.error != null) return 'failed';
+  return o.count > 0 ? 'list' : 'none';
+}
+
 export function emergencyBarMode(o: {
   place: 'chat' | 'other';
   mine: boolean;

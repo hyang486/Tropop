@@ -57,3 +57,15 @@ test('emergencyBarMode: Map, Photos and Info show the line, Open expands it', ()
   assert.equal(emergencyBarMode({ place: 'other', mine: false, acked: true, expanded: true }), 'bar');
   assert.equal(emergencyBarMode({ place: 'chat', mine: false, acked: true, expanded: true }), 'bar');
 });
+
+test('UX2-05: a failed Emergency read shows the error, never an empty "no Emergency" area', async () => {
+  const { emergencyAreaMode } = await import('../src/lib/emergency-plan.ts');
+  const { en } = await import('../src/i18n/en.ts');
+  assert.equal(emergencyAreaMode({ loading: true, error: null, count: 0 }), 'none');
+  assert.equal(emergencyAreaMode({ loading: false, error: null, count: 0 }), 'none');
+  assert.equal(emergencyAreaMode({ loading: false, error: null, count: 2 }), 'list');
+  assert.equal(emergencyAreaMode({ loading: false, error: new Error('offline'), count: 0 }), 'failed');
+  assert.equal(emergencyAreaMode({ loading: false, error: new Error('offline'), count: 1 }), 'failed');
+  assert.equal(en.activity.readFailed, "Can't check for Emergencies. Try again.");
+  assert.equal(en.activity.readRetry, 'Try again');
+});

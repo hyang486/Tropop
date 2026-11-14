@@ -19,7 +19,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyBarMode, seenSummary } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, emergencyBarMode, seenSummary } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
@@ -107,7 +107,8 @@ export function EmergencyAlerts({
     }
   }
 
-  if (!userId || activity.loading || activity.emergencies.length === 0) return null;
+  const area = emergencyAreaMode({ loading: activity.loading, error: activity.error, count: activity.emergencies.length });
+  if (!userId || area === 'none') return null;
 
   // Recipients are the current members other than the sender.
   const recipients = Math.max(0, names.size - 1);
@@ -130,6 +131,7 @@ export function EmergencyAlerts({
         if (h > windowHeight * EMERGENCY_MAX_HEIGHT_SHARE) scrollRef.current?.flashScrollIndicators();
       }}
     >
+      {area === 'failed' ? <ReadFailedRow onRetry={activity.reload} /> : null}
       {activity.emergencies.map((e) => {
         const mine = e.userId === userId;
         const { who, seen } = seenSummary(e.ackedBy, names);
@@ -262,10 +264,44 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
   useRoomEvents(roomId, (event) => {
     if (event.table === 'room_members') loadNames();
   });
-  if (activity.emergencies.length === 0) return null;
+  if (emergencyAreaMode({ loading: activity.loading, error: activity.error, count: activity.emergencies.length }) === 'none')
+    return null;
   return (
     <View style={style}>
       <EmergencyAlerts roomId={roomId} activity={activity} userId={userId} names={names} presence={presence} />
+    </View>
+  );
+}
+
+/** UX2-05 (pattern E): red cause line + one ink-outline "Try again" (36 pt inside a 44 pt hit area, busy while it runs). */
+function ReadFailedRow({ onRetry }: { onRetry: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  async function retry() {
+    setBusy(true);
+    try {
+      await onRetry();
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <View style={styles.failed} accessibilityLiveRegion="polite">
+      <Text style={styles.failedText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+        {en.activity.readFailed}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={en.activity.readRetry}
+        accessibilityState={{ disabled: busy, busy }}
+        disabled={busy}
+        onPress={retry}
+        hitSlop={4}
+        style={({ pressed }) => [styles.failedButton, (pressed || busy) && { opacity: 0.5 }]}
+      >
+        <Text style={styles.failedButtonText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+          {en.activity.readRetry}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -345,4 +381,16 @@ const styles = StyleSheet.create({
   },
   lineText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
   lineOpen: { fontSize: 15, fontWeight: '600', color: colors.label },
+  failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 12 },
+  failedText: { flex: 1, fontSize: 15, color: colors.danger },
+  failedButton: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    borderCurve: 'continuous',
+    borderWidth: 1.5,
+    borderColor: colors.label,
+  },
+  failedButtonText: { fontSize: 15, fontWeight: '600', color: colors.label },
 });
