@@ -96,3 +96,13 @@ test('UX2-118: a failed room read makes the card wait for a connection; retried 
   assert.match(layer, /next === 'active'\) load\(\)/);
   assert.match(src('features/pace/pace-card.tsx'), /offline && !hasFix \? \(\s*<Hint>\{t\.waitingConnection\}<\/Hint>/);
 });
+
+test('UX2-89: an empty draft over a saved route reads Remove route and confirms; with no route Save is disabled', () => {
+  assert.equal(en.map.removeRoute, 'Remove route');
+  assert.equal(en.map.removeRouteTitle, 'Remove the route?');
+  assert.equal(en.map.removeRouteBody, 'Members won’t see it on the map.');
+  const ed = src('components/route-editor.tsx');
+  assert.match(ed, /const removing = route\.length === 0 && savedRoute\.length > 0;/);
+  assert.match(ed, /variant="destructiveFill"[^>]*onPress=\{confirmRemove\}/);
+  assert.match(ed, /disabled=\{route\.length === 0\}/);
+});

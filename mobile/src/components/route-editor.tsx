@@ -1,7 +1,7 @@
 import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -158,6 +158,14 @@ export function RouteEditor({
   const canUndo = draft.length > undoFloor;
   const canClear = draft.length > 0;
   // UI v2 (2): a route over MAX_ROUTE_KM is not saved (a swipe across a zoomed-out map drew an ocean crossing).
+  const removing = route.length === 0 && savedRoute.length > 0;
+  function confirmRemove() {
+    Alert.alert(en.map.removeRouteTitle, en.map.removeRouteBody, [
+      { text: en.map.cancel, style: 'cancel' },
+      { text: en.map.remove, style: 'destructive', onPress: () => onSave([]) },
+    ]);
+  }
+
   function save() {
     if (routeTooLong(routeLengthMeters(route))) {
       setNote('tooFar');
@@ -275,7 +283,12 @@ export function RouteEditor({
         </View>
 
         <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
-          <Button title={en.map.saveRoute} busy={saving} onPress={save} />
+          {/* UX2-89: an empty draft removes the saved route for everyone, so it says so and asks first. */}
+          {removing ? (
+            <Button title={en.map.removeRoute} variant="destructiveFill" busy={saving} onPress={confirmRemove} />
+          ) : (
+            <Button title={en.map.saveRoute} busy={saving} disabled={route.length === 0} onPress={save} />
+          )}
         </View>
       </GestureHandlerRootView>
     </Modal>
