@@ -14,7 +14,7 @@ import { badLinkNoteShown } from '@/lib/invite';
 // UX3-A03: one screen that sells the product: gathering art, "One room for today's crew", three value rows, then
 // Join a room / Create a room / Log in. Before: Qrew Q 01.01 title, one line, gathering art. Join opens the code screen
 // (item 10: code / QR → name → invite);
-// Create goes to host login, which links to host sign-up ("New here? Create an account").
+// Create goes to Log in, which links to Create account (UX3-A07).
 export default function Welcome() {
   const { notice, clearNotice } = useAuth();
   // UX2-42: a join link with a malformed token lands here with ?link=invalid.

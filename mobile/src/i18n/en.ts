@@ -14,7 +14,7 @@ export const en = {
     join: 'Join a room',
     create: 'Create a room',
     // UX2-27: returning users (Welcome and Guest) go to Log in.
-    haveAccount: 'I have an account',
+    haveAccount: 'Log in',
     // UX2-42 / UX2-60: a join link whose token can't be an invite (inline note under the subtitle).
     invalidLink: "This invite link doesn't work. Ask your host for a new one, or enter the code.",
   },
@@ -27,27 +27,29 @@ export const en = {
     namePlaceholder: 'Your name',
   },
   signIn: {
-    title: 'Host log in',
+    title: 'Log in',
     submit: 'Log in',
   },
   signUp: {
-    title: 'Create a host account',
-    submit: 'Sign up',
-    hint: 'A host account is needed to create rooms. Joining rooms does not need one.',
+    title: 'Create account',
+    submit: 'Create account',
+    hint: 'You need an account to create rooms. Joining rooms does not need one.',
     checkEmail: 'Check your email to confirm the account, then log in.',
   },
   upgrade: {
-    title: 'Become a host',
+    title: 'Create account',
     hint: 'Add an email and password to this guest profile. Your rooms stay as they are.',
-    submit: 'Create host account',
+    submit: 'Create account',
   },
   // Q 01.02 (log in) and 07.02 (sign up, guest upgrade).
   hostAccount: {
-    loginTitle: 'Host login',
-    loginSubtitle: 'Pick up where you left off.',
-    newTitle: 'Become a host',
+    // UX3-A07: the account has two verbs only, Log in and Create account; "Host" is a role inside a room.
+    loginTitle: 'Log in',
+    loginSubtitle: 'Welcome back.',
+    newTitle: 'Create account',
     newSubtitle: 'Create rooms and invite your group.',
-    createAccount: 'New here? Create an account',
+    upgradeSubtitle: 'Keep your rooms and start hosting your own.',
+    createAccount: 'Create account',
   },
   fields: {
     email: 'Email address',
@@ -860,8 +862,8 @@ export const en = {
     accountType: 'Account',
     guest: 'Guest',
     host: 'Host',
-    becomeHost: 'Become a host',
-    guestHostRow: 'Create an account to host rooms',
+    becomeHost: 'Create account',
+    guestHostRow: 'Create account',
     signOut: 'Log out',
     guestSignOutWarning:
       'Guests cannot log back in. Logging out leaves this guest profile behind for good.',
@@ -887,8 +889,7 @@ export const en = {
     deleteCancel: 'Cancel',
     deleteFailed: 'Your account was not deleted. Check your connection and try again.',
     // Qrew unit 5 (Q 07.01).
-    guestAccount: 'Guest account',
-    hostAccount: 'Host account',
+    guestAccount: 'Guest on this phone',
     account: 'Account',
     guestAccessBody: 'Guest profile on this phone',
     hostAccessBody: 'Create rooms and invite your group.',

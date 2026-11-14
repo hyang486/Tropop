@@ -18,9 +18,9 @@ type Props = {
 };
 
 /**
- * Qrew host account screens. Log in (Q 01.02): "Host login", one line, email and password, Log in, then "New
- * here? Create an account". Sign up and guest upgrade (Q 07.02): "Become a host", one line, the gate art, name,
- * email, password, Create host account. No social buttons (human decision 1). Buttons sit under the fields, as
+ * Qrew account screens (UX3-A07 wording). Log in (Q 01.02): "Log in", one line, email and password, Log in, then
+ * "Create account". Create account and guest upgrade (Q 07.02): "Create account", one line, the gate art, name,
+ * email, password, Create account. No social buttons (human decision 1). Buttons sit under the fields, as
  * in Q; validation, errors and the upgrade path are unchanged.
  */
 export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onSubmit }: Props) {
@@ -57,7 +57,9 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
     <QScreen
       sheet={mode === 'upgrade'}
       title={isNew ? en.hostAccount.newTitle : en.hostAccount.loginTitle}
-      subtitle={isNew ? en.hostAccount.newSubtitle : en.hostAccount.loginSubtitle}
+      subtitle={
+        mode === 'upgrade' ? en.hostAccount.upgradeSubtitle : isNew ? en.hostAccount.newSubtitle : en.hostAccount.loginSubtitle
+      }
       keepVisible={submitRef}
     >
       {isNew ? <InkArt art="gate" width={150} /> : null}
