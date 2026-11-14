@@ -15,8 +15,9 @@ export const en = {
     create: 'Create a room',
     // UX2-27: returning users (Welcome and Guest) go to Log in.
     haveAccount: 'Log in',
-    // UX2-42 / UX2-60: a join link whose token can't be an invite (inline note under the subtitle).
-    invalidLink: "This invite link doesn't work. Ask your host for a new one, or enter the code.",
+    // UX2-42 / UX2-60 / sweep4 P1-3: a join link whose token can't be an invite (notice above the art).
+    invalidLinkTitle: "This invite link doesn't work.",
+    invalidLinkBody: 'Ask your host for a new one, or enter the code.',
   },
   // Q 02.01
   guest: {

@@ -8,6 +8,7 @@ import { InkArt } from '@/components/ink-art';
 import { QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useAnnounce } from '@/features/event/announce';
 import { useAuth } from '@/lib/auth';
 import { badLinkNoteShown } from '@/lib/invite';
 
@@ -23,6 +24,8 @@ export default function Welcome() {
   const { link, at } = useLocalSearchParams<{ link?: string; at?: string }>();
   const [clearedAt, setClearedAt] = useState<string | null>(null);
   const badLink = badLinkNoteShown({ link, at }, clearedAt);
+  // sweep4 P1-3: VoiceOver reads the notice when it appears; `at` re-announces it for a second bad link.
+  useAnnounce(badLink ? `${en.welcome.invalidLinkTitle} ${en.welcome.invalidLinkBody}` : null, badLink ? at : null);
   function go(path: '/start/code' | '/sign-in') {
     clearNotice();
     if (badLink) setClearedAt(at ?? '');
@@ -39,16 +42,24 @@ export default function Welcome() {
         </>
       }
     >
+      {badLink ? (
+        <View
+          style={styles.note}
+          accessible
+          accessibilityRole="alert"
+          accessibilityLabel={`${en.welcome.invalidLinkTitle} ${en.welcome.invalidLinkBody}`}
+        >
+          <SymbolView name="exclamationmark.circle" size={22} tintColor={colors.label} style={styles.noteIcon} />
+          <View style={styles.noteText}>
+            <Text style={styles.noteTitle}>{en.welcome.invalidLinkTitle}</Text>
+            <Text style={styles.noteBody}>{en.welcome.invalidLinkBody}</Text>
+          </View>
+        </View>
+      ) : null}
       <View style={styles.art}>
         <InkArt art="gathering" width={300} />
       </View>
       <HandTitle style={styles.headline}>{en.welcome.headline}</HandTitle>
-      {badLink ? (
-        <View style={styles.note} accessibilityRole="alert">
-          <SymbolView name="exclamationmark.circle" size={18} tintColor={colors.ink2} style={styles.noteIcon} />
-          <Text style={styles.noteText}>{en.welcome.invalidLink}</Text>
-        </View>
-      ) : null}
       <View style={styles.values}>
         {VALUES.map((v) => (
           <View key={v.icon} style={styles.value} accessible>
@@ -89,7 +100,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   valueText: { flex: 1, gap: 2 },
-  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  noteIcon: { marginTop: 1 },
-  noteText: { ...textRole.secondary, flex: 1 },
+  // sweep4 P1-3: a filled notice above the art (colors.field; becomes wash after V1).
+  note: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: colors.field,
+  },
+  // expo-symbols aspect-fits an 18 pt medium-scale image (with padding) into the frame: a 22 pt frame draws a
+  // ~17 pt circle. -1 centers it on the first 15 pt text line.
+  noteIcon: { marginTop: -1 },
+  noteText: { flex: 1, gap: 2 },
+  noteTitle: { fontSize: 15, fontWeight: '600', color: colors.label },
+  noteBody: { fontSize: 15, color: colors.ink2 },
 });
