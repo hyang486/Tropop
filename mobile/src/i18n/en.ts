@@ -1005,6 +1005,7 @@ export const en = {
     titlePlaceholder: 'e.g. Dinner with Jun',
     startLabel: 'Starts',
     endLabel: 'Ends',
+    allDayLabel: 'All day',
     emojiLabel: 'Icon',
     save: 'Save event',
     delete: 'Delete event',
@@ -1019,7 +1020,7 @@ export const en = {
     problems: {
       title: 'Enter a title.',
       dates: 'Pick the dates.',
-      order: 'The end date is before the start date.',
+      order: 'The end is before the start.',
       span: 'An event can span at most a year.',
       emoji: 'Pick an emoji.',
     },

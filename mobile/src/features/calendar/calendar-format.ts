@@ -51,6 +51,31 @@ export function localDateToKey(date: Date): DateKey {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** UX3-A13: a date key plus an optional "HH:MM" as a local Date (no time = noon, as keyToLocalDate). */
+export function keyTimeToLocalDate(key: DateKey, time?: string): Date {
+  const d = keyToLocalDate(key);
+  if (time) {
+    const [h, m] = time.split(':').map(Number);
+    d.setHours(h, m, 0, 0);
+  }
+  return d;
+}
+
+export function localDateToKeyTime(date: Date): { date: DateKey; time: string } {
+  return { date: localDateToKey(date), time: `${pad2(date.getHours())}:${pad2(date.getMinutes())}` };
+}
+
+/** UX3-A13: a new event starts at the next full hour and lasts one hour (local time). */
+export function defaultEventTimes(now: Date): { start: DateKey; startTime: string; end: DateKey; endTime: string } {
+  const s = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+  const e = new Date(s.getFullYear(), s.getMonth(), s.getDate(), s.getHours() + 1, 0, 0, 0);
+  const a = localDateToKeyTime(s);
+  const b = localDateToKeyTime(e);
+  return { start: a.date, startTime: a.time, end: b.date, endTime: b.time };
+}
+
 /** VoiceOver text from parts: ". " between them, but no period after a part that already ends in . ! ? or …. */
 export function spokenJoin(parts: readonly string[]): string {
   const kept = parts.map((p) => p.trim()).filter((p) => p.length > 0);
