@@ -437,6 +437,8 @@ export default function CreateRoom() {
               <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
             </Pressable>
           </View>
+          {/* UX2-131 (ux): one slot under the stepper: the clamp line while it is set, else the Free at-max line.
+              UX2-54: Plus at 30 shows only the hint ("Plus rooms hold up to 30."), no at-max line. */}
           {clampNote ? (
             <View style={styles.clampRow}>
               <Text style={styles.clampNote}>{clampNote.text} </Text>
@@ -450,9 +452,7 @@ export default function CreateRoom() {
                 </Pressable>
               ) : null}
             </View>
-          ) : null}
-          {/* UX2-54: Plus at 30 shows only the hint ("Plus rooms hold up to 30."), no right-aligned at-max line. */}
-          {atMax && plus === false ? (
+          ) : atMax && plus === false ? (
             <Text style={styles.atMax}>{en.createRoom.capacityAtMax(capacityMax(false), false)}</Text>
           ) : null}
           <Hint>{capacityHint(plus)}</Hint>

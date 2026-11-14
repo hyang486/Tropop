@@ -47,6 +47,14 @@ test('UX2-131: every stepper change clears the line', () => {
   assert.match(screen, /function startRepeat\(delta: 1 \| -1\) \{\s*stopRepeat\(\);\s*setClampNote\(null\);/);
 });
 
+test('UX2-131 (ux): the clamp line takes the Free at-max slot; at-max returns when the line clears', () => {
+  assert.match(
+    screen,
+    /\{clampNote \? \([^]*?\) : atMax && plus === false \? \(\s*<Text style=\{styles\.atMax\}>/,
+  );
+  assert.doesNotMatch(screen, /\) : null\}\s*\{\/\* UX2-54: Plus at 30[^]*?\{atMax && plus === false \? \(/);
+});
+
 test('UX2-131: the line is ink2 13 pt; See Plus uses the + route with a 44 pt hit', () => {
   assert.match(screen, /clampNote: \{[^}]*fontSize: 13[^}]*color: colors\.ink2/);
   assert.match(screen, /clampLink: \{[^}]*minHeight: 44/);
