@@ -26,9 +26,28 @@ export function capacityValue(capacity: Capacity, plus: boolean | null) {
   return Math.min(max, Math.max(MIN_MEMBERS, Math.round(capacity)));
 }
 
-/** The stepper's next value, kept inside 2 … plan max. Stepping from "No limit" starts at the plan max. */
-export function stepCapacity(capacity: Capacity, delta: 1 | -1, plus: boolean | null): number {
-  return capacityValue(capacityValue(capacity, plus) + delta, plus);
+/**
+ * The stepper's next value. "No limit" sits past the plan max: + at the max goes to "No limit", − from "No limit" goes
+ * to the max. 2 and "No limit" are the ends (the value stays).
+ */
+export function stepCapacity(capacity: Capacity, delta: 1 | -1, plus: boolean | null): Capacity {
+  const max = capacityMax(plus);
+  if (capacity === 'none') return delta < 0 ? max : 'none';
+  const n = capacityValue(capacity, plus);
+  if (delta > 0 && n >= max) return 'none';
+  return capacityValue(n + delta, plus);
+}
+
+/** Which stepper ends are reached: − is off at 2, + only at "No limit". */
+export function capacityEnds(capacity: Capacity) {
+  return { atMin: capacity !== 'none' && capacity <= MIN_MEMBERS, atMax: capacity === 'none' };
+}
+
+/** A typed people count, clamped to 2 … plan max; null when it is not a whole number (the value stays). */
+export function typedCapacity(text: string, plus: boolean | null): number | null {
+  const t = text.trim();
+  if (!/^\d{1,4}$/.test(t)) return null;
+  return capacityValue(Number(t), plus);
 }
 
 /**

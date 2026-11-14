@@ -17,10 +17,14 @@ test('capacity: Free 6, Plus 30; No limit is the plan max; a loading flag counts
 });
 
 test('the stepper stays inside 2 … max and starts from the max on No limit', () => {
-  assert.equal(p.stepCapacity('none', -1, false), 5);
-  assert.equal(p.stepCapacity(6, 1, false), 6);
+  assert.equal(p.stepCapacity('none', -1, false), 6);
+  assert.equal(p.stepCapacity('none', -1, true), 30);
+  assert.equal(p.stepCapacity('none', 1, true), 'none');
+  assert.equal(p.stepCapacity(6, 1, false), 'none');
+  assert.equal(p.stepCapacity(30, 1, true), 'none');
   assert.equal(p.stepCapacity(2, -1, true), 2);
   assert.equal(p.stepCapacity(29, 1, true), 30);
+  assert.equal(p.stepCapacity(20, 1, false), 'none');
 });
 
 test('every room icon maps back to its own ink icon', () => {
@@ -86,4 +90,24 @@ test('0032 plan limit: only PT402 plan_limit opens the Plus screen', () => {
   assert.equal(p.isPlanLimit(new Error('plan_limit')), false);
   assert.equal(p.isPlanLimit(null), false);
   assert.equal(p.isPlanLimit('plan_limit'), false);
+});
+
+test('stepper ends: - off at 2, + off only at No limit', () => {
+  assert.deepEqual(p.capacityEnds(2), { atMin: true, atMax: false });
+  assert.deepEqual(p.capacityEnds(6), { atMin: false, atMax: false });
+  assert.deepEqual(p.capacityEnds('none'), { atMin: false, atMax: true });
+});
+
+test('typed people count clamps to 2 .. plan max', () => {
+  assert.equal(p.typedCapacity('3', false), 3);
+  assert.equal(p.typedCapacity(' 12 ', true), 12);
+  assert.equal(p.typedCapacity('12', false), 6);
+  assert.equal(p.typedCapacity('99', true), 30);
+  assert.equal(p.typedCapacity('1', true), 2);
+  assert.equal(p.typedCapacity('0', false), 2);
+  assert.equal(p.typedCapacity('', false), null);
+  assert.equal(p.typedCapacity('3.5', false), null);
+  assert.equal(p.typedCapacity('-4', false), null);
+  assert.equal(p.typedCapacity('abc', true), null);
+  assert.equal(p.typedCapacity('12', null), 6);
 });
