@@ -678,16 +678,12 @@ function RoomMap({
         </View>
       ) : null}
 
-      <View style={styles.group}>
-        <Text style={styles.status}>{en.map.route}</Text>
-        {isHost ? (
-          <Button
-            title={savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}
-            variant="secondary"
-            onPress={openEditor}
-          />
-        ) : null}
-      </View>
+      {/* UX2-23: no empty Route heading; the host edits from the map's Pen chip only. */}
+      {savedRoute.length > 0 ? (
+        <View style={styles.group}>
+          <Text style={styles.status}>{en.map.route}</Text>
+        </View>
+      ) : null}
       {editor ? (
         <RouteEditor
           roomName={room.name}
