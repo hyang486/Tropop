@@ -437,22 +437,24 @@ export default function CreateRoom() {
               <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
             </Pressable>
           </View>
+          {/* UX2-131 (ux): one slot under the stepper: the clamp line while it is set, else the Free at-max line.
+              UX2-54: Plus at 30 shows only the hint ("Plus rooms hold up to 30."), no at-max line. */}
           {clampNote ? (
             <View style={styles.clampRow}>
               <Text style={styles.clampNote}>{clampNote.text} </Text>
               {clampNote.link ? (
                 <Pressable
                   accessibilityRole="link"
+                  // UX2-131b: 18 pt line + 13 + 13 slop = 44 pt hit; the row stays one text line tall (no jump vs at-max).
+                  hitSlop={{ top: 13, bottom: 13 }}
                   onPress={() => router.push({ pathname: '/plan-preview', params: { from: 'capacity' } })}
-                  style={({ pressed }) => [styles.clampLink, pressed && { opacity: 0.5 }]}
+                  style={({ pressed }) => pressed && { opacity: 0.5 }}
                 >
                   <Text style={[styles.clampNote, styles.clampLinkText]}>{en.createRoom.seePlus}</Text>
                 </Pressable>
               ) : null}
             </View>
-          ) : null}
-          {/* UX2-54: Plus at 30 shows only the hint ("Plus rooms hold up to 30."), no right-aligned at-max line. */}
-          {atMax && plus === false ? (
+          ) : atMax && plus === false ? (
             <Text style={styles.atMax}>{en.createRoom.capacityAtMax(capacityMax(false), false)}</Text>
           ) : null}
           <Hint>{capacityHint(plus)}</Hint>
@@ -725,7 +727,6 @@ const styles = StyleSheet.create({
   stepOff: { opacity: 0.3 },
   clampRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   clampNote: { fontSize: 13, lineHeight: 18, color: colors.ink2 },
-  clampLink: { minHeight: 44, justifyContent: 'center' },
   clampLinkText: { fontWeight: '600', textDecorationLine: 'underline' },
   atMax: { ...textRole.secondary, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
   step: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },

@@ -5,6 +5,7 @@ Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.
 ## 2026-11-14: UX2-131 / UX2-132, branch ux2-131-132 (local, from e1ebdc7, not pushed)
 
 - UX2-131: typing a people count above the plan max still clamps it, and now a line appears under the stepper. Free host: "Free rooms hold up to 6." + "See Plus" (same `/plan-preview?from=capacity` route as the + tap, 44 pt). Plus host: "Rooms hold up to 30." with no link. VoiceOver announces the line (useAnnounce). The next stepper change clears it. Done never opens Plus. The rule is `capacityClampNote()` in `lib/capacity-clamp-plan.ts`.
+- UX2-131 follow-up (ux): while the clamp line is visible it takes the Free "6 · Free max" at-max slot (one slot, no stacking, no layout jump); the at-max line returns when the next stepper change clears the clamp line. Plus at 30 has no at-max line (UX2-54), so nothing changes there.
 - UX2-132 finding, no code change: Confirm email is OFF for wuhkyjksiiqzoxvonfuy. Read-only checks on 2026-11-14:
   - `GET /auth/v1/settings` with the publishable key returned `mailer_autoconfirm: true`, `external.anonymous_users: true` and `external.email: true`.
   - An aggregate count on `auth.users` (counts only, no rows) found 0 users with a pending `email_change`, anonymous or not.
