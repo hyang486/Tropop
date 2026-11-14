@@ -30,3 +30,10 @@ test('V4: map capsule is redwash, 48 pt, radius 24, lift shadow, no outline; bol
   assert.match(en, /capsuleNeedsHelp: ' needs help',/);
   assert.match(en, /capsuleMine: 'You need help',/);
 });
+
+test('V4: map.tsx renders EmergencyAlerts with place="map", 16 pt from the sides (content padding 16)', () => {
+  const m = src('app/room/[id]/map.tsx');
+  assert.match(m, /<EmergencyAlerts\s+place="map"\s+roomId=\{room\.id\}/);
+  assert.equal((m.match(/<EmergencyAlerts\b/g) ?? []).length, 1);
+  assert.match(m, /^ {2}content: \{ padding: 16,/m);
+});
