@@ -3,7 +3,14 @@ export const en = {
   appName: 'Qrew',
   welcome: {
     // Q 01.01
-    tagline: "A room for the people you're with.",
+    // UX3-A03: headline and three value rows.
+    headline: "One room for today's crew",
+    valueJoinTitle: 'Join in seconds',
+    valueJoinLine: "Scan the host's QR or type 5 digits.",
+    valuePhotosTitle: 'Photos of you, found for you',
+    valuePhotosLine: 'Full-quality photos from everyone.',
+    valueGoneTitle: 'Gone when it ends',
+    valueGoneLine: 'Chat and photos are deleted at End.',
     join: 'Join a room',
     create: 'Create a room',
     // UX2-27: returning users (Welcome and Guest) go to Log in.
