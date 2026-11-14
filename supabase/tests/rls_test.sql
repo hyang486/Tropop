@@ -229,7 +229,11 @@ select tests.expect_error($q$ select public.set_status_definitions(current_setti
   'guest cannot edit statuses');
 select tests.expect_error($q$ select 1 from public.cleanup_jobs $q$, 'cleanup_jobs is not readable by clients');
 select tests.expect_error($q$ select 1 from public.join_attempts $q$, 'join_attempts is not readable by clients');
-select tests.expect_error($q$ select 1 from public.expiry_reminders $q$, 'expiry_reminders is not readable by clients');
+-- 0019 lets a client read its own expiry_reminders rows (expiry_reminders_select_own) and nobody else's.
+select tests.expect_count($q$ select 1 from public.expiry_reminders where user_id <> auth.uid() $q$, 0,
+  'expiry_reminders: no other user''s rows are readable');
+select tests.expect_error($q$ insert into public.expiry_reminders select * from public.expiry_reminders limit 1 $q$,
+  'expiry_reminders cannot be written by clients');
 select tests.expect_error($q$ insert into public.live_presence (room_id, user_id, lat, lng) values (current_setting('t.r')::uuid, auth.uid(), 1, 1) $q$,
   'live_presence cannot be written directly');
 select tests.expect_error($q$ insert into public.arrivals (room_id, user_id) values (current_setting('t.r')::uuid, auth.uid()) $q$,
