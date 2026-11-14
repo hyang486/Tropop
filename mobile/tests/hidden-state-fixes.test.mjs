@@ -17,7 +17,9 @@ test('fix 1: the map re-reads the room after a host change succeeds, not only on
 
 test('fix 2: the map catches up on the room after a reconnect and on return to foreground', () => {
   const map = read('app/room/[id]/map.tsx');
-  assert.match(map, /\(status\) => \{\n\s+if \(status === 'SUBSCRIBED'\) load\(\);/);
+  // Supervisor nit: the first SUBSCRIBED for a room only marks it joined; a rejoin after a drop reloads.
+  assert.match(map, /if \(status !== 'SUBSCRIBED'\) return;\n\s+if \(joinedRoom\.current === id\) load\(\);\n\s+else joinedRoom\.current = id;/);
+  assert.doesNotMatch(map, /if \(status === 'SUBSCRIBED'\) load\(\);/);
   assert.match(map, /AppState\.addEventListener\('change', \(next\) => \{\n\s+if \(next === 'active'\) load\(\);/);
 });
 

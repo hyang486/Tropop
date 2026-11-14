@@ -116,13 +116,17 @@ export default function RoomMapScreen() {
 
   // Location setting, activity state, route and membership all live on rooms / room_members. Sweep fix 2: notices
   // missed while the socket was down are caught up when the channel rejoins (SUBSCRIBED) and on return to foreground.
+  // The first SUBSCRIBED for this room is skipped: the focus load above already read it (no double fetch on open).
+  const joinedRoom = useRef<string | null>(null);
   useRoomEvents(
     id,
     (event) => {
       if (event.table === 'rooms' || event.table === 'room_members') load();
     },
     (status) => {
-      if (status === 'SUBSCRIBED') load();
+      if (status !== 'SUBSCRIBED') return;
+      if (joinedRoom.current === id) load();
+      else joinedRoom.current = id;
     },
   );
   useEffect(() => {
