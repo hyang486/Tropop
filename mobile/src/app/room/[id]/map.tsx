@@ -149,7 +149,7 @@ export default function RoomMapScreen() {
       </View>
     );
   }
-  return <RoomMap room={state.room} names={state.names} avatars={state.avatars} focus={focus} />;
+  return <RoomMap room={state.room} names={state.names} avatars={state.avatars} focus={focus} reload={load} />;
 }
 
 function RoomMap({
@@ -157,8 +157,11 @@ function RoomMap({
   names,
   avatars,
   focus,
+  reload,
 }: {
   focus?: string;
+  /** Hidden-state sweep: re-read the room after a host change, so a missed realtime notice cannot leave it stale. */
+  reload: () => void;
   room: Room;
   names: Map<string, string>;
   avatars: Map<string, string | null>;
@@ -386,10 +389,11 @@ function RoomMap({
       .catch(() => {});
   }
 
-  async function run(key: string, action: () => Promise<void>) {
+  async function run(key: string, action: () => Promise<void>, refresh = false) {
     setBusy(key);
     try {
       await action();
+      if (refresh) reload();
     } catch (e) {
       Alert.alert(errorMessage(e));
     } finally {
@@ -413,18 +417,18 @@ function RoomMap({
 
   function toggleAllowed(next: boolean) {
     if (next) {
-      run('allowed', () => setLocationAllowed(room.id, true));
+      run('allowed', () => setLocationAllowed(room.id, true), true);
       return;
     }
     Alert.alert(active ? en.map.endConfirmTitle : en.map.stopSharingTitle, active ? en.map.allowLocationHint : en.map.stopSharingBody, [
       { text: en.map.cancel, style: 'cancel' },
-      { text: active ? en.map.endActivity : en.map.stopSharing, style: 'destructive', onPress: () => run('allowed', () => setLocationAllowed(room.id, false)) },
+      { text: active ? en.map.endActivity : en.map.stopSharing, style: 'destructive', onPress: () => run('allowed', () => setLocationAllowed(room.id, false), true) },
     ]);
   }
 
   function toggleActivity() {
     if (!active) {
-      run('activity', () => setActivityState(room.id, 'active'));
+      run('activity', () => setActivityState(room.id, 'active'), true);
       return;
     }
     // Qrew unit 4 (Q 03.04): a confirm screen that states the effects, instead of an alert.
@@ -446,7 +450,7 @@ function RoomMap({
     run('route', async () => {
       await saveRoute(room.id, route);
       setEditor(null);
-    });
+    }, true);
   }
 
   // Emergency labels only: red text on a white pill directly under the pin (red stays the one Emergency
