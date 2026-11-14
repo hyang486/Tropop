@@ -205,5 +205,5 @@ const styles = StyleSheet.create({
   ends: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'], marginBottom: 4 },
   empty: { fontSize: 15, color: colors.secondaryLabel, paddingVertical: 12 },
   // MuteBar pads itself by 24; pulled in so its label lines up with the rows above.
-  settingsExtra: { marginTop: 8, marginHorizontal: -10 },
+  settingsExtra: { gap: 6 },
 });

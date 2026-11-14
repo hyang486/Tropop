@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 
 import { HAND_FONTS } from '@/components/hand-title';
+import { HomeHeaderButton } from '@/components/home-header-button';
 import { startSiriMirror } from '@/features/event/siri-mirror';
 // Qrewing Calendar: loaded at start so its SIGNED_OUT listener clears the phone-only calendar on sign-out.
 import '@/features/calendar/calendar-store';
@@ -16,6 +17,9 @@ import { hasOpenModal, setRootLinkHandler } from '@/lib/root-link';
 import { pushFromRoot, resetToRoot } from '@/lib/root-nav';
 
 SplashScreen.preventAutoHideAsync();
+
+// The stack's own roots: these never need a way home.
+const ROOT_SCREENS = new Set(['index', 'welcome', 'join/[token]']);
 
 function RootNavigator() {
   const { session, loading } = useAuth();
@@ -64,7 +68,15 @@ function RootNavigator() {
   return (
     <>
     <LocationReporters />
-    <Stack screenOptions={{ headerLargeTitle: false, headerBackButtonDisplayMode: 'minimal' }}>
+    {/* Spec 11 polish: a screen that opened as the root (deep link, cold start, Fast Refresh) has no Back, so it
+        gets a way home instead of a dead end. */}
+    <Stack
+      screenOptions={({ route, navigation }) => ({
+        headerLargeTitle: false,
+        headerBackButtonDisplayMode: 'minimal',
+        ...(!ROOT_SCREENS.has(route.name) && !navigation.canGoBack() ? { headerLeft: () => <HomeHeaderButton /> } : {}),
+      })}
+    >
       <Stack.Protected guard={signedIn} redirectTo="/welcome">
         <Stack.Screen name="index" options={{ title: en.home.title, headerTitle: '' }} />
         <Stack.Screen name="profile" options={{ title: en.profile.title, headerTitle: '' }} />

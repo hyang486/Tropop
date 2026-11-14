@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, colors, Hint, radius } from '@/components/ui';
+import { InkSwitch } from '@/features/event/ink-switch';
 import type { Room } from '@/lib/rooms';
 
 import { runKey, usePaceRun } from './engine';
@@ -42,17 +43,18 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
     <View style={styles.group}>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <Switch
-          value={settings.on}
+        {/* Spec 11 polish: off and disabled until Share my location is on; the saved choice returns with sharing. */}
+        <InkSwitch
+          value={settings.on && share}
+          disabled={!share}
           onValueChange={(on) => setOn(room.id, on)}
           accessibilityLabel={t.title}
-          trackColor={{ true: colors.tint }}
         />
       </View>
-      <Hint>{t.switchHint}</Hint>
-      {settings.on ? (
+      <Hint>{share ? t.switchHint : t.needsSharing}</Hint>
+      {settings.on && share ? (
         <>
-          {!share ? <Hint tone="error">{t.needsSharing}</Hint> : !active ? <Hint>{t.needsActivity}</Hint> : null}
+          {!active ? <Hint>{t.needsActivity}</Hint> : null}
           {stats ? <StatsRow {...stats} /> : null}
           <TargetEditor target={settings.target} usual={usual} goal={goal} />
           {goal == null ? <Hint>{t.noTarget}</Hint> : null}

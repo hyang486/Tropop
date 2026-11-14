@@ -2,10 +2,11 @@
 // optionally "Post as notice" (also pinned as the chat notice). The answer goes only to the asker.
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { QCard, QField, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
+import { InkSwitch } from '@/features/event/ink-switch';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { listMembers } from '@/lib/rooms';
@@ -118,7 +119,7 @@ function AnswerCard({ card, asker }: { card: QuestionCard; asker: string }) {
           <Text style={styles.rowTitle}>{s.postAsNotice}</Text>
           <Text style={styles.rowHint}>{s.postAsNoticeHint}</Text>
         </View>
-        <Switch value={asNotice} onValueChange={setAsNotice} accessibilityLabel={s.postAsNotice} />
+        <InkSwitch value={asNotice} onValueChange={setAsNotice} accessibilityLabel={s.postAsNotice} />
       </View>
       {error ? <Hint tone="error">{error === 'notice_long' ? s.noticeTooLong : s.errors[error]}</Hint> : null}
       <Button title={s.send} onPress={send} busy={busy} disabled={!cardAnswer(draft, false) || busy} />
