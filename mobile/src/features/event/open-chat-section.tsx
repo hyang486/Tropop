@@ -1,8 +1,8 @@
 // Spec 11 D: the Open chat section for Rooms. Lists open public rooms (list_open_rooms) and joins one without a code
 // (join_open_room). Renders nothing while OPEN_ROOMS_LIVE is false (migration 0031 not live yet).
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar';
 import { QLabel } from '@/components/q-screen';
@@ -10,10 +10,11 @@ import { colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 
-import { iconEmoji, OPEN_ROOMS_LIVE, openRowSpoken } from './open-room-plan';
+import { cameToForeground, iconEmoji, OPEN_ROOMS_LIVE, openRowSpoken } from './open-room-plan';
 import { joinOpenRoom, listOpenRooms, type OpenRoom } from './open-rooms-api';
 
-export function OpenChatSection() {
+/** `refreshKey`: Rooms bumps it on pull to refresh; each change re-reads the list (BUG-OC1). */
+export function OpenChatSection({ refreshKey = 0 }: { refreshKey?: number }) {
   const router = useRouter();
   const [rooms, setRooms] = useState<OpenRoom[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +37,25 @@ export function OpenChatSection() {
 
   // Re-read each time Rooms comes into view, so counts and newly opened rooms stay current.
   useFocusEffect(useCallback(() => (OPEN_ROOMS_LIVE ? load() : undefined), [load]));
+  // BUG-OC1: also on Rooms pull to refresh (key 0 is the first render, which the focus read covers) and on return to
+  // the foreground.
+  useEffect(() => (OPEN_ROOMS_LIVE && refreshKey > 0 ? load() : undefined), [load, refreshKey]);
+  useEffect(() => {
+    if (!OPEN_ROOMS_LIVE) return;
+    let state: string = AppState.currentState ?? 'active';
+    let stop: (() => void) | undefined;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (cameToForeground(state, next)) {
+        stop?.();
+        stop = load();
+      }
+      state = next;
+    });
+    return () => {
+      sub.remove();
+      stop?.();
+    };
+  }, [load]);
 
   async function open(room: OpenRoom) {
     if (room.already_member) {

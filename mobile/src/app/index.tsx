@@ -1,7 +1,7 @@
 import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
 import { placeTimeLine } from '@/components/place-time-cards';
@@ -30,6 +30,9 @@ export default function Rooms() {
   const now = useNow();
   const [rooms, setRooms] = useState<Room[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
+  const [refreshing, setRefreshing] = useState(false);
+  const [openChatKey, setOpenChatKey] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -91,6 +94,17 @@ export default function Rooms() {
         }}
       />
       <QScreen
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            tintColor={colors.secondaryLabel}
+            onRefresh={() => {
+              setRefreshing(true);
+              setOpenChatKey((k) => k + 1);
+              void load().finally(() => setRefreshing(false));
+            }}
+          />
+        }
         title={en.home.title}
         subtitle={en.home.signedInAs(profile?.display_name ?? '…', isGuest ? en.profile.guest : en.profile.host)}
       >
@@ -159,7 +173,7 @@ export default function Rooms() {
         })}
 
         {/* Spec 11 D: public rooms anyone can join without a code (hidden until 0031 is live). */}
-        <OpenChatSection />
+        <OpenChatSection refreshKey={openChatKey} />
       </QScreen>
     </>
   );
