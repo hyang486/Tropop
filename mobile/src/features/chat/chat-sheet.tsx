@@ -31,8 +31,12 @@ export function ChatSheet({
   return (
     <Modal visible={visible} transparent animationType={instant ? 'none' : 'slide'} onRequestClose={onClose} onShow={onShow}>
       <View style={styles.backdrop}>
-        <Pressable style={styles.flex} accessibilityLabel={en.chat.moreClose} onPress={onClose} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]} accessibilityViewIsModal>
+        <Pressable style={styles.flex} accessibilityRole="button" accessibilityLabel={en.chat.moreClose} onPress={onClose} />
+        <View
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}
+          accessibilityViewIsModal
+          onAccessibilityEscape={onClose}
+        >
           <View style={styles.handle} />
           <ScrollView style={styles.scroll} contentContainerStyle={styles.body} bounces={false}>
             <HandTitle style={styles.title}>{title}</HandTitle>

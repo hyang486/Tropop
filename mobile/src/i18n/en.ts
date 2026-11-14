@@ -1106,6 +1106,7 @@ export const en = {
       entryLabel: 'Ask attendees for entry info',
       entryHint: 'Attendees fill in a short intro (what they do, interests, links) before they chat.',
       aiSaveFailed: 'The room was created, but Qrewing AI could not be turned on. You can try again from Room info.',
+      aiSaveFailedHint: 'Dismisses this note.',
       questionsTitle: 'Entry questions',
       questionsHint: 'Attendees answer these before they chat. You cannot change them after the first answer.',
       promptLabel: (n: number) => `Question ${n}`,
