@@ -402,6 +402,8 @@ export const en = {
     headerLinkA11y: (pending: number, failed: number) =>
       [`Photos`, pending > 0 ? `${pending} uploading` : '', failed > 0 ? `${failed} failed` : ''].filter(Boolean).join(', '),
     emptyFile: 'The selected file is empty.',
+    // Capacity option B (0033 PT507): the room's storage cap by the host's plan.
+    roomStorageFull: "This room's space is full. Older videos stay; new ones can be photos.",
     tooLarge: (limit: string, size: string) => `Files up to ${limit} can be shared. This one is ${size}.`,
     tooLargeTitle: 'Too large to share',
     tooLargeSkipped: (limit: string, list: string) =>

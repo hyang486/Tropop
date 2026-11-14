@@ -32,6 +32,7 @@ import {
   roomSummary,
   sharedBody,
 } from './upload-plan';
+import { isRoomStorageFull } from './storage-cap';
 
 // G9 F2: the gallery tells camera problems apart from upload failures.
 export { CameraError };
@@ -271,6 +272,11 @@ export function createJob(roomId: string, uploaderId: string, item: PickedItem):
   };
 }
 
+/** Capacity option B: a full room reads as the room-space copy; anything else keeps the server text. */
+function uploadErrorText(error: { code?: string; message: string }): string {
+  return isRoomStorageFull(error) ? en.media.roomStorageFull : error.message;
+}
+
 /**
  * Runs (or re-runs) one upload: media row -> preview -> original -> ready.
  * The server only accepts 'ready' when the stored original is nonempty and records its size.
@@ -305,7 +311,7 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
       content_sha256: sha256,
       status: 'uploading',
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(uploadErrorText(error));
     rowCreated = true;
   }
 
@@ -326,7 +332,9 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
     await putObject(job.originalPath, item.uri, item.mimeType, (f) => onProgress(0.02 + f * 0.97), signal);
     throwIfAborted(signal);
     const { error } = await supabase.from('media').update({ status: 'ready' }).eq('id', job.id);
-    if (error) throw new Error(error.message);
+    // A full room (PT507) leaves the uploaded object behind; clients cannot delete room-media, so it goes with the
+    // failed row's room. The row is marked failed below.
+    if (error) throw new Error(uploadErrorText(error));
     onProgress(1);
     return { ...job, rowCreated, previewPath };
   } catch (e) {
