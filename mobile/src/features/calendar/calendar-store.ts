@@ -57,16 +57,22 @@ async function loadDoc(uid: string): Promise<CalendarDoc> {
   return docs.get(uid)!;
 }
 
-/** Read, change and write the user's doc in order; failures keep the in-memory copy (never block the app). */
-function update(uid: string, change: (doc: CalendarDoc) => CalendarDoc): Promise<void> {
+/**
+ * Read, change and write the user's doc in order; failures keep the in-memory copy (never block the app).
+ * Resolves true once written to the phone; false when not allowed or the write failed (C14: the editor says so).
+ */
+function update(uid: string, change: (doc: CalendarDoc) => CalendarDoc): Promise<boolean> {
   return serial(async () => {
-    if (!mayWrite(uid, currentUid, authKnown)) return;
+    if (!mayWrite(uid, currentUid, authKnown)) return false;
     const next = change(await loadDoc(uid));
     docs.set(uid, next);
     emit();
     try {
       await AsyncStorage.setItem(calendarKey(uid), JSON.stringify(next));
-    } catch {}
+    } catch {
+      return false;
+    }
+    return true;
   });
 }
 

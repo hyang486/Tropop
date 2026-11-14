@@ -109,3 +109,18 @@ test('mayWrite: after sign-out a late write for the old user is skipped; before 
   assert.equal(d.mayWrite('u1', 'u2', true), false); // another user signed in since
   assert.equal(d.mayWrite('u1', null, false), true); // listener not told yet (cold start)
 });
+
+test('C14 sweep 1: editorTarget waits for the doc, edits a known id, says a gone id is missing', () => {
+  const ev = { id: 'e1', title: 'Run', start: '2026-11-20', end: '2026-11-20', emoji: '🏃' };
+  const doc = { version: 1, rooms: {}, events: [ev] };
+  const empty = { version: 1, rooms: {}, events: [] };
+  assert.deepEqual(d.editorTarget(undefined, null), { kind: 'new' });
+  assert.deepEqual(d.editorTarget(undefined, doc), { kind: 'new' });
+  assert.deepEqual(d.editorTarget('e1', null), { kind: 'loading' });
+  assert.deepEqual(d.editorTarget('e1', doc), { kind: 'edit', event: ev });
+  assert.deepEqual(d.editorTarget('gone', doc), { kind: 'missing' });
+  // A delete takes the event out of the doc before the write answers: the open editor keeps it (no "gone" flash,
+  // and a failed delete can still show its error).
+  assert.deepEqual(d.editorTarget('e1', empty, ev), { kind: 'edit', event: ev });
+  assert.deepEqual(d.editorTarget('e2', empty, ev), { kind: 'missing' });
+});

@@ -7,7 +7,7 @@ import { labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import { useFonts } from 'expo-font';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon, inkIconKey, inkIconLabel } from '@/components/calendar';
 import { HAND_FONTS } from '@/components/hand-title';
@@ -19,7 +19,7 @@ import { useAuth } from '@/lib/auth';
 import { handFontFor } from '@/lib/hand-font';
 import { useNow } from '@/lib/use-now';
 
-import { checkEvent, EVENT_TITLE_MAX } from './calendar-data';
+import { checkEvent, editorTarget, EVENT_TITLE_MAX, type PersonalEvent } from './calendar-data';
 import { keyToLocalDate, localDateToKey } from './calendar-format';
 import { isDateKey, localDateKey } from './calendar-plan';
 import { removeEvent, saveEvent, useCalendar } from './calendar-store';
@@ -29,12 +29,39 @@ const t = en.calendar;
 /** A small curated set; Qrewing's pick is added in front when it isn't in the list. */
 export const EVENT_EMOJIS = ['📌', '🎂', '🍽️', '☕', '🏃', '🚴', '⚽', '🎉', '🎵', '📚', '✈️', '🏖️', '🏥', '💼', '🛒', '❤️'];
 
+type Params = { id?: string; title?: string; start?: string; end?: string; emoji?: string; ask?: string };
+
 export function EventEditor() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string; title?: string; start?: string; end?: string; emoji?: string; ask?: string }>();
+  const params = useLocalSearchParams<Params>();
   const uid = useAuth().session?.user.id;
-  const doc = useCalendar(uid);
-  const existing = params.id ? doc?.events.find((e) => e.id === params.id) : undefined;
+  const [kept, setKept] = useState<PersonalEvent | null>(null);
+  const target = editorTarget(params.id, useCalendar(uid), kept);
+  if (target.kind === 'edit' && kept !== target.event) setKept(target.event);
+  // C14: wait for the doc before building the form (its fields start from the event once), and say so when the
+  // event is gone (deleted, or a stale link) instead of opening a blank form that would save a copy.
+  if (target.kind === 'loading') return <ActivityIndicator style={styles.loading} />;
+  if (target.kind === 'missing') {
+    return (
+      <QScreen
+        title={t.editEvent}
+        actions={
+          <Button
+            title={t.backToCalendar}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/calendar'))}
+          />
+        }
+      >
+        <Stack.Screen options={{ title: t.editEvent, headerTitle: '', headerShadowVisible: false }} />
+        <Hint>{t.eventGone}</Hint>
+      </QScreen>
+    );
+  }
+  return <EventForm uid={uid} params={params} existing={target.kind === 'edit' ? target.event : undefined} />;
+}
+
+function EventForm({ uid, params, existing }: { uid: string | undefined; params: Params; existing: PersonalEvent | undefined }) {
+  const router = useRouter();
   const today = localDateKey(useNow(60_000));
   const [title, setTitle] = useState(existing?.title ?? params.title ?? '');
   const [start, setStart] = useState(existing?.start ?? (isDateKey(params.start) ? params.start : today));
@@ -56,7 +83,14 @@ export function EventEditor() {
       setTries((n) => n + 1);
       return;
     }
-    await saveEvent(uid, existing?.id ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, input);
+    setProblem(null);
+    const id = existing?.id ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    // C14: a failed write stays on screen with the error until the next attempt.
+    if (!(await saveEvent(uid, id, input))) {
+      setProblem(t.saveFailed);
+      setTries((n) => n + 1);
+      return;
+    }
     router.back();
   }
 
@@ -68,7 +102,12 @@ export function EventEditor() {
         text: t.delete,
         style: 'destructive',
         onPress: () => {
-          void removeEvent(uid, existing.id).then(() => router.back());
+          setProblem(null);
+          void removeEvent(uid, existing.id).then((ok) => {
+            if (ok) return router.back();
+            setProblem(t.deleteFailed);
+            setTries((n) => n + 1);
+          });
         },
       },
     ]);
@@ -150,6 +189,7 @@ function DateRow({ label, value, onChange }: { label: string; value: string; onC
 }
 
 const styles = StyleSheet.create({
+  loading: { marginTop: 80 },
   dateRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 },
   dateLabel: { flex: 1, fontSize: 19, color: colors.label },
   emojis: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

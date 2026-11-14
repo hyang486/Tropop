@@ -231,3 +231,17 @@ export function parseCalendarAdd(data: unknown): EventInput | null {
 export function calendarGate(signedIn: boolean): 'signedOut' | 'calendar' {
   return signedIn ? 'calendar' : 'signedOut';
 }
+
+/**
+ * C14 / sweep 1: what the event editor shows. With an id it waits for the doc (never a blank form that would save a
+ * copy), then edits the event or says it is gone; with no id it adds a new one. `kept` is the event this editor
+ * already opened: it stays while a delete (or a failed delete) takes it out of the doc.
+ */
+export type EditorTarget = { kind: 'loading' } | { kind: 'missing' } | { kind: 'edit'; event: PersonalEvent } | { kind: 'new' };
+
+export function editorTarget(id: string | undefined, doc: CalendarDoc | null, kept?: PersonalEvent | null): EditorTarget {
+  if (!id) return { kind: 'new' };
+  const event = doc?.events.find((e) => e.id === id) ?? (kept?.id === id ? kept : undefined);
+  if (event) return { kind: 'edit', event };
+  return doc ? { kind: 'missing' } : { kind: 'loading' };
+}
