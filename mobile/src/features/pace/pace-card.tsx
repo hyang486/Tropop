@@ -40,8 +40,9 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
     return (
       <View style={styles.group}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <Hint>{t.plusOnly}</Hint>
-        <QLink title={en.planPreview.seePlus} onPress={() => router.push(plusIntroHref('pace'))} />
+        {/* UX2-12: an inline gate (pattern G in a card): ink line + one full-width primary See Plus. */}
+        <Text style={styles.gateLine}>{t.plusOnly}</Text>
+        <Button title={en.planPreview.seePlus} onPress={() => router.push(plusIntroHref('pace'))} />
       </View>
     );
   }
@@ -322,6 +323,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   switchLabel: { fontSize: 17, color: colors.label, flexShrink: 1 },
+  gateLine: { fontSize: 15, color: colors.label },
   statsRow: { flexDirection: 'row', paddingVertical: space.s, gap: space.l },
   statCell: { flex: 1, alignItems: 'flex-start' },
   targetRow: {

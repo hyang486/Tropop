@@ -520,7 +520,7 @@ export const en = {
     switchHint: 'Qrewing coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
     needsSharing: 'Turn on Share my location to use the pace maker.',
     // capacity B item 4: the pace maker follows your own plan, also in a Free host's room.
-    plusOnly: 'The pace maker is part of Qrew Plus.',
+    plusOnly: 'Pace maker is part of Qrew Plus.',
     needsActivity: 'Cues start when the host starts the activity.',
     target: 'Target',
     targetUsual: (pace: string | null) => (pace ? `My usual pace (${pace} per km)` : 'My usual pace (no runs yet)'),
