@@ -1,11 +1,12 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { QCard, QLabel } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
 
+import { InkSwitch } from './ink-switch';
 import { setQrewingMember, setQrewingRoom, useEntryQuestions, useQrewingRoom } from './qrewing-api';
 import { en } from '@/i18n/en';
 
@@ -63,7 +64,7 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
         <>
           <QCard row>
             <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
-            <Switch
+            <InkSwitch
               value={q.aiEnabled}
               disabled={busy}
               onValueChange={(v) => run(() => setQrewingRoom(roomId, v, v && isEvent && q.entryRequired))}
@@ -73,7 +74,7 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
           {q.aiEnabled && isEvent ? (
             <QCard row>
               <Text style={styles.cardTitle}>{en.qrewing.create.entryLabel}</Text>
-              <Switch
+              <InkSwitch
                 value={q.entryRequired}
                 // Turning it off always works; turning it on needs questions (22023 otherwise).
                 disabled={busy || (noQuestions && !q.entryRequired)}

@@ -17,8 +17,10 @@ export function InkSwitch({
   value,
   onValueChange,
   accessibilityLabel,
+  disabled = false,
 }: {
   value: boolean;
+  disabled?: boolean;
   onValueChange: (next: boolean) => void;
   accessibilityLabel: string;
 }) {
@@ -38,10 +40,11 @@ export function InkSwitch({
     <Pressable
       accessibilityRole="switch"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ checked: value }}
+      accessibilityState={{ checked: value, disabled }}
+      disabled={disabled}
       onPress={() => onValueChange(!value)}
       hitSlop={8}
-      style={[styles.track, value && styles.trackOn]}
+      style={[styles.track, value && styles.trackOn, disabled && styles.disabled]}
     >
       <Animated.View
         style={[
@@ -68,4 +71,5 @@ const styles = StyleSheet.create({
   trackOn: { backgroundColor: colors.tint, borderColor: colors.tint },
   knob: { width: KNOB, height: KNOB, borderRadius: KNOB / 2, backgroundColor: colors.label },
   knobOn: { backgroundColor: colors.onTint },
+  disabled: { opacity: 0.4 },
 });
