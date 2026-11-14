@@ -17,6 +17,19 @@ export function seenSummary(
 }
 
 /**
+ * UX2-79: who sent an Emergency. `names` is null while the member list is not known yet or its read failed, so a
+ * current member never reads as "Former member"; "former" only when the read worked and the id is missing.
+ */
+export function emergencySender(
+  names: ReadonlyMap<string, string> | null,
+  userId: string,
+): { kind: 'unknown' } | { kind: 'former' } | { kind: 'name'; name: string } {
+  if (names === null) return { kind: 'unknown' };
+  const name = names.get(userId);
+  return name === undefined ? { kind: 'former' } : { kind: 'name', name };
+}
+
+/**
  * One vibration per Emergency for the whole app, however many screens show its banner (the chat screen stays
  * mounted under Map and Photos). The first load of each screen only records what is already open, so opening
  * a screen never re-announces an Emergency.

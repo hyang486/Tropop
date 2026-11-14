@@ -540,6 +540,8 @@ export const en = {
       'Everyone in this room gets an in-app alert. This does not contact emergency services or turn on location sharing.',
     sendEmergency: 'Send Emergency',
     emergencyFrom: (name: string) => `${name} needs help`,
+    /** UX2-79: the member list is not known yet or failed to load. */
+    emergencyFromUnknown: 'Emergency from someone in this room',
     myEmergency: 'Your Emergency is active',
     seenBy: (n: number, total: number) => `Seen by ${n} of ${total}`,
     /** #12: who has seen it, then the count ("Seen by Mina, Joon · 2 of 3"). */

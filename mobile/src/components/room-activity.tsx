@@ -1,6 +1,7 @@
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Pressable,
   ScrollView,
   type StyleProp,
@@ -19,7 +20,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, emergencyBarMode, emergenciesFolded, seenSummary, spokenSentence, spokenSeparators } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, emergencySender, emergencyBarMode, emergenciesFolded, seenSummary, spokenSentence, spokenSeparators } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
@@ -62,7 +63,8 @@ export function EmergencyAlerts({
   roomId: string;
   activity: ReturnType<typeof useRoomActivity>;
   userId: string | undefined;
-  names: Map<string, string>;
+  /** UX2-79: null while the member list is not known yet or failed to load. */
+  names: Map<string, string> | null;
   /** Live position rows of the room (Q 04.03 "Last location shared · 4 min ago"). */
   presence: readonly Presence[];
   /** Map moves its own camera; elsewhere the link opens Map centered on the sender. */
@@ -115,7 +117,7 @@ export function EmergencyAlerts({
   const folded = emergenciesFolded({ place, count: activity.emergencies.length, shown: shownAll });
 
   // Recipients are the current members other than the sender.
-  const recipients = Math.max(0, names.size - 1);
+  const recipients = Math.max(0, (names?.size ?? 0) - 1);
 
   function openLocation(senderId: string, coordinates: LatLng) {
     if (onOpenLocation) onOpenLocation(senderId, coordinates);
@@ -160,13 +162,19 @@ export function EmergencyAlerts({
       ) : null}
       {(folded ? [] : activity.emergencies).map((e) => {
         const mine = e.userId === userId;
-        const { who, seen } = seenSummary(e.ackedBy, names);
+        const { who, seen } = seenSummary(e.ackedBy, names ?? new Map());
         const iAcked = e.ackedBy.has(userId);
         const location = emergencyLocation(lastSeen.get(e.userId));
-        const name = names.get(e.userId) ?? en.chat.formerMember;
-        const title = mine ? en.activity.helpRequested : en.activity.emergencyFrom(name);
+        const sender = emergencySender(names, e.userId);
+        const name = sender.kind === 'name' ? sender.name : en.chat.formerMember;
+        const title = mine
+          ? en.activity.helpRequested
+          : sender.kind === 'unknown'
+            ? en.activity.emergencyFromUnknown
+            : en.activity.emergencyFrom(name);
         const seenText = seen === 0 ? en.activity.noneSeen : en.activity.seenCount(seen, recipients);
-        const meta = `${timeOf(e.createdAt)} · ${seenText}`;
+        // UX2-79: without the member list the seen count is unknown, so show only the time.
+        const meta = names === null ? timeOf(e.createdAt) : `${timeOf(e.createdAt)} · ${seenText}`;
         const mode = emergencyBarMode({ place, mine, acked: iAcked, expanded: expanded.has(e.id) });
         const collapsible = emergencyBarMode({ place, mine, acked: iAcked, expanded: false }) === 'line';
 
@@ -185,7 +193,11 @@ export function EmergencyAlerts({
                   <SymbolView name="exclamationmark.triangle" size={12} tintColor={colors.danger} />
                 </View>
                 <Text style={styles.lineText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-                  {mine ? en.activity.emergencyLineMine : en.activity.emergencyLine(name)}
+                  {mine
+                    ? en.activity.emergencyLineMine
+                    : sender.kind === 'unknown'
+                      ? en.activity.emergencyFromUnknown
+                      : en.activity.emergencyLine(name)}
                 </Text>
                 <Text style={styles.lineOpen} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                   {en.activity.openEmergency}
@@ -202,7 +214,11 @@ export function EmergencyAlerts({
         const spoken = spokenSentence([
           title,
           timeOf(e.createdAt),
-          seen === 0 ? en.activity.waitingSeen : spokenSeparators(en.activity.seenByNames(who, seen, recipients)),
+          names === null
+            ? ''
+            : seen === 0
+              ? en.activity.waitingSeen
+              : spokenSeparators(en.activity.seenByNames(who, seen, recipients)),
           location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
         ]);
         return (
@@ -280,15 +296,38 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
   // activity_seq only scopes the Arrived button, which this banner does not show.
   const activity = useRoomActivity(roomId, userId, 0);
   const presence = useEmergencyPresence(roomId, activity);
-  const [names, setNames] = useState<Map<string, string>>(new Map());
+  // UX2-79: null = not known yet. A failed reload keeps the names already known.
+  const [names, setNames] = useState<Map<string, string> | null>(null);
+  const [failed, setFailed] = useState(false);
   const loadNames = useCallback(() => {
     listMembers(roomId)
-      .then((members) => setNames(new Map(members.map((m) => [m.user_id, m.display_name]))))
-      .catch(() => {});
+      .then((members) => {
+        setNames(new Map(members.map((m) => [m.user_id, m.display_name])));
+        setFailed(false);
+      })
+      .catch(() => setFailed(true));
   }, [roomId]);
   useEffect(() => {
     loadNames();
   }, [loadNames]);
+  // UX2-79: after a failed read, retry once after 5 s and once when the app becomes active.
+  useEffect(() => {
+    if (!failed) return;
+    let retried = false;
+    const retry = () => {
+      if (retried) return;
+      retried = true;
+      loadNames();
+    };
+    const timer = setTimeout(retry, 5000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') retry();
+    });
+    return () => {
+      clearTimeout(timer);
+      sub.remove();
+    };
+  }, [failed, loadNames]);
   useRoomEvents(roomId, (event) => {
     if (event.table === 'room_members') loadNames();
   });
