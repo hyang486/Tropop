@@ -59,12 +59,13 @@ export default function PlanPreview() {
   ) : (
     <>
       <Button title={t.tryCta} busy={saving} disabled={on === null} onPress={() => void toggle(true)} />
-      <Text style={styles.fine}>
-        {t.fine}
-        <Text style={styles.link} accessibilityRole="link" onPress={() => setSheet(true)}>
-          {t.seeIncluded}
-        </Text>
-      </Text>
+      {/* UX2-35: the link is its own Pressable so it gets a 44 pt target (a nested Text link can't). */}
+      <View style={styles.fineRow}>
+        <Text style={styles.fine}>{t.fine}</Text>
+        <Pressable accessibilityRole="link" onPress={() => setSheet(true)} hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}>
+          <Text style={[styles.fine, styles.link]}>{t.seeIncluded}</Text>
+        </Pressable>
+      </View>
     </>
   );
 
@@ -270,6 +271,7 @@ const styles = StyleSheet.create({
   lineText: { flex: 1, fontSize: 15.5, color: colors.label },
   bold: { fontWeight: '600', color: colors.label },
   fine: { fontSize: 12.5, color: colors.ink2, textAlign: 'center' },
+  fineRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' },
   link: { textDecorationLine: 'underline', color: colors.label },
   note: { fontSize: 13, color: colors.ink2 },
   sheet: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 20, gap: 12 },

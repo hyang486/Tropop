@@ -834,7 +834,7 @@ export const en = {
     diaryLater: 'Your diary appears after this room ends.',
     upsellCardTitle: 'The Qrewing diary is a Plus feature',
     upsellCardBody: 'Plus keeps a short diary of each room you were in. Try it with the Plus preview.',
-    upsellSeePlus: 'See the Plus preview',
+    upsellSeePlus: 'See Plus',
     upsellClose: 'Not now',
     dayItemsTitle: (n: number) => (n === 1 ? '1 item' : `${n} items`),
     dayItemsKind: { room: 'Room', event: 'My event' },

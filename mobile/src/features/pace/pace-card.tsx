@@ -249,6 +249,8 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
             accessibilityLabel={o.a11y}
             accessibilityState={{ selected: mode === o.mode }}
             onPress={() => choose(o.mode)}
+            // UX2-35: 40 pt visual, 44 pt target.
+            hitSlop={{ top: 2, bottom: 2 }}
             style={[styles.segment, i > 0 && styles.segmentDivider, mode === o.mode && styles.segmentOn]}
           >
             <Text style={[styles.segmentText, mode === o.mode && styles.segmentTextOn]} numberOfLines={1}>

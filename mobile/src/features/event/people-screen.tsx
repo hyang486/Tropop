@@ -235,7 +235,7 @@ export function PeopleScreen() {
               </View>
               <Text style={styles.reason}>{m.reason}</Text>
               {(state.links.get(m.userId) ?? []).map((url) => (
-                <Pressable key={url} onPress={() => Linking.openURL(url).catch(() => {})} accessibilityRole="link">
+                <Pressable key={url} onPress={() => Linking.openURL(url).catch(() => {})} accessibilityRole="link" style={styles.linkHit}>
                   <Text style={styles.link} numberOfLines={1}>
                     {url.replace(/^https:\/\//i, '')}
                   </Text>
@@ -258,5 +258,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 17, fontWeight: '600', color: colors.label },
   headline: { fontSize: 15, color: colors.ink2 },
   reason: { fontSize: 15, color: colors.label, marginTop: 4 },
-  link: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline', marginTop: 4 },
+  link: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
+  // UX2-35: each link row is a 44 pt target; the text keeps its size.
+  linkHit: { minHeight: 44, justifyContent: 'center' },
 });
