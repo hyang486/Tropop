@@ -2,7 +2,7 @@
 // `qrewing.recap.v1.<roomId>`, so the Room ended screen can show it after the server deleted the room.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { saveRecapToCalendar, wantsDiary } from '@/features/calendar/calendar-store';
+import { refreshPlus, saveRecapToCalendar, wantsDiary } from '@/features/calendar/calendar-store';
 import { requestRecap } from '@/features/event/qrewing-api';
 import { isOfflineError } from '@/features/event/qrewing-plan';
 import { getActivitySummary, paceRecapLine } from '@/features/pace/summary';
@@ -31,6 +31,7 @@ import {
   isStalePending,
   type RecapMiss,
   recapMissForError,
+  recapWithDiary,
   type SavedRecap,
   type ServerRecap,
   withTimeout,
@@ -194,6 +195,7 @@ async function save(
         wants: () => wantsDiary(userId, roomId),
         request: () => requestRecap(roomId, { diary: true }),
         save: (r) => saveRecapToCalendar(userId, roomId, r),
+        planLimit: () => refreshPlus(userId),
       },
       diaryInFlight,
     );
@@ -213,8 +215,12 @@ async function save(
  */
 export async function fetchAndSaveRecap(roomId: string, userId: string, opts?: { refresh?: boolean }): Promise<SavedRecap | null> {
   // Qrewing Calendar (Plus preview): ask for the emoji and diary once; they are kept only on this phone.
-  const diary = await wantsDiary(userId, roomId).catch(() => false);
-  const res = await requestRecap(roomId, { ...opts, diary });
+  const wants = await wantsDiary(userId, roomId).catch(() => false);
+  const { res, diary } = await recapWithDiary(
+    wants,
+    (d) => requestRecap(roomId, { ...opts, diary: d }),
+    () => refreshPlus(userId),
+  );
   if ('error' in res || res.state !== 'done') return null;
   if (diary && res.emoji) void saveRecapToCalendar(userId, roomId, { emoji: res.emoji, diary: res.diary });
   return save(

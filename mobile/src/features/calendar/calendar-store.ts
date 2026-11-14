@@ -174,6 +174,13 @@ export async function setPlusPreview(uid: string, on: boolean): Promise<boolean>
   return true;
 }
 
+/** The server said Free where the local copy said Plus (qrewing 402 plan_limit): read the plan again. */
+export function refreshPlus(uid: string) {
+  if (!mayWrite(uid, currentUid, authKnown)) return;
+  plus.delete(uid);
+  void loadPlus(uid).then(emit);
+}
+
 /** The Plus preview flag (null while loading). */
 export function usePlusPreview(uid: string | null | undefined): boolean | null {
   useEffect(() => {
