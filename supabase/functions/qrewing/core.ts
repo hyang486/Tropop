@@ -282,6 +282,8 @@ export interface QrewingStore {
   emergencies(roomId: string, limit: number): Promise<Emergency[]>;
   /** E2E (b): the room's live_presence rows, each with its member's share_location. */
   livePositions(roomId: string): Promise<LivePosition[]>;
+  /** Spec 11 C: a question card for the answerer (service role; the 0031 trigger checks both are in the open room). */
+  createQuestionCard(roomId: string, askerId: string, answererId: string, question: string): Promise<{ id: string; timeoutAt: string }>;
 }
 
 export type Deps = {
@@ -1347,6 +1349,27 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
   if (typeof answer !== 'string' || !answer.trim()) {
     ctx.log('model_bad_output', { action: 'ask' });
     return AI_FAILED;
+  }
+  const d = r.data as { needs_human?: unknown; contact?: unknown };
+  if (d.needs_human === true) {
+    // The model did not have the answer: ask a person instead of guessing (spec 11 C). The contact must be another
+    // member who spoke in the lines above; otherwise the host. The asker is never asked their own question.
+    const contact = typeof d.contact === 'string' ? d.contact.trim() : '';
+    const spoke = msgs.map((m) => m.senderId!).filter((id) => id !== ctx.userId && memberSet.has(id));
+    const byName = spoke.find((id) => flatCut(nameOf(id), MATCH_FIELD_MAX.name) === contact);
+    const answererId = byName ?? (room.hostId !== ctx.userId && memberSet.has(room.hostId) ? room.hostId : null);
+    if (answererId) {
+      try {
+        const card = await store.createQuestionCard(room.id, ctx.userId, answererId, body.question);
+        const to = nameOf(answererId);
+        const text = lang === 'ko'
+          ? `방 정보에는 답이 없어요. ${to}님께 대신 물어봤어요. 답이 오면 알려 드릴게요.`
+          : `The room info doesn't say. I asked ${to} for you and will show their answer here.`;
+        return { status: 200, body: { answer: text, usage: r.usage, card: { id: card.id, answererName: to, timeoutAt: card.timeoutAt } } };
+      } catch {
+        ctx.log('question_card_failed', { action: 'ask' });
+      }
+    }
   }
   return { status: 200, body: { answer: cut(answer, ASK_ANSWER_MAX), usage: r.usage } };
 }

@@ -21,3 +21,6 @@ All RPCs need a signed-in user (42501 otherwise). Errors: PT409 conflict, PT422 
 - `answer_question_card(p_card_id, p_answer (1..2000), p_post_as_notice bool default false)` -> card. Answerer only. Already answered: returns the card. After the chat move: PT409. Notice text max 1000 (22023).
 - `ask_question_in_chat(p_card_id)` -> card. Asker only. Allowed after `timeout_at`; before it: 22023 "Wait for the answer a little longer."; already answered: PT409.
 - `set_room_notice(p_room_id, p_text)` -> room. Host only. Text max 1000. Fields: `rooms.notice_text, notice_set_at, notice_set_by`.
+
+## qrewing `ask` (C)
+When the model lacks the answer it sets `needs_human`; the function then creates a card for the member it named (who spoke in the chat), else the host, never the asker, and replies `200 {answer, usage, card: {id, answererName, timeoutAt}}`. `answer` is a fixed sentence ("I asked <name> for you…", Korean for a Korean question). The asker reads the answer later from `question_cards` (RLS). If the host asks with nobody else to ask, or the insert fails, the reply is the plain answer with no `card`.
