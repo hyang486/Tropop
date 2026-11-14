@@ -603,6 +603,7 @@ function ChatRoom({
                       onMediaPress={openPhotos}
                       media={lineMedia.get(item.id)}
                       token={token}
+                      checksReady={messageChecks.ready}
                       check={messageChecks.checks.get(item.id)}
                       onToggleCheck={(viaDoubleTap) => void messageChecks.toggle(item.id, viaDoubleTap)}
                       onShowCheckedBy={() => setCheckedByFor(item.id)}
@@ -749,6 +750,7 @@ function MessageRow({
   media,
   token,
   onOpenMedia,
+  checksReady,
   check,
   onToggleCheck,
   onShowCheckedBy,
@@ -766,6 +768,8 @@ function MessageRow({
   onOpenMedia?: (mediaId: string) => void;
   /** Set when this person can open the Map, so "Activity started" links there. */
   onMapPress?: () => void;
+  /** UX3-B09 (S3): false until message_reactions (0038) reads; then no menu, no double-tap, text stays selectable. */
+  checksReady: boolean;
   /** UX3-B09 (S3): this message's ink checks. */
   check?: CheckSummary;
   onToggleCheck: (viaDoubleTap: boolean) => void;
@@ -788,7 +792,7 @@ function MessageRow({
         onOpenPhotos={onMediaPress}
       />
     );
-    const block = canCheck(item, true) ? (
+    const block = checksReady && canCheck(item, true) ? (
       <CheckBlock mine={mine} check={check} doubleTap={false} onToggle={onToggleCheck} onShowCheckedBy={onShowCheckedBy}>
         {media_}
       </CheckBlock>
@@ -872,13 +876,13 @@ function MessageRow({
   const when = item.pending === 'sending' ? en.chat.sending : failed ? en.chat.failed : time;
   const plain = (
     <View style={[styles.bubble, mine ? styles.mine : styles.theirs, failed && styles.failedBubble]}>
-      <Text selectable={!canCheck(item, false)} style={[styles.body, mine && styles.bodyMine]}>
+      <Text selectable={!(checksReady && canCheck(item, false))} style={[styles.body, mine && styles.bodyMine]}>
         {item.body}
       </Text>
     </View>
   );
   // UX3-B09 (S3): sent text takes a check (long-press menu with Copy, or double-tap); sending/failed stay plain.
-  const bubble = canCheck(item, false) ? (
+  const bubble = checksReady && canCheck(item, false) ? (
     <CheckBlock
       mine={mine}
       check={check}

@@ -33,3 +33,15 @@ export function canCheck(item: { kind: string; pending?: string }, isMediaBlock:
   if (item.kind === 'text') return true;
   return item.kind === 'media' && isMediaBlock;
 }
+
+const MISSING_TABLE = new Set(['42P01', 'PGRST205']);
+
+/**
+ * The app can ship before migration 0038 is live. Checks turn on only after a successful read; a missing
+ * relation turns them off (no menu, no double-tap, text stays selectable); any other error keeps the last state.
+ */
+export function nextChecksReady(prev: boolean, error: { code?: string } | null): boolean {
+  if (!error) return true;
+  if (error.code && MISSING_TABLE.has(error.code)) return false;
+  return prev;
+}

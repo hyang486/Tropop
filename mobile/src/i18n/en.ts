@@ -384,6 +384,7 @@ export const en = {
     checkRemove: 'Remove check',
     copy: 'Copy',
     checkCount: (n: number) => (n === 1 ? '1 check' : `${n} checks`),
+    checkValue: (n: number, mine: boolean) => `${n === 1 ? '1 check' : `${n} checks`}${mine ? ', checked by you' : ''}`,
     checkedByTitle: 'Checked by',
     checkedByHint: 'Shows who checked this',
     checkFailed: 'Your check could not be saved. Try again.',

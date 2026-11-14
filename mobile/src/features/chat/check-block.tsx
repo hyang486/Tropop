@@ -66,7 +66,7 @@ export function CheckBlock({
       onAccessibilityAction={(e) => {
         if (e.nativeEvent.actionName === 'toggleCheck') onToggle(false);
       }}
-      accessibilityValue={count > 0 ? { text: en.chat.checkCount(count) } : undefined}
+      accessibilityValue={count > 0 ? { text: en.chat.checkValue(count, checked) } : undefined}
     >
       <Host matchContents>
         <ContextMenu>
@@ -88,12 +88,12 @@ export function CheckBlock({
           onPress={onShowCheckedBy}
           hitSlop={11}
           accessibilityRole="button"
-          accessibilityLabel={en.chat.checkCount(count)}
+          accessibilityLabel={en.chat.checkValue(count, checked)}
           accessibilityHint={en.chat.checkedByHint}
           style={[styles.pill, checked && styles.pillMine]}
         >
-          <SymbolView name="checkmark" size={11} weight="semibold" tintColor={colors.label} />
-          <Text style={styles.pillCount} maxFontSizeMultiplier={1.4}>
+          <SymbolView name="checkmark" size={11} weight="semibold" tintColor={checked ? colors.onTint : colors.label} />
+          <Text style={[styles.pillCount, checked && styles.pillCountMine]} maxFontSizeMultiplier={1.4}>
             {count}
           </Text>
         </Pressable>
@@ -139,12 +139,12 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingHorizontal: 8,
     borderRadius: 11,
-    borderWidth: 1,
-    borderColor: colors.separator,
-    backgroundColor: colors.background,
+    backgroundColor: colors.fieldStrong,
   },
-  pillMine: { borderWidth: 1.5, borderColor: colors.label },
+  // ux 2026-11-14: no border; checked by me = ink fill with onTint content.
+  pillMine: { backgroundColor: colors.tint },
   pillCount: { fontSize: 12, fontWeight: '600', color: colors.label },
+  pillCountMine: { color: colors.onTint },
   list: { maxHeight: 360 },
   person: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
   personName: { flex: 1, fontSize: 17, color: colors.label },
