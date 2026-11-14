@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { EmptyState } from '@/components/empty-state';
 import { useAnnounce } from '@/features/event/announce';
 import { RelayedCards } from '@/features/questions/relayed-cards';
 import { Composer } from '@/components/composer';
@@ -41,6 +42,8 @@ export function AskScreen() {
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<AskError | null>(null);
   const [consent, setConsent] = useState(false);
+  // UX2-04: the ask came back plan_limit (a Free asker): the Plus empty state replaces the chat and the composer.
+  const [plusGate, setPlusGate] = useState(false);
   useAnnounce(sending ? s.thinking : null, sending);
   useAnnounce(error ? en.qrewing.errors[error] : null, error);
   const mounted = useRef(true);
@@ -81,9 +84,11 @@ export function AskScreen() {
       }
       if (!mounted.current) return;
       if (isPlanLimit(res.error)) {
-        // capacity B item 4: Free caller → re-read the plan and open the Plus intro on the Ask slide.
+        // capacity B item 4, UX2-04: Free caller → re-read the plan and show the Plus empty state (See Plus).
         if (userId) refreshPlus(userId);
-        router.push(plusIntroHref('ask'));
+        setPlusGate(true);
+        setSending(null);
+        return;
       }
       setError(res.error);
       // The question is not lost: it goes back into the composer unless something new was typed.
@@ -105,16 +110,20 @@ export function AskScreen() {
       subtitle={s.intro}
       revealRef={revealRef}
       actions={
-        <Composer
-          value={draft}
-          onChangeText={setDraft}
-          onSend={send}
-          placeholder={s.placeholder}
-          sendLabel={s.send}
-          canSend={canSend}
-          busy={!!sending}
-          maxLength={ASK_LIMITS.question}
-        />
+        plusGate ? (
+          <Button title={en.planPreview.seePlus} accessibilityHint={s.seePlusHint} onPress={() => router.push(plusIntroHref('ask'))} />
+        ) : (
+          <Composer
+            value={draft}
+            onChangeText={setDraft}
+            onSend={send}
+            placeholder={s.placeholder}
+            sendLabel={s.send}
+            canSend={canSend}
+            busy={!!sending}
+            maxLength={ASK_LIMITS.question}
+          />
+        )
       }
     >
       <Stack.Screen
@@ -129,7 +138,9 @@ export function AskScreen() {
           ),
         }}
       />
-      {!loaded ? (
+      {plusGate ? (
+        <EmptyState art="meetup" artWidth={160} title={s.plusTitle} body={s.plusBody} />
+      ) : !loaded ? (
         <ActivityIndicator />
       ) : (
         <>

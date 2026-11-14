@@ -20,7 +20,7 @@ import { Composer } from '@/components/composer';
 import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
-import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
+import { QREWING_FAB_CLEARANCE, QrewingFab, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { Button, colors, Hint, Screen, size } from '@/components/ui';
 import { EntryGate, HiddenRow, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
@@ -209,6 +209,8 @@ function ChatRoom({
   useRecapTriggers(room.id, userId, qrewing.aiEnabled, remainingMs);
   const [disclosureClosed, setDisclosureClosed] = useState(false);
   const [askConsent, setAskConsent] = useState(false);
+  // UX2-04: one Ask probe for the FAB and the "answered your question" notice (Free → Plus intro, like the FAB).
+  const ask = useQrewingAskButton(room.id);
   const showDisclosure = (qrewing.gates.disclosure && !disclosureClosed) || askConsent;
   const isEvent = room.type === 'event';
   const smallTalk = useSmallTalk({
@@ -304,7 +306,9 @@ function ChatRoom({
     else if (n.action?.kind === 'open-question') openQuestions(n.action.cardId);
     else if (n.action?.kind === 'open-ask') {
       setPlusOpen(false);
-      router.push({ pathname: '/room/[id]/ask', params: { id: room.id } });
+      // Before the probe answers, open the ask screen; its own plan_limit check shows the Plus state.
+      if (ask.available) ask.open();
+      else router.push({ pathname: '/room/[id]/ask', params: { id: room.id } });
     }
     // open-chat (Emergency): the card is already on this screen, above the messages.
   }
@@ -444,7 +448,7 @@ function ChatRoom({
               }}
             />
           )}
-          <QrewingFab roomId={room.id} />
+          <QrewingFab ask={ask} />
           </View>
 
           {/* UX P1-1: before entry info the chat is read-only; the entry card takes the composer's place (no "+"). */}

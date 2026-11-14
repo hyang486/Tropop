@@ -950,6 +950,10 @@ export const en = {
       you: 'You',
       bot: 'Qrewing',
       reviewConsent: 'Review Qrewing AI',
+      // UX2-04: a Free asker whose ask came back plan_limit (402); See Plus takes the composer's place.
+      plusTitle: 'Ask Qrewing about this room',
+      plusBody: "Qrewing answers from the chat and the plan. It's part of Qrew Plus.",
+      seePlusHint: 'Opens the Qrew Plus page',
     },
     entry: {
       title: 'Introduce yourself',

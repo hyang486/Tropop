@@ -84,11 +84,12 @@ export function useQrewingAskButton(roomId: string) {
 /**
  * UX P0-2: the floating Q, only in chat (calendar has its own). Mount it as the last child of the area that ends
  * at the top of the composer: 12 pt above it, 16 pt from the trailing edge. The list under it pads its bottom by
- * QREWING_FAB_CLEARANCE (composer + 64 pt in all). Other room screens use QrewingHeaderButton instead.
+ * QREWING_FAB_CLEARANCE (composer + 64 pt in all). Other room screens use QrewingHeaderButton instead. `ask` is the
+ * room screen's one useQrewingAskButton, shared with the "answered your question" notice (UX2-04).
  */
-export function QrewingFab({ roomId }: { roomId: string }) {
+export function QrewingFab({ ask }: { ask: ReturnType<typeof useQrewingAskButton> }) {
   const insets = useSafeAreaInsets();
-  const { available, open, sheet } = useQrewingAskButton(roomId);
+  const { available, open, sheet } = ask;
   if (!available) return null;
   return (
     <>

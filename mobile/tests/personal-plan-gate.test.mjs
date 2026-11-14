@@ -28,7 +28,10 @@ test('pace maker: Plus on the caller plan only; Free shows the Plus link, the ru
 
 test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   const a = src('features/event/ask-screen.tsx');
-  assert.match(a, /isPlanLimit\(res\.error\)\) \{\s*\/\/.*\n\s*if \(userId\) refreshPlus\(userId\);\s*router\.push\(plusIntroHref\('ask'\)\);/);
+  // UX2-04: a 402 re-reads my plan and shows the Plus empty state with See Plus in the composer's place.
+  assert.match(a, /isPlanLimit\(res\.error\)\) \{\s*\/\/.*\n\s*if \(userId\) refreshPlus\(userId\);\s*setPlusGate\(true\);\s*setSending\(null\);\s*return;/);
+  assert.match(a, /plusGate \? \(\s*<Button title=\{en\.planPreview\.seePlus\}[\s\S]{0,160}plusIntroHref\('ask'\)/);
+  assert.match(a, /plusGate \? \(\s*<EmptyState art="meetup" artWidth=\{160\} title=\{s\.plusTitle\} body=\{s\.plusBody\} \/>/);
   const p = src('features/event/people-screen.tsx');
   // UX2-01: the plan gate's pinned button opens the people slide; a 402 re-reads my plan; no red plan line.
   assert.match(p, /gate === 'plus' \? \(\s*<Button\s*title=\{en\.planPreview\.seePlus\}[\s\S]{0,120}plusIntroHref\('meet'\)/);

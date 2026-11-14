@@ -25,8 +25,12 @@ test('footprint: 12 pt gap + 52 pt button = 64 pt chat clearance; no imports in 
 });
 
 test('floating Q only in chat, padded by the clearance', () => {
-  assert.match(chat, /<QrewingFab roomId=\{room\.id\} \/>/);
+  assert.match(chat, /<QrewingFab ask=\{ask\} \/>/);
   assert.match(chat, /paddingTop: QREWING_FAB_CLEARANCE/);
+  // UX2-04: one probe for the FAB and the "answered your question" notice, which checks the plan like the FAB.
+  assert.match(chat, /const ask = useQrewingAskButton\(room\.id\);/);
+  assert.match(chat, /if \(ask\.available\) ask\.open\(\);/);
+  assert.equal(chat.match(/useQrewingAskButton\(/g).length, 1);
   for (const src of [info, gallery, map, people, photosOfMe]) {
     assert.doesNotMatch(src, /<QrewingFab\b/);
     assert.doesNotMatch(src, /QREWING_FAB_CLEARANCE/);
