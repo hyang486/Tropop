@@ -13,6 +13,8 @@ const speech: SpeechApi | null =
   requireOptionalNativeModule('ExpoSpeech') != null ? (require('expo-speech') as SpeechApi) : null;
 const VIBRATE = [0, 250, 150, 250];
 let nextId = 0;
+/** Callbacks for when an utterance has been spoken to its end (not when it was dropped or stopped). */
+const onEnds = new Map<string, () => void>();
 
 /** Whether cues are spoken on this build. */
 export const canSpeak = speech != null;
@@ -29,7 +31,12 @@ function say(u: Utterance | null) {
   try {
     speech.speak(u.text, {
       language: 'en-US',
-      onDone: () => ended(u.id),
+      onDone: () => {
+        const done = onEnds.get(u.id);
+        onEnds.delete(u.id);
+        ended(u.id);
+        done?.();
+      },
       onStopped: () => ended(u.id),
       onError: () => {
         Vibration.vibrate(VIBRATE);
@@ -55,6 +62,7 @@ function ended(id: string) {
 /** Stops the cue being spoken and drops the waiting one (switch or sharing off, activity ended, screen left). */
 export function stopSpeech() {
   queue = newSpeechQueue();
+  onEnds.clear();
   if (budgetTimer) {
     clearTimeout(budgetTimer);
     budgetTimer = null;
@@ -76,10 +84,13 @@ export function onCue(listener: Listener): () => void {
 /**
  * Speaks a cue when possible (after the one being spoken), otherwise vibrates; the banner shows `text` either way.
  * `spoken` is the wording for speech (pace-core spokenCue: no m:ss, no "km"); `text` is spoken when it is absent.
+ * `onEnd` runs only when this utterance was spoken to its end.
  */
-export function speak(text: string, spoken?: string) {
+export function speak(text: string, spoken?: string, onEnd?: () => void) {
   if (speech) {
-    const r = enqueue(queue, { id: String(++nextId), text: spoken ?? text }, Date.now());
+    const id = String(++nextId);
+    if (onEnd) onEnds.set(id, onEnd);
+    const r = enqueue(queue, { id, text: spoken ?? text }, Date.now());
     queue = r.queue;
     say(r.say);
   } else {

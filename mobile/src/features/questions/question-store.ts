@@ -5,6 +5,7 @@
  * Compiler safe).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { useRouter } from 'expo-router';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { paceSnapshot } from '@/features/pace/engine';
@@ -28,6 +29,7 @@ import {
   type QuestionCard,
   waitingTitle,
 } from './question-plan';
+import { clearVoiceDrafts, listenForAnswer } from './voice-answer';
 
 // question_cards and its RPCs (migration 0031) are not in database.types.ts yet.
 const db = supabase as unknown as SupabaseClient;
@@ -128,11 +130,13 @@ type ActivityRoom = { id: string; activity_state: string; activity_seq: number }
 export function useQuestionCards(room: ActivityRoom, userId: string | undefined, names: ReadonlyMap<string, string>) {
   const roomId = room.id;
   const { cards, loaded } = useRoomCards(roomId);
+  const router = useRouter();
 
   useEffect(() => {
     // Another account signed in on this phone: the last one's cards go first.
     if (owner !== userId) {
       clearCards();
+      clearVoiceDrafts();
       owner = userId;
     }
     loadCards(roomId);
@@ -183,11 +187,19 @@ export function useQuestionCards(room: ActivityRoom, userId: string | undefined,
         });
       }
     }
-    // Voice (Spec 11 C): read a new card aloud when I am moving in this room's running activity.
+    // Voice (Spec 11 C): read a new card aloud when I am moving in this room's running activity, then listen once.
+    // The transcript is not sent: the Questions screen opens with it as the draft and I tap Send.
     const moving = paceSnapshot(room)?.activity === 'moving';
     for (const c of cardsToSpeak(waiting, spoken, moving)) {
       spoken.add(c.id);
-      speak(s.spoken(names.get(c.askerId) ?? en.chat.formerMember, c.question));
+      speak(s.spoken(names.get(c.askerId) ?? en.chat.formerMember, c.question), undefined, () => {
+        if (paceSnapshot(room)?.activity !== 'moving') return;
+        listenForAnswer(c.id).then((heard) => {
+          if (!heard) return;
+          speak(s.heardSpoken);
+          router.push({ pathname: '/room/[id]/questions', params: { id: roomId, cardId: c.id } });
+        });
+      });
     }
-  },[cards, loaded, userId, names, roomId, room]);
+  }, [cards, loaded, userId, names, roomId, room, router]);
 }
