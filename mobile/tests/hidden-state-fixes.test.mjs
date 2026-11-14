@@ -20,3 +20,9 @@ test('fix 2: the map catches up on the room after a reconnect and on return to f
   assert.match(map, /\(status\) => \{\n\s+if \(status === 'SUBSCRIBED'\) load\(\);/);
   assert.match(map, /AppState\.addEventListener\('change', \(next\) => \{\n\s+if \(next === 'active'\) load\(\);/);
 });
+
+test('fix 3: location access granted in Settings clears the denied hint when the app comes back', () => {
+  const map = read('app/room/[id]/map.tsx');
+  assert.match(map, /if \(ok\) \{\n\s+setAskDenied\(false\);\n\s+setLocate\(\(l\) => \(l === 'denied' \|\| l === 'settings' \? 'idle' : l\)\);/);
+  assert.match(map, /if \(next === 'active'\) check\(\);/);
+});

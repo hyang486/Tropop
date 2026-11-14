@@ -204,6 +204,7 @@ function RoomMap({
   // M5: the permission is read again whenever the app returns to the foreground (e.g. from Settings).
   const [granted, setGranted] = useState<boolean | null>(null);
   const [askDenied, setAskDenied] = useState(false);
+  const [locate, setLocate] = useState<'idle' | 'busy' | 'denied' | 'settings' | 'unavailable'>('idle');
   // UX2-21: Precise Location off feeds coarse dots to pace and arrival, so the map says so.
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -211,7 +212,13 @@ function RoomMap({
     const check = () => {
       hasForegroundPermission()
         .then((ok) => {
-          if (live) setGranted(ok);
+          if (!live) return;
+          setGranted(ok);
+          // Sweep fix 3: access turned on in Settings clears the denied hint and Open Settings on return.
+          if (ok) {
+            setAskDenied(false);
+            setLocate((l) => (l === 'denied' || l === 'settings' ? 'idle' : l));
+          }
         })
         .catch(() => {});
       hasReducedAccuracy()
@@ -377,7 +384,6 @@ function RoomMap({
 
   // F5-1: "Show my location" works with Share off. The permission prompt comes only from this tap;
   // the position is read once, kept on this screen, and never sent (no RPC, no sharing-store change).
-  const [locate, setLocate] = useState<'idle' | 'busy' | 'denied' | 'settings' | 'unavailable'>('idle');
   const [showingMine, setShowingMine] = useState(false);
   async function showMyLocation() {
     if (locate === 'busy') return;
