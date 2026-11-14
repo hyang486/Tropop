@@ -13,7 +13,7 @@ import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activit
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { QLink } from '@/components/q-screen';
-import { Button, colors, Hint, palette, radius, useLift, usePalette } from '@/components/ui';
+import { Button, colors, Hint, radius, useLift, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { PaceCard } from '@/features/pace/pace-card';
 import { type PersonGap, personGap } from '@/features/pace/pace-core';
@@ -81,8 +81,6 @@ const LABEL_STALE_TEXT = '#6C6C70';
 // UX2-35: the 34 pt overlay buttons reach 44 pt tall without growing.
 const OVERLAY_HIT_SLOP = { top: 5, bottom: 5 };
 // #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
-// C15: Emergency text on the fixed white pin label uses the light errorText (4.5:1+ on white).
-const EMERGENCY_LABEL_TEXT = palette.light.errorText;
 /** UX P0-3: pins never show a photo (the mockup shows initials). */
 const NO_ICONS: ReadonlyMap<string, null> = new Map<string, null>();
 type MapProperties = NonNullable<ComponentProps<typeof AppleMaps.View>['properties']>;
@@ -217,7 +215,8 @@ function RoomMap({
   // M2: the app-level LocationReporters does the reporting; this screen only reads its state.
   const sharingState = useSharingState(room.id);
   // UX2-38: the route is ink (light) / #EDEDE8 (dark), the same as the editor.
-  const routeColor = usePalette().ink;
+  const pal = usePalette();
+  const routeColor = pal.ink;
 
   // M5: the permission is read again whenever the app returns to the foreground (e.g. from Settings).
   const [granted, setGranted] = useState<boolean | null>(null);
@@ -508,8 +507,8 @@ function RoomMap({
               coordinates: pin.coordinates,
               text: en.map.emergencyPin(pin.names[0]),
               anchor: avatarPillAnchor(1, 'below'),
-              backgroundColor: LABEL_BACKGROUND,
-              textColor: EMERGENCY_LABEL_TEXT,
+              backgroundColor: pal.lift,
+              textColor: pal.errorText,
             },
           ]
         : [],
