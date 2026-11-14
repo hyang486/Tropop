@@ -12,8 +12,12 @@ test('no Plus gate on the screen: signed in is enough', () => {
   assert.doesNotMatch(screen, /upsellTitle|upsellCta/);
 });
 
-test('"Add with Qrewing" renders only on Plus (Free makes no server call)', () => {
-  assert.match(screen, /plus !== true \? undefined : \(/);
+test('"Add with Qrewing": Plus opens the ask, Free goes to the Plus intro (from=calendar), hidden while unread', () => {
+  assert.match(screen, /addTapAction\(plus\) === null \? undefined : \(/);
+  assert.match(screen, /addTapAction\(plus\) === 'ask' \? setAsking\(true\) : router\.push\(plusIntroHref\('calendar'\)\)/);
+  assert.match(screen, /if \(code === 'plan_limit'\) \{\s*close\(\);\s*router\.push\(plusIntroHref\('calendar'\)\)/);
+  assert.match(screen, /setUpsell\(null\);\s*router\.push\(plusIntroHref\('diary'\)\)/);
+  assert.doesNotMatch(screen, /'\/plan-preview'/);
 });
 
 test('taps route through itemAction: diary on Plus, PlusUpsellCard on Free, the editor for my events', () => {
@@ -22,7 +26,8 @@ test('taps route through itemAction: diary on Plus, PlusUpsellCard on Free, the 
   assert.match(screen, /pathname: '\/calendar-event', params: \{ id: item\.id\.slice\('event:'\.length\) \}/);
   // The upsell gets name, dates and icon only, never the diary.
   const card = screen.slice(screen.indexOf('<PlusUpsellCard'), screen.indexOf('/>', screen.indexOf('<PlusUpsellCard')));
-  assert.doesNotMatch(card, /diary/);
+  // (the Plus intro source name 'diary' is a route param, not diary content)
+  assert.doesNotMatch(card.replace("plusIntroHref('diary')", ''), /diary/);
 });
 
 test('day cells are not tap targets; bars and "+N" are, and "+N" opens DayItemsSheet', () => {
@@ -38,8 +43,8 @@ test('bar labels name the action: open diary, Plus feature, edit event', () => {
   assert.match(screen, /t\.barLabel\(item\.title, rangeLabel\(item\.start, item\.end, thisYear\), barAction\(item\.kind, plus\)\)/);
 });
 
-test('Plan preview table: Calendar on both, Qrewing diary and Add with Qrewing on Plus', () => {
-  assert.match(en, /\{ label: 'Calendar', free: 'Included', plus: 'Included' \}/);
-  assert.match(en, /\{ label: 'Qrewing diary', free: 'Not included', plus: 'Included' \}/);
-  assert.match(en, /\{ label: 'Add with Qrewing', free: 'Not included', plus: 'Included' \}/);
+test('Plus intro: Calendar stays free; Qrewing diary and Add with Qrewing are Plus benefits', () => {
+  assert.match(en, /calendarFree: 'Qrewing Calendar itself stays free\.'/);
+  assert.match(en, /diary: \{ title: 'Qrewing diary',/);
+  assert.match(en, /add: \{ title: 'Add with Qrewing',/);
 });

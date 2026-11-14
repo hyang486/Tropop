@@ -1,20 +1,26 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
-import { Button, colors, Hint, Screen } from '@/components/ui';
-import { en } from '@/i18n/en';
+import { QCaption, QCard, QLabel, QScreen } from '@/components/q-screen';
+import { Button, colors, Hint, usePalette } from '@/components/ui';
 import { setPlusPreview, usePlusPreview } from '@/features/calendar/calendar-store';
+import { plusBenefits, plusFrom } from '@/features/calendar/plus-intro';
+import { InkSwitch } from '@/features/event/ink-switch';
+import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 
 /**
- * Plus plan preview (APP_CONCEPT_KO: plan and benefit demo only).
- * No purchase, billing or StoreKit is connected; the preview switch saves the plan via set_my_plan (0032). Free values are the current
- * app limits; Plus price, capacity and duration are undecided, so they are shown as TBD.
+ * Plus intro (APP_CONCEPT_KO: plan and benefit demo only). `?from=calendar|room-ai|more|diary` (default more)
+ * picks the headline and the benefit shown first. No purchase, billing or StoreKit is connected; the preview
+ * switch saves the plan via set_my_plan (0032). Undecided prices and limits stay in one line under the actions.
  */
 export default function PlanPreview() {
   const t = en.planPreview;
+  const from = plusFrom(useLocalSearchParams<{ from?: string }>().from);
   const uid = useAuth().session?.user.id;
   const on = usePlusPreview(uid);
+  const ink = usePalette().ink;
   const [saving, setSaving] = useState(false);
   const onToggle = async (v: boolean) => {
     if (!uid || saving) return;
@@ -24,76 +30,68 @@ export default function PlanPreview() {
     if (!ok) Alert.alert(t.saveFailedTitle, t.saveFailedBody);
   };
   return (
-    <Screen>
-      <View style={styles.badge} accessibilityRole="text">
-        <Text style={styles.badgeText}>{t.badge}</Text>
-      </View>
-      <Text style={styles.title} accessibilityRole="header">
-        {t.heading}
-      </Text>
-      <Hint>{t.intro}</Hint>
-
-      <View style={styles.table}>
-        <View style={[styles.row, styles.headRow]}>
-          <Text style={[styles.cellLabel, styles.head]}>{t.benefit}</Text>
-          <Text style={[styles.cell, styles.head]}>{t.free}</Text>
-          <Text style={[styles.cell, styles.head, styles.plus]}>{t.plus}</Text>
-        </View>
-        {t.rows.map((row, i) => (
-          <View key={row.label} style={[styles.row, i === t.rows.length - 1 && styles.lastRow]}>
-            <Text style={styles.cellLabel}>{row.label}</Text>
-            <Text style={styles.cell}>{row.free}</Text>
-            <Text style={[styles.cell, styles.plusValue]}>{row.plus}</Text>
-          </View>
-        ))}
+    <QScreen
+      title={t.headline[from]}
+      subtitle={t.sub[from]}
+      actions={
+        <>
+          <Button title={t.cta} onPress={() => Alert.alert(t.ctaAlertTitle, t.ctaAlertBody)} />
+          <QCaption>{t.tbdNote}</QCaption>
+        </>
+      }
+    >
+      <View style={[styles.badge, { borderColor: ink }]}>
+        <Text style={[styles.badgeText, { color: ink }]}>{t.badge}</Text>
       </View>
 
-      <Hint>{t.tbdNote}</Hint>
+      <QLabel>{t.benefitsLabel}</QLabel>
+      <QCard>
+        {plusBenefits(from).map(({ key, focus }, i) => {
+          const b = t.benefits[key];
+          return (
+            <View
+              key={key}
+              accessible
+              accessibilityLabel={focus ? `${b.title}, ${t.forYou}. ${b.body}` : `${b.title}. ${b.body}`}
+              style={[styles.benefit, i > 0 && styles.divided, focus && styles.focus]}
+            >
+              <View style={[styles.mark, { borderColor: ink }, focus && { backgroundColor: ink }]} />
+              <View style={styles.benefitText}>
+                <Text style={[styles.benefitTitle, focus && styles.focusTitle]}>
+                  {b.title}
+                  {focus ? <Text style={styles.forYou}>{`  ${t.forYou}`}</Text> : null}
+                </Text>
+                <Text style={styles.benefitBody}>{b.body}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </QCard>
+      <Hint>{t.calendarFree}</Hint>
 
-      <Button title={t.cta} onPress={() => Alert.alert(t.ctaAlertTitle, t.ctaAlertBody)} />
       {uid ? (
-        <View style={styles.previewRow}>
+        <QCard row>
           <Text style={styles.previewLabel}>{t.tryPreview}</Text>
-          <Switch
-            value={!!on}
-            disabled={saving || on === null}
-            onValueChange={(v) => void onToggle(v)}
-            accessibilityLabel={t.tryPreview}
-          />
-        </View>
+          <InkSwitch value={!!on} disabled={saving || on === null} onValueChange={(v) => void onToggle(v)} accessibilityLabel={t.tryPreview} />
+        </QCard>
       ) : null}
       <Hint>{t.tryPreviewHint}</Hint>
-    </Screen>
+      <Hint>{t.intro}</Hint>
+    </QScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  previewRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+  badge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  badgeText: { fontSize: 13, fontWeight: '600' },
+  benefit: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
+  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
+  focus: { paddingVertical: 12 },
+  mark: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, marginTop: 6 },
+  benefitText: { flex: 1, gap: 2 },
+  benefitTitle: { fontSize: 16, color: colors.label },
+  focusTitle: { fontWeight: '700' },
+  forYou: { fontSize: 13, fontWeight: '600', color: colors.secondaryLabel },
+  benefitBody: { fontSize: 14, color: colors.secondaryLabel },
   previewLabel: { flex: 1, fontSize: 16, color: colors.label },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.warning,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  // Black on systemOrange: white text there is below 3:1 contrast.
-  badgeText: { color: '#000', fontSize: 13, fontWeight: '700' },
-  title: { fontSize: 28, fontWeight: '700', color: colors.label },
-  table: { backgroundColor: colors.field, borderRadius: 10, borderCurve: 'continuous', overflow: 'hidden' },
-  row: {
-    flexDirection: 'row',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.separator,
-  },
-  headRow: { paddingVertical: 8 },
-  lastRow: { borderBottomWidth: 0 },
-  head: { fontSize: 13, color: colors.secondaryLabel, textTransform: 'uppercase' },
-  cellLabel: { flex: 1.3, fontSize: 16, color: colors.label },
-  cell: { flex: 1, fontSize: 16, color: colors.secondaryLabel },
-  plus: { color: colors.tint },
-  plusValue: { color: colors.label, fontWeight: '600' },
 });
