@@ -67,12 +67,13 @@ export default function Profile() {
   }
 
   const editProfile = () => router.push('/profile-edit');
+  const accountValue = isGuest ? en.profile.guestAccount : session?.user.email;
 
   return (
     <QScreen
       title={en.profile.title}
-      // UX3-A07: the email for an account, "Guest on this phone" for a guest (no "Host account").
-      subtitle={isGuest ? en.profile.guestAccount : (session?.user.email ?? undefined)}
+      // UX3-A07: no "Host account"; the email sits in the Account row below (ux, until A16 moves it up here).
+      subtitle={isGuest ? en.profile.guestAccount : undefined}
     >
       <ProfileRetry />
       <QRowCard
@@ -84,12 +85,14 @@ export default function Profile() {
         accessibilityHint={en.profile.editProfile}
         onPress={editProfile}
       />
-      {/* UX P2-7: a plain info row (Account · Host/Guest), not a checkmark that reads as a selected option. */}
+      {/* UX P2-7: a plain info row, not a checkmark that reads as a selected option. UX3-A07 (ux): the value is
+          the email for an account and "Guest on this phone" for a guest; "Host" never labels the account. */}
       <QRowCard
         icon="person.crop.circle"
         title={en.profile.account}
-        value={isGuest ? en.profile.guest : en.profile.host}
-        subtitle={isGuest ? en.profile.guestAccessBody : (session?.user.email ?? en.profile.hostAccessBody)}
+        value={accountValue}
+        valueTruncate
+        accessibilityLabel={accountValue ? `${en.profile.account}, ${accountValue}` : en.profile.account}
       />
 
       <View style={styles.rows}>

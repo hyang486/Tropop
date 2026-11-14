@@ -27,7 +27,7 @@ test('UX3-A07: account wording is only Log in and Create account', () => {
   assert.match(en, /upgradeSubtitle: 'Keep your rooms and start hosting your own.'/);
   assert.match(en, /guestAccount: 'Guest on this phone'/);
   assert.match(src('components/host-account-form.tsx'), /mode === 'upgrade' \? en\.hostAccount\.upgradeSubtitle/);
-  assert.match(src('app/profile.tsx'), /isGuest \? en\.profile\.guestAccount : \(session\?\.user\.email \?\? undefined\)/);
+  assert.match(src("app/profile.tsx"), /subtitle=\{isGuest \? en\.profile\.guestAccount : undefined\}/);
 });
 
 test('UX3-A05: labels sit above the fields on Log in, Create account, Guest and Create room', () => {
@@ -58,4 +58,15 @@ test('UX3-A10: the code goes on after the 5th digit; a wrong code shakes, buzzes
   assert.equal(Math.max(...steps.map(([x]) => Math.abs(x))), 6);
   assert.equal(steps.at(-1)[0], 0);
   assert.match(src('i18n/en.ts'), /noRoom: 'No room with that code\. Check with your host\.'/);
+});
+
+test('UX3-A07 (ux): the Profile Account row shows the email or "Guest on this phone", never Host', () => {
+  const p = src('app/profile.tsx');
+  assert.match(p, /const accountValue = isGuest \? en\.profile\.guestAccount : session\?\.user\.email;/);
+  assert.match(p, /value=\{accountValue\}\n\s+valueTruncate/);
+  assert.match(p, /`\$\{en\.profile\.account\}, \$\{accountValue\}`/);
+  assert.doesNotMatch(p, /en\.profile\.host\b/);
+  const r = src('components/q-row-card.tsx');
+  assert.match(r, /ellipsizeMode=\{valueTruncate \? 'middle' : undefined\}/);
+  assert.match(r, /valueTruncate: \{ fontSize: 15/);
 });

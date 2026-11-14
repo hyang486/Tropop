@@ -893,8 +893,6 @@ export const en = {
     // Qrew unit 5 (Q 07.01).
     guestAccount: 'Guest on this phone',
     account: 'Account',
-    guestAccessBody: 'Guest profile on this phone',
-    hostAccessBody: 'Create rooms and invite your group.',
     editProfile: 'Edit profile',
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
   },

@@ -11,7 +11,8 @@ test('UX2-62: Profile has no bottom buttons; the name row opens Edit profile; Lo
   assert.match(p, /onPress=\{confirmLogOut\}\s*action\b/);
   assert.match(p, /icon="person\.badge\.plus" title=\{en\.profile\.guestHostRow\}/);
   assert.match(src('components/q-row-card.tsx'), /\) : onPress && !action \? \(/);
-  assert.match(src('i18n/en.ts'), /guestAccessBody: 'Guest profile on this phone',/);
+  // UX3-A07 (ux): the Account row's subtitle line is gone; the value says "Guest on this phone" or the email.
+  assert.match(src('i18n/en.ts'), /guestAccount: 'Guest on this phone',/);
 });
 
 test('UX2-63: Edit profile shows a "Name" label above the name field, styled like "Or choose a picture"', () => {
