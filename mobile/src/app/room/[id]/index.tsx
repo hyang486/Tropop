@@ -21,7 +21,7 @@ import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QREWING_FAB_CLEARANCE, QrewingFab, useQrewingAskButton } from '@/features/event/qrewing-fab';
-import { Button, colors, Hint, Screen, size } from '@/components/ui';
+import { colors, Hint, Screen, size } from '@/components/ui';
 import { EntryGate, HiddenRow, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
 import { noteSiriRoomOpened } from '@/features/event/siri-mirror';
@@ -156,9 +156,14 @@ export default function RoomScreen() {
 
   if (state.status === 'error') {
     return (
+      // UX2-144: a first-load failure is a calm EmptyState with a retry; the raw error text never shows.
       <Screen>
-        <Hint tone="error">{state.message}</Hint>
-        <Button title={en.home.retry} variant="secondary" onPress={load} />
+        <EmptyState
+          art="ended"
+          title={en.room.openFailedTitle}
+          body={en.room.openFailedBody}
+          action={{ title: en.home.retry, onPress: load }}
+        />
       </Screen>
     );
   }
