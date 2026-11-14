@@ -156,7 +156,9 @@ export function QScreen({
         >
           {title ? (
             <View style={styles.head} onLayout={inline.onTitleLayout}>
-              <HandTitle>{title}</HandTitle>
+              <View onLayout={inline.onTitleTextLayout}>
+                <HandTitle>{title}</HandTitle>
+              </View>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
           ) : null}

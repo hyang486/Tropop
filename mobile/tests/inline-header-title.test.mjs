@@ -10,13 +10,18 @@ test('UX2-59: the inline title is Patrick Hand 20, one line, set as the native h
   assert.match(h, /<HandTitle style=\{styles\.title\} numberOfLines=\{1\}>/);
   assert.match(h, /navigation\.setOptions\(\{ headerTitle: \(\) => <InlineTitle text=\{title\} shown=\{shown\} \/> \}\)/);
   assert.match(h, /setShown\(bottom != null && y \+ overlap >= bottom\)/);
+  // C25 (Room info FAIL): the trigger is the title's own bottom (block y + title y + height), not the block's,
+  // so a subtitle ("Room info · Host") or Map's room name under the title never delays it.
+  assert.match(h, /blockY\.current \+ \(textBottom\.current \?\? blockH\.current\)/);
+  assert.match(h, /blockY\.current = e\.nativeEvent\.layout\.y;/);
+  assert.match(h, /textBottom\.current = e\.nativeEvent\.layout\.y \+ e\.nativeEvent\.layout\.height;/);
   assert.match(h, /accessibilityElementsHidden=\{!shown\}/);
 });
 
 test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to the header bottom', () => {
   const q = src('components/q-screen.tsx');
   assert.match(q, /useInlineHeaderTitle\(title && \(inlineTitle \?\? !sheet\) && overlap > 0 \? title : null, overlap\)/);
-  assert.match(q, /<View style=\{styles\.head\} onLayout=\{inline\.onTitleLayout\}>/);
+  assert.match(q, /<View style=\{styles\.head\} onLayout=\{inline\.onTitleLayout\}>\s*<View onLayout=\{inline\.onTitleTextLayout\}>\s*<HandTitle>\{title\}<\/HandTitle>\s*<\/View>\s*\{subtitle \?/);
   assert.match(q, /inline\.onScrollY\(e\.nativeEvent\.contentOffset\.y\)/);
   assert.match(q, /height: overlap \+ 16, backgroundImage: `linear-gradient\(\$\{paper\} 0%, \$\{paper\} \$\{edgeSolid\(overlap\)\}%/);
   const ed = src('features/calendar/event-editor.tsx');
@@ -27,5 +32,7 @@ test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to
   }
   const map = src('app/room/[id]/map.tsx');
   assert.match(map, /useInlineHeaderTitle\(en\.map\.title, useHeaderHeight\(\)\)/);
+  // Map passed ux C25 as is: no title measure, so it keeps the block's bottom.
   assert.match(map, /<View style=\{styles\.head\} onLayout=\{inlineTitle\.onTitleLayout\}>/);
+  assert.doesNotMatch(map, /onTitleTextLayout/);
 });

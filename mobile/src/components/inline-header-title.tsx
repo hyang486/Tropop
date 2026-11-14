@@ -11,26 +11,39 @@ const FADE_MS = 180;
 /**
  * UX2-59: once the large handwritten title scrolls under the header, the same title fades in centered between the
  * nav buttons (Patrick Hand 20, one line, tail truncation; the native header gives it the gap between the buttons).
- * Pass `title` only on a screen with a visible header (null turns it off). Put `onTitleLayout` on the large title's
- * view (in scroll content coordinates) and call `onScrollY` with the content offset. `overlap` is the header bottom.
+ * Pass `title` only on a screen with a visible header (null turns it off). Put `onTitleLayout` on the title block
+ * (in scroll content coordinates), optionally `onTitleTextLayout` on a view around the large title alone (inside
+ * the block), and call `onScrollY` with the content offset. `overlap` is the header bottom. UX2-59 C25: with the
+ * title measure, the trigger is the title's own bottom, so a subtitle under it never holds the inline title back;
+ * without it (Map), the block's bottom.
  */
 export function useInlineHeaderTitle(title: string | null, overlap: number) {
   const navigation = useNavigation();
-  const titleBottom = useRef<number | null>(null);
+  const blockY = useRef<number | null>(null);
+  const blockH = useRef(0);
+  const textBottom = useRef<number | null>(null);
   const lastY = useRef(0);
   const [shown, setShown] = useState(false);
 
   const update = useCallback(
     (y: number) => {
       lastY.current = y;
-      const bottom = titleBottom.current;
+      const bottom = blockY.current == null ? null : blockY.current + (textBottom.current ?? blockH.current);
       setShown(bottom != null && y + overlap >= bottom);
     },
     [overlap],
   );
   const onTitleLayout = useCallback(
     (e: LayoutChangeEvent) => {
-      titleBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height;
+      blockY.current = e.nativeEvent.layout.y;
+      blockH.current = e.nativeEvent.layout.height;
+      update(lastY.current);
+    },
+    [update],
+  );
+  const onTitleTextLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      textBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height;
       update(lastY.current);
     },
     [update],
@@ -41,7 +54,7 @@ export function useInlineHeaderTitle(title: string | null, overlap: number) {
     navigation.setOptions({ headerTitle: () => <InlineTitle text={title} shown={shown} /> });
   }, [navigation, title, shown]);
 
-  return { onTitleLayout, onScrollY: update };
+  return { onTitleLayout, onTitleTextLayout, onScrollY: update };
 }
 
 function InlineTitle({ text, shown }: { text: string; shown: boolean }) {
