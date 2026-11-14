@@ -217,6 +217,8 @@ type ButtonProps = {
   accessibilityLabel?: string;
   /** UX3-A02: 48 pt instead of 52, for the Join / Create pair on Rooms. */
   compact?: boolean;
+  /** V2: a 17 pt SF Symbol before the title, in the label color (Join's scan corners, Create's plus). */
+  icon?: SFSymbol;
 };
 
 export function Button({
@@ -229,6 +231,7 @@ export function Button({
   accessibilityHint,
   accessibilityLabel,
   compact,
+  icon,
 }: ButtonProps) {
   // V1: no outlines. Primary is an ink fill with a paper label; secondary a wash fill (wash2 pressed) with an ink
   // label; destructive a redwash fill with an errorText label. UX2-72: destructiveFill stays #D70015 with white.
@@ -256,6 +259,7 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         compact && { minHeight: 48 },
+        icon && styles.buttonWithIcon,
         { backgroundColor: quiet && pressed && !disabled ? colors.wash2 : fill },
         // UX2-138: disabled is the enabled style at 40% (0.6 read as an enabled gray fill in light mode).
         disabled ? { opacity: 0.4 } : pressed && !quiet && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
@@ -264,12 +268,15 @@ export function Button({
       {busy ? (
         <ActivityIndicator color={label} />
       ) : (
-        <Text
-          style={[styles.buttonText, { color: label }]}
-          maxFontSizeMultiplier={maxFontSizeMultiplier}
-        >
-          {title}
-        </Text>
+        <>
+          {icon ? <SymbolView name={icon} size={17} weight="semibold" tintColor={label} /> : null}
+          <Text
+            style={[styles.buttonText, { color: label }]}
+            maxFontSizeMultiplier={maxFontSizeMultiplier}
+          >
+            {title}
+          </Text>
+        </>
       )}
     </Pressable>
   );
@@ -387,6 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
+  buttonWithIcon: { flexDirection: 'row', gap: 8 },
   // V1: 17 pt semibold (was 400).
   buttonText: { fontSize: 17, fontWeight: '600' },
   hint: { fontSize: 15, color: colors.ink2 },

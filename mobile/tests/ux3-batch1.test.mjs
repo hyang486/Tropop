@@ -89,9 +89,9 @@ test('UX3-A02: rooms group into Happening now, Coming up and Ending soon', async
 test('UX3-A02: Rooms has no subtitle, a 48 pt Join/Create pair over a list, and section headers', () => {
   const h = src('app/index.tsx');
   assert.doesNotMatch(h, /subtitle=/);
-  assert.match(h, /<Button compact title=\{en\.home\.joinShort\}/);
-  assert.match(h, /<Button compact title=\{en\.home\.createShort\} variant="secondary"/);
-  assert.match(h, /pair: \{ flexDirection: 'row', gap: 12/);
+  // V2 adds icons and a 10 pt gap (tests/v2-rooms.test.mjs).
+  assert.match(h, /<Button compact icon="qrcode\.viewfinder" title=\{en\.home\.joinShort\}/);
+  assert.match(h, /title=\{en\.home\.createShort\}\s+variant="secondary"/);
   assert.match(h, /\{isGuest && rows\.length > 0 \? <GuestCreateLink \/> : null\}/);
   assert.match(h, /groupBySection\(rows, \(r\) => roomSection\(r\.room, r\.entry\.kind === 'grace', now\)\)/);
   assert.match(src('components/ui.tsx'), /compact && \{ minHeight: 48 \}/);
