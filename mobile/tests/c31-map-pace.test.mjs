@@ -111,3 +111,8 @@ test('UX2-91: a failed Map action alert has a title, the reason, Try again and C
   assert.equal(en.map.actionFailedTitle, 'Didn’t go through');
   assert.match(src('app/room/[id]/map.tsx'), /Alert\.alert\(en\.map\.actionFailedTitle, errorMessage\(e\), \[[\s\S]*?onPress: \(\) => void run\(key, action, refresh\)/);
 });
+
+test('UX2-115/116: calendar scrim and event-editor picked icon use themed tokens', () => {
+  assert.match(src('features/calendar/calendar-screen.tsx'), /scrim: \{[^}]*backgroundColor: colors\.scrim/);
+  assert.match(src('features/calendar/event-editor.tsx'), /borderColor: colors\.tint, backgroundColor: colors\.sheetField/);
+});
