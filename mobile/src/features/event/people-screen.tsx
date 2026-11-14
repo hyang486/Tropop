@@ -6,7 +6,7 @@ import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmptyState } from '@/components/empty-state';
 import { QCard, QScreen } from '@/components/q-screen';
-import { refreshPlus, usePlusPreview } from '@/features/calendar/calendar-store';
+import { refreshPlus, usePlanState } from '@/features/calendar/calendar-store';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { Button, colors, Hint } from '@/components/ui';
 
@@ -70,8 +70,9 @@ export function PeopleScreen() {
   const q = useQrewingRoom(id);
   const uid = useAuth().session?.user.id;
   // UX2-01: Free (known) → the Plus gate with no request; Free → Plus re-runs the effect, so the list loads after an upgrade.
-  const plus = usePlusPreview(uid);
-  const skip = plus === false;
+  // C14: only a confirmed Free plan gates; loading or offline lets the list read answer (its own offline error).
+  const plan = usePlanState(uid);
+  const skip = plan === 'free';
   const [state, setState] = useState<State>({ status: 'loading' });
   // The consent gate's Agree opens the disclosure first, like every other consent entry; the sheet saves the answer.
   const [consent, setConsent] = useState(false);
@@ -130,7 +131,7 @@ export function PeopleScreen() {
   const notConsented = q.me !== null && !q.me.aiOk;
   // A failed re-ask on a kept list counts too: if Qrewing went off or I left, the old list must not stay up.
   const gate = peopleGate({
-    plus,
+    plus: plan === 'free' ? false : plan === 'plus' ? true : null,
     error: state.status === 'error' || state.status === 'ready' ? state.error : null,
     notConsented,
   });

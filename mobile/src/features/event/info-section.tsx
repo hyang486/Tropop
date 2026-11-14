@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { QCard, QLabel } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
-import { refreshPlus, usePlusPreview } from '@/features/calendar/calendar-store';
+import { refreshPlus, usePlanState } from '@/features/calendar/calendar-store';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { useAuth } from '@/lib/auth';
 
@@ -25,7 +25,8 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
   const q = useQrewingRoom(roomId);
   // UX2-01: People to meet is Plus on my own plan; a Free user sees that on the row and the tap opens the Plus page.
   const uid = useAuth().session?.user.id;
-  const plus = usePlusPreview(uid);
+  // C14: upsell lines only on a confirmed Free plan; their space is held while the plan loads.
+  const plan = usePlanState(uid);
   // Spec 9.4 R4: entry info needs questions, which are set only on Create room. Read for the host of an event room.
   const entryQuestions = useEntryQuestions(isHost && roomType === 'event' ? roomId : '');
   const noQuestions = entryQuestions.loaded && !entryQuestions.failed && entryQuestions.questions.length === 0;
@@ -75,7 +76,15 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
           <QCard row>
             <View style={styles.cardText}>
               <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
-              {plus === false ? <Text style={styles.cardSubtitle}>{s.partOfPlus}</Text> : null}
+              {plan === 'free' ? (
+                <Text style={styles.cardSubtitle}>{s.partOfPlus}</Text>
+              ) : plan === 'offline' ? (
+                <Text style={styles.cardSubtitle}>{en.planPreview.offline}</Text>
+              ) : plan === 'loading' ? (
+                <Text style={[styles.cardSubtitle, styles.reserved]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  {s.partOfPlus}
+                </Text>
+              ) : null}
             </View>
             {/* UX2-03: room AI is Plus. A Free host's tap on an off switch opens the Plus page and the switch stays
                 off; turning AI off always works. */}
@@ -83,7 +92,7 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
               value={q.aiEnabled}
               disabled={busy}
               onValueChange={(v) =>
-                v && plus === false
+                v && plan === 'free'
                   ? router.push(plusIntroHref('room-ai'))
                   : run(() => setQrewingRoom(roomId, v, v && isEvent && q.entryRequired))
               }
@@ -124,9 +133,9 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
               <QRowCard
                 icon="person.2.wave.2"
                 title={s.peopleToMeet}
-                subtitle={plus === false ? s.partOfPlus : undefined}
+                subtitle={plan === 'free' ? s.partOfPlus : plan === 'loading' ? ' ' : undefined}
                 onPress={() =>
-                  plus === false
+                  plan === 'free'
                     ? router.push(plusIntroHref('meet'))
                     : router.push({ pathname: '/room/[id]/people', params: { id: roomId } })
                 }
@@ -145,4 +154,5 @@ const styles = StyleSheet.create({
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
   cardText: { flex: 1, gap: 2 },
   cardSubtitle: { fontSize: 13, color: colors.ink2 },
+  reserved: { opacity: 0 },
 });

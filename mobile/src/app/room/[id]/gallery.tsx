@@ -407,7 +407,7 @@ function UploadRow({
   const size = formatBytes(job.item.size);
   const status = deadEnd
     ? deadEnd === 'storage'
-      ? `${en.media.outOfSpace}\n${en.media.outOfSpaceHint}${step === 'offline' ? `\n${en.media.planOffline}` : ''}`
+      ? `${en.media.outOfSpace}\n${en.media.outOfSpaceHint}${step === 'offline' ? `\n${en.planPreview.offline}` : ''}`
       : en.media.cantUpload
     : failed
       ? closed

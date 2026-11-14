@@ -8,7 +8,7 @@ import { ActionSheetIOS, Alert, Pressable, StyleSheet, Text, TextInput, View } f
 
 import { InkIcon } from '@/components/calendar';
 import { PlacePinMap } from '@/components/place-time-cards';
-import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { usePlanState } from '@/features/calendar/calendar-store';
 import { defaultDraft, type QuestionPayload, validateQuestions } from '@/features/event/entry-questions';
 import { useAnnounce } from '@/features/event/announce';
 import { createBarLayout } from '@/features/event/create-bar';
@@ -84,7 +84,11 @@ export default function CreateRoom() {
   const [name, setName] = useState('');
   const [type, setType] = useState<RoomType>('sports');
   const uid = useAuth().session?.user.id;
-  const plus = usePlusPreview(uid);
+  // C14: Free is never guessed; loading and offline are both null (gates do nothing), and a gated tap while
+  // offline says why under that control.
+  const plan = usePlanState(uid);
+  const plus = plan === 'plus' ? true : plan === 'free' ? false : null;
+  const [offlineTap, setOfflineTap] = useState<'ai' | 'more' | null>(null);
   // #11 / Spec 11 A7: End follows the type's default until the host picks a preset or a time by hand.
   const [pickedEnd, setPickedEnd] = useState<EndChoice | null>(null);
   const choice: EndChoice = pickedEnd ?? { kind: 'preset', hours: defaultEndHours(type, plus) };
@@ -187,6 +191,7 @@ export default function CreateRoom() {
   // Free hosts: turning Qrewing AI on opens the Plus screen instead of toggling (human, via qa 2026-11-13).
   function changeAi(next: boolean) {
     const action = aiSwitchAction(plus, next);
+    setOfflineTap(action === null && plan === 'offline' ? 'ai' : null);
     if (action === 'toggle') setAiEnabled(next);
     if (action === 'upgrade') router.push({ pathname: '/plan-preview', params: { from: 'room-ai' } });
   }
@@ -194,6 +199,7 @@ export default function CreateRoom() {
   // A5: "More" opens 3–7 days on Plus and the Plus screen on Free; nothing while the Plus flag loads.
   function openMore() {
     const action = moreAction(plus);
+    setOfflineTap(action === null && plan === 'offline' ? 'more' : null);
     if (action === 'upgrade') router.push({ pathname: '/plan-preview', params: { from: 'more' } });
     if (action !== 'choices') return;
     const labels = MORE_PRESETS.map((h) => en.createRoom.presetLabel(h));
@@ -481,6 +487,7 @@ export default function CreateRoom() {
         <InkSwitch value={aiEnabled} onValueChange={changeAi} accessibilityLabel={en.qrewing.create.aiLabel} />
       </View>
       <Hint>{en.qrewing.create.aiHint}</Hint>
+      {offlineTap === 'ai' ? <Hint>{en.planPreview.offline}</Hint> : null}
       {aiEnabled && type === 'event' ? (
         <>
           <View style={styles.row}>
@@ -629,6 +636,7 @@ export default function CreateRoom() {
           />
         </>
       ) : null}
+      {offlineTap === 'more' ? <Hint>{en.planPreview.offline}</Hint> : null}
       <Text style={styles.deletes}>{en.createRoom.endHint}</Text>
 
       <View style={styles.box}>

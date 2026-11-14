@@ -438,8 +438,6 @@ export const en = {
     roomStorageFull: 'This file is too big for the space left in this room. Smaller files may still fit.',
     // UX2-06 (pattern D): dead-end upload rows; no Retry.
     outOfSpace: 'Not enough space left in this room for this file.',
-    // C14: a Plus gate never guesses Free; offline with no cached plan it says so.
-    planOffline: "Can't check your plan offline. Try again when you're back.",
     outOfSpaceHint: 'Smaller files may still fit.',
     cantUpload: "This file can't be uploaded.",
     seePlus: 'See Plus',
@@ -787,6 +785,8 @@ export const en = {
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
   },
   planPreview: {
+    // C14: a Plus gate never guesses Free; offline with no cached plan it says so (shared by every Plus gate).
+    offline: "Can't check your plan offline. Try again when you're back.",
     /** capacity B item 4: the link from a personal Plus feature to the Plus intro. */
     seePlus: 'See Plus',
     // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).

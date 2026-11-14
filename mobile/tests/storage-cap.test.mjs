@@ -52,7 +52,7 @@ test('C14: a Plus gate shows only for a confirmed Free plan; loading reserves, o
   assert.equal(planState(true, true), 'plus');
   assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlan: 'loading' }), 'reserve');
   assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlan: 'offline' }), 'offline');
-  assert.equal(en.media.planOffline, "Can't check your plan offline. Try again when you're back.");
+  assert.equal(en.planPreview.offline, "Can't check your plan offline. Try again when you're back.");
 });
 
 test('C14: the plan cache stores Free as 0 so an offline Free host is known, and an unknown plan is marked', () => {

@@ -44,12 +44,12 @@ test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   assert.match(p, /gate === 'consent' \? \(\s*<Button title=\{s\.agree\} onPress=\{\(\) => setConsent\(true\)\} \/>/);
   assert.match(p, /<DisclosureSheet\s*roomId=\{id\}\s*visible=\{consent\}\s*onDone=\{\(\) => \{\s*setConsent\(false\);\s*refresh\(\);/);
   const info = src('features/event/info-section.tsx');
-  assert.match(info, /subtitle=\{plus === false \? s\.partOfPlus : undefined\}/);
+  assert.match(info, /subtitle=\{plan === 'free' \? s\.partOfPlus : plan === 'loading' \? ' ' : undefined\}/);
   // UX2-03: a Free host's AI switch opens the room-ai slide (stays off); a server refusal does the same.
-  assert.match(info, /v && plus === false\s*\? router\.push\(plusIntroHref\('room-ai'\)\)\s*: run\(\(\) => setQrewingRoom/);
+  assert.match(info, /v && plan === 'free'\s*\? router\.push\(plusIntroHref\('room-ai'\)\)\s*: run\(\(\) => setQrewingRoom/);
   assert.match(info, /if \(res\.planLimit\) \{\s*if \(uid\) refreshPlus\(uid\);\s*router\.push\(plusIntroHref\('room-ai'\)\);/);
   assert.match(src('features/event/qrewing-api.ts'), /isPlanLimit\(error\) \? \{ planLimit: true \}/);
-  assert.match(info, /plus === false\s*\? router\.push\(plusIntroHref\('meet'\)\)/);
+  assert.match(info, /plan === 'free'\s*\? router\.push\(plusIntroHref\('meet'\)\)/);
 });
 
 test('UX2-04b: a person\'s answer to my question is readable on Free', () => {
@@ -66,7 +66,7 @@ test('UX2-04b: a person\'s answer to my question is readable on Free', () => {
   assert.match(src('features/chat/chat-header.tsx'), /lead=\{n\.lead\}\s*a11yLabel=\{n\.label\}/);
   // Free → the read-only sheet; Plus (or plan unknown) → Ask as before.
   const chat = src('app/room/[id]/index.tsx');
-  assert.match(chat, /if \(plus === false && cardId\) setTimeout\(\(\) => setAnswerCard\(cardId\), 400\);\s*\/\/.*\n\s*else if \(ask\.available\) ask\.open\(\);/);
+  assert.match(chat, /if \(plan === 'free' && cardId\) setTimeout\(\(\) => setAnswerCard\(cardId\), 400\);\s*\/\/.*\n\s*else if \(ask\.available\) ask\.open\(\);/);
   assert.match(chat, /onSeePlus=\{\(\) => router\.push\(plusIntroHref\('ask'\)\)\}/);
   // The sheet: no composer, no red; secondary See Plus, primary Done.
   const sheet = src('features/questions/answer-sheet.tsx');
