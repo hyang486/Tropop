@@ -8,3 +8,13 @@ export type EnterMotion = { duration: number; fromOpacity: number; fromTranslate
 export function enterMotion(reduceMotion: boolean): EnterMotion {
   return { duration: ENTER_MS, fromOpacity: 0, fromTranslateY: reduceMotion ? 0 : ENTER_RISE };
 }
+
+/**
+ * The Reduce Motion setting, or true when the read fails: a safety surface (Emergency bar) must still show,
+ * without motion, rather than wait at opacity 0 for an answer that never comes.
+ */
+export function readReduceMotion(read: () => Promise<boolean>): Promise<boolean> {
+  return Promise.resolve()
+    .then(read)
+    .catch(() => true);
+}

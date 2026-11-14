@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
 
-import { enterMotion } from '@/lib/motion-plan';
+import { enterMotion, readReduceMotion } from '@/lib/motion-plan';
 
 /** Live Reduce Motion setting; null until the first read answers. */
 export function useReduceMotion(): boolean | null {
   const [reduce, setReduce] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((on) => {
+    void readReduceMotion(() => AccessibilityInfo.isReduceMotionEnabled()).then((on) => {
       if (live) setReduce(on);
     });
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
