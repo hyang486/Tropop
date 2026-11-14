@@ -368,12 +368,24 @@ export default function GalleryScreen() {
 }
 
 function Tile({ media, size, token, label }: { media: Media; size: number; token: string | undefined; label: string }) {
+  // UX2-80: a preview that fails to load shows a plain square; the tile stays tappable (the viewer has Try again).
+  const [failed, setFailed] = useState(false);
+  const preview = media.preview_path && token ? { path: media.preview_path, token } : null;
   return (
     <Link href={{ pathname: '/room/[id]/media/[mediaId]', params: { id: media.room_id, mediaId: media.id } }} asChild>
-      <Pressable accessibilityRole="imagebutton" accessibilityLabel={label} style={{ width: size, height: size }}>
-        {media.preview_path && token ? (
+      <Pressable
+        accessibilityRole="imagebutton"
+        accessibilityLabel={preview && failed ? en.media.previewUnavailable(label) : label}
+        style={{ width: size, height: size }}
+      >
+        {preview && failed ? (
+          <View style={[styles.fill, styles.failedTile]}>
+            <SymbolView name="photo" size={24} tintColor={colors.ink2} />
+          </View>
+        ) : preview ? (
           <Image
-            source={{ uri: objectUrl(media.preview_path), headers: authHeaders(token), cacheKey: media.preview_path }}
+            onError={() => setFailed(true)}
+            source={{ uri: objectUrl(preview.path), headers: authHeaders(preview.token), cacheKey: preview.path }}
             style={styles.fill}
             contentFit="cover"
             transition={100}
@@ -547,6 +559,7 @@ const styles = StyleSheet.create({
   bar: { height: 4, backgroundColor: colors.tint },
   fill: { width: '100%', height: '100%' },
   fileTile: { alignItems: 'center', justifyContent: 'center', gap: 6, padding: 8, backgroundColor: colors.field },
+  failedTile: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.field },
   fileName: { fontSize: 12, color: colors.ink2, textAlign: 'center' },
   badge: {
     position: 'absolute',

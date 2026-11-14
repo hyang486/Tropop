@@ -299,6 +299,9 @@ export const en = {
     cameraUnavailable: 'The camera is not available on this device. Choose a photo from your library instead.',
     saving: 'Saving your reference…',
     referenceTitle: 'Your reference photo',
+    // UX2-81: the enrolled photo failed to load.
+    referenceFailed: "Couldn't load your face photo.",
+    tryAgain: 'Try again',
     referenceHint: 'Only you can see this. It is used only in this room.',
     // UX2-68: the row under the reference photo.
     matchCount: (n: number) => (n === 1 ? '1 photo of you in this room' : `${n} photos of you in this room`),
@@ -488,6 +491,8 @@ export const en = {
     share: 'Share',
     sharedByAge: (name: string, age: string) => `Shared by ${name} · ${age}`,
     /** A11y sweep: a grid tile for VoiceOver, "Photo by Mina, 2 min". */
+    /** UX2-80: a grid tile whose preview failed to load. */
+    previewUnavailable: (label: string) => `${label}, preview unavailable`,
     tileSpoken: (kind: string, name: string, age: string | null) =>
       `${kind === 'video' ? 'Video' : kind === 'file' ? 'File' : 'Photo'} by ${name}${age ? `, ${age}` : ''}`,
     savedTitle: 'Original saved',

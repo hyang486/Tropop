@@ -61,6 +61,9 @@ export default function FaceScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [details, setDetails] = useState(false);
+  // UX2-81: the reference photo failed to load; `refTry` remounts the Image for a fresh load.
+  const [refFailed, setRefFailed] = useState(false);
+  const [refTry, setRefTry] = useState(0);
   // UX2-17 (P): camera access is off; the camera-off screen's art and copy, with Open Settings.
   const [cameraOff, setCameraOff] = useState(false);
   // FG-L1: focus and pull loads can overlap; only the newest one is applied.
@@ -248,12 +251,36 @@ export default function FaceScreen() {
         />
         <QLabel>{en.face.referenceTitle}</QLabel>
         <View style={styles.photoBox}>
-          {state.refUrl ? (
-            <Image source={{ uri: state.refUrl }} style={styles.photo} contentFit="cover" accessibilityLabel={en.face.referenceTitle} />
+          {state.refUrl && refFailed ? (
+            <SymbolView name="person" size={32} tintColor={colors.ink2} />
+          ) : state.refUrl ? (
+            <Image
+              key={refTry}
+              source={{ uri: state.refUrl }}
+              style={styles.photo}
+              contentFit="cover"
+              accessibilityLabel={en.face.referenceTitle}
+              onError={() => setRefFailed(true)}
+            />
           ) : (
             <SymbolView name="faceid" size={56} tintColor={colors.secondaryLabel} />
           )}
         </View>
+        {state.refUrl && refFailed ? (
+          <View style={styles.refFailed}>
+            <Text style={styles.refFailedText}>{en.face.referenceFailed}</Text>
+            <Pressable
+              onPress={() => {
+                setRefFailed(false);
+                setRefTry((n) => n + 1);
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.refRetry, pressed && styles.dimmed]}
+            >
+              <Text style={styles.headerLink}>{en.face.tryAgain}</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {/* UX2-68: the way from the reference to the matches; Photos & files opens on the Of me filter. */}
         {state.matchCount > 0 ? (
           <QRowCard
@@ -380,6 +407,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   photo: { width: '100%', height: '100%' },
+  refFailed: { alignItems: 'center' },
+  refFailedText: { fontSize: 15, color: colors.ink2, textAlign: 'center' },
+  refRetry: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
   consentTitle: { fontSize: 17, fontWeight: '600', color: colors.label, marginTop: 4 },
   points: { gap: 8 },
   point: { fontSize: 15, lineHeight: 21, color: colors.label },
