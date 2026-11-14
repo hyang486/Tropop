@@ -16,6 +16,12 @@ test('UX2-110: the Qrewing AI disclosure waits while an Emergency is open, the a
   assert.equal(disclosureHeld({ ...base, loading: true }), true);
 });
 
+test('UX2-110 guard: a first read over 3 s skips the automatic sheet for the visit, even after it ends with none', () => {
+  const base = { loading: false, error: null, count: 0, stale: false, slow: false };
+  assert.equal(disclosureHeld({ ...base, slow: true }), true);
+  assert.equal(disclosureHeld({ ...base, loading: true, slow: true }), true);
+});
+
 test('UX2-110: the hold gates only the automatic sheet; a tap on Ask (askConsent) still opens it', () => {
   assert.match(room, /\(qrewing\.gates\.disclosure &&\s+!disclosureClosed &&\s+!disclosureHeld\(\{/);
   assert.match(room, /\|\|\s+askConsent;/);

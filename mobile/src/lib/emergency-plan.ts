@@ -109,9 +109,11 @@ export function emergencyAreaMode(o: {
 /**
  * UX2-110: the Qrewing AI disclosure sheet waits while any Emergency is open or the area is failed (or not read
  * yet, so it can't cover one that is about to show). It shows once the Emergency ends, or on the next open.
+ * ux guard: if the first read took over 3 s (`slow`, which stays set for the visit), skip it for this visit so it
+ * never pops up late.
  */
 export function disclosureHeld(o: Parameters<typeof emergencyAreaMode>[0]): boolean {
-  return o.loading || emergencyAreaMode(o) === 'list' || emergencyAreaMode(o) === 'failed';
+  return o.loading || !!o.slow || emergencyAreaMode(o) === 'list' || emergencyAreaMode(o) === 'failed';
 }
 
 /** UX2-30: in chat, three or more Emergencies fold into one "N Emergencies · Show" line until it is opened. */
