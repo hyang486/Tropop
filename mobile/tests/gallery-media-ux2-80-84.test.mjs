@@ -37,3 +37,9 @@ test('UX2-82: the recap card shows pattern E on a failed read instead of swallow
   assert.match(card, /hitSlop=\{4\}/);
   assert.match(card, /accessibilityState=\{\{ disabled: retrying, busy: retrying \}\}/);
 });
+
+test('UX2-83: the gallery title is always "Photos & files"; an ended read shows Room ended, a network failure keeps the grid', () => {
+  assert.match(gallery, /<HandTitle style=\{styles\.title\}>\{en\.media\.title\}<\/HandTitle>/);
+  assert.equal(en.media.title, 'Photos & files');
+  assert.match(gallery, /if \(errorKind\(e\) === 'ended'\) setGone\(true\);/);
+});

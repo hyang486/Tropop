@@ -28,6 +28,7 @@ import { Button, colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
 import { useAuth } from '@/lib/auth';
+import { errorKind } from '@/lib/error-kind';
 import { endsDay } from '@/lib/chat-plan';
 import { closesSoonMinutes } from '@/lib/expiry-plan';
 import {
@@ -119,7 +120,10 @@ export default function GalleryScreen() {
         setRoom(r);
         setGone(r === null);
       })
-      .catch(() => undefined);
+      // UX2-83: a read that says the room ended shows Room ended, as Chat does; a network failure keeps the grid.
+      .catch((e: unknown) => {
+        if (errorKind(e) === 'ended') setGone(true);
+      });
     // A11y sweep: uploader names for the tiles' VoiceOver labels; a failed read falls back to "Former member".
     listMembers(id)
       .then((members) => setNames(new Map(members.map((m) => [m.user_id, m.display_name]))))
