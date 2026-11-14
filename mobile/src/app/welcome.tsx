@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { SymbolView } from 'expo-symbols';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
 import { QLink, QScreen } from '@/components/q-screen';
-import { Button, Hint } from '@/components/ui';
+import { Button, colors, Hint, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { Snackbar } from '@/features/event/snackbar';
 import { useAuth } from '@/lib/auth';
 
 // Qrew Q 01.01: title, one line, gathering art, then Join a room / Create a room. Join opens the code screen
@@ -14,11 +15,12 @@ import { useAuth } from '@/lib/auth';
 export default function Welcome() {
   const { notice, clearNotice } = useAuth();
   // UX2-42: a join link with a malformed token lands here with ?link=invalid.
+  // UX2-60: an inline note under the subtitle says so; it clears on the next action.
   const { link } = useLocalSearchParams<{ link?: string }>();
   const [badLink, setBadLink] = useState(link === 'invalid');
-  const hideBadLink = useCallback(() => setBadLink(false), []);
   function go(path: '/start/code' | '/sign-in') {
     clearNotice();
+    setBadLink(false);
     router.push(path);
   }
   return (
@@ -27,7 +29,6 @@ export default function Welcome() {
       subtitle={en.welcome.tagline}
       bottom={<InkArt art="gathering" width={200} />}
       bottomAlign="center"
-      floating={badLink ? <Snackbar notice={{ id: 1, text: en.welcome.invalidLink }} onHide={hideBadLink} /> : undefined}
       actions={
         <>
           {notice ? <Hint tone="error">{notice}</Hint> : null}
@@ -36,6 +37,19 @@ export default function Welcome() {
           <QLink title={en.welcome.haveAccount} onPress={() => go('/sign-in')} />
         </>
       }
-    />
+    >
+      {badLink ? (
+        <View style={styles.note} accessibilityRole="alert">
+          <SymbolView name="exclamationmark.circle" size={18} tintColor={colors.ink2} style={styles.noteIcon} />
+          <Text style={styles.noteText}>{en.welcome.invalidLink}</Text>
+        </View>
+      ) : null}
+    </QScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  noteIcon: { marginTop: 1 },
+  noteText: { ...textRole.secondary, flex: 1 },
+});
