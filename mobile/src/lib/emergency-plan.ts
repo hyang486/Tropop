@@ -40,3 +40,19 @@ export function createAnnouncer() {
     },
   };
 }
+
+/**
+ * UX P0-1: an open Emergency shows as a 60 pt pinned bar (title, time and seen count, one action) or a 44 pt line
+ * ("Sora · Emergency · Open"). Chat shows the bar until you said "I see it"; your own Emergency keeps the bar there
+ * so "I'm OK now" stays one tap away. Map, Photos and Info show the line. "Open" on a line expands that bar.
+ */
+export function emergencyBarMode(o: {
+  place: 'chat' | 'other';
+  mine: boolean;
+  acked: boolean;
+  expanded: boolean;
+}): 'bar' | 'line' {
+  if (o.expanded) return 'bar';
+  if (o.place === 'other') return 'line';
+  return o.mine || !o.acked ? 'bar' : 'line';
+}
