@@ -354,7 +354,9 @@ export const en = {
     reconnecting: 'Reconnecting…',
     sending: 'Sending…',
     failed: 'Not sent. Tap to retry.',
-    retry: 'Retry',
+    // UX2-41: the failed-send alert.
+    failedTitle: 'Message not sent',
+    retry: 'Try again',
     discard: 'Delete',
     formerMember: 'Former member',
     // Grace: the host's row is not readable, but the room's host_id is (src/lib/member-name.ts).
@@ -423,7 +425,8 @@ export const en = {
     cancelUploadBody: (name: string) => `${name} will not be shared. You can add it again later.`,
     keepUploading: 'Keep uploading',
     headerLinkUploading: (n: number) => `Photos ↑${n}`,
-    headerLinkFailed: 'Photos !',
+    // UX2-41: was 'Photos !'.
+    headerLinkFailed: (n: number) => (n === 1 ? '1 upload failed' : `${n} uploads failed`),
     headerLinkA11y: (pending: number, failed: number) =>
       [`Photos`, pending > 0 ? `${pending} uploading` : '', failed > 0 ? `${failed} failed` : ''].filter(Boolean).join(', '),
     emptyFile: 'The selected file is empty.',

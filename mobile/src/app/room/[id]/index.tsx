@@ -288,10 +288,12 @@ function ChatRoom({
   }
 
   function onFailedPress(item: ChatItem) {
-    Alert.alert(en.chat.failed, undefined, [
+    // UX2-41: while chat is offline a retry can't go through, so the alert says so and offers no Try again.
+    const online = chat.live;
+    Alert.alert(en.chat.failedTitle, online ? undefined : en.errors.offline, [
       { text: en.room.cancel, style: 'cancel' },
       { text: en.chat.discard, style: 'destructive', onPress: () => chat.discard(item.id) },
-      { text: en.chat.retry, onPress: () => chat.retry(item.id) },
+      ...(online ? [{ text: en.chat.retry, onPress: () => chat.retry(item.id) }] : []),
     ]);
   }
 
@@ -340,7 +342,7 @@ function ChatRoom({
       label: en.media.headerLink,
       detail:
         uploadSummary.failed > 0
-          ? en.media.headerLinkFailed
+          ? en.media.headerLinkFailed(uploadSummary.failed)
           : uploadSummary.pending > 0
             ? en.media.headerLinkUploading(uploadSummary.pending)
             : undefined,
