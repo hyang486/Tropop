@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.photoScrim,
   },
   more: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.photoScrim },
-  moreText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  moreText: { fontSize: 18, fontWeight: '600', color: colors.onPhotoScrim },
   file: {
     minHeight: 56,
     width: GRID_SIZE + 20,

@@ -31,6 +31,7 @@ import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { ChatHeaderButtons, NoticesSheet, SettingsSheet, useChatNoticeProducers } from '@/features/chat/chat-header';
 import { ChatMedia } from '@/features/chat/chat-media';
 import { mediaForLines } from '@/features/chat/chat-media-plan';
+import { buildTimeline, resolvedCopy, type TimelineRow } from '@/features/chat/chat-timeline-plan';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
 import { cardsToAnswer } from '@/features/questions/question-plan';
@@ -268,15 +269,19 @@ function ChatRoom({
     [smallTalk.active, smallTalk.visible, chat.messages, expanded],
   );
   const hiddenCount = rows.reduce((n, r) => n + (r.type === 'hidden' ? r.ids.length : 0), 0);
-  const listRef = useRef<FlatList<MutedRow<ChatItem>>>(null);
+  const listRef = useRef<FlatList<TimelineRow<ChatItem>>>(null);
   const [aiNoteShown, setAiNoteShown] = useState(!!aiNote);
 
   function showImportant(messageId: string) {
-    let index = rows.findIndex((r) => (r.type === 'message' ? r.item.id === messageId : r.ids.includes(messageId)));
-    if (index >= 0 && rows[index].type === 'hidden') {
-      const key = (rows[index] as { key: string }).key;
-      setExpanded((cur) => new Set(cur).add(key));
-    }
+    const index = timeline.findIndex((r) =>
+      r.type === 'message'
+        ? r.item.id === messageId
+        : r.type === 'hidden'
+          ? r.ids.includes(messageId)
+          : r.type === 'sysrun' && r.items.some((i) => i.id === messageId),
+    );
+    const hit = timeline[index];
+    if (hit && (hit.type === 'hidden' || hit.type === 'sysrun')) setExpanded((cur) => new Set(cur).add(hit.key));
     if (index < 0) return;
     listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
     smallTalk.dismissBanner();
@@ -296,6 +301,21 @@ function ChatRoom({
   );
 
   useChatNoticeProducers({ roomId: room.id, endsSoon, endsLine, activity, userId, names });
+  // UX3-B04: day separators and collapsed system-line runs. Recomputed per day, not per clock tick.
+  const today = new Date(nowMs).setHours(0, 0, 0, 0);
+  const openEmergencyKey = activity.emergencies.map((e) => e.userId).join(',');
+  const timeline = useMemo(
+    () =>
+      buildTimeline(rows, {
+        nowMs: today,
+        openEmergencyUsers: new Set(openEmergencyKey ? openEmergencyKey.split(',') : []),
+        expanded,
+        formatDay: (ms) => new Date(ms).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
+        lineText: (item) => noticeText(item, names, room.host_id),
+        copy: en.chat.timeline,
+      }),
+    [rows, today, openEmergencyKey, expanded, names, room.host_id],
+  );
   // UX3-B01: "5 people · 2 here · ends 3:05 PM" under the title. "here" = members who tapped Arrived (any activity,
   // as in Room info, E2E c). Refetched on focus and when an arrivals row changes.
   const [arrivedIds, setArrivedIds] = useState<string[]>([]);
@@ -312,6 +332,7 @@ function ChatRoom({
     endsDay(expiresMs, nowMs),
     new Date(expiresMs).toLocaleDateString([], { month: 'short', day: 'numeric' }),
     new Date(expiresMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    en.chat.header,
   );
   // Spec 11 C: question cards (bell notices, read aloud while moving) and the "+" tile count.
   useQuestionCards(room, userId, names);
@@ -483,9 +504,9 @@ function ChatRoom({
               ref={listRef}
               style={styles.flex}
               inverted
-              data={rows}
+              data={timeline}
               extraData={reminderCard.shown || reminderCard.busy}
-              keyExtractor={(r) => (r.type === 'hidden' ? r.key : r.item.id)}
+              keyExtractor={(r) => (r.type === 'message' ? r.item.id : r.key)}
               onScrollToIndexFailed={({ averageItemLength, index }) =>
                 listRef.current?.scrollToOffset({ offset: averageItemLength * index, animated: true })
               }
@@ -513,6 +534,37 @@ function ChatRoom({
                   index === 0 && reminderCard.shown ? (
                     <ReminderCard busy={reminderCard.busy} onTurnOn={reminderCard.turnOn} onNotNow={reminderCard.notNow} />
                   ) : null;
+                if (row.type === 'day') {
+                  return (
+                    <>
+                      {card}
+                      <Text style={styles.dayLabel} accessibilityRole="header">
+                        {row.label}
+                      </Text>
+                    </>
+                  );
+                }
+                if (row.type === 'sysrun') {
+                  return (
+                    <>
+                      {card}
+                      <View style={styles.noticeRow}>
+                        <Text style={styles.notice} numberOfLines={2}>
+                          {row.summary} ·{' '}
+                        </Text>
+                        <Pressable
+                          onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
+                          hitSlop={14}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${row.summary}. ${en.chat.showLines}`}
+                          style={styles.showHit}
+                        >
+                          <Text style={styles.showLink}>{en.chat.showLines}</Text>
+                        </Pressable>
+                      </View>
+                    </>
+                  );
+                }
                 if (row.type === 'hidden') {
                   return (
                     <>
@@ -649,6 +701,16 @@ function ChatRoom({
 }
 
 // Centered lines rather than bubbles. #8: 'media' is the uploader's "shared 3 photos" line.
+/** UX3-B04: the text a notice line shows (also the newest line of a collapsed run). */
+function noticeText(item: ChatItem, names: Map<string, string>, hostId: string): string {
+  const who = item.sender_id ? memberName(names, item.sender_id, hostId, en.chat) : '';
+  if (item.kind === 'media') return en.chat.shared(who, item.body || en.chat.sharedFallback);
+  const line = chatLine(item.kind, item.body ?? '');
+  if (line.kind === 'emergency') return en.chat.emergencySet(line.name);
+  if (line.kind === 'activityStarted') return en.chat.activityStarted;
+  return resolvedCopy(line.text, en.chat.timeline);
+}
+
 const NOTICE_KINDS = new Set(['system', 'arrival', 'status', 'emergency', 'media']);
 
 function MessageRow({
@@ -752,7 +814,11 @@ function MessageRow({
       );
     }
     const text =
-      line.kind === 'emergency' ? en.chat.emergencySet(line.name) : line.kind === 'activityStarted' ? en.chat.activityStarted : line.text;
+      line.kind === 'emergency'
+        ? en.chat.emergencySet(line.name)
+        : line.kind === 'activityStarted'
+          ? en.chat.activityStarted
+          : resolvedCopy(line.text, en.chat.timeline);
     return (
       <View style={styles.noticeRow}>
         <Text style={styles.notice} numberOfLines={2}>
@@ -821,7 +887,7 @@ const styles = StyleSheet.create({
   clip: { overflow: 'hidden' },
   loading: { marginTop: 48 },
   // The nav bar title: smaller than a screen title so a long room name fits beside back, bell and gear.
-  headerTitle: { fontSize: 24, lineHeight: 30, maxWidth: 210 },
+  headerTitle: { fontSize: 22, lineHeight: 26, maxWidth: 210 },
   // UX3-B01: the title block is one ≥44 pt button; the second line is 12 pt ink2, tail-truncated.
   headerTitleBlock: { minHeight: 44, justifyContent: 'center', alignItems: 'center', maxWidth: 210 },
   headerSub: { fontSize: 12, lineHeight: 15, color: colors.ink2, maxWidth: 210 },
@@ -856,6 +922,11 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, color: colors.ink2 },
   failedMeta: { color: colors.errorText },
   noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
+  // UX3-B04: day separator (12 pt semibold ink2, 12 above, 6 below; inverted list, so margins are flipped) and the
+  // collapsed run's "Show" (13 pt semibold ink, 44 pt hit via hitSlop).
+  dayLabel: { alignSelf: 'center', fontSize: 12, fontWeight: '600', color: colors.ink2, marginTop: 12, marginBottom: 6 },
+  showHit: { justifyContent: 'center' },
+  showLink: { fontSize: 13, fontWeight: '600', color: colors.label },
   // UX2-56 follow-up: 44 pt tap target; less outer margin so the gap to its neighbours stays about the same.
   mediaRow: { minHeight: 44, justifyContent: 'center', marginVertical: 2 },
   notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },

@@ -392,6 +392,28 @@ export const en = {
     sharedFallback: 'shared a photo or file',
     // UX3-B01: the header title block opens Room info.
     headerHint: 'Opens room info',
+    // UX3-B04: expands a collapsed run of system lines.
+    showLines: 'Show',
+    // UX3-B01: the header's second line, joined with " · ".
+    header: {
+      people: (n: number) => (n === 1 ? '1 person' : `${n} people`),
+      here: (n: number) => `${n} here`,
+      endsToday: (time: string) => `ends ${time}`,
+      endsTomorrow: (time: string) => `ends tomorrow ${time}`,
+      endsOn: (date: string) => `ends ${date}`,
+    },
+    // UX3-B04: day separators and collapsed system-line runs.
+    timeline: {
+      today: 'Today',
+      yesterday: 'Yesterday',
+      and: (a: string, b: string) => `${a} and ${b}`,
+      others: (n: number) => `${n} others`,
+      joined: (names: string) => `${names} joined`,
+      emergencyFlips: (name: string, ok: boolean) => (ok ? `${name} set Emergency and is OK now` : `${name} set Emergency`),
+      times: (n: number) => `${n} times`,
+      more: (n: number) => `${n} more`,
+      okNow: (name: string) => `${name} is OK now`,
+    },
     openPhotosHint: 'Opens Photos',
     // UX P1-2: one short grey line each; a tappable line ends in " ›".
     emergencySet: (name: string) => `${name} set Emergency`,

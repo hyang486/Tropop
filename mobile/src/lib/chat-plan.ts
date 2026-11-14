@@ -12,14 +12,30 @@ export function endsDay(expiresMs: number, nowMs: number): 'today' | 'tomorrow' 
   return diff === 1 ? 'tomorrow' : 'later';
 }
 
+/** Copy for headerSubtitle (en.chat.header). */
+export type HeaderCopy = {
+  people: (n: number) => string;
+  here: (n: number) => string;
+  endsToday: (time: string) => string;
+  endsTomorrow: (time: string) => string;
+  endsOn: (date: string) => string;
+};
+
 /**
  * UX3-B01: the second line of the chat header, "5 people · 2 here · ends 3:05 PM". "here" is left out at 0.
  * The end is the time today, "tomorrow 3:05 PM", or the date ("Nov 16") further out.
  */
-export function headerSubtitle(people: number, here: number, day: 'today' | 'tomorrow' | 'later', date: string, time: string) {
-  const parts = [people === 1 ? '1 person' : `${people} people`];
-  if (here > 0) parts.push(`${here} here`);
-  parts.push(day === 'today' ? `ends ${time}` : day === 'tomorrow' ? `ends tomorrow ${time}` : `ends ${date}`);
+export function headerSubtitle(
+  people: number,
+  here: number,
+  day: 'today' | 'tomorrow' | 'later',
+  date: string,
+  time: string,
+  copy: HeaderCopy,
+) {
+  const parts = [copy.people(people)];
+  if (here > 0) parts.push(copy.here(here));
+  parts.push(day === 'today' ? copy.endsToday(time) : day === 'tomorrow' ? copy.endsTomorrow(time) : copy.endsOn(date));
   return parts.join(' · ');
 }
 
