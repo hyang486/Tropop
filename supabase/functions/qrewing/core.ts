@@ -475,7 +475,7 @@ const isOpen = (r: RoomInfo, now: Date) => r.deletedAt === null && new Date(r.ex
 const inGrace = (r: RoomInfo, now: Date) =>
   r.deletedAt !== null && r.graceUntil !== null && new Date(r.graceUntil).getTime() > now.getTime();
 
-/** Everything after authentication. Order: 400 → 503 → 403 not_member → 403 ai_off → action. */
+/** Everything after authentication. Order: 400 → 503 → 403 not_member → 402 plan_limit (ask, match: caller's plan) → 403 ai_off (see aiOffMode) → action. */
 export async function handle(deps: Deps, userId: string, rawBody: unknown): Promise<Reply> {
   const now = (deps.now ?? (() => new Date()))();
   const body = parseBody(rawBody);
@@ -488,23 +488,32 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
   const clock = deps.clock ?? Date.now;
   const gateStart = clock();
   // Latency: the three gate reads start together; their results are checked in the old sequential order (got()).
-  const [roomS, memberS, aiS] = await Promise.allSettled([
+  const [roomS, memberS, aiS, planS] = await Promise.allSettled([
     deps.store.room(body.roomId!),
     deps.store.isMember(body.roomId!, userId),
     deps.store.aiEnabled(body.roomId!),
+    deps.store.plan(userId),
   ]);
   const room = got(roomS);
   const reachable = room && (isOpen(room, now) || (body.action === 'recap' && inGrace(room, now)));
   if (!room || !reachable || !got(memberS)) {
     return { status: 403, body: { error: 'not_member' } };
   }
-  if (!got(aiS)) return { status: 403, body: { error: 'ai_off' } };
+  // Capacity B item 4: personal features (ask, match) gate on the CALLER's own plan, in any host's room, before the
+  // room AI switch. Room-wide features (triage, recap) stay on the room's AI switch only.
+  const personal = body.action === 'ask' || body.action === 'match';
+  const plan = personal || body.action === 'probe' ? got(planS) : null;
+  if (personal && plan !== 'plus') return { status: 402, body: { error: 'plan_limit' } };
+  const roomAi = got(aiS);
+  if (body.action === 'probe') return { status: 200, body: { ok: true, roomAi, plan } };
+  const offMode = roomAi ? null : aiOffMode(body.action);
+  if (!roomAi && offMode === 'denied') return { status: 403, body: { error: 'ai_off' } };
 
   const authMs = (deps.authMs ?? 0) + (clock() - gateStart);
   const ctx: Ctx = { ...deps, model: deps.model, now, log: deps.log ?? (() => {}), room, userId, clock, startedAt: deps.startedAt ?? gateStart, authMs };
   switch (body.action) {
     case 'probe':
-      return { status: 200, body: { ok: true } };
+      return { status: 200, body: { ok: true, roomAi, plan } };
     case 'triage':
       return triage(ctx, body.messageIds);
     case 'recap': {
@@ -516,8 +525,18 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
     case 'match':
       return match(ctx);
     case 'ask':
-      return ask(ctx, body);
+      return offMode === 'room_info_only' ? askRoomInfoOnly(ctx, body) : ask(ctx, body);
   }
+}
+
+/**
+ * The room-AI-off rule (HUMAN FINAL 2026-11-14), in one place in case it changes. Nobody in a room with AI off saw the
+ * AI disclosure, so nothing from other members (chat, entry answers, photos, status, positions) may reach the model.
+ * Ask (Plus caller) may still answer from room metadata the caller can already see plus their own question; every
+ * other action needs other members' data or is room-wide, so it stays 403 ai_off.
+ */
+export function aiOffMode(action: Body['action']): 'room_info_only' | 'denied' {
+  return action === 'ask' ? 'room_info_only' : 'denied';
 }
 
 type Ctx = Required<Omit<Deps, 'model' | 'now'>> & { model: Model; now: Date; room: RoomInfo; userId: string };
@@ -1301,19 +1320,7 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
   const compact = people.map((p) => compactPerson(nameOf(p.userId), p, keyOf));
   if (compact.some((c) => c.legacy)) questions.push(...LEGACY_QUESTIONS.map(({ key, kind, prompt }) => ({ key, kind, prompt })));
 
-  const facts: AskFacts = {
-    roomName: room.name,
-    roomType: room.type,
-    placeName: room.placeName,
-    startsAt: room.startsAt ? friendlyTime(room.startsAt, body.tz, now, lang) : null,
-    endsAt: friendlyTime(room.expiresAt, body.tz, now, lang),
-    now: friendlyTime(now.toISOString(), body.tz, now, lang, true),
-    tz: body.tz,
-    routeKm: routeKm(extras.route),
-    memberCount: members.length,
-    statusLabels: extras.statusLabels,
-    activityState: extras.activityState,
-  };
+  const facts = askFacts(room, extras, members.length, body.tz, now, lang);
   const modelStart = ctx.clock();
   const r = await callModel(ctx, 'ask', {
     model: ASK_MODEL,
@@ -1376,6 +1383,70 @@ async function ask(ctx: Ctx, body: { question: string; history: AskTurn[]; me: A
         ctx.log('question_card_failed', { action: 'ask' });
       }
     }
+  }
+  return { status: 200, body: { answer: cut(answer, ASK_ANSWER_MAX), usage: r.usage } };
+}
+
+/** Room metadata every member already sees: name, type, place, times, route length, size, status options, activity. */
+function askFacts(room: RoomInfo, extras: RoomExtras, memberCount: number, tz: string, now: Date, lang: ReturnType<typeof questionLang>): AskFacts {
+  return {
+    roomName: room.name,
+    roomType: room.type,
+    placeName: room.placeName,
+    startsAt: room.startsAt ? friendlyTime(room.startsAt, tz, now, lang) : null,
+    endsAt: friendlyTime(room.expiresAt, tz, now, lang),
+    now: friendlyTime(now.toISOString(), tz, now, lang, true),
+    tz,
+    routeKm: routeKm(extras.route),
+    memberCount,
+    statusLabels: extras.statusLabels,
+    activityState: extras.activityState,
+  };
+}
+
+/**
+ * Ask in a room with AI off (aiOffMode): the caller's question, their own history/`me` from their phone, and room
+ * metadata only. No room consent rows exist to check (nobody was shown the disclosure) and none are needed, because no
+ * other member's data is read: no chat, entry answers, room events, Emergencies, positions or photos. No question card
+ * either (that would route the question to another member). Same per-user and per-room caps as ask.
+ */
+async function askRoomInfoOnly(ctx: Ctx, body: { question: string; history: AskTurn[]; me: AskMe | null; tz: string }): Promise<Reply> {
+  const { store, room, now } = ctx;
+  const lang = questionLang(body.question);
+  const since = new Date(now.getTime() - ASK_WINDOW_MS).toISOString();
+  const [usedByUser, usedByRoom, extras, members] = await Promise.all([
+    store.usageCountSince(room.id, 'ask', since, ctx.userId),
+    store.usageCountSince(room.id, 'ask', since),
+    store.roomExtras(room.id),
+    store.memberIds(room.id),
+  ]);
+  if (usedByUser >= ASK_USER_CAP || usedByRoom >= ASK_ROOM_CAP) return { status: 429, body: { error: 'ask_limit' } };
+  const r = await callModel(ctx, 'ask', {
+    model: ASK_MODEL,
+    effort: 'low',
+    maxTokens: 300,
+    system: ASK_SYSTEM,
+    user: askUser({
+      facts: askFacts(room, extras, members.length, body.tz, now, lang),
+      asker: 'You',
+      askerIsHost: room.hostId === ctx.userId,
+      me: body.me,
+      history: body.history,
+      questions: [],
+      people: [],
+      lines: [],
+      events: [],
+      emergencies: [],
+      group: null,
+      question: body.question,
+    }),
+    schema: ASK_SCHEMA,
+  }, ctx.userId);
+  if (!r.ok) return AI_FAILED;
+  const answer = (r.data as { answer?: unknown } | null)?.answer;
+  if (typeof answer !== 'string' || !answer.trim()) {
+    ctx.log('model_bad_output', { action: 'ask' });
+    return AI_FAILED;
   }
   return { status: 200, body: { answer: cut(answer, ASK_ANSWER_MAX), usage: r.usage } };
 }

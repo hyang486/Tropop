@@ -364,12 +364,16 @@ test('order: 400 before 503 before 403; no key = 503 with no DB write', async ()
   assert.equal(w.writes, 0);
 });
 
-test('probe: 200 without room; with room checks membership and ai switch; no model call', async () => {
+test('probe: 200 without room; with room checks membership, then reports {ok, roomAi, plan}; no model call', async () => {
   const { m, calls } = model(() => ({}));
   assert.deepEqual(await run(world(), m, OUT, { action: 'probe' }), { status: 200, body: { ok: true } });
-  assert.deepEqual(await run(world(), m, BOB, { action: 'probe', roomId: ROOM }), { status: 200, body: { ok: true } });
+  assert.deepEqual(await run(world(), m, BOB, { action: 'probe', roomId: ROOM }), { status: 200, body: { ok: true, roomAi: true, plan: 'plus' } });
   assert.deepEqual(await run(world(), m, OUT, { action: 'probe', roomId: ROOM }), { status: 403, body: { error: 'not_member' } });
-  assert.deepEqual(await run(world({ aiEnabled: false }), m, BOB, { action: 'probe', roomId: ROOM }), { status: 403, body: { error: 'ai_off' } });
+  // AI off is no longer a probe error: the client needs roomAi and plan to show the AI-off Ask.
+  assert.deepEqual(await run(world({ aiEnabled: false }), m, BOB, { action: 'probe', roomId: ROOM }), { status: 200, body: { ok: true, roomAi: false, plan: 'plus' } });
+  const free = world({ plans: {} });
+  assert.deepEqual(await run(free, m, BOB, { action: 'probe', roomId: ROOM }), { status: 200, body: { ok: true, roomAi: true, plan: 'free' } });
+  assert.deepEqual(await run({ ...free, aiEnabled: false }, m, BOB, { action: 'probe', roomId: ROOM }), { status: 200, body: { ok: true, roomAi: false, plan: 'free' } });
   assert.equal(calls.length, 0);
 });
 
@@ -1151,7 +1155,6 @@ test('ask parseMe: only elapsedSec, distanceM, paceSecPerKm in range and activit
 test('ask gates: member of an open room with ai on, and the asker consented; no model call otherwise', async () => {
   const { m, calls } = model(answer('ok'));
   assert.deepEqual(await run(world(), m, OUT, ASK('hi')), { status: 403, body: { error: 'not_member' } });
-  assert.deepEqual(await run(world({ aiEnabled: false }), m, BOB, ASK('hi')), { status: 403, body: { error: 'ai_off' } });
   const noConsent = world();
   noConsent.consents.set(BOB, { aiOk: false, mute: false });
   assert.deepEqual(await run(noConsent, m, BOB, ASK('hi')), { status: 403, body: { error: 'not_consented' } });
@@ -1301,7 +1304,8 @@ test('ask latency: a failed read maps as it did sequentially (the earlier gate w
   // gates in handle: unreachable room / non-member / ai off still win over a later read failing
   assert.deepEqual(await go(world({ room: null }), ['isMember', 'aiEnabled']), { status: 403, body: { error: 'not_member' } });
   assert.deepEqual(await go(world(), ['aiEnabled'], OUT), { status: 403, body: { error: 'not_member' } });
-  assert.deepEqual(await go(world({ aiEnabled: false }), ['consents']), { status: 403, body: { error: 'ai_off' } });
+  // AI off: the room-info-only Ask never reads consents, so a failing consents read does not matter.
+  assert.equal((await go(world({ aiEnabled: false }), ['consents'])).status, 200);
   await assert.rejects(go(world(), ['isMember']), /db isMember/);
   await assert.rejects(go(world(), ['aiEnabled']), /db aiEnabled/);
   // gates in ask: not consented, then the caps, then the context reads
@@ -1739,4 +1743,65 @@ test('recap diary is Plus-only (0032): Free diary:true → 402 before any count 
   assert.equal(plain.status, 200);
   assert.equal(w.recap?.state, 'done');
   assert.equal(calls.length, 1);
+});
+
+// ---- Capacity B item 4: caller-plan gate and the room-AI-off Ask ----
+
+/** store(w) that records which reads/writes ran. */
+function tracked(w: World) {
+  const s = store(w);
+  const used = new Set<string>();
+  const out: Record<string, unknown> = {};
+  for (const [k, f] of Object.entries(s)) {
+    out[k] = (...a: unknown[]) => { used.add(k); return (f as (...x: unknown[]) => unknown)(...a); };
+  }
+  return { s: out as unknown as QrewingStore, used };
+}
+
+test('AI-off room, Plus caller: Ask answers 200 from room metadata + own question only (no other members\' data read or sent)', async () => {
+  const w = { ...PROMPT_WORLD(), aiEnabled: false };
+  w.consents = new Map(); // nobody saw the disclosure in an AI-off room
+  w.emergencies = [{ id: 'e1', userId: CAT, createdAt: iso(-MIN), resolvedAt: null } as never];
+  const { m, calls } = model(answer('At Lake Merritt.'));
+  const { s, used } = tracked(w);
+  const r = await handle({ store: s, model: m, now: () => NOW }, BOB, PROMPT_BODY);
+  assert.deepEqual(r.status, 200);
+  assert.equal((r.body as { answer: string }).answer, 'At Lake Merritt.');
+  assert.equal(calls.length, 1);
+  const u = calls[0].user;
+  for (const leak of ['boathouse', 'bring water', 'see you', 'Host started', 'PhD student', 'CS junior', 'Recruiter', 'Cat']) {
+    assert.ok(!u.includes(leak), `leaked ${leak}`);
+  }
+  for (const fact of ['Bay run', 'Lake Merritt', 'Where do we meet?']) assert.ok(u.includes(fact), `missing ${fact}`);
+  const allowed = new Set(['room', 'isMember', 'aiEnabled', 'plan', 'usageCountSince', 'roomExtras', 'memberIds', 'logUsage']);
+  for (const k of used) assert.ok(allowed.has(k), `AI-off Ask read ${k}`);
+});
+
+test('AI-off room: match, triage and recap stay 403 ai_off for Plus callers (host included); no model call', async () => {
+  const { m, calls } = model(() => ({}));
+  for (const user of [HOST, BOB]) {
+    assert.deepEqual(await run(world({ aiEnabled: false }), m, user, { action: 'match', roomId: ROOM }), { status: 403, body: { error: 'ai_off' } });
+    assert.deepEqual(await run(world({ aiEnabled: false }), m, user, { action: 'recap', roomId: ROOM }), { status: 403, body: { error: 'ai_off' } });
+    assert.deepEqual(await run(world({ aiEnabled: false }), m, user, { action: 'triage', roomId: ROOM, messageIds: [mid(1)] }), { status: 403, body: { error: 'ai_off' } });
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('Free caller: ask and match 402 plan_limit in AI-on and AI-off rooms, also in a Plus host\'s room; order 403 not_member → 402 plan_limit → 403 ai_off', async () => {
+  const { m, calls } = model(answer('x'));
+  for (const aiEnabled of [true, false]) {
+    const w = world({ aiEnabled, plans: { [HOST]: 'plus' } }); // BOB, CAT, OUT free
+    for (const body of [ASK('hi'), { action: 'match', roomId: ROOM }]) {
+      assert.deepEqual(await run(w, m, BOB, body), { status: 402, body: { error: 'plan_limit' } });
+      assert.deepEqual(await run(w, m, OUT, body), { status: 403, body: { error: 'not_member' } }, 'not_member wins over plan_limit');
+    }
+    assert.equal(w.writes, 0);
+  }
+  assert.equal(calls.length, 0);
+  // room-wide actions do not look at the caller's plan
+  const other = model(() => ({}));
+  for (const aiEnabled of [true, false]) {
+    const r = await run(world({ aiEnabled, plans: {} }), other.m, BOB, { action: 'recap', roomId: ROOM });
+    assert.notEqual(r.status, 402);
+  }
 });

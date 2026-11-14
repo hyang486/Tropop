@@ -4,7 +4,7 @@
 // Secret ANTHROPIC_API_KEY is set by the human; it is never logged or returned. Without it every call except an
 // unscoped probe after auth returns 503 ai_not_configured before any DB write, so deploying makes no AI calls.
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
-// Order: 405 (not POST) -> 401 (no valid user JWT) -> core.handle (400 -> 503 -> 403 not_member -> 403 ai_off -> action).
+// Order: 405 (not POST) -> 401 (no valid user JWT) -> core.handle (400 -> 503 -> 403 not_member -> 402 plan_limit -> 403 ai_off -> action).
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
