@@ -62,7 +62,7 @@ export function useQrewingAsk(roomId: string) {
     mode,
     agreed: mode === 'personal' || !!q.me?.aiOk,
     reload: q.reload,
-    reads: q.reads,
+    readDone: q.readDone,
   };
 }
 
@@ -73,14 +73,14 @@ export function useQrewingAsk(roomId: string) {
  */
 export function useQrewingAskButton(roomId: string) {
   const router = useRouter();
-  const { available, mode, agreed, reload, reads } = useQrewingAsk(roomId);
+  const { available, mode, agreed, reload, readDone } = useQrewingAsk(roomId);
   const [consent, setConsent] = useState(false);
   // Set when the consent sheet saved an answer: the ask screen opens once the reload shows I agreed.
   const openAfterConsent = useRef(false);
-  // UX2-112: the read count when Agree saved. The sheet stays open (Agree busy) until a later read ends; if that
-  // read failed or still shows no consent, the sheet says so and Agree is the retry.
+  // UX2-112: the seq of the read started after Agree saved. The sheet stays open (Agree busy) until that read (or a
+  // newer one) ends; if it failed or still shows no consent, the sheet says so and Agree is the retry.
   const [confirmFrom, setConfirmFrom] = useState<number | null>(null);
-  const done = confirmFrom !== null && reads > confirmFrom;
+  const done = confirmFrom !== null && readDone >= confirmFrom;
   const confirmFailed = done && !agreed;
 
   useEffect(() => {
@@ -110,8 +110,8 @@ export function useQrewingAskButton(roomId: string) {
           return;
         }
         openAfterConsent.current = true;
-        setConfirmFrom(reads);
-        reload();
+        // onDone runs after the save resolved, so this read starts after it.
+        setConfirmFrom(reload());
       }}
       onClose={() => {
         setConsent(false);

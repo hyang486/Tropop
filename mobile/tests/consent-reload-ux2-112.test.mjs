@@ -14,8 +14,9 @@ test('UX2-112: copy', () => {
 });
 
 test('UX2-112: after Agree the sheet stays open (busy) until a fresh room read shows I agreed', () => {
-  assert.match(api, /reads: number/);
-  assert.match(fab, /const done = confirmFrom !== null && reads > confirmFrom;/);
+  assert.match(api, /reload\(\): number; readDone: number/);
+  assert.match(fab, /const done = confirmFrom !== null && readDone >= confirmFrom;/);
+  assert.match(fab, /setConfirmFrom\(reload\(\)\);/);
   assert.match(fab, /const confirmFailed = done && !agreed;/);
   assert.match(fab, /visible=\{consent && !\(done && agreed\)\}/);
   assert.match(fab, /confirming=\{confirmFrom !== null && !done\}/);
@@ -25,4 +26,15 @@ test('UX2-112: after Agree the sheet stays open (busy) until a fresh room read s
 test('UX2-112: a failed reload keeps the sheet with errorText; Agree is the retry and busy while it runs', () => {
   assert.match(sheet, /confirmFailed \? s\.turnOnFailed : null/);
   assert.match(sheet, /busy=\{busy === 'agree' \|\| confirming\}/);
+});
+
+test('UX2-112: stale-read order. A read started before the save never counts; only the post-save seq does', () => {
+  // useQrewingRoom: reload() bumps a ref seq and returns it; each read reports its own seq; a newer reload drops
+  // the older read (alive=false in the effect cleanup).
+  assert.match(api, /seq\.current \+= 1;\s+setTick\(seq\.current\);\s+return seq\.current;/);
+  assert.match(api, /if \(alive\) setReadDone\(tick\);/);
+  // Model the order: pre-save read seq 1 finishes after the save; the post-save reload is seq 2.
+  const done = (confirmFrom, readDone) => confirmFrom !== null && readDone >= confirmFrom;
+  assert.equal(done(2, 1), false);
+  assert.equal(done(2, 2), true);
 });

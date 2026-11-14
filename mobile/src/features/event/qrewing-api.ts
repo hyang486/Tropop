@@ -1,6 +1,6 @@
 // Shared client API for Qrewing AI (planning/QREWING_AI_SPEC_EN.md section 3.1). Shapes mirror section 2.
 import { FunctionsHttpError } from '@supabase/supabase-js';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
@@ -229,12 +229,19 @@ type RoomState = QrewingRoomState;
  * (no AI UI shows, settings screens say they could not load, chat retries); a missing row or missing table is off.
  * `loaded` is false until the first read answers; an empty `roomId` never reads.
  */
-export function useQrewingRoom(roomId: string): RoomState & { reload(): void; reads: number } {
+export function useQrewingRoom(roomId: string): RoomState & { reload(): number; readDone: number } {
   const [kept, setKept] = useState<KeyedRoomState | null>(null);
-  // UX2-112: counts finished reads (ok or failed), so a caller can wait for the read after its own change.
-  const [reads, setReads] = useState(0);
+  // UX2-112: every read has a seq; `reload` returns the seq it starts, and `readDone` is the seq of the last read
+  // that finished (ok or failed). A newer reload drops the older read's result (`alive`), so a read that started
+  // before a caller's change can never count as the read after it.
+  const seq = useRef(0);
   const [tick, setTick] = useState(0);
-  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const [readDone, setReadDone] = useState(-1);
+  const reload = useCallback(() => {
+    seq.current += 1;
+    setTick(seq.current);
+    return seq.current;
+  }, []);
 
   useEffect(() => {
     const onChange = (changed: string) => {
@@ -258,15 +265,15 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void; re
           : Promise.resolve({ data: null, error: null }),
       ]);
       if (alive) setKept({ roomId, state: roomStateFrom(room, member) });
-      if (alive) setReads((n) => n + 1);
+      if (alive) setReadDone(tick);
     })().catch(() => {
       if (alive) setKept({ roomId, state: ROOM_READ_FAILED });
-      if (alive) setReads((n) => n + 1);
+      if (alive) setReadDone(tick);
     });
     return () => {
       alive = false;
     };
   }, [roomId, tick]);
 
-  return { ...roomStateFor(kept, roomId), reload, reads };
+  return { ...roomStateFor(kept, roomId), reload, readDone };
 }
