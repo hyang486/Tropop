@@ -387,7 +387,7 @@ export function localTime(isoStr: string, tz: string): string {
 export type AskLang = 'en' | 'ko';
 /** Korean if the question has any Hangul, else English. */
 export function questionLang(q: string): AskLang {
-  return /[ᄀ-ᇿ㄰-㆏가-힯]/.test(q) ? 'ko' : 'en';
+  return /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/.test(q) ? 'ko' : 'en';
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -1002,7 +1002,7 @@ export function oneEmoji(raw: unknown): string | null {
 
 /** Control and bidi-override characters removed (titles and diary lines are shown verbatim on the phone). */
 export function cleanText(s: string): string {
-  return s.replace(/[\p{Cc}​‎‏‪-‮⁦-⁩﻿]/gu, ' ');
+  return s.replace(/[\p{Cc}\u200b\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/gu, ' ');
 }
 
 /** 'YYYY-MM-DD' of a real calendar date → days since the epoch, else null. */
