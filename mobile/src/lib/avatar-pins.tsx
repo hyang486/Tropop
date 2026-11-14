@@ -14,6 +14,9 @@ const STALE = '#8E8E93';
 const EMERGENCY_RED = '#FF3B30';
 /** The icon frame expo-maps draws, in points. */
 const FRAME = 50;
+/** A bake that gets no image is tried again a few times before the pin keeps its text fallback. */
+const BAKE_ATTEMPTS = 4;
+const BAKE_RETRY_MS = 250;
 
 function PinFace({ face }: { face: AvatarFace }) {
   const c = FRAME / 2;
@@ -63,21 +66,38 @@ function Bake({ face, onDone }: { face: AvatarFace; onDone: (key: string, ref: I
   const key = avatarFaceKey(face);
   useEffect(() => {
     let live = true;
-    // After the first native draw, so the text is laid out.
-    const frame = requestAnimationFrame(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const attempt = (n: number) => {
+      const retry = (why: string) => {
+        if (__DEV__) console.log(`[pin-bake] ${key} ${why} (attempt ${n})`);
+        if (!live) return;
+        if (n < BAKE_ATTEMPTS) timer = setTimeout(() => attempt(n + 1), BAKE_RETRY_MS);
+        else onDone(key, null);
+      };
+      // Always pass the size, equal to the view's own bounds (qa 36259b9: the Emergency face stayed a text
+      // square). Without a size RNSVG renders into `boundingBox`, the rect of the view's last UIKit draw:
+      // CGRectZero before the first draw (no image, empty callback). A larger size than the view only adds
+      // empty canvas, since drawRect always draws at the view's bounds (qa 3c2af2f: pins at a third of their
+      // size). The renderer uses the screen scale, so 50 pt is a sharp 150 px on a 3x screen.
       svg.current?.toDataURL(
-        (base64: string) => {
+        (base64?: string) => {
+          if (!base64) return retry('empty image');
           Image.loadAsync(`data:image/png;base64,${base64}`)
-            .then((ref) => live && onDone(key, ref))
-            .catch(() => live && onDone(key, null));
+            .then((ref) => {
+              if (__DEV__) console.log(`[pin-bake] ${key} ok (attempt ${n})`);
+              if (live) onDone(key, ref);
+            })
+            .catch(() => retry('load failed'));
         },
-        // No size: RNSVG draws the view at its own bounds (drawRect ignores the given rect), so a larger size
-        // only adds empty canvas (qa: pins at a third of their size). The renderer uses the screen scale.
+        { width: FRAME, height: FRAME },
       );
-    });
+    };
+    // After the first native draw, so the text is laid out.
+    const frame = requestAnimationFrame(() => attempt(1));
     return () => {
       live = false;
       cancelAnimationFrame(frame);
+      if (timer) clearTimeout(timer);
     };
   }, [key, onDone]);
   return (
