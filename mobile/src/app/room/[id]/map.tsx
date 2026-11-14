@@ -75,6 +75,8 @@ const LABEL_TEXT = '#000000';
 const LABEL_STALE_TEXT = '#6C6C70';
 /** Gap under the bottom map buttons. */
 const OVERLAY_BOTTOM = 8;
+// UX2-35: the 34 pt overlay buttons reach 44 pt tall without growing.
+const OVERLAY_HIT_SLOP = { top: 5, bottom: 5 };
 // #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
 const EMERGENCY_RED = '#FF3B30';
 /** UX P0-3: pins never show a photo (the mockup shows initials). */
@@ -549,12 +551,13 @@ function RoomMap({
               accessibilityLabel={en.map.showMine}
               accessibilityState={{ busy: locate === 'busy' }}
               onPress={showMyLocation}
+              hitSlop={OVERLAY_HIT_SLOP}
               style={[styles.overlayButton, styles.showMine]}
             >
               <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
             </Pressable>
             {start.rank > 1 ? (
-              <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
+              <Pressable accessibilityRole="button" onPress={recenter} hitSlop={OVERLAY_HIT_SLOP} style={[styles.overlayButton, styles.recenter]}>
                 <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{en.map.recenter}</Text>
               </Pressable>
             ) : null}
@@ -566,6 +569,7 @@ function RoomMap({
                 accessibilityRole="button"
                 accessibilityLabel={savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}
                 onPress={openEditor}
+                hitSlop={OVERLAY_HIT_SLOP}
                 style={[styles.chip, styles.pen]}
               >
                 <SymbolView name="pencil.tip" size={18} tintColor={colors.tint} />
