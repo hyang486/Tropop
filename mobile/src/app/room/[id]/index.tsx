@@ -29,6 +29,8 @@ import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
 import { useSmallTalk } from '@/features/event/use-small-talk';
 import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { ChatHeaderButtons, NoticesSheet, SettingsSheet, useChatNoticeProducers } from '@/features/chat/chat-header';
+import { ChatMedia } from '@/features/chat/chat-media';
+import { mediaForLines } from '@/features/chat/chat-media-plan';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
 import { cardsToAnswer } from '@/features/questions/question-plan';
@@ -48,7 +50,7 @@ import { errorMessage } from '@/lib/errors';
 import { disclosureHeld } from '@/lib/emergency-plan';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
 import { ReminderCard, useReminderCard } from '@/features/event/reminder-card';
-import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
+import { clearRoomCache, type Media, useRoomMedia, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { showEndsSoon } from '@/lib/expiry-plan';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
@@ -209,6 +211,10 @@ function ChatRoom({
   // Spec 10.5: the room I opened last is the one Siri asks about.
   useEffect(() => noteSiriRoomOpened(room.id), [room.id]);
   const uploadSummary = useRoomUploadSummary(room.id);
+  // UX3-B08: shared photos inline. The room's ready media (thumbnails only), matched to each "shared …" line.
+  const token = useAuth().session?.access_token;
+  const roomMedia = useRoomMedia(room.id, 'all', userId);
+  const lineMedia = useMemo(() => mediaForLines(chat.messages, roomMedia.items), [chat.messages, roomMedia.items]);
   // Spec 11: one activity read for the Emergency cards, the "+" panel (Arrived, Set status) and the bell.
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const presence = useEmergencyPresence(room.id, activity);
@@ -499,6 +505,11 @@ function ChatRoom({
                       isHost={!!item.sender_id && item.sender_id === room.host_id}
                       onFailedPress={onFailedPress}
                       onMediaPress={openPhotos}
+                      media={lineMedia.get(item.id)}
+                      token={token}
+                      onOpenMedia={(mediaId) =>
+                        router.push({ pathname: '/room/[id]/media/[mediaId]', params: { id: room.id, mediaId } })
+                      }
                       onMapPress={room.location_allowed || room.host_id === userId ? () => go('/room/[id]/map') : undefined}
                     />
                   </>
@@ -618,6 +629,9 @@ function MessageRow({
   onFailedPress,
   onMediaPress,
   onMapPress,
+  media,
+  token,
+  onOpenMedia,
 }: {
   item: ChatItem;
   mine: boolean;
@@ -626,6 +640,10 @@ function MessageRow({
   isHost: boolean;
   onFailedPress: (item: ChatItem) => void;
   onMediaPress: () => void;
+  /** UX3-B08: the items this "shared …" line stands for; none → the plain line. */
+  media?: Media[];
+  token?: string;
+  onOpenMedia?: (mediaId: string) => void;
   /** Set when this person can open the Map, so "Activity started" links there. */
   onMapPress?: () => void;
 }) {
@@ -633,6 +651,43 @@ function MessageRow({
     () => new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     [item.created_at],
   );
+
+  if (item.kind === 'media' && media && media.length > 0 && onOpenMedia) {
+    // UX3-B08: drawn as a message from the uploader (avatar + name for others; own items right-aligned).
+    const block = (
+      <ChatMedia
+        items={media}
+        token={token}
+        label={en.chat.shared(mine ? en.chat.you : name, item.body || en.chat.sharedFallback)}
+        onOpenItem={onOpenMedia}
+        onOpenPhotos={onMediaPress}
+      />
+    );
+    if (mine) {
+      return (
+        <View style={[styles.row, styles.rowMine]}>
+          {block}
+          <Text style={styles.meta}>{time}</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.theirRow}>
+        <View style={[styles.avatarRing, isHost && styles.avatarRingHost]}>
+          <Avatar path={avatarPath} name={name} size={size.avatar} />
+        </View>
+        <View style={[styles.row, styles.rowTheirs]}>
+          <View style={styles.nameLine}>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+            <Text style={styles.meta}>{time}</Text>
+          </View>
+          {block}
+        </View>
+      </View>
+    );
+  }
 
   if (item.kind === 'media') {
     const text = en.chat.shared(mine ? en.chat.you : name, item.body || en.chat.sharedFallback);
