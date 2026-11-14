@@ -2,6 +2,16 @@
 
 Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-14: UX2-131 / UX2-132, branch ux2-131-132 (local, from e1ebdc7, not pushed)
+
+- UX2-131: typing a people count above the plan max still clamps it, and now a line appears under the stepper. Free host: "Free rooms hold up to 6." + "See Plus" (same `/plan-preview?from=capacity` route as the + tap, 44 pt). Plus host: "Rooms hold up to 30." with no link. VoiceOver announces the line (useAnnounce). The next stepper change clears it. Done never opens Plus. The rule is `capacityClampNote()` in `lib/capacity-clamp-plan.ts`.
+- UX2-132 finding, no code change: Confirm email is OFF for wuhkyjksiiqzoxvonfuy. Read-only checks on 2026-11-14:
+  - `GET /auth/v1/settings` with the publishable key returned `mailer_autoconfirm: true`, `external.anonymous_users: true` and `external.email: true`.
+  - An aggregate count on `auth.users` (counts only, no rows) found 0 users with a pending `email_change`, anonymous or not.
+  - So `updateUser({ email })` in `upgradeGuestToHost` applies the email at once and does not leave the guest anonymous. If Confirm email is turned on later, UX2-132's "Check your email to finish" state is needed.
+  - No account was created.
+- Verified: `npm test` 924/924, tsc 0, lint 0. Not verified: simulator.
+
 ## 2026-11-14: UX2-127 / UX2-128 reminder permission, branch ux2-127-128-reminders (local, from 188b89f, not pushed)
 
 - UX2-127: `syncExpiryReminders(rooms, complete, options?: { ask?: boolean })`. The default still prompts. The Rooms list (`app/index.tsx`) passes `{ ask: false }`, so it schedules only when notifications are already allowed and never shows a cold prompt. The chat-screen call is unchanged. The rule is `permissionStep()` in `lib/reminders-plan.ts`.

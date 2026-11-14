@@ -11,6 +11,7 @@ import { PlacePinMap } from '@/components/place-time-cards';
 import { usePlanState } from '@/features/calendar/calendar-store';
 import { defaultDraft, type QuestionPayload, validateQuestions } from '@/features/event/entry-questions';
 import { useAnnounce } from '@/features/event/announce';
+import { capacityClampNote } from '@/lib/capacity-clamp-plan';
 import { createBarLayout } from '@/features/event/create-bar';
 import {
   defaultEndHours,
@@ -116,14 +117,26 @@ export default function CreateRoom() {
   }
   function startRepeat(delta: 1 | -1) {
     stopRepeat();
+    setClampNote(null);
     repeat.current = setInterval(() => setCapacity((c) => stepCapacity(c, delta, plus)), 120);
   }
   useEffect(() => stopRepeat, []);
+  // UX2-131: a typed count above the plan max is clamped and says so under the stepper (Done never opens Plus).
+  // VoiceOver reads it each time it is set; the next stepper change clears it.
+  const [clampNote, setClampNote] = useState<ReturnType<typeof capacityClampNote>>(null);
+  const [clampSeq, setClampSeq] = useState(0);
+  useAnnounce(clampNote?.text, clampSeq);
+  function stepTo(delta: 1 | -1) {
+    setClampNote(null);
+    setCapacity(stepCapacity(capacity, delta, plus));
+  }
   const [capacityDraft, setCapacityDraft] = useState<string | null>(null);
   function commitCapacity() {
     if (capacityDraft === null) return;
     const n = typedCapacity(capacityDraft, plus);
     if (n !== null) setCapacity(n);
+    setClampNote(capacityClampNote(capacityDraft, plus, capacityMax(plus), en.createRoom));
+    setClampSeq((s) => s + 1);
     setCapacityDraft(null);
   }
   const [visibility, setVisibility] = useState<Visibility>('private');
@@ -382,7 +395,7 @@ export default function CreateRoom() {
               disabled={atMin}
               accessibilityState={{ disabled: atMin }}
               style={[styles.step, atMin && styles.stepOff]}
-              onPress={() => setCapacity(stepCapacity(capacity, -1, plus))}
+              onPress={() => stepTo(-1)}
               onLongPress={() => startRepeat(-1)}
               delayLongPress={300}
               onPressOut={stopRepeat}
@@ -414,7 +427,7 @@ export default function CreateRoom() {
               onPress={() =>
                 plusTap === 'upgrade'
                   ? router.push({ pathname: '/plan-preview', params: { from: 'capacity' } })
-                  : setCapacity(stepCapacity(capacity, 1, plus))
+                  : stepTo(1)
               }
               onLongPress={() => (plusTap === 'step' ? startRepeat(1) : undefined)}
               delayLongPress={300}
@@ -424,6 +437,20 @@ export default function CreateRoom() {
               <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
             </Pressable>
           </View>
+          {clampNote ? (
+            <View style={styles.clampRow}>
+              <Text style={styles.clampNote}>{clampNote.text} </Text>
+              {clampNote.link ? (
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => router.push({ pathname: '/plan-preview', params: { from: 'capacity' } })}
+                  style={({ pressed }) => [styles.clampLink, pressed && { opacity: 0.5 }]}
+                >
+                  <Text style={[styles.clampNote, styles.clampLinkText]}>{en.createRoom.seePlus}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
           {/* UX2-54: Plus at 30 shows only the hint ("Plus rooms hold up to 30."), no right-aligned at-max line. */}
           {atMax && plus === false ? (
             <Text style={styles.atMax}>{en.createRoom.capacityAtMax(capacityMax(false), false)}</Text>
@@ -696,6 +723,10 @@ const styles = StyleSheet.create({
   cardNote: { fontSize: 12, color: colors.ink2 },
   pinArea: { fontSize: 14, color: colors.label },
   stepOff: { opacity: 0.3 },
+  clampRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  clampNote: { fontSize: 13, lineHeight: 18, color: colors.ink2 },
+  clampLink: { minHeight: 44, justifyContent: 'center' },
+  clampLinkText: { fontWeight: '600', textDecorationLine: 'underline' },
   atMax: { ...textRole.secondary, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
   step: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
   capacity: {
