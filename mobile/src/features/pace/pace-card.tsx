@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, colors, Hint, radius } from '@/components/ui';
+import { InkSwitch } from '@/features/event/ink-switch';
 import type { Room } from '@/lib/rooms';
 
 import { runKey, usePaceRun } from './engine';
@@ -42,12 +43,7 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
     <View style={styles.group}>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <Switch
-          value={settings.on}
-          onValueChange={(on) => setOn(room.id, on)}
-          accessibilityLabel={t.title}
-          trackColor={{ true: colors.tint }}
-        />
+        <InkSwitch value={settings.on} onValueChange={(on) => setOn(room.id, on)} accessibilityLabel={t.title} />
       </View>
       <Hint>{t.switchHint}</Hint>
       {settings.on ? (

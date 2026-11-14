@@ -2,7 +2,7 @@ import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
@@ -10,6 +10,7 @@ import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { Button, colors, Hint, radius } from '@/components/ui';
+import { InkSwitch } from '@/features/event/ink-switch';
 import { QrewingFab } from '@/features/event/qrewing-fab';
 import { PaceCard } from '@/features/pace/pace-card';
 import { PaceLayer } from '@/features/pace/pace-layer';
@@ -542,7 +543,7 @@ function RoomMap({
         <View style={styles.group}>
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>{en.map.allowLocation}</Text>
-            <Switch
+            <InkSwitch
               value={allowed}
               disabled={busy === 'allowed'}
               onValueChange={toggleAllowed}
@@ -579,7 +580,7 @@ function RoomMap({
           <>
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>{en.map.shareMine}</Text>
-              <Switch
+              <InkSwitch
                 value={my.share}
                 disabled={busy === 'share'}
                 onValueChange={toggleShare}

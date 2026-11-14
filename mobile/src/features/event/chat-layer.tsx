@@ -2,11 +2,13 @@
 // talk bar, the important-message banner and the collapsed "N messages hidden" row.
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, colors, Hint } from '@/components/ui';
+import { SheetRow } from '@/features/chat/chat-sheet';
 
 import { getEntryProfile } from './entry-api';
+import { InkSwitch } from './ink-switch';
 import { chatGates } from './event-plan';
 import { probeQrewing, setQrewingMember, useQrewingRoom } from './qrewing-api';
 import { allowedQrewingCalls } from './qrewing-plan';
@@ -113,12 +115,13 @@ export function MuteBar({
 
   return (
     <View style={styles.muteWrap}>
-      <View style={styles.muteRow}>
-        <Text style={styles.muteLabel}>
-          {on && !unavailable ? `${m.on}${hiddenCount > 0 ? ` · ${m.hidden(hiddenCount)}` : ''}` : m.label}
-        </Text>
-        <Switch value={on} disabled={busy} onValueChange={toggle} accessibilityLabel={m.label} />
-      </View>
+      {/* Spec 11 polish: a boxed sheet row like Invite / Room info, with the ink switch. */}
+      <SheetRow
+        symbol="speaker.slash"
+        label={m.label}
+        detail={on && !unavailable ? `${m.on}${hiddenCount > 0 ? ` · ${m.hidden(hiddenCount)}` : ''}` : undefined}
+        right={<InkSwitch value={on} disabled={busy} onValueChange={toggle} accessibilityLabel={m.label} />}
+      />
       {on && unavailable ? <Text style={styles.note}>{m.unavailable}</Text> : null}
       {failed ? (
         <Text style={styles.note} accessibilityRole="alert">
@@ -171,10 +174,8 @@ export function EntryGate({ roomId }: { roomId: string }) {
 }
 
 const styles = StyleSheet.create({
-  muteWrap: { paddingHorizontal: 24, paddingBottom: 4 },
-  muteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  muteLabel: { flexShrink: 1, fontSize: 14, color: colors.secondaryLabel },
-  note: { fontSize: 13, color: colors.warning },
+  muteWrap: { gap: 6 },
+  note: { fontSize: 13, color: colors.warning, paddingHorizontal: 14 },
   banner: {
     marginHorizontal: 24,
     marginBottom: 6,
