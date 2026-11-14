@@ -17,6 +17,7 @@ import type { Room } from '@/lib/rooms';
 
 import { usePaceWaiting } from './connection';
 import { runKey, usePaceRun } from './engine';
+import { canSpeak } from './voice';
 import { FIX_WAIT_MS, locationHint } from './location-hint';
 import {
   formatDuration,
@@ -118,6 +119,7 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
       {settings.on && share && paceAllowed(plus) ? (
         <>
           <Hint>{t.mapOnly}</Hint>
+          {!canSpeak ? <Hint>{t.noVoice}</Hint> : null}
           {!active ? <Hint>{t.needsActivity}</Hint> : null}
           {offline && !hasFix ? (
             <Hint>{t.waitingConnection}</Hint>

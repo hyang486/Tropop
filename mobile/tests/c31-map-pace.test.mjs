@@ -116,3 +116,8 @@ test('UX2-115/116: calendar scrim and event-editor picked icon use themed tokens
   assert.match(src('features/calendar/calendar-screen.tsx'), /scrim: \{[^}]*backgroundColor: colors\.scrim/);
   assert.match(src('features/calendar/event-editor.tsx'), /borderColor: colors\.tint, backgroundColor: colors\.sheetField/);
 });
+
+test('UX2-122: without speech the card says cues will vibrate', () => {
+  assert.equal(en.pace.noVoice, 'Voice cues aren’t available, so cues will vibrate.');
+  assert.match(src('features/pace/pace-card.tsx'), /\{!canSpeak \? <Hint>\{t\.noVoice\}<\/Hint> : null\}/);
+});
