@@ -895,6 +895,7 @@ export const en = {
     delete: 'Delete event',
     deleteConfirm: 'Delete this event?',
     // C14: hidden states.
+    loadingEvent: 'Loading event',
     eventGone: 'This event is no longer available.',
     backToCalendar: 'Back to Calendar',
     saveFailed: "Couldn't save. Try again.",

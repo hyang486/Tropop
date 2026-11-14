@@ -239,8 +239,15 @@ export function calendarGate(signedIn: boolean): 'signedOut' | 'calendar' {
  */
 export type EditorTarget = { kind: 'loading' } | { kind: 'missing' } | { kind: 'edit'; event: PersonalEvent } | { kind: 'new' };
 
-export function editorTarget(id: string | undefined, doc: CalendarDoc | null, kept?: PersonalEvent | null): EditorTarget {
+export function editorTarget(
+  id: string | undefined,
+  doc: CalendarDoc | null,
+  kept?: PersonalEvent | null,
+  signedIn = true,
+): EditorTarget {
   if (!id) return { kind: 'new' };
+  // No user: the doc never loads, so a known id can't be shown; say it's gone instead of spinning forever.
+  if (!signedIn) return { kind: 'missing' };
   const event = doc?.events.find((e) => e.id === id) ?? (kept?.id === id ? kept : undefined);
   if (event) return { kind: 'edit', event };
   return doc ? { kind: 'missing' } : { kind: 'loading' };

@@ -34,13 +34,14 @@ type Params = { id?: string; title?: string; start?: string; end?: string; emoji
 export function EventEditor() {
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
-  const uid = useAuth().session?.user.id;
+  const auth = useAuth();
+  const uid = auth.session?.user.id;
   const [kept, setKept] = useState<PersonalEvent | null>(null);
-  const target = editorTarget(params.id, useCalendar(uid), kept);
+  const target = editorTarget(params.id, useCalendar(uid), kept, !!uid || auth.loading);
   if (target.kind === 'edit' && kept !== target.event) setKept(target.event);
   // C14: wait for the doc before building the form (its fields start from the event once), and say so when the
   // event is gone (deleted, or a stale link) instead of opening a blank form that would save a copy.
-  if (target.kind === 'loading') return <ActivityIndicator style={styles.loading} />;
+  if (target.kind === 'loading') return <ActivityIndicator style={styles.loading} accessibilityLabel={t.loadingEvent} />;
   if (target.kind === 'missing') {
     return (
       <QScreen

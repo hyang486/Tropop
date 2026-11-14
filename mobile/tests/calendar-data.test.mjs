@@ -117,6 +117,8 @@ test('C14 sweep 1: editorTarget waits for the doc, edits a known id, says a gone
   assert.deepEqual(d.editorTarget(undefined, null), { kind: 'new' });
   assert.deepEqual(d.editorTarget(undefined, doc), { kind: 'new' });
   assert.deepEqual(d.editorTarget('e1', null), { kind: 'loading' });
+  assert.deepEqual(d.editorTarget('e1', null, null, false), { kind: 'missing' });
+  assert.deepEqual(d.editorTarget(undefined, null, null, false), { kind: 'new' });
   assert.deepEqual(d.editorTarget('e1', doc), { kind: 'edit', event: ev });
   assert.deepEqual(d.editorTarget('gone', doc), { kind: 'missing' });
   // A delete takes the event out of the doc before the write answers: the open editor keeps it (no "gone" flash,
