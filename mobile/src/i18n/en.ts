@@ -111,10 +111,8 @@ export const en = {
     startMoved: 'The start time moved to fit the new end time.',
     // Spec 11 B: capacity.
     capacityLabel: 'People',
-    noLimit: 'No limit',
     fewerPeople: 'Fewer people',
     morePeople: 'More people',
-    capacityCount: (n: number) => `${n} people`,
     capacityHintFree: (free: number, plus: number) => `Free rooms hold up to ${free}. Plus up to ${plus}.`,
     capacityHintPlus: (plus: number) => `Plus rooms hold up to ${plus}.`,
     // Spec 11 D: public rooms in Open chat.

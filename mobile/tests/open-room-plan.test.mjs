@@ -5,7 +5,7 @@ import { test } from 'node:test';
 const p = await import('../src/features/event/open-room-plan.ts');
 const { INK_ICONS, inkIconKey } = await import('../src/components/calendar/ink-icon-map.ts');
 
-test('capacity: Free 6, Plus 30; No limit is the plan max; a loading flag counts as Free', () => {
+test('capacity: Free 6, Plus 30; unchanged is the plan max; a loading flag counts as Free', () => {
   assert.equal(p.capacityMax(false), 6);
   assert.equal(p.capacityMax(null), 6);
   assert.equal(p.capacityMax(true), 30);
@@ -16,15 +16,15 @@ test('capacity: Free 6, Plus 30; No limit is the plan max; a loading flag counts
   assert.equal(p.capacityValue(12, true), 12);
 });
 
-test('the stepper stays inside 2 … max and starts from the max on No limit', () => {
-  assert.equal(p.stepCapacity('none', -1, false), 6);
-  assert.equal(p.stepCapacity('none', -1, true), 30);
-  assert.equal(p.stepCapacity('none', 1, true), 'none');
-  assert.equal(p.stepCapacity(6, 1, false), 'none');
-  assert.equal(p.stepCapacity(30, 1, true), 'none');
+test('UX P1-10: the stepper stays inside 2 … plan max; an unchanged value starts at the max', () => {
+  assert.equal(p.stepCapacity('none', -1, false), 5);
+  assert.equal(p.stepCapacity('none', -1, true), 29);
+  assert.equal(p.stepCapacity('none', 1, true), 30);
+  assert.equal(p.stepCapacity(6, 1, false), 6);
+  assert.equal(p.stepCapacity(30, 1, true), 30);
   assert.equal(p.stepCapacity(2, -1, true), 2);
   assert.equal(p.stepCapacity(29, 1, true), 30);
-  assert.equal(p.stepCapacity(20, 1, false), 'none');
+  assert.equal(p.stepCapacity(20, 1, false), 6);
 });
 
 test('every room icon maps back to its own ink icon', () => {
@@ -49,15 +49,13 @@ test('area is trimmed, collapsed and capped; the row reads icon, name, area', ()
   assert.equal(p.openRowSpoken('Run', 'Loop', null), 'Run, Loop');
 });
 
-test('create args: private sends capacity only; public adds icon and trimmed area; No limit sends the plan max', () => {
+test('create args: private sends capacity only; public adds icon and trimmed area; unchanged sends the plan max, no p_no_limit', () => {
   assert.deepEqual(p.openRoomArgs({ capacity: 4, plus: false, visibility: 'private', icon: 'run', area: 'DTLA' }), {
     p_max_members: 4,
-    p_no_limit: false,
     p_visibility: 'private',
   });
   assert.deepEqual(p.openRoomArgs({ capacity: 'none', plus: true, visibility: 'public', icon: 'run', area: '  Los   Angeles ' }), {
     p_max_members: 30,
-    p_no_limit: true,
     p_visibility: 'public',
     p_public_icon: 'run',
     p_public_location: 'Los Angeles',
@@ -92,10 +90,11 @@ test('0032 plan limit: only PT402 plan_limit opens the Plus screen', () => {
   assert.equal(p.isPlanLimit('plan_limit'), false);
 });
 
-test('stepper ends: - off at 2, + off only at No limit', () => {
-  assert.deepEqual(p.capacityEnds(2), { atMin: true, atMax: false });
-  assert.deepEqual(p.capacityEnds(6), { atMin: false, atMax: false });
-  assert.deepEqual(p.capacityEnds('none'), { atMin: false, atMax: true });
+test('stepper ends: - off at 2, + off at the plan max', () => {
+  assert.deepEqual(p.capacityEnds(2, true), { atMin: true, atMax: false });
+  assert.deepEqual(p.capacityEnds(6, true), { atMin: false, atMax: false });
+  assert.deepEqual(p.capacityEnds(6, false), { atMin: false, atMax: true });
+  assert.deepEqual(p.capacityEnds('none', true), { atMin: false, atMax: true });
 });
 
 test('typed people count clamps to 2 .. plan max', () => {

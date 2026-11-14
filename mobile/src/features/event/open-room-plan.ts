@@ -17,7 +17,7 @@ export function capacityMax(plus: boolean | null) {
   return plus ? PLUS_MAX_MEMBERS : FREE_MAX_MEMBERS;
 }
 
-/** 'none' is "No limit", which means the plan maximum. */
+/** 'none' is a value the host has not changed yet: it shows and sends the plan maximum (UX P1-10, no "No limit"). */
 export type Capacity = number | 'none';
 
 export function capacityValue(capacity: Capacity, plus: boolean | null) {
@@ -26,21 +26,15 @@ export function capacityValue(capacity: Capacity, plus: boolean | null) {
   return Math.min(max, Math.max(MIN_MEMBERS, Math.round(capacity)));
 }
 
-/**
- * The stepper's next value. "No limit" sits past the plan max: + at the max goes to "No limit", − from "No limit" goes
- * to the max. 2 and "No limit" are the ends (the value stays).
- */
-export function stepCapacity(capacity: Capacity, delta: 1 | -1, plus: boolean | null): Capacity {
-  const max = capacityMax(plus);
-  if (capacity === 'none') return delta < 0 ? max : 'none';
-  const n = capacityValue(capacity, plus);
-  if (delta > 0 && n >= max) return 'none';
-  return capacityValue(n + delta, plus);
+/** The stepper's next value, 2 … plan max; at either end the value stays. */
+export function stepCapacity(capacity: Capacity, delta: 1 | -1, plus: boolean | null): number {
+  return capacityValue(capacityValue(capacity, plus) + delta, plus);
 }
 
-/** Which stepper ends are reached: − is off at 2, + only at "No limit". */
-export function capacityEnds(capacity: Capacity) {
-  return { atMin: capacity !== 'none' && capacity <= MIN_MEMBERS, atMax: capacity === 'none' };
+/** Which stepper ends are reached: − is off at 2, + at the plan max. */
+export function capacityEnds(capacity: Capacity, plus: boolean | null) {
+  const n = capacityValue(capacity, plus);
+  return { atMin: n <= MIN_MEMBERS, atMax: n >= capacityMax(plus) };
 }
 
 /** A typed people count, clamped to 2 … plan max; null when it is not a whole number (the value stays). */
@@ -129,7 +123,7 @@ export function openRoomProblem(visibility: Visibility, area: string): 'area' | 
 
 /**
  * The Spec 11 create_room arguments (0031), passed by name. Private rooms must not send an icon or location.
- * "No limit" sends the plan maximum with p_no_limit so the server still enforces a real cap.
+ * An unchanged capacity sends the plan maximum. p_no_limit is no longer sent (server default false).
  */
 export function openRoomArgs(input: {
   capacity: Capacity;
@@ -140,7 +134,6 @@ export function openRoomArgs(input: {
 }) {
   const base = {
     p_max_members: capacityValue(input.capacity, input.plus),
-    p_no_limit: input.capacity === 'none',
     p_visibility: input.visibility,
   };
   if (input.visibility === 'private') return base;

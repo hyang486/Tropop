@@ -36,6 +36,7 @@ import {
   openRoomProblem,
   ROOM_ICONS,
   stepCapacity,
+  capacityValue,
   typedCapacity,
   type Visibility,
 } from '@/features/event/open-room-plan';
@@ -91,12 +92,12 @@ export default function CreateRoom() {
   // Spec 9.4: the host's entry questions, prefilled with the default four.
   const [questions, setQuestions] = useState(defaultDraft);
   const [questionProblem, setQuestionProblem] = useState<ReturnType<typeof validateQuestions> | null>(null);
-  // Spec 11 B/D: capacity ("No limit" = the plan maximum) and who can join. A public room needs an icon (follows the
+  // Spec 11 B/D: capacity (unchanged = the plan maximum) and who can join. A public room needs an icon (follows the
   // type until picked) and an area for Open chat.
   const [capacity, setCapacity] = useState<Capacity>('none');
-  // "No limit" sits past the plan max, so + is off only there and − only at 2 (dimmed, or they look tappable).
-  const { atMin, atMax } = capacityEnds(capacity);
-  // qa: 27 taps from No limit to 3. Holding +/− repeats, and the number is an inline field (UX P1-10, was an alert),
+  // 2 … plan max with no "No limit": + is off at the max and − at 2 (dimmed, or they look tappable).
+  const { atMin, atMax } = capacityEnds(capacity, plus);
+  // qa: 27 taps to 3. Holding +/− repeats, and the number is an inline field (UX P1-10, was an alert),
   // clamped to 2 … plan max on done. While typing it holds the raw text; a non-number reverts.
   const repeat = useRef<ReturnType<typeof setInterval> | null>(null);
   function stopRepeat() {
@@ -349,7 +350,7 @@ export default function CreateRoom() {
 
       {OPEN_ROOMS_LIVE ? (
         <>
-          {/* Spec 11 B: People stepper, 2 … plan max; "No limit" means the plan max (the server caps at 30). */}
+          {/* Spec 11 B / UX P1-10: People stepper, 2 … plan max (the server caps at 30); the number is typed inline. */}
           <View style={styles.row}>
             <Text style={styles.cardTitle}>{en.createRoom.capacityLabel}</Text>
             <Pressable
@@ -366,17 +367,16 @@ export default function CreateRoom() {
             >
               <SymbolView name="minus.circle" size={26} tintColor={colors.label} />
             </Pressable>
-            {/* "No limit" shows as the field's value; focusing selects it so a typed number replaces it. */}
             <TextInput
               style={styles.capacity}
-              value={capacityDraft ?? (capacity === 'none' ? en.createRoom.noLimit : String(capacity))}
+              value={capacityDraft ?? String(capacityValue(capacity, plus))}
               onChangeText={setCapacityDraft}
-              onFocus={() => setCapacityDraft(capacity === 'none' ? '' : String(capacity))}
+              onFocus={() => setCapacityDraft(String(capacityValue(capacity, plus)))}
               onBlur={commitCapacity}
               onSubmitEditing={commitCapacity}
               keyboardType="number-pad"
               returnKeyType="done"
-              maxLength={capacityDraft === null ? undefined : 2}
+              maxLength={2}
               selectTextOnFocus
               accessibilityLabel={en.createRoom.capacityLabel}
               accessibilityHint={capacityHint(plus)}
@@ -642,11 +642,9 @@ const styles = StyleSheet.create({
   pinArea: { fontSize: 14, color: colors.label },
   stepOff: { opacity: 0.3 },
   step: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
-  // 64 pt per the audit, widened only while it reads "No limit".
   capacity: {
-    minWidth: 64,
+    width: 64,
     minHeight: size.hit,
-    paddingHorizontal: 6,
     textAlign: 'center',
     fontSize: 17,
     color: colors.label,
