@@ -93,7 +93,7 @@ test('UX2-118: a failed room read makes the card wait for a connection; retried 
   const layer = src('features/pace/pace-layer.tsx');
   assert.match(layer, /\.catch\(\(\) => setPaceWaiting\(roomId, true\)\)/);
   assert.match(layer, /status === 'SUBSCRIBED'\) load\(\)/);
-  assert.match(layer, /next === 'active'\) load\(\)/);
+  assert.match(layer, /next === 'active'\) \{\s*load\(\);/);
   assert.match(src('features/pace/pace-card.tsx'), /offline && !hasFix \? \(\s*<Hint>\{t\.waitingConnection\}<\/Hint>/);
 });
 
@@ -120,4 +120,13 @@ test('UX2-115/116: calendar scrim and event-editor picked icon use themed tokens
 test('UX2-122: without speech the card says cues will vibrate', () => {
   assert.equal(en.pace.noVoice, 'Voice cues aren’t available, so cues will vibrate.');
   assert.match(src('features/pace/pace-card.tsx'), /\{!canSpeak \? <Hint>\{t\.noVoice\}<\/Hint> : null\}/);
+});
+
+test('UX2-123: a failed history save retries once on the next fix or foreground, then the card says the run is unsaved', () => {
+  assert.equal(en.pace.runNotSaved, 'Couldn’t save this run.');
+  const eng = src('features/pace/engine.ts');
+  assert.doesNotMatch(eng, /saveSession\(summarize\(run\.tracker\)\)\.catch\(\(\) => \{\}\)/);
+  assert.match(eng, /if \(save \|\| saveFailed\.has\(key\)\) persist\(key, run\);/);
+  assert.match(src('features/pace/pace-layer.tsx'), /retryFailedSaves\(\);/);
+  assert.match(src('features/pace/pace-card.tsx'), /\{unsaved \? <Hint tone="error">\{t\.runNotSaved\}<\/Hint> : null\}/);
 });

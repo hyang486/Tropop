@@ -16,7 +16,7 @@ import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 import { setPaceWaiting } from './connection';
-import { breakRun, checkStationary, closeStationaryPrompt, feedFix, flushRun, runKey } from './engine';
+import { breakRun, checkStationary, closeStationaryPrompt, feedFix, flushRun, retryFailedSaves, runKey } from './engine';
 import { runStopped, targetSecPerKm, usualPace } from './pace-core';
 import { reloadHistory, usePaceSettings } from './settings';
 import { onCue, stopSpeech } from './voice';
@@ -56,7 +56,10 @@ export function PaceLayer({ roomId }: { roomId: string }) {
   // UX2-118: retry on foreground and on reconnect.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') load();
+      if (next === 'active') {
+        load();
+        retryFailedSaves();
+      }
     });
     return () => {
       sub.remove();

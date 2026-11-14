@@ -16,7 +16,7 @@ import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 import type { Room } from '@/lib/rooms';
 
 import { usePaceWaiting } from './connection';
-import { runKey, usePaceRun } from './engine';
+import { runKey, usePaceRun, useRunUnsaved } from './engine';
 import { canSpeak } from './voice';
 import { FIX_WAIT_MS, locationHint } from './location-hint';
 import {
@@ -47,6 +47,7 @@ const t = en.pace;
 export function PaceCard({ room, share, userId }: { room: Room; share: boolean; userId: string | undefined }) {
   const settings = usePaceSettings(room.id);
   const run = usePaceRun(runKey(room.id, room.activity_seq));
+  const unsaved = useRunUnsaved(runKey(room.id, room.activity_seq));
   const plan = usePlanState(userId);
   const sharing = useSharingState(room.id);
   const router = useRouter();
@@ -127,6 +128,7 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
             <Hint>{hint === 'still' ? t.stillFinding : t.findingLocation}</Hint>
           ) : null}
           {stats ? <StatsRow {...stats} /> : null}
+          {unsaved ? <Hint tone="error">{t.runNotSaved}</Hint> : null}
           <TargetRow target={settings.target} usual={usual} goal={goal} current={run?.recent ?? null} />
           {goal == null ? <Hint>{t.noTarget}</Hint> : null}
         </>

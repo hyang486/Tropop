@@ -597,6 +597,8 @@ export const en = {
     findingLocation: 'Finding your location…',
     // UX2-122: a build without speech.
     noVoice: 'Voice cues aren’t available, so cues will vibrate.',
+    // UX2-123: the history save failed twice.
+    runNotSaved: 'Couldn’t save this run.',
     // UX2-118
     waitingConnection: 'Pace maker is waiting for a connection.',
     stillFinding: 'Still looking for GPS. Moving outside can help.',
