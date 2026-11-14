@@ -1253,3 +1253,18 @@ export function presenceView(s: { loaded: boolean; error: boolean; count: number
   if (s.error) return 'error';
   return s.loaded ? 'empty' : 'loading';
 }
+
+/**
+ * P0 (qa PDF v2): the "Sharing now" list. A member in an open Emergency is always on top, even with no presence row
+ * (a relaunch stops sharing and the server drops the row); their row is never hidden. Others keep the read's order.
+ */
+export function sharingNowEntries<R extends { user_id: string }>(
+  rows: readonly R[],
+  emergencyUserIds: readonly string[],
+): { userId: string; row: R | null; emergency: boolean }[] {
+  const byId = new Map(rows.map((r) => [r.user_id, r]));
+  const sos = [...new Set(emergencyUserIds)];
+  const top = sos.map((userId) => ({ userId, row: byId.get(userId) ?? null, emergency: true }));
+  const rest = rows.filter((r) => !sos.includes(r.user_id)).map((r) => ({ userId: r.user_id, row: r, emergency: false }));
+  return [...top, ...rest];
+}

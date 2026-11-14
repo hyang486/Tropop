@@ -22,7 +22,7 @@ test('UX2-85: "Sharing now" is loading until a read works, error on a failed rea
   const loc = src('lib/location.ts');
   assert.match(loc, /return \{ rows: enabled \? rows : EMPTY_PRESENCE, loaded, error, reload \};/);
   const map = src('app/room/[id]/map.tsx');
-  assert.match(map, /presenceView\(\{ loaded: presence\.loaded, error: presence\.error, count: presence\.rows\.length \}\)/);
+  assert.match(map, /presenceView\(\{ loaded: presence\.loaded, error: presence\.error, count: sharingNow\.length \}\)/);
   assert.match(map, /<Hint>\{en\.map\.nobody\}<\/Hint>/);
   assert.match(map, /title=\{en\.map\.tryAgain\}/);
 });
