@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-r
 import { type ComponentRef, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { EmptyState } from '@/components/empty-state';
 import { useAnnounce } from '@/features/event/announce';
 import { QField, QLabel, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
@@ -212,10 +213,7 @@ export function EntryScreen() {
       ) : loadFailed ? (
         <Hint tone="error">{room.failed ? s.questionsLoadFailed : s.loadFailed}</Hint>
       ) : empty ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>{s.noQuestions}</Text>
-          <Hint>{s.noQuestionsBody}</Hint>
-        </View>
+        <EmptyState art="paper" title={s.noQuestions} body={s.noQuestionsBody} />
       ) : (
         list.map((field, i) => {
           const { q, slot } = field;
@@ -312,8 +310,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
   star: { color: colors.danger },
   headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
-  empty: { gap: 8, paddingTop: 8 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
   headerSave: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 8 },
   headerSaveBusy: { opacity: 0.4 },
 });

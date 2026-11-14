@@ -18,3 +18,11 @@ test('People and room chat use the shared EmptyState, with no local copy', () =>
   assert.match(chat, /<EmptyState art="gathering"/);
   assert.match(chat, /<EmptyState title=\{en\.chat\.loadError\} action=/);
 });
+
+test('Rooms, Photos and entry use the shared EmptyState with existing ink art', () => {
+  assert.match(read('app/index.tsx'), /<EmptyState\s+art="gathering"\s+title=\{en\.home\.empty\}/);
+  const gallery = read('app/room/[id]/gallery.tsx');
+  assert.match(gallery, /<EmptyState art="camera" title=\{emptyText\} body=\{en\.media\.emptyHint\} \/>/);
+  assert.match(gallery, /<EmptyState title=\{en\.media\.loadError\} action=\{\{ title: en\.home\.retry, onPress: media\.reload \}\} \/>/);
+  assert.match(read('features/event/entry-screen.tsx'), /<EmptyState art="paper" title=\{s\.noQuestions\} body=\{s\.noQuestionsBody\} \/>/);
+});

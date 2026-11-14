@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type AddChoice, AddMediaSheet } from '@/components/add-media-sheet';
+import { EmptyState } from '@/components/empty-state';
 import { HandTitle } from '@/components/hand-title';
 import { ClosesSoonCard, SavedCard } from '@/components/media-cards';
 import { PhotosOfMe } from '@/components/photos-of-me';
@@ -23,7 +24,7 @@ import { qSpacing } from '@/components/q-screen';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
-import { Button, colors, Hint, radius } from '@/components/ui';
+import { Button, colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
 import { useAuth } from '@/lib/auth';
@@ -283,10 +284,7 @@ export default function GalleryScreen() {
           scroll(<ActivityIndicator style={styles.loading} />)
         ) : media.error && media.items.length === 0 ? (
           scroll(
-            <View style={styles.center}>
-              <Hint tone="error">{en.media.loadError}</Hint>
-              <Button title={en.home.retry} variant="secondary" onPress={media.reload} />
-            </View>,
+            <EmptyState title={en.media.loadError} action={{ title: en.home.retry, onPress: media.reload }} />,
           )
         ) : (
           <FlatList
@@ -300,10 +298,7 @@ export default function GalleryScreen() {
             refreshing={false}
             ListHeaderComponent={notices ?? undefined}
             ListEmptyComponent={
-              <View style={styles.center}>
-                <Text style={styles.emptyTitle}>{emptyText}</Text>
-                <Hint>{en.media.emptyHint}</Hint>
-              </View>
+              <EmptyState art="camera" title={emptyText} body={en.media.emptyHint} />
             }
             renderItem={({ item }) => <Tile media={item} size={tile} token={token} />}
           />
@@ -458,8 +453,6 @@ const styles = StyleSheet.create({
   pillTextSelected: { color: colors.onTint },
   emergency: { paddingHorizontal: qSpacing.side, paddingBottom: 8 },
   loading: { marginTop: 40 },
-  center: { padding: 24, gap: 12, alignItems: 'center' },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: colors.label, textAlign: 'center' },
   body: { flex: 1, paddingHorizontal: qSpacing.side },
   grid: { borderRadius: 12, borderCurve: 'continuous' },
   notices: { gap: 10, paddingBottom: 8 },

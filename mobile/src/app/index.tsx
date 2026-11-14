@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar/ink-icon';
+import { EmptyState } from '@/components/empty-state';
 import { placeTimeLine } from '@/components/place-time-cards';
 import { QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, size, textRole } from '@/components/ui';
@@ -145,10 +146,11 @@ export default function Rooms() {
         ) : null}
 
         {rooms?.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>{en.home.empty}</Text>
-            <Hint>{isGuest ? en.home.emptyHintGuest : en.home.emptyHintHost}</Hint>
-          </View>
+          <EmptyState
+            art="gathering"
+            title={en.home.empty}
+            body={isGuest ? en.home.emptyHintGuest : en.home.emptyHintHost}
+          />
         ) : null}
 
         {/* The label counts only rows that show: a grace row dropping out may leave none. */}
@@ -231,8 +233,6 @@ const styles = StyleSheet.create({
   hostLink: { minHeight: size.hit, justifyContent: 'center' },
   hostLinkText: textRole.secondary,
   hostLinkAction: { color: colors.label, fontWeight: '600' },
-  empty: { paddingVertical: 48, alignItems: 'center', gap: 8 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
   avatarHit: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
   avatar: {
     width: 36,
