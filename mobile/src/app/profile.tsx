@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { QLink, QScreen } from '@/components/q-screen';
+import { ProfileRetry } from '@/components/profile-retry';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -82,6 +83,7 @@ export default function Profile() {
         )
       }
     >
+      <ProfileRetry />
       <QRowCard
         leading={<Avatar path={profile?.avatar_path} name={name} size={36} />}
         title={name || '—'}

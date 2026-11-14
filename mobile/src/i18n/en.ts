@@ -8,6 +8,8 @@ export const en = {
     create: 'Create a room',
     // UX2-27: returning users (Welcome and Guest) go to Log in.
     haveAccount: 'I have an account',
+    // UX2-42: a join link whose token can't be an invite.
+    invalidLink: "This link isn't valid.",
   },
   // Q 02.01
   guest: {
@@ -187,6 +189,8 @@ export const en = {
     notInvite: 'That QR code is not a Qrew invite.',
   },
   preview: {
+    // UX2-42: the spinner's VoiceOver label.
+    loading: 'Loading invite',
     title: 'Join room',
     members: (count: number, max: number) => `${count} of ${max} members`,
     endsAt: (when: string) => `Ends ${when}`,
@@ -735,6 +739,8 @@ export const en = {
   },
   profile: {
     title: 'Profile',
+    // UX2-42: the profile read failed.
+    loadFailed: "Couldn't load your profile.",
     nameLabel: 'Display name',
     save: 'Save name',
     saved: 'Saved',

@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } 
 import { InkIcon } from '@/components/calendar/ink-icon';
 import { EmptyState } from '@/components/empty-state';
 import { placeTimeLine } from '@/components/place-time-cards';
+import { ProfileRetry } from '@/components/profile-retry';
 import { QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, size, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -35,6 +36,7 @@ export default function Rooms() {
   const [error, setError] = useState<string | null>(null);
   // UX2-26: while Rooms already says offline, Open chat hides its own load error.
   const [offline, setOffline] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
   const [refreshing, setRefreshing] = useState(false);
   const [openChatKey, setOpenChatKey] = useState(0);
@@ -120,7 +122,8 @@ export default function Rooms() {
           />
         }
         title={en.home.title}
-        subtitle={`${profile?.display_name ?? '…'} · ${isGuest ? en.profile.guest : en.profile.host}`}
+        // UX2-42: no '…' placeholder; an unread profile shows the role alone (and ProfileRetry below).
+        subtitle={[profile?.display_name, isGuest ? en.profile.guest : en.profile.host].filter(Boolean).join(' · ')}
       >
         <Button title={en.home.join} onPress={() => router.push('/join')} />
         {isGuest ? (
@@ -139,10 +142,20 @@ export default function Rooms() {
           <Button title={en.home.create} variant="secondary" onPress={() => router.push('/create-room')} />
         )}
 
+        <ProfileRetry />
         {error ? (
           <>
             <Hint tone="error">{error}</Hint>
-            <Button title={en.home.retry} variant="secondary" onPress={load} />
+            {/* UX2-42: busy until the read answers. */}
+            <Button
+              title={en.home.retry}
+              variant="secondary"
+              busy={retrying}
+              onPress={() => {
+                setRetrying(true);
+                void load().finally(() => setRetrying(false));
+              }}
+            />
           </>
         ) : null}
 

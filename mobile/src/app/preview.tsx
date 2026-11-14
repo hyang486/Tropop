@@ -112,7 +112,7 @@ export default function Preview() {
     if (!unavailable) {
       return (
         <QScreen>
-          <ActivityIndicator style={styles.loading} />
+          <ActivityIndicator style={styles.loading} accessibilityLabel={en.preview.loading} />
         </QScreen>
       );
     }

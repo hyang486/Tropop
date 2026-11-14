@@ -17,8 +17,8 @@ export default function InviteLink() {
   useEffect(() => {
     if (signedIn) return;
     const held = setPendingInvite({ token: normalized });
-    router.dismissTo('/welcome');
-    // A malformed token is not held: Welcome only, as before.
+    // UX2-42: a malformed token is not held; Welcome says so in a snackbar instead of dropping there silently.
+    router.dismissTo(held ? '/welcome' : { pathname: '/welcome', params: { link: 'invalid' } });
     if (held) router.push('/guest');
   }, [signedIn, normalized, router]);
 

@@ -22,6 +22,8 @@ type AuthContextValue = {
   /** Guests are Supabase anonymous users; hosts have an email account. */
   isGuest: boolean;
   refreshProfile: () => Promise<void>;
+  /** UX2-42: the last profile read failed (offline or server error); screens offer a retry instead of '…'. */
+  profileFailed: boolean;
   /** Shown on the welcome screen after a stored session turned out to belong to a deleted account. */
   notice: string | null;
   clearNotice: () => void;
@@ -32,6 +34,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileFailed, setProfileFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -68,15 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (!userId) return;
-    const next = await fetchProfile(userId);
+    const { data: next, failed } = await fetchProfile(userId);
+    setProfileFailed(failed);
     if (next) setProfile(next);
   }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
-    fetchProfile(userId).then((next) => {
-      if (active && next) setProfile(next);
+    fetchProfile(userId).then(({ data: next, failed }) => {
+      if (!active) return;
+      setProfileFailed(failed);
+      if (next) setProfile(next);
     });
     return () => {
       active = false;
@@ -93,10 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isGuest: session?.user.is_anonymous ?? false,
       refreshProfile,
+      profileFailed: profileFailed && !currentProfile,
       notice,
       clearNotice,
     }),
-    [session, currentProfile, loading, refreshProfile, notice, clearNotice],
+    [session, currentProfile, loading, refreshProfile, profileFailed, notice, clearNotice],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
@@ -110,7 +117,7 @@ export function useAuth() {
 
 async function fetchProfile(userId: string) {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-  return error ? null : data;
+  return { data: error ? null : data, failed: !!error };
 }
 
 // Account validity -----------------------------------------------------------
