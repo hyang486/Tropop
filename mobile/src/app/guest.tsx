@@ -1,7 +1,8 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { InkArt } from '@/components/ink-art';
-import { QField, QScreen } from '@/components/q-screen';
+import { QField, QLink, QScreen } from '@/components/q-screen';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { startAsGuest } from '@/lib/auth';
@@ -39,6 +40,7 @@ export default function Guest() {
         <>
           {error && <Hint tone="error">{error}</Hint>}
           <Button title={en.guest.submit} onPress={submit} busy={busy} disabled={!named} />
+          <QLink title={en.welcome.haveAccount} onPress={() => router.push('/sign-in')} />
         </>
       }
     >

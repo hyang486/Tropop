@@ -171,6 +171,12 @@ export async function signInHost(email: string, password: string) {
   if (error) throw error;
 }
 
+/** UX2-27: Supabase emails a password reset link to a host account's address. */
+export async function sendPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+  if (error) throw error;
+}
+
 /**
  * Turns the current guest (anonymous user) into a host account. The user id stays the
  * same, so room memberships are kept. The session is refreshed so the new JWT no longer

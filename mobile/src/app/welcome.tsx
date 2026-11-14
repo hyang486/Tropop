@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 
 import { InkArt } from '@/components/ink-art';
-import { QScreen } from '@/components/q-screen';
+import { QLink, QScreen } from '@/components/q-screen';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
@@ -26,6 +26,7 @@ export default function Welcome() {
           {notice ? <Hint tone="error">{notice}</Hint> : null}
           <Button title={en.welcome.join} onPress={() => go('/start/code')} />
           <Button variant="secondary" title={en.welcome.create} onPress={() => go('/sign-in')} />
+          <QLink title={en.welcome.haveAccount} onPress={() => go('/sign-in')} />
         </>
       }
     />
