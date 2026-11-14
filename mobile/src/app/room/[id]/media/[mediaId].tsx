@@ -3,7 +3,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Share, StyleSheet, Text, View } from 'react-native';
+import { ActionSheetIOS, ActivityIndicator, Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 
 import { SavedCard } from '@/components/media-cards';
 import { QScreen } from '@/components/q-screen';
@@ -184,7 +184,34 @@ function MediaDetail({
 
   const busy = download.status === 'busy';
   const title = mediaTitle(media, { video: en.media.video, photo: en.media.photo });
-  const size = formatBytes(media.size_bytes);
+
+  function confirmNotMe(enrollment: string) {
+    Alert.alert(en.face.notMeTitle, en.face.notMeBody, [
+      { text: en.face.cancel, style: 'cancel' },
+      {
+        text: en.face.notMe,
+        onPress: async () => {
+          try {
+            await excludeFaceMatch(enrollment, media.id);
+            onExcluded();
+          } catch (e) {
+            Alert.alert(errorMessage(e));
+          }
+        },
+      },
+    ]);
+  }
+
+  function openMenu() {
+    if (!matchEnrollment) return;
+    const enrollment = matchEnrollment;
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: [en.face.notMe, en.face.cancel], cancelButtonIndex: 1 },
+      (i) => {
+        if (i === 0) confirmNotMe(enrollment);
+      },
+    );
+  }
   const age = sharedAge(media.created_at, now);
 
   return (
@@ -210,7 +237,20 @@ function MediaDetail({
         </>
       }
     >
-      <Stack.Screen options={{ title, headerTitle: '' }} />
+      <Stack.Screen
+        options={{
+          title,
+          headerTitle: '',
+          // UX P2-3: "Not me" lives in a ⋯ menu, shown only for a photo in my Photos of me.
+          headerRight: matchEnrollment
+            ? () => (
+                <Pressable onPress={openMenu} accessibilityRole="button" accessibilityLabel={en.media.more} hitSlop={8}>
+                  <SymbolView name="ellipsis.circle" size={22} tintColor={colors.tint} />
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
       {media.kind === 'photo' ? (
         <Image
           source={{ uri: objectUrl(media.original_path), headers: authHeaders(token), cacheKey: media.original_path }}
@@ -232,34 +272,8 @@ function MediaDetail({
         </View>
       )}
 
-      <Text style={styles.sub} selectable>
-        {size ? `${media.file_name} · ${size}` : media.file_name} · {new Date(media.created_at).toLocaleString()}
-      </Text>
-
       {saved ? <SavedCard /> : null}
       {download.status === 'done' ? <Hint>{download.message}</Hint> : null}
-      {matchEnrollment ? (
-        <Button
-          title={en.face.notMe}
-          variant="secondary"
-          onPress={() =>
-            Alert.alert(en.face.notMeTitle, en.face.notMeBody, [
-              { text: en.face.cancel, style: 'cancel' },
-              {
-                text: en.face.notMe,
-                onPress: async () => {
-                  try {
-                    await excludeFaceMatch(matchEnrollment, media.id);
-                    onExcluded();
-                  } catch (e) {
-                    Alert.alert(errorMessage(e));
-                  }
-                },
-              },
-            ])
-          }
-        />
-      ) : null}
     </QScreen>
   );
 }
@@ -284,5 +298,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.field,
   },
   loading: { marginTop: 48 },
-  sub: { fontSize: 13, color: colors.ink2 },
 });

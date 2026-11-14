@@ -395,6 +395,7 @@ export const en = {
     retry: 'Retry',
     dismiss: 'Remove',
     sharedBy: (name: string) => `Shared by ${name}`,
+    more: 'More',
     you: 'You',
     download: 'Download original',
     downloading: (pct: number) => `Downloading ${pct}%`,
