@@ -63,7 +63,7 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
     return (
       <View style={styles.group}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <Hint>{en.media.planOffline}</Hint>
+        <Hint>{en.planPreview.offline}</Hint>
       </View>
     );
   }
