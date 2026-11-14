@@ -29,6 +29,7 @@ import {
   type Capacity,
   capacityEnds,
   capacityMax,
+  capacityPlusTap,
   defaultRoomIcon,
   isPlanLimit,
   MAX_AREA,
@@ -45,7 +46,7 @@ import { QuestionEditor, questionProblemText } from '@/features/event/question-e
 import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api';
 import { QField, QLabel, QLink, QScreen } from '@/components/q-screen';
 import { useAuth } from '@/lib/auth';
-import { Button, colors, Hint, radius, size } from '@/components/ui';
+import { Button, colors, Hint, radius, size, textRole } from '@/components/ui';
 import { StatusChips } from '@/features/event/status-chips';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
@@ -97,6 +98,8 @@ export default function CreateRoom() {
   const [capacity, setCapacity] = useState<Capacity>('none');
   // 2 … plan max with no "No limit": + is off at the max and − at 2 (dimmed, or they look tappable).
   const { atMin, atMax } = capacityEnds(capacity, plus);
+  // Capacity option B: a Free host's + at 6 opens the Plus page (not dimmed); a Plus host's + at 30 is off.
+  const plusTap = capacityPlusTap(capacity, plus);
   // qa: 27 taps to 3. Holding +/− repeats, and the number is an inline field (UX P1-10, was an alert),
   // clamped to 2 … plan max on done. While typing it holds the raw text; a non-number reverts.
   const repeat = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -384,11 +387,16 @@ export default function CreateRoom() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={en.createRoom.morePeople}
-              disabled={atMax}
-              accessibilityState={{ disabled: atMax }}
-              style={[styles.step, atMax && styles.stepOff]}
-              onPress={() => setCapacity(stepCapacity(capacity, 1, plus))}
-              onLongPress={() => startRepeat(1)}
+              disabled={plusTap === 'off'}
+              accessibilityState={{ disabled: plusTap === 'off' }}
+              accessibilityHint={plusTap === 'upgrade' ? capacityHint(plus) : undefined}
+              style={[styles.step, plusTap === 'off' && styles.stepOff]}
+              onPress={() =>
+                plusTap === 'upgrade'
+                  ? router.push({ pathname: '/plan-preview', params: { from: 'capacity' } })
+                  : setCapacity(stepCapacity(capacity, 1, plus))
+              }
+              onLongPress={() => (plusTap === 'step' ? startRepeat(1) : undefined)}
               delayLongPress={300}
               onPressOut={stopRepeat}
               hitSlop={8}
@@ -396,6 +404,9 @@ export default function CreateRoom() {
               <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
             </Pressable>
           </View>
+          {atMax && plus !== null ? (
+            <Text style={styles.atMax}>{en.createRoom.capacityAtMax(capacityMax(plus), plus)}</Text>
+          ) : null}
           <Hint>{capacityHint(plus)}</Hint>
 
           {/* Spec 11 D: Private (code or QR) or Public (listed in Open chat, joins without a code). */}
@@ -641,6 +652,7 @@ const styles = StyleSheet.create({
   cardNote: { fontSize: 12, color: colors.ink2 },
   pinArea: { fontSize: 14, color: colors.label },
   stepOff: { opacity: 0.3 },
+  atMax: { ...textRole.secondary, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
   step: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
   capacity: {
     width: 64,

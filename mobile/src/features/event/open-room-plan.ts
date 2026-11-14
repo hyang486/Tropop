@@ -37,6 +37,15 @@ export function capacityEnds(capacity: Capacity, plus: boolean | null) {
   return { atMin: n <= MIN_MEMBERS, atMax: n >= capacityMax(plus) };
 }
 
+/**
+ * Capacity option B (HUMAN FINAL 2026-11-14): what + does. A Free host at 6 gets the Plus page instead of a dead
+ * button; a Plus host at 30 (or an unread plan at the Free max) is simply at the end.
+ */
+export function capacityPlusTap(capacity: Capacity, plus: boolean | null): 'step' | 'upgrade' | 'off' {
+  if (!capacityEnds(capacity, plus).atMax) return 'step';
+  return plus === false ? 'upgrade' : 'off';
+}
+
 /** A typed people count, clamped to 2 … plan max; null when it is not a whole number (the value stays). */
 export function typedCapacity(text: string, plus: boolean | null): number | null {
   const t = text.trim();

@@ -8,13 +8,13 @@ const p = await import('../src/features/calendar/plus-intro.ts');
 const { en } = await import('../src/i18n/en.ts');
 
 test('from: known values pass, anything else is none (no reason card)', () => {
-  for (const f of ['calendar', 'room-ai', 'more', 'people', 'diary']) assert.equal(p.plusFrom(f), f);
+  for (const f of ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity']) assert.equal(p.plusFrom(f), f);
   for (const f of [undefined, '', 'Calendar', 'x', 3, null]) assert.equal(p.plusFrom(f), null);
   assert.equal(p.plusFrom(['diary', 'more']), 'diary');
 });
 
 test('pitch: from picks the preview; three lines, none repeating the preview', () => {
-  const want = { calendar: 'diary', diary: 'diary', 'room-ai': 'chat', more: 'trip', people: 'trip' };
+  const want = { calendar: 'diary', diary: 'diary', 'room-ai': 'chat', more: 'trip', people: 'trip', capacity: 'trip' };
   for (const [from, preview] of Object.entries(want)) assert.equal(p.plusPitch(from).preview, preview, from);
   assert.equal(p.plusPitch(null).preview, 'diary');
   const shown = { diary: ['diary'], chat: ['ai', 'recap'], trip: ['rooms'] };

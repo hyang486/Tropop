@@ -147,3 +147,17 @@ test('UX P1-6: full rooms leave the Open chat list unless you are already in the
   ];
   assert.deepEqual(p.joinableOpenRooms(rows).map((r) => r.room_id), ['a', 'c']);
 });
+
+test('capacity option B: + steps below the max; at 6 a Free host goes to Plus; Plus at 30 and unread plan are off', () => {
+  assert.equal(p.capacityPlusTap(5, false), 'step');
+  assert.equal(p.capacityPlusTap(6, false), 'upgrade');
+  assert.equal(p.capacityPlusTap(29, true), 'step');
+  assert.equal(p.capacityPlusTap(30, true), 'off');
+  assert.equal(p.capacityPlusTap(6, null), 'off');
+});
+
+test('capacity option B: the at-max line names the plan', async () => {
+  const { en } = await import('../src/i18n/en.ts');
+  assert.equal(en.createRoom.capacityAtMax(6, false), '6 · Free max');
+  assert.equal(en.createRoom.capacityAtMax(30, true), '30 · Plus max');
+});

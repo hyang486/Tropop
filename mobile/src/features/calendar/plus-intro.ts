@@ -2,10 +2,11 @@
  * Plus page v2 (/plan-preview?from=...), built to docs/evidence/plus-page-mockup/v2.html: one screen, a feature
  * preview and headline picked by `from`, then three one-line benefits that skip the one already previewed.
  * Pushers: calendar (Add with Qrewing, Free tap or 402), diary (calendar diary upsell), room-ai (room Qrewing
- * button), more (create-room "More" end time / PT402), people (room size, no caller yet). The profile link sends
+ * button), more (create-room "More" end time / PT402), people (room size, no caller yet), capacity (create-room
+ * People + at the Free max, capacity option B). The profile link sends
  * no `from`; unknown values count as none, and none shows the diary preview.
  */
-export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary'] as const;
+export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity'] as const;
 export type PlusFrom = (typeof PLUS_FROM)[number];
 
 // Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): calendar AI add, diary, room Qrewing AI, rooms
@@ -28,6 +29,7 @@ const PREVIEW: Record<PlusFrom, PlusPreview> = {
   'room-ai': 'chat',
   more: 'trip',
   people: 'trip',
+  capacity: 'trip',
 };
 
 /** The route param (string, array or missing) → a known source, or null (no reason card). */
