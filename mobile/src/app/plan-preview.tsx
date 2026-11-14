@@ -1,97 +1,284 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { QCaption, QCard, QLabel, QScreen } from '@/components/q-screen';
-import { Button, colors, Hint, usePalette } from '@/components/ui';
+import { HAND_FONTS, HandTitle, useInk } from '@/components/hand-title';
+import { InkArt } from '@/components/ink-art';
+import { QCaption, QScreen } from '@/components/q-screen';
+import { Button, colors } from '@/components/ui';
 import { setPlusPreview, usePlusPreview } from '@/features/calendar/calendar-store';
-import { plusBenefits, plusFrom } from '@/features/calendar/plus-intro';
-import { InkSwitch } from '@/features/event/ink-switch';
+import { type PlusLine, type PlusPreview, plusFrom, plusPitch } from '@/features/calendar/plus-intro';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { HAND_FONT_LATIN } from '@/lib/hand-font';
+
+const t = en.planPreview;
+const s = t.sample;
+
+// Black line icons (v2 mockup: magnifier, person+, pencil, calendar, chat).
+const ICON: Record<PlusLine, SymbolViewProps['name']> = {
+  ai: 'plus.magnifyingglass',
+  rooms: 'person.badge.plus',
+  add: 'pencil',
+  diary: 'calendar',
+  recap: 'text.bubble',
+};
 
 /**
- * Plus intro (APP_CONCEPT_KO: plan and benefit demo only). `?from=calendar|room-ai|more|diary` (default more)
- * picks the headline and the benefit shown first. No purchase, billing or StoreKit is connected; the preview
- * switch saves the plan via set_my_plan (0032). Undecided prices and limits stay in one line under the actions.
+ * Plus page v2 (docs/evidence/plus-page-mockup/v2.html; APP_CONCEPT_KO: plan and benefit demo only). One screen:
+ * a feature preview and hand headline by `?from=`, three one-line benefits, one CTA "Try Plus free" (set_my_plan,
+ * 0032), and "See what's included" opening the Free vs Plus sheet. Plus: "You're on Plus" and a ghost "Turn off".
+ * No purchase, billing or StoreKit; no prices, no reviews.
  */
 export default function PlanPreview() {
-  const t = en.planPreview;
   const from = plusFrom(useLocalSearchParams<{ from?: string }>().from);
+  const { preview, lines } = plusPitch(from);
+  const router = useRouter();
   const uid = useAuth().session?.user.id;
   const on = usePlusPreview(uid);
-  const ink = usePalette().ink;
+  const ink = useInk();
   const [saving, setSaving] = useState(false);
-  const onToggle = async (v: boolean) => {
+  const [sheet, setSheet] = useState(false);
+  const toggle = async (v: boolean) => {
     if (!uid || saving) return;
     setSaving(true);
     const ok = await setPlusPreview(uid, v);
     setSaving(false);
     if (!ok) Alert.alert(t.saveFailedTitle, t.saveFailedBody);
   };
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const isPlus = on === true;
+  const actions = !uid ? undefined : isPlus ? (
+    <>
+      <Button variant="secondary" title={t.offCta} busy={saving} onPress={() => void toggle(false)} />
+      <QCaption>{t.offFine}</QCaption>
+    </>
+  ) : (
+    <>
+      <Button title={t.tryCta} busy={saving} disabled={on === null} onPress={() => void toggle(true)} />
+      <Text style={styles.fine}>
+        {t.fine}
+        <Text style={styles.link} accessibilityRole="link" onPress={() => setSheet(true)}>
+          {t.seeIncluded}
+        </Text>
+      </Text>
+    </>
+  );
+
   return (
-    <QScreen
-      title={t.headline[from]}
-      subtitle={t.sub[from]}
-      actions={
-        <>
-          <Button title={t.cta} onPress={() => Alert.alert(t.ctaAlertTitle, t.ctaAlertBody)} />
-          <QCaption>{t.tbdNote}</QCaption>
-        </>
-      }
-    >
-      <View style={[styles.badge, { borderColor: ink }]}>
-        <Text style={[styles.badgeText, { color: ink }]}>{t.badge}</Text>
-      </View>
-
-      <QLabel>{t.benefitsLabel}</QLabel>
-      <QCard>
-        {plusBenefits(from).map(({ key, focus }, i) => {
-          const b = t.benefits[key];
-          return (
-            <View
-              key={key}
-              accessible
-              accessibilityLabel={focus ? `${b.title}, ${t.forYou}. ${b.body}` : `${b.title}. ${b.body}`}
-              style={[styles.benefit, i > 0 && styles.divided, focus && styles.focus]}
-            >
-              <View style={[styles.mark, { borderColor: ink }, focus && { backgroundColor: ink }]} />
-              <View style={styles.benefitText}>
-                <Text style={[styles.benefitTitle, focus && styles.focusTitle]}>
-                  {b.title}
-                  {focus ? <Text style={styles.forYou}>{`  ${t.forYou}`}</Text> : null}
-                </Text>
-                <Text style={styles.benefitBody}>{b.body}</Text>
-              </View>
+    <QScreen actions={actions}>
+      <Stack.Screen
+        options={{
+          headerBackVisible: false,
+          headerLeft: () => (
+            <Pressable onPress={close} accessibilityRole="button" accessibilityLabel={t.close} hitSlop={8} style={styles.x}>
+              <SymbolView name="xmark" size={16} tintColor={colors.secondaryLabel} weight="semibold" />
+            </Pressable>
+          ),
+          headerTitle: () => (
+            <View style={[styles.pill, { borderColor: ink }]}>
+              <Text style={[styles.pillText, { color: ink }]}>{t.pill}</Text>
             </View>
-          );
-        })}
-      </QCard>
-      <Hint>{t.calendarFree}</Hint>
-
-      {uid ? (
-        <QCard row>
-          <Text style={styles.previewLabel}>{t.tryPreview}</Text>
-          <InkSwitch value={!!on} disabled={saving || on === null} onValueChange={(v) => void onToggle(v)} accessibilityLabel={t.tryPreview} />
-        </QCard>
-      ) : null}
-      <Hint>{t.tryPreviewHint}</Hint>
-      <Hint>{t.intro}</Hint>
+          ),
+        }}
+      />
+      {isPlus ? (
+        <>
+          <View style={styles.hero}>
+            <InkArt art="run" width={170} />
+            <HandTitle style={styles.center}>{t.onHeading}</HandTitle>
+            <Text style={[styles.sub, styles.onBadge]}>{t.onBadge}</Text>
+          </View>
+          <View style={styles.list}>
+            {t.now.map((n) => (
+              <Line key={n.key} icon={ICON[n.key as PlusLine]} parts={[n.line]} />
+            ))}
+          </View>
+        </>
+      ) : (
+        <>
+          <Preview kind={preview} />
+          <View style={styles.hero}>
+            <HandTitle style={styles.center}>{t.pitch[preview].heading}</HandTitle>
+            <Text style={styles.sub}>{t.pitch[preview].sub}</Text>
+          </View>
+          <View style={styles.list}>
+            {lines.map((k) => (
+              <Line key={k} icon={ICON[k]} parts={t.lines[k]} />
+            ))}
+          </View>
+        </>
+      )}
+      <IncludedSheet visible={sheet} onClose={() => setSheet(false)} />
     </QScreen>
   );
 }
 
+/** One benefit line; odd-index parts are bold. */
+function Line({ icon, parts }: { icon: SymbolViewProps['name']; parts: readonly string[] }) {
+  const ink = useInk();
+  return (
+    <View style={styles.line} accessible accessibilityLabel={parts.join('')}>
+      <SymbolView name={icon} size={22} tintColor={ink} weight="light" style={styles.lineIcon} />
+      <Text style={styles.lineText}>
+        {parts.map((p, i) =>
+          i % 2 ? (
+            <Text key={i} style={styles.bold}>
+              {p}
+            </Text>
+          ) : (
+            p
+          ),
+        )}
+      </Text>
+    </View>
+  );
+}
+
+/** The feature preview card: sample content showing what Plus does for this source. */
+function Preview({ kind }: { kind: PlusPreview }) {
+  const ink = useInk();
+  const [loaded] = useFonts(HAND_FONTS);
+  const hand = loaded ? { fontFamily: HAND_FONT_LATIN } : null;
+  const label =
+    kind === 'diary'
+      ? [s.diaryTitle, s.diaryDate, ...s.diaryLines]
+      : kind === 'chat'
+        ? [s.ask, `${s.qrewing}: ${s.asked}`, `${s.qrewing}: ${s.answered}`]
+        : [`${s.endsAfter} ${s.days[1]}`, `${s.people} ${s.peopleCount}`, `${s.tripName}, ${s.tripOpen}`];
+  return (
+    <View style={styles.preview} accessible accessibilityLabel={`${s.a11y}. ${label.join('. ')}`}>
+      {kind === 'diary' ? (
+        <View style={[styles.diary, { borderColor: ink }]}>
+          <View style={styles.diaryHead}>
+            <SymbolView name="cup.and.saucer" size={18} tintColor={ink} weight="light" />
+            <Text style={[styles.diaryTitle, { color: ink }, hand]}>{s.diaryTitle}</Text>
+          </View>
+          <Text style={styles.diaryDate}>{s.diaryDate}</Text>
+          {s.diaryLines.map((l) => (
+            <Text key={l} style={[styles.diaryLine, { color: ink }, hand]}>
+              {l}
+            </Text>
+          ))}
+        </View>
+      ) : kind === 'chat' ? (
+        <View style={styles.chat}>
+          <Text style={[styles.bubble, styles.me]}>{s.ask}</Text>
+          {[s.asked, s.answered].map((b) => (
+            <View key={b} style={[styles.bubble, styles.q, { borderColor: ink }]}>
+              <Text style={[styles.who, { color: ink }, hand]}>{s.qrewing}</Text>
+              <Text style={styles.bubbleText}>{b}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.card, { borderColor: ink }]}>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>{s.endsAfter}</Text>
+            <View style={styles.chips}>
+              {s.days.map((d, i) => (
+                <Text key={d} style={[styles.chip, i === 1 && { backgroundColor: ink, color: colors.onTint }]}>
+                  {d}
+                </Text>
+              ))}
+            </View>
+          </View>
+          <View style={[styles.row, styles.rowDivided]}>
+            <Text style={styles.rowLabel}>{s.people}</Text>
+            <Text style={styles.bold}>{s.peopleCount}</Text>
+          </View>
+          <View style={[styles.row, styles.rowDivided]}>
+            <Text style={styles.rowLabel}>{s.tripName}</Text>
+            <Text style={styles.note}>{s.tripOpen}</Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** "See what's included": the Free vs Plus table, Always free, and the prices note, as a page sheet. */
+function IncludedSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const say = (v: string | boolean | null) => (typeof v === 'string' ? v : v ? t.included : t.notIncluded);
+  const show = (v: string | boolean | null) => (typeof v === 'string' ? v : v ? '✓' : '—');
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <ScrollView contentContainerStyle={styles.sheetBody}>
+          <HandTitle>{t.compareTitle}</HandTitle>
+          <View style={styles.compare}>
+            <View style={styles.cmpRow} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Text style={styles.cmpLabel} />
+              <Text style={[styles.cmpCell, styles.cmpHead]}>{t.free}</Text>
+              <Text style={[styles.cmpCell, styles.cmpHead]}>{t.plus}</Text>
+            </View>
+            {t.compare.map((row) => (
+              <View
+                key={row.label}
+                style={[styles.cmpRow, styles.cmpDivided]}
+                accessible
+                accessibilityLabel={`${row.label}: ${t.free} ${say(row.free)}, ${t.plus} ${say(row.plus)}`}
+              >
+                <Text style={styles.cmpLabel}>{row.label}</Text>
+                <Text style={styles.cmpCell}>{show(row.free)}</Text>
+                <Text style={[styles.cmpCell, styles.bold]}>{show(row.plus)}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.note}>{t.tbdNote}</Text>
+          <Text style={styles.body}>{t.alwaysFree}</Text>
+        </ScrollView>
+        <Button title={t.done} variant="secondary" onPress={onClose} />
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
-  badge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText: { fontSize: 13, fontWeight: '600' },
-  benefit: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
-  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
-  focus: { paddingVertical: 12 },
-  mark: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, marginTop: 6 },
-  benefitText: { flex: 1, gap: 2 },
-  benefitTitle: { fontSize: 16, color: colors.label },
-  focusTitle: { fontWeight: '700' },
-  forYou: { fontSize: 13, fontWeight: '600', color: colors.secondaryLabel },
-  benefitBody: { fontSize: 14, color: colors.secondaryLabel },
-  previewLabel: { flex: 1, fontSize: 16, color: colors.label },
+  x: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  pill: { borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 2 },
+  pillText: { fontSize: 15, fontWeight: '600' },
+  preview: { height: 230, borderRadius: 20, backgroundColor: colors.field, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  diary: { width: 270, backgroundColor: colors.background, borderWidth: 1.5, borderRadius: 6, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, transform: [{ rotate: '-2deg' }] },
+  diaryHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  diaryTitle: { fontSize: 20 },
+  diaryDate: { fontSize: 11, color: colors.secondaryLabel, marginTop: 2, marginBottom: 4 },
+  diaryLine: { fontSize: 18, lineHeight: 26, borderBottomWidth: 1, borderBottomColor: colors.separator },
+  chat: { width: 300, gap: 8 },
+  bubble: { maxWidth: 230, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8 },
+  bubbleText: { fontSize: 13, lineHeight: 17, color: colors.label },
+  me: { alignSelf: 'flex-end', backgroundColor: colors.fieldStrong, fontSize: 13, color: colors.label, overflow: 'hidden' },
+  q: { alignSelf: 'flex-start', borderWidth: 1.5, backgroundColor: colors.background },
+  who: { fontSize: 14 },
+  card: { width: 310, backgroundColor: colors.background, borderWidth: 1.5, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, gap: 8 },
+  rowDivided: { borderTopWidth: 1, borderStyle: 'dashed', borderTopColor: colors.separator },
+  rowLabel: { fontSize: 15, color: colors.label },
+  chips: { flexDirection: 'row', gap: 6 },
+  chip: { fontSize: 13, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.field, color: colors.label },
+  hero: { alignItems: 'center', gap: 6 },
+  center: { textAlign: 'center' },
+  sub: { fontSize: 15, lineHeight: 20, color: colors.secondaryLabel, textAlign: 'center', marginHorizontal: 10 },
+  onBadge: { color: colors.label, fontWeight: '600' },
+  list: { gap: 12, marginHorizontal: 4 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lineIcon: { width: 24, height: 24 },
+  lineText: { flex: 1, fontSize: 15.5, color: colors.label },
+  bold: { fontWeight: '600', color: colors.label },
+  fine: { fontSize: 12.5, color: colors.secondaryLabel, textAlign: 'center' },
+  link: { textDecorationLine: 'underline', color: colors.label },
+  note: { fontSize: 13, color: colors.secondaryLabel },
+  sheet: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 20, gap: 12 },
+  sheetBody: { paddingTop: 28, gap: 16 },
+  compare: { borderRadius: 12, backgroundColor: colors.field, paddingHorizontal: 14 },
+  cmpRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 8 },
+  cmpDivided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
+  cmpLabel: { flex: 1.6, fontSize: 15, color: colors.label },
+  cmpCell: { flex: 1, fontSize: 15, color: colors.secondaryLabel, textAlign: 'center' },
+  cmpHead: { fontSize: 13, textTransform: 'uppercase' },
+  body: { fontSize: 15, lineHeight: 21, color: colors.secondaryLabel },
 });

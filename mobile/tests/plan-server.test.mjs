@@ -36,5 +36,5 @@ test('store reads user_plans first, writes via set_my_plan, reverts on failure, 
   assert.match(s, /useSyncExternalStore\(subscribe, \(\) => \(uid \? \(plus\.get\(uid\) \?\? null\) : null\)\)/);
   const p = readFileSync(new URL('../src/app/plan-preview.tsx', import.meta.url), 'utf8');
   assert.match(p, /if \(!ok\) Alert\.alert\(t\.saveFailedTitle, t\.saveFailedBody\)/);
-  assert.match(p, /disabled=\{saving \|\| on === null\}/);
+  assert.match(p, /title=\{t\.tryCta\} busy=\{saving\} disabled=\{on === null\}/);
 });
