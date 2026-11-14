@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
+import { InkArt } from '@/components/ink-art';
 import { QScreen } from '@/components/q-screen';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -41,6 +42,15 @@ export function ScanScreen() {
       title={en.scan.title}
       subtitle={en.scan.subtitle}
       actions={<Button title={en.scan.enterCode} variant="secondary" onPress={() => router.back()} />}
+      // sweep4 P2-1: before the camera is allowed, the camera ink art (as on Camera access is off) fills the space.
+      bottom={
+        permission?.granted ? undefined : (
+          <View style={styles.art} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <InkArt art="camera" width={160} />
+          </View>
+        )
+      }
+      bottomAlign="center"
     >
       {permission?.granted ? (
         <View style={styles.camera}>
@@ -74,6 +84,7 @@ export function ScanScreen() {
 
 const MARK = 26;
 const styles = StyleSheet.create({
+  art: { alignItems: 'center' },
   camera: { aspectRatio: 0.93, borderRadius: 14, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: '#22231F' },
   marks: { position: 'absolute', top: '22%', bottom: '22%', left: '20%', right: '20%' },
   mark: { position: 'absolute', width: MARK, height: MARK, borderColor: 'white' },
