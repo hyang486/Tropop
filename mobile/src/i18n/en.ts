@@ -52,7 +52,7 @@ export const en = {
     profile: 'Profile',
     create: 'Create a room',
     join: 'Join a room',
-    guestCreateHint: 'Only hosts can create rooms.',
+    guestCreateHint: 'Want to host?',
     loading: 'Loading rooms',
     loadFailed: 'Could not load your rooms.',
     retry: 'Try again',
@@ -673,7 +673,7 @@ export const en = {
     // Qrew unit 5 (Q 07.01).
     guestAccount: 'Guest account',
     hostAccount: 'Host account',
-    guestAccess: 'Guest access',
+    account: 'Account',
     guestAccessBody: 'Join a room using an invitation.',
     hostAccessBody: 'Create rooms and invite your group.',
     editProfile: 'Edit profile',
@@ -912,7 +912,7 @@ export const en = {
       linkInvalid: 'Each link must start with https:// and be up to 200 characters.',
       tooManyLinks: 'Add up to 3 links.',
       requiredMark: 'required',
-      answerRequired: (prompt: string) => `Answer “${prompt}”.`,
+      answerRequired: (prompt: string) => `Answer “${prompt}” to continue.`,
       linkPlaceholderN: (n: number) => `https://… (link ${n})`,
       noQuestions: 'No intro needed here',
       noQuestionsBody:

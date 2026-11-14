@@ -88,15 +88,13 @@ export default function Profile() {
         subtitle={en.profile.nameLabel}
         accessibilityLabel={`${en.profile.nameLabel}: ${name}`}
       />
-      {isGuest ? (
-        <QRowCard icon="checkmark" title={en.profile.guestAccess} subtitle={en.profile.guestAccessBody} />
-      ) : (
-        <QRowCard
-          icon="checkmark"
-          title={en.profile.hostAccount}
-          subtitle={session?.user.email ? `${session.user.email} · ${en.profile.hostAccessBody}` : en.profile.hostAccessBody}
-        />
-      )}
+      {/* UX P2-7: a plain info row (Account · Host/Guest), not a checkmark that reads as a selected option. */}
+      <QRowCard
+        icon="person.crop.circle"
+        title={en.profile.account}
+        value={isGuest ? en.profile.guest : en.profile.host}
+        subtitle={isGuest ? en.profile.guestAccessBody : (session?.user.email ?? en.profile.hostAccessBody)}
+      />
 
       <View style={styles.rows}>
         <QRowCard icon="globe" title={en.profile.language} value={en.profile.languageValue} />

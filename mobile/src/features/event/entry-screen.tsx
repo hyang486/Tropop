@@ -295,7 +295,10 @@ function FieldBlock({
       {end && q.kind === 'links' ? <Text style={styles.note}>{s.linksNote}</Text> : null}
       {error ? (
         <View ref={errorRef}>
-          <Hint tone="error">{error}</Hint>
+          {/* UX P2-9: 13 pt danger under the field; useAnnounce above speaks it on iOS. */}
+          <Text style={styles.fieldError} accessibilityLiveRegion="polite">
+            {error}
+          </Text>
         </View>
       ) : null}
     </>
@@ -304,6 +307,7 @@ function FieldBlock({
 
 const styles = StyleSheet.create({
   note: { fontSize: 13, color: colors.secondaryLabel },
+  fieldError: { fontSize: 13, color: colors.danger },
   // Matches QLabel (q-screen.tsx), which only takes a plain string.
   label: { fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 6 },
   star: { color: colors.danger },

@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } 
 import { InkArt } from '@/components/ink-art';
 import { placeTimeLine } from '@/components/place-time-cards';
 import { QLabel, QScreen } from '@/components/q-screen';
-import { Button, colors, Hint } from '@/components/ui';
+import { Button, colors, Hint, size, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
@@ -110,7 +110,17 @@ export default function Rooms() {
       >
         <Button title={en.home.join} onPress={() => router.push('/join')} />
         {isGuest ? (
-          <Hint>{en.home.guestCreateHint}</Hint>
+          // UX P2-8: a guest gets a next step, not a dead-end "Only hosts can create rooms."
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${en.home.guestCreateHint} ${en.profile.becomeHost}`}
+            onPress={() => router.push('/upgrade')}
+            style={({ pressed }) => [styles.hostLink, pressed && { opacity: 0.5 }]}
+          >
+            <Text style={styles.hostLinkText}>
+              {en.home.guestCreateHint} <Text style={styles.hostLinkAction}>{en.profile.becomeHost} ›</Text>
+            </Text>
+          </Pressable>
         ) : (
           <Button title={en.home.create} variant="secondary" onPress={() => router.push('/create-room')} />
         )}
@@ -191,6 +201,9 @@ function PlaceTimeLine({ room }: { room: Room }) {
 
 const styles = StyleSheet.create({
   loading: { marginTop: 24 },
+  hostLink: { minHeight: size.hit, justifyContent: 'center' },
+  hostLinkText: textRole.secondary,
+  hostLinkAction: { color: colors.label, fontWeight: '600' },
   empty: { paddingVertical: 48, alignItems: 'center', gap: 8 },
   emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
