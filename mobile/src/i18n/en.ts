@@ -495,6 +495,9 @@ export const en = {
     // Q 05.03: how long ago an item was shared ("Shared by Mia · 18 sec").
     age: (n: number, unit: 'sec' | 'min' | 'hr' | 'day') =>
       unit === 'day' ? `${n} ${n === 1 ? 'day' : 'days'}` : `${n} ${unit}`,
+    // UX2-71: the Photo viewer line, matching "Last seen 2 h ago" ("Shared by Jun · 11 h ago").
+    ageAgo: (n: number, unit: 'sec' | 'min' | 'hr' | 'day') =>
+      `${unit === 'day' ? `${n} ${n === 1 ? 'day' : 'days'}` : `${n} ${unit === 'hr' ? 'h' : unit}`} ago`,
   },
   // Qrew unit 5 (Q 07.04): shown instead of an alert when camera access is off for Take a photo.
   cameraOff: {

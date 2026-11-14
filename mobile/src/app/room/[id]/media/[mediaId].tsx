@@ -254,7 +254,7 @@ function MediaDetail({
   return (
     <QScreen
       title={title}
-      subtitle={age ? en.media.sharedByAge(uploader, en.media.age(age.n, age.unit)) : en.media.sharedBy(uploader)}
+      subtitle={age ? en.media.sharedByAge(uploader, en.media.ageAgo(age.n, age.unit)) : en.media.sharedBy(uploader)}
       actions={
         <>
           {download.status === 'error' ? <Hint tone="error">{download.message}</Hint> : null}
