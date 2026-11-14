@@ -244,12 +244,18 @@ create policy question_cards_select on public.question_cards for select to authe
   using ((asker_id = auth.uid() or answerer_id = auth.uid()) and private.room_is_open(room_id));
 -- No insert/update/delete policy: cards are created by the qrewing function (service role) and changed by the RPCs below.
 
--- Max 5 pending cards per asker per room (a Qrewing loop cannot flood a host).
+-- Both people must be members of an open room (a bug in the service-role function cannot send a question to an
+-- outsider or into a closed room), and max 5 pending cards per asker per room (a Qrewing loop cannot flood a host).
 create function private.question_cards_cap()
 returns trigger language plpgsql security definer
 set search_path = ''
 as $$
 begin
+  if not private.room_is_open(new.room_id)
+     or (select count(*) from public.room_members m
+          where m.room_id = new.room_id and m.user_id in (new.asker_id, new.answerer_id)) <> 2 then
+    raise exception 'Both people must be members of an open room.' using errcode = '42501';
+  end if;
   if (select count(*) from public.question_cards c
        where c.room_id = new.room_id and c.asker_id = new.asker_id and c.status = 'pending') >= 5 then
     raise exception 'Too many unanswered questions.' using errcode = '54000';

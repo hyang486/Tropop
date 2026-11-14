@@ -216,6 +216,10 @@ select tests.expect_ok($$ insert into public.question_cards (room_id, asker_id, 
   select (select room_id from tests.made where label = 'qroom'), 'c3100000-0000-4000-8000-000000000003', 'c3100000-0000-4000-8000-000000000001', 'q' || g from generate_series(1, 5) g $$, 'five pending cards');
 select tests.expect_state($$ insert into public.question_cards (room_id, asker_id, answerer_id, question)
   values ((select room_id from tests.made where label = 'qroom'), 'c3100000-0000-4000-8000-000000000003', 'c3100000-0000-4000-8000-000000000001', 'q6') $$, '54000', 'sixth pending card refused');
+select tests.expect_state($$ insert into public.question_cards (room_id, asker_id, answerer_id, question)
+  values ((select room_id from tests.made where label = 'qroom'), 'c3100000-0000-4000-8000-000000000003', 'c3100000-0000-4000-8000-000000000004', 'leak') $$, '42501', 'answerer outside the room refused');
+select tests.expect_state($$ insert into public.question_cards (room_id, asker_id, answerer_id, question)
+  values ((select room_id from tests.made where label = 'qroom'), 'c3100000-0000-4000-8000-000000000004', 'c3100000-0000-4000-8000-000000000001', 'x') $$, '42501', 'asker outside the room refused');
 
 -- 11. Read-time expiry: cards vanish with the room (RLS), even before the janitor deletes it.
 update public.rooms set created_at = now() - interval '2 hours', expires_at = now() - interval '1 minute' where id = (select room_id from tests.made where label = 'qroom');
