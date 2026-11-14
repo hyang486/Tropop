@@ -1,9 +1,8 @@
-import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { InkArt } from '@/components/ink-art';
+import { InkIcon } from '@/components/calendar/ink-icon';
 import { placeTimeLine } from '@/components/place-time-cards';
 import { QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, size, textRole } from '@/components/ui';
@@ -18,6 +17,7 @@ import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
 import { OpenChatSection } from '@/features/event/open-chat-section';
+import { defaultRoomIcon, iconEmoji } from '@/features/event/open-room-plan';
 import { Snackbar } from '@/features/event/snackbar';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
 import { syncCalendarRooms } from '@/features/calendar/calendar-store';
@@ -78,26 +78,28 @@ export default function Rooms() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <View style={styles.headerRow}>
-              {/* Qrewing Calendar (Plus preview); the screen shows the upsell without it. */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={en.calendar.openLabel}
-                onPress={() => router.push('/calendar')}
-                style={styles.headerIcon}
-              >
-                <SymbolView name="calendar" size={22} tintColor={colors.tint} />
-              </Pressable>
-              <Link href="/profile" style={styles.headerLink} accessibilityRole="button">
-                {en.home.profile}
-              </Link>
+      {/* UX P1-5: two separate 44 pt header buttons (they shared one glass pill and read as one). */}
+      <Stack.Toolbar placement="right">
+        {/* Qrewing Calendar (Plus preview); the screen shows the upsell without it. */}
+        <Stack.Toolbar.Button
+          icon="calendar"
+          accessibilityLabel={en.calendar.openLabel}
+          onPress={() => router.push('/calendar')}
+          separateBackground
+        />
+        <Stack.Toolbar.View hidesSharedBackground separateBackground>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={en.home.profile}
+            onPress={() => router.push('/profile')}
+            style={({ pressed }) => [styles.avatarHit, pressed && { opacity: 0.6 }]}
+          >
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initialOf(profile?.display_name)}</Text>
             </View>
-          ),
-        }}
-      />
+          </Pressable>
+        </Stack.Toolbar.View>
+      </Stack.Toolbar>
       <QScreen
         floating={notice ? <Snackbar notice={notice} onHide={hideNotice} /> : undefined}
         refreshControl={
@@ -112,7 +114,7 @@ export default function Rooms() {
           />
         }
         title={en.home.title}
-        subtitle={en.home.signedInAs(profile?.display_name ?? '…', isGuest ? en.profile.guest : en.profile.host)}
+        subtitle={`${profile?.display_name ?? '…'} · ${isGuest ? en.profile.guest : en.profile.host}`}
       >
         <Button title={en.home.join} onPress={() => router.push('/join')} />
         {isGuest ? (
@@ -151,21 +153,21 @@ export default function Rooms() {
 
         {/* The label counts only rows that show: a grace row dropping out may leave none. */}
         {rooms && rooms.some((r) => roomListEntry(r, now).kind !== 'hidden') ? <QLabel>{en.home.yourRooms}</QLabel> : null}
-        {rooms?.map((room) => {
+        {sortEndedLast(rooms ?? [], now).map(({ room, entry }) => {
           // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
           // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.
-          const entry = roomListEntry(room, now);
-          if (entry.kind === 'hidden') return null;
+          // UX P1-5: those ended rows sit last, dimmed to 45%.
+          const ended = entry.kind === 'grace';
           return (
           <Pressable
             key={room.id}
             accessibilityRole="button"
             onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
-            style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [styles.row, ended && styles.ended, pressed && { opacity: ended ? 0.3 : 0.6 }]}
           >
-            {/* Theme mark: the room's ink art, small (Q 01.03). */}
-            <View style={styles.mark}>
-              <InkArt roomName={room.name} width={40} ground={colors.field} />
+            {/* UX P1-5: the room's own ink icon (the Create room set) in a 40 pt ring, not the same art on every row. */}
+            <View style={styles.ring}>
+              <InkIcon emoji={iconEmoji(roomIcon(room))} size={22} />
             </View>
             <View style={styles.rowText}>
               <Text style={styles.rowTitle} numberOfLines={1}>
@@ -195,6 +197,21 @@ export default function Rooms() {
   );
 }
 
+/** Visible rows, live ones first (server order kept) and ended (grace) rows last. */
+function sortEndedLast(rooms: Room[], now: number) {
+  const rows = rooms.map((room) => ({ room, entry: roomListEntry(room, now) })).filter((r) => r.entry.kind !== 'hidden');
+  return [...rows.filter((r) => r.entry.kind !== 'grace'), ...rows.filter((r) => r.entry.kind === 'grace')];
+}
+
+/** A public room's chosen icon (0031; not in the generated types yet), else the default for its type. */
+function roomIcon(room: Room): string {
+  return (room as Room & { public_icon?: string | null }).public_icon ?? defaultRoomIcon(room.type);
+}
+
+function initialOf(name: string | null | undefined): string {
+  return name?.trim().charAt(0).toUpperCase() || '?';
+}
+
 function PlaceTimeLine({ room }: { room: Room }) {
   const placeTime = placeTimeOf(room);
   if (!placeTime) return null;
@@ -212,21 +229,40 @@ const styles = StyleSheet.create({
   hostLinkAction: { color: colors.label, fontWeight: '600' },
   empty: { paddingVertical: 48, alignItems: 'center', gap: 8 },
   emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  headerIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  headerLink: { fontSize: 17, color: colors.tint, paddingHorizontal: 8 },
+  avatarHit: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.label,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: 17, fontWeight: '600', color: colors.label },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.field,
+    minHeight: 64,
+    borderWidth: 1,
+    borderColor: colors.separator,
     borderRadius: 12,
     borderCurve: 'continuous',
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     gap: 12,
   },
-  mark: { width: 44, alignItems: 'center' },
+  ended: { opacity: 0.45 },
+  ring: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.label,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 16, fontWeight: '500', color: colors.label },
+  rowTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
   rowSubtitle: { fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
 });
