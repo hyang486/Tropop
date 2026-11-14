@@ -1162,7 +1162,9 @@ export const en = {
       turnOnFailed: "Couldn't turn on Qrewing AI. Try again.",
     },
     ask: {
-      fabLabel: 'Ask Qrewing',
+      // UX3-B05: the composer's Qrewing button.
+      composerLabel: 'Qrewing',
+      composerHint: 'Opens Qrewing AI.',
       // UX2-129: not_member alert before the screen closes.
       notMemberTitle: "You're not in this room anymore",
       notMemberMessage: "The room ended or you left it. Your question wasn't sent.",

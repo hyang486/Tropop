@@ -20,7 +20,7 @@ import { Composer } from '@/components/composer';
 import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
-import { QREWING_FAB_CLEARANCE, QrewingFab, useQrewingAskButton } from '@/features/event/qrewing-fab';
+import { QrewingComposerMark, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { colors, Hint, Screen, size } from '@/components/ui';
 import { EntryGate, HiddenRow, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
@@ -231,7 +231,8 @@ function ChatRoom({
   useRecapTriggers(room.id, userId, qrewing.aiEnabled, remainingMs);
   const [disclosureClosed, setDisclosureClosed] = useState(false);
   const [askConsent, setAskConsent] = useState(false);
-  // UX2-04: one Ask probe for the FAB and the "answered your question" notice (Free → Plus intro, like the FAB).
+  // UX2-04 / UX3-B05: one Ask probe for the composer's Qrewing button and the "answered your question" notice
+  // (Free → Plus intro, like the button).
   const ask = useQrewingAskButton(room.id);
   // UX2-04b: my stored plan; a Free asker's "answered your question" notice opens AnswerSheet with this card.
   // C14: the read-only Free answer sheet only on a confirmed Free plan.
@@ -489,8 +490,7 @@ function ChatRoom({
               onScrollToIndexFailed={({ averageItemLength, index }) =>
                 listRef.current?.scrollToOffset({ offset: averageItemLength * index, animated: true })
               }
-              // Inverted: paddingTop is the visual bottom, so the newest message clears Ask Qrewing.
-              contentContainerStyle={[styles.list, { paddingTop: QREWING_FAB_CLEARANCE }]}
+              contentContainerStyle={styles.list}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
               onEndReached={chat.hasMore ? chat.loadOlder : undefined}
@@ -548,7 +548,7 @@ function ChatRoom({
               }}
             />
           )}
-          <QrewingFab ask={ask} />
+          {ask.sheet}
           </View>
 
           {/* UX P1-1 / UX2-02 / UX2-74 (a): before entry info only Send is gated. The entry card takes the text field's place; the
@@ -581,6 +581,13 @@ function ChatRoom({
                   sendLabel={en.chat.send}
                   canSend={canSend}
                   maxLength={MAX_MESSAGE_LENGTH}
+                  // UX3-B05: Qrewing sits in the send slot while the field is empty (where the FAB used to show).
+                  idleAction={ask.available ? {
+                    label: en.qrewing.ask.composerLabel,
+                    hint: en.qrewing.ask.composerHint,
+                    icon: <QrewingComposerMark />,
+                    onPress: ask.open,
+                  } : undefined}
                 />
               </View>
             )}

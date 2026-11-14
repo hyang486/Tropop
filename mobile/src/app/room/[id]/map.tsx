@@ -14,7 +14,6 @@ import { RouteEditor } from '@/components/route-editor';
 import { edgeSolid, QLink } from '@/components/q-screen';
 import { Button, colors, Hint, palette, radius, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
-import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { PaceCard } from '@/features/pace/pace-card';
 import { type PersonGap, personGap } from '@/features/pace/pace-core';
 import { PaceLayer } from '@/features/pace/pace-layer';
@@ -262,8 +261,6 @@ function RoomMap({
 
   // F5-5b: the map's real size once it is laid out (the fit and the label grouping measure against it).
   const [mapSize, setMapSize] = useState<ViewSize>(ROOM_MAP_SIZE);
-  // UX P0-2: Ask Qrewing is a header icon on the map, not a floating button over it.
-  const ask = useQrewingAskButton(room.id);
   // The room map's view after its last camera move: the editor opens on the same view.
   const lastView = useRef<Camera | null>(null);
   function onCameraMove(event: CameraMoveEvent) {
@@ -551,10 +548,8 @@ function RoomMap({
       <Stack.Screen
         options={{
           title: en.map.title,
-          headerRight: () => (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null),
         }}
       />
-      {ask.sheet}
       {/* Qrew unit 4 (Q 04.02, 08.03): handwritten title and the room name; no art on the map. */}
       <Animated.View style={[styles.head, { opacity: inlineTitle.blockOpacity }]} onLayout={inlineTitle.onTitleLayout}>
         <HandTitle>{en.map.title}</HandTitle>
