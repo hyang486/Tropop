@@ -26,6 +26,15 @@ Known gaps:
 - Upload row buttons use 8 pt padding, not the spec's 12 pt, so the labels do not overlap (ux informed).
 - Not tested on device: VoiceOver reading of pins and tiles, Reduce Motion cross-fade, rendered upload row.
 
+## 2026-11-14: UX2-03 server, migration 0035 room_ai_plus APPLIED live (human FINAL "적용해", OPERATIONS l.342)
+
+- Pre-check: last applied 20261114081433 room_storage_cap (0033); live set_qrewing_room body md5 bc11be38… = 0028 body (= revert file); 0 idle transactions; 0 test leftovers.
+- Live test `supabase/tests/room_ai_plus_test.sql` inside BEGIN…ROLLBACK: ROOM AI PLUS TESTS PASSED. After: 0 c3500000 users, 0 test rooms, no `tests` schema or `made` table, body still 0028.
+- PGlite: 0001-0033 + 0035 without 0034 passes, so 0035 does not depend on G1 0034 (0034 touches neither set_qrewing_room nor user_plan); file order stays valid when G1 lands.
+- Applied with apply_migration as 20261114094947 room_ai_plus. Post-check: body md5 ba47b172… = 0035 file; one function; security definer; authenticated execute yes, anon no.
+- Rollback: `supabase/rollback/20261104000035_room_ai_plus_revert.sql` (restores the 0028 body, md5 bc11be38…; no data change).
+- Device check pending (qa).
+
 ## 2026-11-13 summary for the human's morning review (nothing pushed)
 
 **Qrewing Calendar (Plus): done.** Server: `recap` with `diary: true` and `calendar_add` (details in the next section), live since qrewing v8. App: calendar month/day views, header icon, Plus upsell, diary card, recap diary on every save path, VoiceOver and dark mode (local main, e.g. 62bf662, 8d8f503, 717036f, 941c08f, 572585b). Evidence: `docs/evidence/2026-11-13-calendar-*.png` (month light, month + day list dark, day list light, header icon, upsell). Edge logs on v8: 22 × 200, 1 × 502 (upstream model 503 on a recap, transient).
