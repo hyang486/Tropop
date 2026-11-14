@@ -17,6 +17,7 @@ import { QLink, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, inviteUrl, rotateInvite, type Room } from '@/lib/rooms';
@@ -25,6 +26,7 @@ import { useRoomOver } from '@/lib/use-room-over';
 export default function Invite() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { session } = useAuth();
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState<string | null>(null);
   // G-U6-1: the room read came back empty (it ended or expired): Room ended, not a bare error line.
@@ -151,7 +153,8 @@ export default function Invite() {
             variant="secondary"
             onPress={() => void copyCode(room.code)}
           />
-          <QLink title={en.invite.reissue} onPress={reissue} />
+          {/* UX2-07 (pattern H): only the host can reissue the invite; guests never see it. */}
+          {room.host_id === session?.user.id ? <QLink title={en.invite.reissue} onPress={reissue} /> : null}
           {error ? <Hint tone="error">{error}</Hint> : null}
         </>
       }
