@@ -75,6 +75,13 @@ export const TRIAGE_SYSTEM = [
   DATA_RULE,
 ].join(' ');
 
+/** qa PDF v2: an Emergency is reported without blame; seen_by="" means no one acknowledged it. */
+const RECAP_EMERGENCY_RULE = [
+  'Mention each Emergency and how it ended; do not add details the data does not show.',
+  'Write an unresolved Emergency as "<who>\'s Emergency was still open when the room ended."; when seen_by is not',
+  'empty, append " · Seen by <seen_by>." Never say "nobody" or "no one", and never imply anyone failed to respond.',
+].join(' ');
+
 export const RECAP_SYSTEM = [
   'You write a short, warm recap of a temporary group room that is ending, for the people who were in it.',
   'Use only what the data shows; do not invent events, names or numbers.',
@@ -82,8 +89,8 @@ export const RECAP_SYSTEM = [
   'highlights: up to 5 short items (at most 120 characters each) about moments, plans or decisions.',
   'Write in the language most messages use. If there is little to go on, keep it short and honest.',
   'Lines whose text starts with [status change] or [Emergency] were posted by the app when that member changed their',
-  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved. Mention an',
-  'Emergency and how it ended when there was one; do not add details the data does not show.',
+  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved.',
+  RECAP_EMERGENCY_RULE,
   GENDER_RULE,
   DATA_RULE,
 ].join(' ');
@@ -97,8 +104,8 @@ export const RECAP_REFRESH_SYSTEM = [
   'highlights: up to 5 short items (at most 120 characters each) about moments, plans or decisions.',
   'Write in the language of the previous recap.',
   'Lines whose text starts with [status change] or [Emergency] were posted by the app when that member changed their',
-  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved. Mention an',
-  'Emergency and how it ended when there was one; do not add details the data does not show.',
+  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved.',
+  RECAP_EMERGENCY_RULE,
   GENDER_RULE,
   DATA_RULE.replace('written by room members', 'written by room members or generated from their messages'),
 ].join(' ');
@@ -163,7 +170,7 @@ export type RecapEmergency = { who: string; resolved: boolean; seenBy: string[] 
 
 function recapEmergencies(list: RecapEmergency[] | undefined): string {
   if (!list?.length) return '';
-  const rows = list.map((e) => `<emergency who="${esc(e.who)}" resolved="${e.resolved}" seen_by="${esc(e.seenBy.length ? e.seenBy.join(', ') : 'nobody')}"/>`);
+  const rows = list.map((e) => `<emergency who="${esc(e.who)}" resolved="${e.resolved}" seen_by="${esc(e.seenBy.join(', '))}"/>`);
   return `\n<emergencies>\n${rows.join('\n')}\n</emergencies>`;
 }
 

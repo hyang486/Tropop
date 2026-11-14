@@ -1396,6 +1396,24 @@ test('E2E (a) recap: status and Emergency lines merge into the chat in time orde
   assert.ok(calls[0].system.includes('[status change]'));
 });
 
+test('recap: an unseen, unresolved Emergency sends seen_by="" and the prompts forbid "nobody" (qa PDF v2)', async () => {
+  const w = world({
+    messages: [msg(1, HOST, 'Start at 7', 30), msg(2, BOB, 'Bob needs help (Emergency)', 25, 'emergency')],
+    emergencies: [{ id: 'e1', userId: BOB, createdAt: iso(-25 * MIN), ackedBy: [] }],
+  });
+  const { m, calls } = model(() => ({ text: RECAP_OUT }));
+  const r = await run(w, m, HOST, { action: 'recap', roomId: ROOM });
+  assert.equal(r.status, 200);
+  assert.ok(calls[0].user.includes('<emergency who="Bob" resolved="false" seen_by=""/>'));
+  assert.ok(!/nobody/i.test(calls[0].user));
+  for (const sys of [RECAP_SYSTEM, RECAP_REFRESH_SYSTEM]) {
+    assert.ok(sys.includes(`"<who>'s Emergency was still open when the room ended."`));
+    assert.ok(sys.includes('" · Seen by <seen_by>."'));
+    assert.ok(sys.includes('Never say "nobody"'));
+    assert.ok(!sys.includes('how it ended when there was one'));
+  }
+});
+
 const POS = (userId: string, lat: number, secAgo: number, speedMps: number | null, sharing = true) =>
   ({ userId, lat, lng: -122.26, speedMps, updatedAt: iso(-secAgo * 1000), sharing });
 
