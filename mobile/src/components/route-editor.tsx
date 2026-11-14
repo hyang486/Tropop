@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   dimmed: { opacity: 0.5 },
   head: { gap: 4 },
-  roomName: { fontSize: 15, color: colors.secondaryLabel },
+  roomName: { fontSize: 15, color: colors.ink2 },
   // The map takes the space left between the head and the pills, never less than a usable drawing area.
   mapCard: { flex: 1, minHeight: 220, borderRadius: 12, borderCurve: 'continuous', overflow: 'hidden' },
   distanceChip: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   toolText: { fontSize: 15, fontWeight: '500', color: colors.label },
   toolOnText: { color: colors.onTint },
   disabledText: { color: colors.secondaryLabel },
-  hint: { fontSize: 14, color: colors.secondaryLabel },
+  hint: { fontSize: 14, color: colors.ink2 },
   hintError: { color: colors.danger },
   actions: { paddingHorizontal: qSpacing.side, paddingTop: 12, backgroundColor: colors.background },
 });

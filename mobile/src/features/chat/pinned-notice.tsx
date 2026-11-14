@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   },
   icon: { width: 20, height: 20, marginTop: 1 },
   main: { flex: 1, gap: 2 },
-  heading: { fontSize: 12, fontWeight: '600', color: colors.secondaryLabel },
+  heading: { fontSize: 12, fontWeight: '600', color: colors.ink2 },
   body: { fontSize: 15, color: colors.label },
   side: { alignItems: 'center', gap: 14, paddingTop: 2 },
 });

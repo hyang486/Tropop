@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   },
   text: { flex: 1, gap: 2 },
   name: { fontSize: 16, color: colors.label },
-  area: { fontSize: 13, color: colors.secondaryLabel },
-  count: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
+  area: { fontSize: 13, color: colors.ink2 },
+  count: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'] },
 });

@@ -143,5 +143,5 @@ const styles = StyleSheet.create({
   tileSelected: { borderWidth: 1.5, borderColor: colors.label },
   tileText: { fontSize: 15 },
   cancel: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
-  cancelText: { fontSize: 15, color: colors.secondaryLabel },
+  cancelText: { fontSize: 15, color: colors.ink2 },
 });

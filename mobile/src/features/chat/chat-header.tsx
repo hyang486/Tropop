@@ -202,8 +202,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { fontSize: 11, fontWeight: '700', color: colors.onTint, fontVariant: ['tabular-nums'] },
-  ends: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'], marginBottom: 4 },
-  empty: { fontSize: 15, color: colors.secondaryLabel, paddingVertical: 12 },
+  ends: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'], marginBottom: 4 },
+  empty: { fontSize: 15, color: colors.ink2, paddingVertical: 12 },
   // MuteBar pads itself by 24; pulled in so its label lines up with the rows above.
   settingsExtra: { gap: 6 },
 });

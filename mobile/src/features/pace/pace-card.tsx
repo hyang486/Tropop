@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   statCell: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
   statDivider: { borderLeftWidth: StyleSheet.hairlineWidth * 2, borderLeftColor: colors.separator },
   statValue: { fontSize: 40, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] },
-  statLabel: { fontSize: 13, color: colors.secondaryLabel, marginTop: 2 },
+  statLabel: { fontSize: 13, color: colors.ink2, marginTop: 2 },
   target: {
     gap: 10,
     borderWidth: StyleSheet.hairlineWidth * 2,
@@ -278,5 +278,5 @@ const styles = StyleSheet.create({
     color: colors.label,
     fontVariant: ['tabular-nums'],
   },
-  unit: { fontSize: 15, color: colors.secondaryLabel },
+  unit: { fontSize: 15, color: colors.ink2 },
 });

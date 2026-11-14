@@ -269,7 +269,7 @@ export function QCaption({ children }: { children: ReactNode }) {
   return <Text style={styles.caption}>{children}</Text>;
 }
 
-/** Small uppercase gray label over a group (Q 01.03 "YOUR ROOMS", Q 02.02 "ROOM TYPE"). */
+/** Section label over a group (Q 01.03 "Your rooms", Q 02.02 "Room type"); 13 pt semibold sentence case, ink2 (UX P1-12). */
 export function QLabel({ children }: { children: string }) {
   return (
     <Text style={styles.label} accessibilityRole="header">
@@ -335,10 +335,10 @@ const styles = StyleSheet.create({
   // Room for a `floating` button (the Ask Qrewing footprint), so the last row scrolls clear of it.
   floatingClear: { paddingBottom: QSCREEN_FLOATING_CLEARANCE },
   head: { marginBottom: 6, gap: 4 },
-  subtitle: { fontSize: 15, color: colors.secondaryLabel },
+  subtitle: { fontSize: 15, color: colors.ink2 },
   spacer: { flexGrow: 1 },
-  caption: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  label: { fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 6 },
+  caption: { fontSize: 13, color: colors.ink2, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
   card: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   field: {

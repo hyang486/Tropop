@@ -222,5 +222,5 @@ const styles = StyleSheet.create({
   mark: { width: 44, alignItems: 'center' },
   rowText: { flex: 1, gap: 2 },
   rowTitle: { fontSize: 16, fontWeight: '500', color: colors.label },
-  rowSubtitle: { fontSize: 13, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
+  rowSubtitle: { fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
 });

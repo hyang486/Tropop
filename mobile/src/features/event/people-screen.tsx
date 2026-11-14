@@ -211,13 +211,13 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: 8, paddingVertical: 48, paddingHorizontal: 16 },
   emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label, textAlign: 'center' },
-  emptyBody: { fontSize: 15, color: colors.secondaryLabel, textAlign: 'center' },
+  emptyBody: { fontSize: 15, color: colors.ink2, textAlign: 'center' },
   center: { alignItems: 'center', gap: 12, paddingVertical: 24 },
   headerTitle: { fontSize: 24, lineHeight: 30 },
   who: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   whoText: { flex: 1, gap: 2 },
   name: { fontSize: 17, fontWeight: '600', color: colors.label },
-  headline: { fontSize: 15, color: colors.secondaryLabel },
+  headline: { fontSize: 15, color: colors.ink2 },
   reason: { fontSize: 15, color: colors.label, marginTop: 4 },
   link: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline', marginTop: 4 },
 });

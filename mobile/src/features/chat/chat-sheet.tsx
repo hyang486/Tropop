@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
   rowIcon: { width: 22, height: 22 },
   rowText: { flex: 1, gap: 2 },
   rowLabel: { fontSize: 16, color: colors.label },
-  rowDetail: { fontSize: 13, color: colors.secondaryLabel },
+  rowDetail: { fontSize: 13, color: colors.ink2 },
   pressed: { opacity: 0.5 },
   close: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
-  closeText: { fontSize: 15, color: colors.secondaryLabel },
+  closeText: { fontSize: 15, color: colors.ink2 },
 });

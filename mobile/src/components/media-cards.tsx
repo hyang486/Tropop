@@ -55,5 +55,5 @@ const styles = StyleSheet.create({
   },
   text: { flex: 1, gap: 2 },
   title: { fontSize: 16, color: colors.label },
-  body: { fontSize: 13, color: colors.secondaryLabel },
+  body: { fontSize: 13, color: colors.ink2 },
 });

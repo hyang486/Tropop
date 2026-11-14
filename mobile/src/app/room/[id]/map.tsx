@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
   // Qrew unit 4: the QScreen head (title, gray room name under it) inside the map's own scroll view.
   head: { gap: 4, marginBottom: -4 },
-  roomName: { fontSize: 15, color: colors.secondaryLabel },
+  roomName: { fontSize: 15, color: colors.ink2 },
   loading: { marginTop: 48 },
   center: { padding: 20, gap: 12, alignItems: 'center' },
   mapWrap: { height: 360, borderRadius: 12, borderCurve: 'continuous', overflow: 'hidden' },
@@ -782,8 +782,8 @@ const styles = StyleSheet.create({
   },
   presenceText: { flex: 1, gap: 2 },
   presenceName: { fontSize: 17, color: colors.label },
-  presenceMeta: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
+  presenceMeta: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'] },
   staleText: { color: colors.warning },
-  presenceStatus: { color: colors.secondaryLabel },
+  presenceStatus: { color: colors.ink2 },
   emergencyText: { color: EMERGENCY_RED, fontWeight: '600' },
 });

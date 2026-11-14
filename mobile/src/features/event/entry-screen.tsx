@@ -306,10 +306,10 @@ function FieldBlock({
 }
 
 const styles = StyleSheet.create({
-  note: { fontSize: 13, color: colors.secondaryLabel },
+  note: { fontSize: 13, color: colors.ink2 },
   fieldError: { fontSize: 13, color: colors.danger },
   // Matches QLabel (q-screen.tsx), which only takes a plain string.
-  label: { fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
   star: { color: colors.danger },
   headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
   empty: { gap: 8, paddingTop: 8 },

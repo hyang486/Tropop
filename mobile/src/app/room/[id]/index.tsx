@@ -688,10 +688,10 @@ const styles = StyleSheet.create({
   theirs: { backgroundColor: colors.field },
   failedBubble: { opacity: 0.6 },
   body: { fontSize: 16, color: colors.label },
-  meta: { fontSize: 12, color: colors.secondaryLabel },
+  meta: { fontSize: 12, color: colors.ink2 },
   failedMeta: { color: colors.danger },
   noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
-  notice: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' },
+  notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },
   // Spec 11 A17: Emergency reads in black (weight, not red), as on the card.
   emergency: { color: colors.label, fontWeight: '700' },
   mediaNotice: { color: colors.label, textDecorationLine: 'underline' },

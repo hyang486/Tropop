@@ -138,7 +138,7 @@ export default function ProfileEdit() {
 const styles = StyleSheet.create({
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   photoActions: { flex: 1, gap: 8 },
-  pickLabel: { fontSize: 13, color: colors.secondaryLabel },
+  pickLabel: { fontSize: 13, color: colors.ink2 },
   pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   pick: { padding: 3, borderRadius: 30, borderWidth: 2, borderColor: 'transparent' },
   pickSelected: { borderColor: colors.tint },

@@ -87,5 +87,5 @@ const g = en.qrewing.grace;
 
 const styles = StyleSheet.create({
   until: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.label },
-  line: { fontSize: 15, lineHeight: 21, color: colors.secondaryLabel },
+  line: { fontSize: 15, lineHeight: 21, color: colors.ink2 },
 });

@@ -206,7 +206,7 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  body: { fontSize: 15, lineHeight: 21, color: colors.secondaryLabel },
+  body: { fontSize: 15, lineHeight: 21, color: colors.ink2 },
   effects: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 18 },
   icons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   effectsText: { fontSize: 15, color: colors.label, textAlign: 'center', paddingBottom: 6 },

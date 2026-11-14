@@ -170,7 +170,7 @@ export function Hint({ children, tone = 'normal' }: { children: ReactNode; tone?
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 16 },
   fieldWrap: { gap: 6 },
-  fieldLabel: { fontSize: 13, color: colors.secondaryLabel, textTransform: 'uppercase' },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   field: {
     backgroundColor: colors.field,
     color: colors.label,

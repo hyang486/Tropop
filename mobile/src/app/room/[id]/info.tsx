@@ -249,6 +249,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   memberName: { flex: 1, fontSize: 17, color: colors.label },
-  memberTag: { fontSize: 14, color: colors.secondaryLabel },
+  memberTag: { fontSize: 14, color: colors.ink2 },
   statuses: { marginTop: 12 },
 });

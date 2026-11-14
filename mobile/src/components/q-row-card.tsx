@@ -94,6 +94,6 @@ const styles = StyleSheet.create({
   icon: { width: 28, height: 28 },
   text: { flex: 1, gap: 2 },
   title: { fontSize: 17, color: colors.label },
-  subtitle: { fontSize: 13, color: colors.secondaryLabel },
-  value: { fontSize: 17, color: colors.secondaryLabel },
+  subtitle: { fontSize: 13, color: colors.ink2 },
+  value: { fontSize: 17, color: colors.ink2 },
 });

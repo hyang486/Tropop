@@ -284,5 +284,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.field,
   },
   loading: { marginTop: 48 },
-  sub: { fontSize: 13, color: colors.secondaryLabel },
+  sub: { fontSize: 13, color: colors.ink2 },
 });

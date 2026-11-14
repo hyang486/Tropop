@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     left: 12,
     bottom: 10,
     fontSize: 12,
-    color: colors.secondaryLabel,
+    color: colors.ink2,
     backgroundColor: colors.field,
     paddingHorizontal: 6,
     paddingVertical: 2,

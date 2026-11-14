@@ -629,7 +629,7 @@ const outline = {
 
 const styles = StyleSheet.create({
   bar: { ...createBarLayout, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
-  deletes: { fontSize: 13, color: colors.secondaryLabel },
+  deletes: { fontSize: 13, color: colors.ink2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   presets: { flexDirection: 'row', flexWrap: 'nowrap', gap: 8 },
   chip: {
@@ -646,8 +646,8 @@ const styles = StyleSheet.create({
   rowAction: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
   box: { ...outline, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
-  statuses: { fontSize: 14, color: colors.secondaryLabel, paddingVertical: 2 },
-  cardNote: { fontSize: 12, color: colors.secondaryLabel },
+  statuses: { fontSize: 14, color: colors.ink2, paddingVertical: 2 },
+  cardNote: { fontSize: 12, color: colors.ink2 },
   pinArea: { fontSize: 14, color: colors.label },
   stepOff: { opacity: 0.3 },
   capacity: { minWidth: 84, textAlign: 'center', fontSize: 16, color: colors.label, fontVariant: ['tabular-nums'] },

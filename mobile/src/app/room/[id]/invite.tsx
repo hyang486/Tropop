@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   // The QR keeps a white quiet zone so it scans in dark mode too.
   qr: { padding: 10, backgroundColor: 'white', borderRadius: 8 },
   codeBox: { alignItems: 'center', gap: 4, marginTop: 8 },
-  codeLabel: { fontSize: 13, color: colors.secondaryLabel },
+  codeLabel: { fontSize: 13, color: colors.ink2 },
   code: {
     fontSize: 36,
     fontWeight: '400',
@@ -197,5 +197,5 @@ const styles = StyleSheet.create({
     color: colors.label,
     fontVariant: ['tabular-nums'],
   },
-  hint: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' },
+  hint: { fontSize: 13, color: colors.ink2, textAlign: 'center' },
 });

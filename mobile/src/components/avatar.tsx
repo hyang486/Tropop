@@ -51,5 +51,5 @@ export function Avatar({ path, name, size = 32 }: Props) {
 
 const styles = StyleSheet.create({
   empty: { backgroundColor: colors.separator, alignItems: 'center', justifyContent: 'center' },
-  initial: { fontWeight: '600', color: colors.secondaryLabel },
+  initial: { fontWeight: '600', color: colors.ink2 },
 });

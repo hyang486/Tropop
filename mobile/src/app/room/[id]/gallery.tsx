@@ -419,7 +419,7 @@ function UploadRow({
             </Pressable>
           )}
           <Pressable onPress={onDismiss} accessibilityRole="button" hitSlop={6}>
-            <Text style={[styles.action, { color: colors.secondaryLabel }]}>{en.media.dismiss}</Text>
+            <Text style={[styles.action, { color: colors.ink2 }]}>{en.media.dismiss}</Text>
           </Pressable>
         </View>
       ) : (
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   head: { paddingHorizontal: qSpacing.side, paddingTop: 4, paddingBottom: 10, gap: 4 },
   title: { fontSize: 30, lineHeight: 38 },
-  subtitle: { fontSize: 15, color: colors.secondaryLabel },
+  subtitle: { fontSize: 15, color: colors.ink2 },
   pills: { flexDirection: 'row', gap: 6, marginTop: 10 },
   pill: {
     flex: 1,
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   grid: { borderRadius: 12, borderCurve: 'continuous' },
   notices: { gap: 10, paddingBottom: 8 },
   actions: { paddingHorizontal: qSpacing.side, paddingTop: 12, gap: qSpacing.gap, backgroundColor: colors.background },
-  originals: { fontSize: 13, color: colors.secondaryLabel },
+  originals: { fontSize: 13, color: colors.ink2 },
   jobs: { gap: 8 },
   job: {
     flexDirection: 'row',
@@ -477,14 +477,14 @@ const styles = StyleSheet.create({
   },
   jobText: { flex: 1, gap: 4 },
   jobName: { fontSize: 15, color: colors.label },
-  jobStatus: { fontSize: 13, color: colors.secondaryLabel },
+  jobStatus: { fontSize: 13, color: colors.ink2 },
   jobActions: { gap: 8, alignItems: 'flex-end' },
   action: { fontSize: 15, color: colors.tint, fontWeight: '500' },
   track: { height: 4, borderRadius: 2, backgroundColor: colors.separator, overflow: 'hidden' },
   bar: { height: 4, backgroundColor: colors.tint },
   fill: { width: '100%', height: '100%' },
   fileTile: { alignItems: 'center', justifyContent: 'center', gap: 6, padding: 8, backgroundColor: colors.field },
-  fileName: { fontSize: 12, color: colors.secondaryLabel, textAlign: 'center' },
+  fileName: { fontSize: 12, color: colors.ink2, textAlign: 'center' },
   badge: {
     position: 'absolute',
     right: 6,

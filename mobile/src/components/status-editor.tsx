@@ -222,7 +222,7 @@ export function StatusEditor({ roomId, isHost, editing = true }: { roomId: strin
 
 const styles = StyleSheet.create({
   section: { gap: 8 },
-  sectionTitle: { fontSize: 13, color: colors.secondaryLabel, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   // Spec 11 A18 (human): a grouped box like iOS Settings instead of plain lines.
   group: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingLeft: 16 },
   groupRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 46, paddingRight: 16 },
@@ -241,6 +241,6 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 12 },
   label: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 12 },
   fixedLabel: { flex: 1, fontSize: 17, color: colors.danger, fontWeight: '600', paddingVertical: 12 },
-  fixedTag: { fontSize: 14, color: colors.secondaryLabel },
+  fixedTag: { fontSize: 14, color: colors.ink2 },
   remove: { fontSize: 26, lineHeight: 28, color: colors.danger, paddingHorizontal: 6 },
 });

@@ -196,6 +196,6 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 11, fontWeight: '700', color: colors.onTint, fontVariant: ['tabular-nums'] },
   label: { fontSize: 13, color: colors.label },
-  detail: { marginTop: -4, fontSize: 12, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
+  detail: { marginTop: -4, fontSize: 12, color: colors.ink2, fontVariant: ['tabular-nums'] },
   detailDanger: { color: colors.danger },
 });

@@ -208,5 +208,5 @@ const styles = StyleSheet.create({
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
   bot: { alignSelf: 'flex-start', backgroundColor: colors.field },
   text: { fontSize: 16, color: colors.label },
-  thinking: { fontSize: 14, color: colors.secondaryLabel },
+  thinking: { fontSize: 14, color: colors.ink2 },
 });

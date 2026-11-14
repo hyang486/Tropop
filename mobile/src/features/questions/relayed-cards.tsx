@@ -99,13 +99,13 @@ function Relayed({ card, answerer, now }: { card: QuestionCard; answerer: string
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  section: { fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, textTransform: 'uppercase', marginTop: 8 },
+  section: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 8 },
   card: { gap: 8 },
   bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
   bot: { alignSelf: 'flex-start', backgroundColor: colors.field, gap: 2 },
-  by: { fontSize: 13, fontWeight: '600', color: colors.secondaryLabel },
+  by: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   text: { fontSize: 16, color: colors.label },
-  note: { fontSize: 14, color: colors.secondaryLabel },
+  note: { fontSize: 14, color: colors.ink2 },
   offer: { gap: 8 },
 });
