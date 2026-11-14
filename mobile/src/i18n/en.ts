@@ -319,8 +319,8 @@ export const en = {
     chooseAnother: 'Choose another',
     pickPhotoHint: 'Takes or chooses a photo of your face',
     noPhotoYet: 'No photo chosen yet',
-    disabled:
-      'Face matching is off in this draft. Your reference is saved; photos are sorted when face matching is turned on.',
+    // UX2-41: no "draft" wording.
+    disabled: 'Matching is off.',
     runError: (message: string) => `Photos could not be checked: ${message}`,
     checking: (n: number) => `${n} ${n === 1 ? 'photo is' : 'photos are'} still being checked.`,
     failed: (n: number) => `${n} ${n === 1 ? 'photo' : 'photos'} could not be checked.`,
