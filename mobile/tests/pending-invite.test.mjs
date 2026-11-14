@@ -91,3 +91,15 @@ test('invite validation and QR parsing', () => {
   assert.deepEqual(parseInvite(' 12345 '), { code: '12345' });
   assert.equal(parseInvite('https://example.com/join/' + TOKEN), null);
 });
+
+test('UX2-60: the bad-link note follows the current Welcome params, not the first mount', async () => {
+  const { badLinkNoteShown } = await import('../src/lib/invite.ts');
+  // Welcome already in the stack (cold signed-out or warm): dismissTo swaps its params later.
+  assert.equal(badLinkNoteShown({}, null), false);
+  assert.equal(badLinkNoteShown({ link: 'invalid', at: '1' }, null), true);
+  // Cleared by the next action, for that link only.
+  assert.equal(badLinkNoteShown({ link: 'invalid', at: '1' }, '1'), false);
+  // A second junk link (a new stamp) shows it again.
+  assert.equal(badLinkNoteShown({ link: 'invalid', at: '2' }, '1'), true);
+  assert.equal(badLinkNoteShown({ link: 'other', at: '3' }, null), false);
+});

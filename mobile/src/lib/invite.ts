@@ -84,3 +84,12 @@ export function resumePendingInvite(preview: (invite: Invite) => void): boolean 
   preview(invite);
   return true;
 }
+
+/**
+ * UX2-60: whether Welcome shows the "invite link doesn't work" note. It follows the current params, because a
+ * Welcome already in the stack gets the bad-link params later through dismissTo. Each link carries its own
+ * stamp (`at`); the next action on Welcome clears that stamp only, so another junk link shows the note again.
+ */
+export function badLinkNoteShown(params: { link?: string; at?: string }, clearedAt: string | null): boolean {
+  return params.link === 'invalid' && (params.at ?? '') !== clearedAt;
+}
