@@ -40,6 +40,10 @@ test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   assert.match(p, /gate === 'consent' \? \(\s*<Button title=\{s\.agree\} onPress=\{\(\) => setConsent\(true\)\} \/>/);
   assert.match(p, /<DisclosureSheet\s*roomId=\{id\}\s*visible=\{consent\}\s*onDone=\{\(\) => \{\s*setConsent\(false\);\s*refresh\(\);/);
   const info = src('features/event/info-section.tsx');
-  assert.match(info, /subtitle=\{plus === false \? s\.peopleToMeetPlus : undefined\}/);
+  assert.match(info, /subtitle=\{plus === false \? s\.partOfPlus : undefined\}/);
+  // UX2-03: a Free host's AI switch opens the room-ai slide (stays off); a server refusal does the same.
+  assert.match(info, /v && plus === false\s*\? router\.push\(plusIntroHref\('room-ai'\)\)\s*: run\(\(\) => setQrewingRoom/);
+  assert.match(info, /if \(res\.planLimit\) \{\s*if \(uid\) refreshPlus\(uid\);\s*router\.push\(plusIntroHref\('room-ai'\)\);/);
+  assert.match(src('features/event/qrewing-api.ts'), /isPlanLimit\(error\) \? \{ planLimit: true \}/);
   assert.match(info, /plus === false\s*\? router\.push\(plusIntroHref\('meet'\)\)/);
 });

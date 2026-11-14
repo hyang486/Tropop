@@ -987,8 +987,8 @@ export const en = {
       editEntry: 'Edit my entry info',
       addEntry: 'Add my entry info',
       peopleToMeet: 'People to meet',
-      /** UX2-01: the row's subtitle for a Free user (the tap opens the Plus page). */
-      peopleToMeetPlus: 'Part of Qrew Plus',
+      /** UX2-01 / UX2-03: the subtitle on a Plus-only row for a Free user (the tap opens the Plus page). */
+      partOfPlus: 'Part of Qrew Plus',
       loadFailed: 'Could not load Qrewing settings. Try again.',
       saveFailed: 'Could not save this change. Try again.',
       retry: 'Try again',

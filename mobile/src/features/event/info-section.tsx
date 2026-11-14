@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { QCard, QLabel } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
-import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { refreshPlus, usePlusPreview } from '@/features/calendar/calendar-store';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { useAuth } from '@/lib/auth';
 
@@ -24,7 +24,8 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
   const router = useRouter();
   const q = useQrewingRoom(roomId);
   // UX2-01: People to meet is Plus on my own plan; a Free user sees that on the row and the tap opens the Plus page.
-  const plus = usePlusPreview(useAuth().session?.user.id);
+  const uid = useAuth().session?.user.id;
+  const plus = usePlusPreview(uid);
   // Spec 9.4 R4: entry info needs questions, which are set only on Create room. Read for the host of an event room.
   const entryQuestions = useEntryQuestions(isHost && roomType === 'event' ? roomId : '');
   const noQuestions = entryQuestions.loaded && !entryQuestions.failed && entryQuestions.questions.length === 0;
@@ -37,12 +38,16 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
     }, [reload]),
   );
 
-  async function run(action: () => Promise<{ error?: string; offline?: boolean }>) {
+  async function run(action: () => Promise<{ error?: string; offline?: boolean; planLimit?: boolean }>) {
     setBusy(true);
     setError(null);
     const res = await action();
     setBusy(false);
-    if (res.error) setError(res.offline ? en.qrewing.errors.network : s.saveFailed);
+    // UX2-03: the server says Free (my plan read was stale): read it again and open the Plus page, no error line.
+    if (res.planLimit) {
+      if (uid) refreshPlus(uid);
+      router.push(plusIntroHref('room-ai'));
+    } else if (res.error) setError(res.offline ? en.qrewing.errors.network : s.saveFailed);
     q.reload();
   }
 
@@ -68,11 +73,20 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
       {isHost ? (
         <>
           <QCard row>
-            <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
+            <View style={styles.cardText}>
+              <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
+              {plus === false ? <Text style={styles.cardSubtitle}>{s.partOfPlus}</Text> : null}
+            </View>
+            {/* UX2-03: room AI is Plus. A Free host's tap on an off switch opens the Plus page and the switch stays
+                off; turning AI off always works. */}
             <InkSwitch
               value={q.aiEnabled}
               disabled={busy}
-              onValueChange={(v) => run(() => setQrewingRoom(roomId, v, v && isEvent && q.entryRequired))}
+              onValueChange={(v) =>
+                v && plus === false
+                  ? router.push(plusIntroHref('room-ai'))
+                  : run(() => setQrewingRoom(roomId, v, v && isEvent && q.entryRequired))
+              }
               accessibilityLabel={en.qrewing.create.aiLabel}
             />
           </QCard>
@@ -110,7 +124,7 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
               <QRowCard
                 icon="person.2.wave.2"
                 title={s.peopleToMeet}
-                subtitle={plus === false ? s.peopleToMeetPlus : undefined}
+                subtitle={plus === false ? s.partOfPlus : undefined}
                 onPress={() =>
                   plus === false
                     ? router.push(plusIntroHref('meet'))
@@ -129,4 +143,6 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
 const styles = StyleSheet.create({
   section: { gap: 12, marginTop: 12 },
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
+  cardText: { flex: 1, gap: 2 },
+  cardSubtitle: { fontSize: 13, color: colors.ink2 },
 });

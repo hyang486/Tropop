@@ -24,6 +24,7 @@ import {
   parseQuestions,
   type QuestionPayload,
 } from './entry-questions';
+import { isPlanLimit } from './open-room-plan';
 import { askBody, askErrorKind, type AskError, type AskMe, type AskTurn, parseAskAnswer } from './ask-plan';
 import type { MatchResult, QrewingError, RecapResult, TriageResult } from './types';
 
@@ -118,13 +119,19 @@ export async function requestMatches(roomId: string): Promise<MatchResult | { st
   return res.data && 'matches' in res.data && Array.isArray(res.data.matches) ? res.data : { error: 'ai_failed' };
 }
 
-export async function setQrewingRoom(roomId: string, aiEnabled: boolean, entryRequired: boolean): Promise<{ error?: string; offline?: boolean }> {
+/** `planLimit`: the server refused turning room AI on for a Free host (UX2-03, PT402 'plan_limit' as in 0032). */
+export async function setQrewingRoom(
+  roomId: string,
+  aiEnabled: boolean,
+  entryRequired: boolean,
+): Promise<{ error?: string; offline?: boolean; planLimit?: boolean }> {
   const { error } = await supabase.rpc('set_qrewing_room', {
     p_room_id: roomId,
     p_ai_enabled: aiEnabled,
     p_entry_required: entryRequired,
   });
-  return error ? { error: error.message, offline: saveErrorKind(error) === 'network' } : {};
+  if (!error) return {};
+  return { error: error.message, offline: saveErrorKind(error) === 'network', ...(isPlanLimit(error) ? { planLimit: true } : {}) };
 }
 
 export async function setQrewingMember(roomId: string, aiOk: boolean, mute: boolean): Promise<{ error?: string; offline?: boolean }> {
