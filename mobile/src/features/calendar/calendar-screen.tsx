@@ -51,7 +51,7 @@ import {
   overflowByDay,
   shiftMonth,
 } from './calendar-plan';
-import { useCalendar, usePlusPreview } from './calendar-store';
+import { useCalendar, usePlanState } from './calendar-store';
 import { addTapAction, plusIntroHref } from './plus-intro';
 
 const t = en.calendar;
@@ -69,8 +69,9 @@ export function CalendarScreen() {
 }
 
 function CalendarMonth({ uid }: { uid: string }) {
-  // Plus preview flag: null while unread (room taps wait), then Free or Plus.
-  const plus = usePlusPreview(uid);
+  // C14: null until the plan is confirmed (room taps and the Add button wait); an upsell shows only on Free.
+  const plan = usePlanState(uid);
+  const plus = plan === 'plus' ? true : plan === 'free' ? false : null;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const palette = useCalendarColors();
@@ -250,6 +251,7 @@ function CalendarMonth({ uid }: { uid: string }) {
           ) : null}
         </View>
         {doc && shown.length === 0 ? <Hint>{t.emptyMonth}</Hint> : null}
+        {plan === 'offline' ? <Hint>{en.planPreview.offline}</Hint> : null}
       </QScreen>
 
       <Modal visible={!!diary} transparent animationType="fade" onRequestClose={() => setDiary(null)}>

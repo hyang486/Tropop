@@ -877,7 +877,8 @@ export const en = {
         ? `${title}, ${range}`
         : `${title}, ${range}, ${action === 'diary' ? 'open diary' : action === 'plus' ? 'Plus feature' : 'edit event'}`,
     // UX2-39: a month with nothing on it.
-    emptyMonth: 'Rooms you join show up here.',
+    // C14 E: an empty month (the grid stays bare while the calendar loads).
+    emptyMonth: 'Nothing planned this month.',
     moreLabel: (n: number, day: string) => `${n} more on ${day}`,
     diaryLater: 'Your diary appears after this room ends.',
     upsellCardTitle: 'The Qrewing diary is a Plus feature',
