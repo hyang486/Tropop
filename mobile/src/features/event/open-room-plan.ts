@@ -131,6 +131,14 @@ export function openRoomArgs(input: {
  * Migration 0031 (capacity and public rooms) is live (20261114054841). While false, Create room hides the B/D
  * controls and calls the pre-0031 create_room; kept as a switch to turn B/D off again.
  */
+/**
+ * BUG-OC1: Open chat re-reads when the app returns to the foreground (a focus event never fires then), so a room
+ * opened on another phone while this one sat on Rooms shows up without a relaunch.
+ */
+export function cameToForeground(prev: string, next: string): boolean {
+  return prev !== 'active' && next === 'active';
+}
+
 export const OPEN_ROOMS_LIVE = true;
 
 /**

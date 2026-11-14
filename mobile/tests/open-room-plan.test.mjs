@@ -111,3 +111,12 @@ test('typed people count clamps to 2 .. plan max', () => {
   assert.equal(p.typedCapacity('abc', true), null);
   assert.equal(p.typedCapacity('12', null), 6);
 });
+
+test('BUG-OC1: Open chat re-reads only on a return to the foreground', () => {
+  assert.equal(p.cameToForeground('background', 'active'), true);
+  assert.equal(p.cameToForeground('inactive', 'active'), true);
+  assert.equal(p.cameToForeground('active', 'active'), false);
+  assert.equal(p.cameToForeground('active', 'inactive'), false);
+  assert.equal(p.cameToForeground('active', 'background'), false);
+  assert.equal(p.cameToForeground('inactive', 'background'), false);
+});
