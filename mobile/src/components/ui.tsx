@@ -159,10 +159,13 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
   );
 }
 
+/** UX2-72: one red for the destructive confirm fill in both modes (systemRed elsewhere is unchanged). */
+const DESTRUCTIVE_FILL = '#D70015';
+
 type ButtonProps = {
   title: string;
   onPress: () => void;
-  /** UX2-72: destructiveFill is the confirm on End room / End activity: a systemRed fill with a white label. */
+  /** UX2-72: destructiveFill is the confirm on End room / End activity: a #D70015 fill with a white label. */
   variant?: 'primary' | 'secondary' | 'destructive' | 'destructiveFill';
   busy?: boolean;
   disabled?: boolean;
@@ -182,9 +185,9 @@ export function Button({
 }: ButtonProps) {
   const filled = variant === 'primary' || variant === 'destructiveFill';
   // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red. UX2-72: destructiveFill
-  // is red-filled with a white label in both modes.
+  // is #D70015 (light errorText) in light and dark, so the white label reads about 5.4:1; pressed is 85%.
   const accent = variant === 'destructive' ? colors.danger : colors.tint;
-  const fill = variant === 'destructiveFill' ? colors.danger : colors.tint;
+  const fill = variant === 'destructiveFill' ? DESTRUCTIVE_FILL : colors.tint;
   const label = variant === 'destructiveFill' ? '#FFFFFF' : colors.onTint;
   return (
     <Pressable
@@ -196,7 +199,7 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         filled ? { backgroundColor: fill } : [styles.outlined, { borderColor: accent }],
-        (pressed || disabled) && { opacity: 0.6 },
+        disabled ? { opacity: 0.6 } : pressed && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
       ]}
     >
       {busy ? (
