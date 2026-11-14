@@ -259,6 +259,7 @@ export const en = {
     goneHint: 'It expired, was ended by the host, or you left it.',
     reminderGoneHint:
       'The room from your reminder has ended. Its messages, photos, and files were deleted from the server. Anything you already saved to your device is still there.',
+    back: 'Back',
     backToRooms: 'Back to rooms',
     // Qrew unit 5 (Q 06.04): the shared ended screen. closedAt only when the client knows the time (lib/room-ended).
     endedTitle: 'This room has ended',
