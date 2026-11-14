@@ -791,6 +791,21 @@ export const en = {
     keep: 'Keep room open',
     notHost: 'Only the host can end the room.',
   },
+  // UX2-114: the red line above End room, End activity and Leave while an Emergency is still open.
+  emergencyOpen: {
+    endRoomOne: (name: string) => `${name}'s Emergency is still open. Ending the room removes it for everyone.`,
+    endActivityOne: (name: string) =>
+      `${name}'s Emergency is still open. Ending the activity stops live location for everyone.`,
+    many: (n: number) => `${n} Emergencies are still open.`,
+    // ux C36: one open Emergency before (or without) the names: no layout jump when the name swaps in.
+    endRoomNameless: 'An Emergency is still open. Ending the room removes it for everyone.',
+    endActivityNameless: 'An Emergency is still open. Ending the activity stops live location for everyone.',
+    leaveMine: "Your Emergency is still on. Tap I'm OK now first.",
+    checkFailed: "Couldn't check for open Emergencies.",
+    checking: 'Checking for Emergencies…',
+    tryAgain: 'Try again',
+    tryingAgain: 'Trying again',
+  },
   invite: {
     title: 'Invite',
     done: 'Done',

@@ -188,3 +188,52 @@ export function spokenSentence(parts: string[]): string {
 export function spokenSeparators(text: string): string {
   return text.replace(/\s*·\s*/g, ', ');
 }
+
+/**
+ * UX2-114: the red line above End room / End activity / Leave while an Emergency is open, or null for none.
+ * End: one open Emergency is named ("Mina's Emergency is still open. …"), two or more give the count. The name
+ * line is nameless until the member names load (or when they fail / lack this member, ux C36). Leave: only my own
+ * open Emergency matters.
+ */
+export function endEmergencyNote(o: {
+  kind: 'room' | 'activity' | 'leave';
+  emergencies: readonly { userId: string }[];
+  userId: string | undefined;
+  names: ReadonlyMap<string, string> | null;
+  copy: {
+    endRoomOne: (name: string) => string;
+    endActivityOne: (name: string) => string;
+    many: (n: number) => string;
+    endRoomNameless: string;
+    endActivityNameless: string;
+    leaveMine: string;
+  };
+}): string | null {
+  const { kind, emergencies, userId, names, copy } = o;
+  if (kind === 'leave') return userId && emergencies.some((e) => e.userId === userId) ? copy.leaveMine : null;
+  if (emergencies.length === 0) return null;
+  if (emergencies.length > 1) return copy.many(emergencies.length);
+  const name = names?.get(emergencies[0].userId);
+  if (!name) return kind === 'room' ? copy.endRoomNameless : copy.endActivityNameless;
+  return kind === 'room' ? copy.endRoomOne(name) : copy.endActivityOne(name);
+}
+
+/**
+ * UX2-114 (ux C36 b): the line shown when no Emergency note is: 'failed' when the activity read failed, 'checking'
+ * when it has taken over 3 s (slow), else null. A note known from an earlier read wins over both.
+ */
+export function emergencyCheckLine(o: {
+  loading: boolean;
+  error: unknown;
+  slow: boolean;
+  hasNote: boolean;
+}): 'failed' | 'checking' | null {
+  if (o.hasNote) return null;
+  if (o.error) return 'failed';
+  return o.loading && o.slow ? 'checking' : null;
+}
+
+/** VoiceOver: a trailing "…" is read as a full stop. */
+export function spokenEllipsis(text: string): string {
+  return text.replace(/\s*…$/, '.');
+}
