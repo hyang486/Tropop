@@ -176,6 +176,8 @@ type ButtonProps = {
   /** Caps the title's Dynamic Type scale, for buttons in a pinned footer that must stay on screen. */
   maxFontSizeMultiplier?: number;
   accessibilityHint?: string;
+  /** UX2-140: defaults to title so VoiceOver keeps the name while busy shows the spinner. */
+  accessibilityLabel?: string;
 };
 
 export function Button({
@@ -186,6 +188,7 @@ export function Button({
   disabled,
   maxFontSizeMultiplier,
   accessibilityHint,
+  accessibilityLabel,
 }: ButtonProps) {
   const filled = variant === 'primary' || variant === 'destructiveFill';
   // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red. UX2-72: destructiveFill
@@ -196,6 +199,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: disabled || busy, busy }}
       disabled={disabled || busy}

@@ -88,8 +88,12 @@ export function StatusPicker({
   return (
     <Modal visible={visible} transparent animationType={instant ? 'none' : 'slide'} onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <Pressable style={styles.flex} accessibilityLabel={en.room.cancel} onPress={onClose} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]} accessibilityViewIsModal>
+        <Pressable style={styles.flex} accessibilityRole="button" accessibilityLabel={en.room.cancel} onPress={onClose} />
+        <View
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}
+          accessibilityViewIsModal
+          onAccessibilityEscape={onClose}
+        >
           <View style={styles.handle} />
           {/* flexShrink: inside the sheet's maxHeight the grid scrolls and Cancel stays below it (never over the last row). */}
           <ScrollView style={styles.scroll} contentContainerStyle={styles.body} bounces={false}>

@@ -407,7 +407,12 @@ function ChatRoom({
         >
           {offline ? <View style={styles.compactStrip}>{offline}</View> : null}
           {aiNoteShown && !keyboardOpen ? (
-            <Pressable style={styles.aiNote} onPress={() => setAiNoteShown(false)} accessibilityRole="button">
+            <Pressable
+              style={styles.aiNote}
+              onPress={() => setAiNoteShown(false)}
+              accessibilityRole="button"
+              accessibilityHint={en.qrewing.create.aiSaveFailedHint}
+            >
               <Hint>{en.qrewing.create.aiSaveFailed}</Hint>
             </Pressable>
           ) : null}
