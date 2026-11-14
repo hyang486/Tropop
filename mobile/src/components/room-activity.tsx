@@ -21,7 +21,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, locationLineState, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, locationLineState, spokenSeparators, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { errorMessage } from '@/lib/errors';
@@ -255,7 +255,12 @@ export function EmergencyAlerts({
           timeOf(e.createdAt),
           seenText.spoken,
           location.kind === 'shared'
-            ? en.activity.lastLocation(formatAge(location.updatedAt, now))
+            ? // UX2-77c: no raw "·" for VoiceOver; your own Emergency speaks the visible wording.
+              spokenSeparators(
+                mine
+                  ? en.activity.yourLastLocation(formatAge(location.updatedAt, now))
+                  : en.activity.lastLocation(formatAge(location.updatedAt, now)),
+              )
             : lineState === 'none'
               ? en.activity.noLocation
               : lineState === 'failed'
