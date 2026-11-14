@@ -647,6 +647,18 @@ export const en = {
       `${today ? 'Today, ' : ''}${titles.length ? `${date}: ${titles.join(', ')}` : `${date}, nothing planned`}`,
     itemLabel: (title: string, range: string, past: boolean) => `${title}, ${range}${past ? ', past room, shows its diary' : ''}`,
     more: (n: number) => `+${n}`,
+    // Calendar tiers (human FINAL 2026-11-13 PM).
+    barLabel: (title: string, range: string, action: 'diary' | 'plus' | 'edit') =>
+      `${title}, ${range}, ${action === 'diary' ? 'open diary' : action === 'plus' ? 'Plus feature' : 'edit event'}`,
+    moreLabel: (n: number, day: string) => `${n} more on ${day}`,
+    diaryLater: 'Your diary appears after this room ends.',
+    upsellCardTitle: 'The Qrewing diary is a Plus feature',
+    upsellCardBody: 'Plus keeps a short diary of each room you were in. Try it with the Plus preview.',
+    upsellSeePlus: 'See the Plus preview',
+    upsellClose: 'Not now',
+    dayItemsTitle: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    dayItemsKind: { room: 'Room', event: 'My event' },
+    dayItemsClose: 'Done',
     nothing: 'Nothing planned this day.',
     roomTag: 'Room',
     eventTag: 'My event',
