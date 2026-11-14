@@ -1,5 +1,5 @@
 -- Running-crew #4 test: "<name> is OK (Emergency resolved)" is posted when the caller's Emergency ends, by
--- clear_my_status (I'm OK) or set_my_status (switching to another status), and only while a member of an open room. Requires migrations through 0023 (emergency_resolved_line).
+-- clear_my_status (I'm OK) or set_my_status (switching to another status), and only while a member of an open room. Requires migrations through 0034 (emergency_status_guard; case 6 changed with it).
 -- One transaction, ends with ROLLBACK: leaves no data behind. Run as postgres (Supabase MCP execute_sql).
 -- Success ends with the row 'EMERGENCY RESOLVED TESTS PASSED'.
 --
@@ -114,17 +114,21 @@ create function tests.my_lines() returns bigint language sql as $$
   select count(*) from public.messages
    where room_id = current_setting('t.r')::uuid and sender_id = 'c2300000-0000-4000-8000-000000000002';
 $$;
--- 6. Emergency → Resting: one status line that says both.
+-- 6. Emergency → Resting: since 0034 (UX2-52) refused with PT409 emergency_active; I'm OK then posts the resolved line.
 select set_config('t.n', tests.my_lines()::text, true);
 select tests.login('c2300000-0000-4000-8000-000000000002', true);
 set local role authenticated;
+do $$
+begin
+  perform public.set_my_status(current_setting('t.r')::uuid, current_setting('t.rest')::uuid);
+  raise exception 'FAIL: Emergency to Resting was accepted';
+exception when sqlstate 'PT409' then null;
+end $$;
+select public.clear_my_status(current_setting('t.r')::uuid);
 select public.set_my_status(current_setting('t.r')::uuid, current_setting('t.rest')::uuid);
 reset role;
-select tests.expect(tests.my_lines() = current_setting('t.n')::bigint + 1, 'Emergency to Resting posts 1 line');
-select tests.expect(exists (select 1 from public.messages
-                             where room_id = current_setting('t.r')::uuid and kind = 'status'
-                               and body like '% is OK (Emergency resolved) · Resting'),
-                    'Emergency to Resting line says resolved and the new status');
+select tests.expect(tests.my_lines() = current_setting('t.n')::bigint + 2, 'I''m OK then Resting posts 2 lines');
+select tests.expect(tests.resolved_lines() = 2, 'I''m OK posts the resolved line');
 
 -- 7. Resting → Resting: one status line, no resolved line.
 select set_config('t.n', tests.my_lines()::text, true);
@@ -135,7 +139,7 @@ reset role;
 select tests.expect(tests.my_lines() = current_setting('t.n')::bigint + 1, 'Resting to Resting posts 1 line');
 select tests.expect(tests.resolved_lines() = 2, 'Resting to Resting posts no resolved line');
 
--- 8. Emergency → Emergency: no resolved line (each Emergency posts its own needs-help line, as before).
+-- 8. Emergency → Emergency: no resolved line (since 0034 the repeat is a no-op; see emergency_guard_test.sql).
 select tests.login('c2300000-0000-4000-8000-000000000002', true);
 set local role authenticated;
 select public.set_my_status(current_setting('t.r')::uuid, current_setting('t.emg')::uuid);
