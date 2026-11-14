@@ -472,6 +472,9 @@ export const en = {
     saveOriginal: 'Save original',
     share: 'Share',
     sharedByAge: (name: string, age: string) => `Shared by ${name} · ${age}`,
+    /** A11y sweep: a grid tile for VoiceOver, "Photo by Mina, 2 min". */
+    tileSpoken: (kind: string, name: string, age: string | null) =>
+      `${kind === 'video' ? 'Video' : kind === 'file' ? 'File' : 'Photo'} by ${name}${age ? `, ${age}` : ''}`,
     savedTitle: 'Original saved',
     savedBody: 'It stays on your device after the room closes.',
     dismissSaved: 'Dismiss',

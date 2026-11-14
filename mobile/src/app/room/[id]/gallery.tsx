@@ -43,12 +43,13 @@ import {
   useRoomMedia,
   useUploads,
 } from '@/lib/media';
-import { takeSaved } from '@/lib/media-plan';
+import { sharedAge, takeSaved } from '@/lib/media-plan';
 import { confirmOriginalsNotice } from '@/lib/originals-notice';
 import { useRoomEvents } from '@/lib/room-channel';
 import { deadEndStep } from '@/lib/storage-cap';
 import { usePlusPreview } from '@/features/calendar/calendar-store';
-import { getRoom, type Room } from '@/lib/rooms';
+import { getRoom, listMembers, type Room } from '@/lib/rooms';
+import { memberName } from '@/lib/member-name';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useNow } from '@/lib/use-now';
 import { useRoomOver } from '@/lib/use-room-over';
@@ -87,6 +88,7 @@ export default function GalleryScreen() {
   const [filter, setFilter] = useState<GalleryFilter>(initialFilter === 'me' ? 'me' : 'all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
+  const [names, setNames] = useState<ReadonlyMap<string, string>>();
   // UX2-06: a Free host's out-of-space row offers "See Plus"; the room's plan is the host's.
   const isHost = !!room && room.host_id === userId;
   const hostPlus = usePlusPreview(isHost ? userId : null);
@@ -100,6 +102,12 @@ export default function GalleryScreen() {
   const uploads = useUploads(id, reload);
   const { width } = useWindowDimensions();
   const tile = Math.floor((width - qSpacing.side * 2 - GAP * (COLUMNS - 1)) / COLUMNS);
+  // A11y sweep: "Photo by Mina, 2 min" (Video / File for the other kinds).
+  const tileLabel = (item: Media) => {
+    const by = item.uploader_id === userId ? en.media.you : memberName(names, item.uploader_id, room?.host_id, en.chat);
+    const age = sharedAge(item.created_at, now);
+    return en.media.tileSpoken(item.kind, by, age ? en.media.age(age.n, age.unit) : null);
+  };
 
   // Room name and expires_at for the head and the originals lines (Q 05.02, 06.03). A failed or empty read only
   // hides those lines; the media list keeps its own loading and error states.
@@ -109,6 +117,10 @@ export default function GalleryScreen() {
         setRoom(r);
         setGone(r === null);
       })
+      .catch(() => undefined);
+    // A11y sweep: uploader names for the tiles' VoiceOver labels; a failed read falls back to "Former member".
+    listMembers(id)
+      .then((members) => setNames(new Map(members.map((m) => [m.user_id, m.display_name]))))
       .catch(() => undefined);
   }, [id]);
 
@@ -286,7 +298,7 @@ export default function GalleryScreen() {
               media={media.items}
               columns={COLUMNS}
               gap={GAP}
-              renderTile={(item) => <Tile media={item} size={tile} token={token} />}
+              renderTile={(item) => <Tile media={item} size={tile} token={token} label={tileLabel(item)} />}
               onRefreshMedia={media.reload}
               header={notices}
               readOnly={!can.upload}
@@ -312,7 +324,7 @@ export default function GalleryScreen() {
             ListEmptyComponent={
               <EmptyState art="camera" title={emptyText} body={en.media.emptyHint} />
             }
-            renderItem={({ item }) => <Tile media={item} size={tile} token={token} />}
+            renderItem={({ item }) => <Tile media={item} size={tile} token={token} label={tileLabel(item)} />}
           />
         )}
       </View>
@@ -339,8 +351,7 @@ export default function GalleryScreen() {
   );
 }
 
-function Tile({ media, size, token }: { media: Media; size: number; token: string | undefined }) {
-  const label = media.kind === 'video' ? en.media.video : media.kind === 'file' ? en.media.file : media.file_name;
+function Tile({ media, size, token, label }: { media: Media; size: number; token: string | undefined; label: string }) {
   return (
     <Link href={{ pathname: '/room/[id]/media/[mediaId]', params: { id: media.room_id, mediaId: media.id } }} asChild>
       <Pressable accessibilityRole="imagebutton" accessibilityLabel={label} style={{ width: size, height: size }}>
