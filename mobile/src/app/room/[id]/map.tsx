@@ -261,7 +261,12 @@ function RoomMap({
   // as chat), so its location line never waits on `active` and stays on Checking.
   const emergencyPresence = useEmergencyPresence(room.id, activity);
   // P0: a member in Emergency is pinned to the top of "Sharing now" and never dropped, with or without a row.
-  const sharingNow = sharingNowEntries(presence.rows, activity.emergencies.map((e) => e.userId));
+  // ux: the person in Emergency never sees her own alert row; her own line is under the share switch instead.
+  const sharingNow = sharingNowEntries(
+    presence.rows,
+    activity.emergencies.filter((e) => e.userId !== userId).map((e) => e.userId),
+  );
+  const meInEmergency = activity.emergencies.some((e) => e.userId === userId);
   const presenceState = presenceView({ loaded: presence.loaded, error: presence.error, count: sharingNow.length });
   const savedRoute = useMemo(() => parseRoute(room.route), [room.route]);
   // R1-C: the host edits the route in a full-screen editor (a Modal outside the stack, with its own map).
@@ -728,6 +733,7 @@ function RoomMap({
                   />
                 </View>
                 <Hint>{en.map.shareMineHint}</Hint>
+                {meInEmergency && !my.share ? <Text style={styles.shareEmergency}>{en.map.shareInEmergency}</Text> : null}
               </>
             )}
             {permissionDenied ? (
@@ -843,15 +849,17 @@ function PresenceRow({
 }) {
   if (emergency) {
     // P0: the red disc and "Needs help · <age of the last fix>"; the row stays even when the fix is old or missing.
+    // Emergency events carry no location of their own, so a missing row reads "Location off".
+    const fixAge = row ? formatAge(row.updated_at, now) : null;
     return (
-      <View style={styles.presence}>
+      <View style={styles.presence} accessible accessibilityLabel={en.map.needsHelpSpoken(name, fixAge)}>
         <View style={styles.emergencyDisc}>
           <Text style={styles.emergencyInitial}>{(initialOf || name).slice(0, 1).toUpperCase()}</Text>
         </View>
         <View style={styles.presenceText}>
           <Text style={styles.presenceName}>{name}</Text>
           <Text style={[styles.presenceMeta, styles.emergencyText]}>
-            {en.map.needsHelp(row ? formatAge(row.updated_at, now) : null)}
+            {en.map.needsHelp(fixAge)}
           </Text>
         </View>
       </View>
@@ -963,6 +971,7 @@ const styles = StyleSheet.create({
   staleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   presenceStatus: { color: colors.ink2 },
   emergencyText: { color: colors.errorText, fontWeight: '600' },
+  shareEmergency: { fontSize: 13, color: colors.errorText },
   emergencyDisc: {
     width: 28,
     height: 28,

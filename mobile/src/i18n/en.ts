@@ -732,6 +732,8 @@ export const en = {
     activityIdle: 'No activity running',
     activityIdleHint: 'Positions appear only while the host runs an activity.',
     shareMine: 'Share my live location',
+    /** P0 (ux): under the switch while I'm in Emergency with sharing off. */
+    shareInEmergency: 'Turn it on so others can find you.',
     shareMineHint: 'Only while the app is open. Nobody can turn this on for you.',
     permissionDenied: 'Location access is off for Qrew. Turn it on in Settings to share.',
     openSettings: 'Open Settings',
@@ -767,8 +769,10 @@ export const en = {
     you: 'You',
     stale: (age: string) => `Last seen ${age}`,
     stalePin: 'stale',
-    /** P0: the Emergency row in "Sharing now": "Needs help · 2 min ago" (last fix), or no location at all. */
-    needsHelp: (age: string | null) => `Needs help · ${age ?? 'No location'}`,
+    /** P0 (ux): the Emergency row in "Sharing now": "Needs help · 2 min ago" (last fix), or "Location off". */
+    needsHelp: (age: string | null) => `Needs help · ${age ?? 'Location off'}`,
+    /** P0 (ux) VoiceOver: "Sora, needs help, location off". */
+    needsHelpSpoken: (name: string, age: string | null) => `${name}, needs help, ${age ?? 'location off'}`,
     emergencyPin: (name: string) => `${name} · help`,
     /** UX2-41 sweep: a pin for VoiceOver, "Mina, 2 min ago". */
     pinSpoken: (name: string, age: string | null) => (age ? `${name}, ${age} ago` : name),

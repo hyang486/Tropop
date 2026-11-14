@@ -25,8 +25,17 @@ test('P0: the member in Emergency is pinned to the top, with or without a presen
 test('P0: the Emergency row reads "Needs help · <age>" and a stale fix shows its age', () => {
   const now = Date.parse('2026-11-14T10:00:00Z');
   assert.equal(en.map.needsHelp(plan.formatAge('2026-11-14T09:52:00Z', now)), 'Needs help · 8 min ago');
-  assert.equal(en.map.needsHelp(null), 'Needs help · No location');
-  assert.match(map, /sharingNowEntries\(presence\.rows, activity\.emergencies\.map\(\(e\) => e\.userId\)\)/);
+  assert.equal(en.map.needsHelp(null), 'Needs help · Location off');
+  assert.equal(en.map.needsHelpSpoken('Sora', null), 'Sora, needs help, location off');
+  assert.equal(en.map.needsHelpSpoken('Sora', '2 min ago'), 'Sora, needs help, 2 min ago');
+  assert.match(map, /activity\.emergencies\.filter\(\(e\) => e\.userId !== userId\)\.map\(\(e\) => e\.userId\)/);
   assert.match(map, /count: sharingNow\.length/);
-  assert.match(map, /en\.map\.needsHelp\(row \? formatAge\(row\.updated_at, now\) : null\)/);
+  assert.match(map, /en\.map\.needsHelp\(fixAge\)/);
+});
+
+test('P0 (ux): I never see my own Emergency row; with sharing off a red line asks me to turn it on', () => {
+  assert.equal(en.map.shareInEmergency, 'Turn it on so others can find you.');
+  assert.match(map, /const meInEmergency = activity\.emergencies\.some\(\(e\) => e\.userId === userId\);/);
+  assert.match(map, /\{meInEmergency && !my\.share \? <Text style=\{styles\.shareEmergency\}>\{en\.map\.shareInEmergency\}<\/Text> : null\}/);
+  assert.match(map, /shareEmergency: \{ fontSize: 13, color: colors\.errorText \}/);
 });
