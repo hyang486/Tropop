@@ -47,7 +47,19 @@ test('former members are left out; unknown names fall back to the count', () => 
 test('bar wiring: members get I see it + On my way, the sender only I am OK now', () => {
   assert.match(src, /answerOnWay\(e\.id, true\)/);
   assert.match(src, /answerOnWay\(e\.id, false\)/);
-  assert.match(src, /!mine && iOnWay/);
   assert.match(src, /announceForAccessibility\(en\.activity\.onWayNames/);
   assert.match(src, /actionsStacked: \{ flexDirection: 'column-reverse' \}/);
+});
+
+test('pre-0040 fallback: a missing on_way column re-reads the seen columns and hides the On my way controls', async () => {
+  const { ackColumnMissing } = await import('../src/lib/emergency-plan.ts');
+  assert.equal(ackColumnMissing({ code: '42703', message: 'column emergency_acks.on_way does not exist' }), true);
+  assert.equal(ackColumnMissing({ message: 'column emergency_acks.on_way does not exist' }), true);
+  assert.equal(ackColumnMissing({ code: '42501', message: 'permission denied' }), false);
+  assert.equal(ackColumnMissing(null), false);
+  const act = readFileSync(new URL('../src/lib/activity.ts', import.meta.url), 'utf8');
+  assert.match(act, /if \(acks\.error && ackColumnMissing\(acks\.error\)\) \{\s*acks = await readAcks\('event_id, user_id'\);\s*for \(const e of open\) e\.onWayReady = false;/);
+  // The bar: today's single "I see it" pill, and no answer row, while on_way is unreadable.
+  assert.match(src, /!e\.onWayReady && !iAcked \? \(/);
+  assert.match(src, /\{mine \|\| !e\.onWayReady \? null : iOnWay \? \(/);
 });

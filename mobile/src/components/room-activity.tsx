@@ -393,6 +393,18 @@ export function EmergencyAlerts({
               </Pressable>
               {mine ? (
                 <Pill label={en.activity.imOkNow} busy={busy === 'ok'} onPress={() => run('ok', activity.clearStatus)} />
+              ) : !e.onWayReady && !iAcked ? (
+                // Pre-0040 server: today's single "I see it" pill.
+                <Pill
+                  label={en.activity.acknowledge}
+                  busy={busy === `ack:${e.id}`}
+                  onPress={() =>
+                    run(`ack:${e.id}`, async () => {
+                      await activity.acknowledge(e.id);
+                      toggle(e.id, false);
+                    })
+                  }
+                />
               ) : null}
               {collapsible ? (
                 <Pressable
@@ -407,7 +419,7 @@ export function EmergencyAlerts({
               ) : null}
              </View>
               {/* "On my way" spec: members answer below the text; On my way first when the pills stack. */}
-              {!mine && iOnWay ? (
+              {mine || !e.onWayReady ? null : iOnWay ? (
                 <View style={styles.youRow}>
                   <SymbolView name="figure.walk" size={13} tintColor={colors.label} />
                   <Text style={styles.wayText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
@@ -426,7 +438,7 @@ export function EmergencyAlerts({
                     </Text>
                   </Pressable>
                 </View>
-              ) : !mine ? (
+              ) : (
                 <View style={[styles.actions, fontScale > 1.2 && styles.actionsStacked]}>
                   {!iAcked ? (
                     <Pill
@@ -450,7 +462,7 @@ export function EmergencyAlerts({
                     onPress={() => answerOnWay(e.id, true)}
                   />
                 </View>
-              ) : null}
+              )}
               {wayFailed ? (
                 <Pressable
                   style={styles.wayError}

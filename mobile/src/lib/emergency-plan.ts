@@ -274,3 +274,14 @@ export function onWayLine(o: {
   if (who.length === 0 || (who.length === 1 && o.onWay.length === 1 && o.onWay[0] === o.userId)) return null;
   return o.copy.onWayNames(who);
 }
+
+/**
+ * Before 0040 is live, selecting emergency_acks.on_way fails with 42703 (undefined column). The read then falls
+ * back to the seen columns and the bar keeps today's "I see it" only.
+ */
+export function ackColumnMissing(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: unknown; message?: unknown };
+  if (e.code === '42703') return true;
+  return typeof e.message === 'string' && /on_way/.test(e.message) && /does not exist|column/i.test(e.message);
+}

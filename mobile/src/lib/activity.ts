@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 
 import { en } from '@/i18n/en';
 import type { Tables } from './database.types';
-import { isEmergencyActiveError } from './emergency-plan';
+import { ackColumnMissing, isEmergencyActiveError } from './emergency-plan';
 import { appError } from './errors';
 import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
@@ -24,6 +24,8 @@ export type OpenEmergency = {
   ackedBy: Set<string>;
   /** Members on the way ("On my way", 0040), first to answer first. */
   onWay: string[];
+  /** false before 0040 is live (on_way unreadable): no On my way / Can't come controls. */
+  onWayReady: boolean;
 };
 
 export type RoomActivity = {
@@ -82,18 +84,25 @@ async function fetchActivity(roomId: string, userId: string, activitySeq: number
     if (seen.has(e.user_id)) continue;
     seen.add(e.user_id);
     if (emergencyId && memberStatus.get(e.user_id) === emergencyId) {
-      open.push({ id: e.id, userId: e.user_id, createdAt: e.created_at, ackedBy: new Set(), onWay: [] });
+      open.push({ id: e.id, userId: e.user_id, createdAt: e.created_at, ackedBy: new Set(), onWay: [], onWayReady: true });
     }
   }
   if (open.length > 0) {
     // 0040: on_way / on_way_at are not in the generated types yet.
-    const acks = (await supabase
-      .from('emergency_acks')
-      .select('event_id, user_id, on_way, on_way_at')
-      .in(
-        'event_id',
-        open.map((e) => e.id),
-      )) as unknown as { data: AckRow[] | null; error: unknown };
+    const readAcks = async (columns: string) =>
+      (await supabase
+        .from('emergency_acks')
+        .select(columns)
+        .in(
+          'event_id',
+          open.map((e) => e.id),
+        )) as unknown as { data: AckRow[] | null; error: unknown };
+    let acks = await readAcks('event_id, user_id, on_way, on_way_at');
+    // Pre-0040 server: keep the seen state with the old columns; the bar shows "I see it" only.
+    if (acks.error && ackColumnMissing(acks.error)) {
+      acks = await readAcks('event_id, user_id');
+      for (const e of open) e.onWayReady = false;
+    }
     if (acks.error) throw acks.error;
     const rows = [...(acks.data ?? [])].sort((a, b) => (a.on_way_at ?? '').localeCompare(b.on_way_at ?? ''));
     for (const a of rows) {
