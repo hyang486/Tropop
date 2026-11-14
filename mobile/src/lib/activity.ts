@@ -3,10 +3,13 @@ import { AppState } from 'react-native';
 
 import { en } from '@/i18n/en';
 import type { Tables } from './database.types';
-import { isEmergencyActiveError } from './emergency-plan';
+import { ackColumnMissing, isEmergencyActiveError } from './emergency-plan';
 import { appError } from './errors';
 import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
+
+type AckRow = { event_id: string; user_id: string; on_way?: boolean; on_way_at?: string | null };
+type UntypedRpc = (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
 
 const ACTIVITY_TABLES = new Set(['member_status', 'status_definitions', 'emergency_events', 'emergency_acks', 'arrivals']);
 
@@ -17,8 +20,12 @@ export type OpenEmergency = {
   id: string;
   userId: string;
   createdAt: string;
-  /** Members (other than the sender) who acknowledged it. */
+  /** Members (other than the sender) who acknowledged it (an ack row: seen, or on the way). */
   ackedBy: Set<string>;
+  /** Members on the way ("On my way", 0040), first to answer first. */
+  onWay: string[];
+  /** false before 0040 is live (on_way unreadable): no On my way / Can't come controls. */
+  onWayReady: boolean;
 };
 
 export type RoomActivity = {
@@ -77,21 +84,32 @@ async function fetchActivity(roomId: string, userId: string, activitySeq: number
     if (seen.has(e.user_id)) continue;
     seen.add(e.user_id);
     if (emergencyId && memberStatus.get(e.user_id) === emergencyId) {
-      open.push({ id: e.id, userId: e.user_id, createdAt: e.created_at, ackedBy: new Set() });
+      open.push({ id: e.id, userId: e.user_id, createdAt: e.created_at, ackedBy: new Set(), onWay: [], onWayReady: true });
     }
   }
   if (open.length > 0) {
-    const acks = await supabase
-      .from('emergency_acks')
-      .select('event_id, user_id')
-      .in(
-        'event_id',
-        open.map((e) => e.id),
-      );
+    // 0040: on_way / on_way_at are not in the generated types yet.
+    const readAcks = async (columns: string) =>
+      (await supabase
+        .from('emergency_acks')
+        .select(columns)
+        .in(
+          'event_id',
+          open.map((e) => e.id),
+        )) as unknown as { data: AckRow[] | null; error: unknown };
+    let acks = await readAcks('event_id, user_id, on_way, on_way_at');
+    // Pre-0040 server: keep the seen state with the old columns; the bar shows "I see it" only.
+    if (acks.error && ackColumnMissing(acks.error)) {
+      acks = await readAcks('event_id, user_id');
+      for (const e of open) e.onWayReady = false;
+    }
     if (acks.error) throw acks.error;
-    for (const a of acks.data ?? []) {
+    const rows = [...(acks.data ?? [])].sort((a, b) => (a.on_way_at ?? '').localeCompare(b.on_way_at ?? ''));
+    for (const a of rows) {
       const ev = open.find((e) => e.id === a.event_id);
-      if (ev && a.user_id !== ev.userId) ev.ackedBy.add(a.user_id);
+      if (!ev || a.user_id === ev.userId) continue;
+      ev.ackedBy.add(a.user_id);
+      if (a.on_way) ev.onWay.push(a.user_id);
     }
   }
 
@@ -233,5 +251,16 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
     [reload],
   );
 
-  return { ...state, stale, slow, reload, arrive, setStatus, setEmergency, clearStatus, acknowledge };
+  // Emergency "On my way" (0040): on=true implies seen; on=false is "Can't come" (the seen row stays).
+  const setOnWay = useCallback(
+    async (eventId: string, on: boolean) => {
+      const rpc = supabase.rpc.bind(supabase) as unknown as UntypedRpc;
+      const { error } = await rpc('set_emergency_on_way', { p_event_id: eventId, p_on: on });
+      if (error) throw error;
+      await reload();
+    },
+    [reload],
+  );
+
+  return { ...state, stale, slow, reload, arrive, setStatus, setEmergency, clearStatus, acknowledge, setOnWay };
 }
