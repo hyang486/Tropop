@@ -565,7 +565,10 @@ export const en = {
   pace: {
     title: 'Pace maker',
     switchHint: 'Qrewing coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
-    needsSharing: 'Turn on Share my location to use the pace maker.',
+    // UX2-95: matches the switch label (map.shareMine).
+    needsSharing: 'Turn on Share my live location to use the pace maker.',
+    // UX2-125: cues run only while Map is in front (background cues are a held product question).
+    mapOnly: 'Cues play while Map is open.',
     // capacity B item 4: the pace maker follows your own plan, also in a Free host's room.
     plusOnly: 'Pace maker is part of Qrew Plus.',
     needsActivity: 'Cues start when the host starts the activity.',
@@ -938,6 +941,8 @@ export const en = {
     askErrors: {
       unclear: "Qrewing couldn't tell the date. Try with a day, like \"next Friday\".",
       rate_limited: 'Too many requests. Try again in a little while.',
+      // UX2-94
+      network: "You're offline. Try again when you're back.",
       other: "Qrewing couldn't add that right now. You can add it yourself with Add event (+).",
     },
   },

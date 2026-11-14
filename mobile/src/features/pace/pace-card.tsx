@@ -113,6 +113,7 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
       ) : null}
       {settings.on && share && paceAllowed(plus) ? (
         <>
+          <Hint>{t.mapOnly}</Hint>
           {!active ? <Hint>{t.needsActivity}</Hint> : null}
           {hint === 'finding' || hint === 'still' ? (
             <Hint>{hint === 'still' ? t.stillFinding : t.findingLocation}</Hint>

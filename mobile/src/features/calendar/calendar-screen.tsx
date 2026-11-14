@@ -349,7 +349,15 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
         router.push(plusIntroHref('calendar'));
         return;
       }
-      setError(code === 'unclear' ? t.askErrors.unclear : code === 'rate_limited' ? t.askErrors.rate_limited : t.askErrors.other);
+      setError(
+        code === 'unclear'
+          ? t.askErrors.unclear
+          : code === 'rate_limited'
+            ? t.askErrors.rate_limited
+            : code === 'network'
+              ? t.askErrors.network
+              : t.askErrors.other,
+      );
       setTries((n) => n + 1);
       return;
     }

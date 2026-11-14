@@ -32,3 +32,13 @@ test('UX2-117: a failed refetch keeps rows and adds one stale line with Try agai
   const map = src('app/room/[id]/map.tsx');
   assert.match(map, /presenceState === 'rows' && presence\.error \? <Hint>\{en\.map\.presenceStale\}<\/Hint>/);
 });
+
+test('UX2-90/92/94/95/125: copy and small Map fixes', () => {
+  assert.equal(en.pace.needsSharing, 'Turn on Share my live location to use the pace maker.');
+  assert.equal(en.pace.mapOnly, 'Cues play while Map is open.');
+  assert.match(src('features/pace/pace-card.tsx'), /<Hint>\{t\.mapOnly\}<\/Hint>/);
+  assert.match(src('components/route-editor.tsx'), /savedRoute\.length > 0 \? en\.map\.editRoute : en\.map\.drawRoute/);
+  assert.doesNotMatch(src('app/room/[id]/map.tsx'), /\{en\.map\.route\}/);
+  assert.equal(en.calendar.askErrors.network, "You're offline. Try again when you're back.");
+  assert.match(src('features/calendar/calendar-screen.tsx'), /code === 'network'\s*\? t\.askErrors\.network/);
+});

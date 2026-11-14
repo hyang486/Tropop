@@ -197,7 +197,8 @@ export function RouteEditor({
             <SymbolView name="chevron.left" size={20} weight="semibold" tintColor={colors.label} />
           </Pressable>
           <View style={styles.head}>
-            <HandTitle>{en.map.editRoute}</HandTitle>
+            {/* UX2-90 */}
+            <HandTitle>{savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}</HandTitle>
             <Text style={styles.roomName} numberOfLines={2}>
               {roomName}
             </Text>
