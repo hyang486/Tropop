@@ -212,9 +212,17 @@ export function roomRange(
   return { start, end };
 }
 
-/** Past = the room is over: its end instant has passed. */
-export function isPastRoom(room: { end: string }, now: number): boolean {
-  return Date.parse(room.end) <= now;
+/**
+ * Past = the room is over: its end instant (endAt) has passed. qa 2026-11-13: this parsed the end DateKey, which
+ * Date.parse reads as UTC midnight, so a room still open in Los Angeles counted as past and Plus showed "No recap
+ * was saved". A snapshot with an unreadable endAt falls back to the local midnight after its (inclusive) end day.
+ */
+export function isPastRoom(room: { end: DateKey; endAt?: string }, now: number): boolean {
+  const at = typeof room.endAt === 'string' ? Date.parse(room.endAt) : NaN;
+  if (Number.isFinite(at)) return at <= now;
+  const [y, m, d] = room.end.split('-').map(Number);
+  const after = new Date(y, m - 1, d + 1).getTime();
+  return Number.isFinite(after) && after <= now;
 }
 
 /**

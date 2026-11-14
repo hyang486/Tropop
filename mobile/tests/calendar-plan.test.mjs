@@ -109,3 +109,23 @@ test('barAction: VoiceOver says open diary on Plus, Plus feature on Free, edit e
   assert.equal(p.barAction('room', null), 'plus');
   assert.equal(p.barAction('event', false), 'edit');
 });
+
+test('isPastRoom uses the end instant, not the end-day key read as UTC (qa 2026-11-13, Plus current room)', () => {
+  // LA evening Nov 13 = 2026-11-14T04:00Z; the room expires Nov 14 10:00 LA. Its end key "2026-11-14" is
+  // UTC midnight, already before now, yet the room is still open.
+  const now = Date.parse('2026-11-14T04:00:00Z');
+  const open = { end: '2026-11-14', endAt: '2026-11-14T18:00:00Z' };
+  assert.equal(Date.parse(open.end) <= now, true, 'the old rule called it past');
+  assert.equal(p.isPastRoom(open, now), false);
+  assert.equal(p.isPastRoom({ end: '2026-11-13', endAt: '2026-11-14T03:59:59Z' }, now), true);
+  assert.equal(p.isPastRoom({ end: '2026-11-13', endAt: '2026-11-14T04:00:00Z' }, now), true, 'ending now is past');
+});
+
+test('isPastRoom: an unreadable endAt falls back to the local midnight after the end day', () => {
+  const [y, m, d] = [2026, 11, 14];
+  const after = new Date(y, m - 1, d + 1).getTime();
+  for (const endAt of ['', 'soon', undefined]) {
+    assert.equal(p.isPastRoom({ end: '2026-11-14', endAt }, after - 1), false);
+    assert.equal(p.isPastRoom({ end: '2026-11-14', endAt }, after), true);
+  }
+});
