@@ -634,10 +634,10 @@ function RoomMap({
           </View>
         ) : null}
       </View>
-      {locate === 'denied' ? <Hint tone="error">{en.map.locateDenied}</Hint> : null}
-      {locate === 'settings' ? (
+      {/* UX2-87 (pattern P): an ink2 line and Open Settings, not red. */}
+      {locate === 'denied' || locate === 'settings' ? (
         <>
-          <Hint tone="error">{en.map.locateDeniedSettings}</Hint>
+          <Hint>{en.pace.locationOff}</Hint>
           <Button title={en.map.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
         </>
       ) : null}
@@ -710,8 +710,9 @@ function RoomMap({
             )}
             {permissionDenied ? (
               <>
-                <Hint tone="error">{en.map.permissionDenied}</Hint>
-                <Button title={en.map.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
+                {/* UX2-87: one block for sharing and the pace maker (the pace card has none of its own). */}
+                <Hint>{en.map.locationOffShare}</Hint>
+                <Button title={en.map.openSettings} onPress={() => Linking.openSettings()} />
               </>
             ) : reporterText ? (
               <Hint tone={reporterIsError ? 'error' : 'normal'}>{reporterText}</Hint>

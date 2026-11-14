@@ -79,3 +79,11 @@ test('UX2-86: own share unknown hides the switch; Try again and Stop sharing', (
 test('UX2-120 edge: an older failed pace toggle never reverts a newer one', () => {
   assert.match(src('features/pace/settings.ts'), /if \(onSeq\.get\(roomId\) !== mine\) return;/);
 });
+
+test('UX2-87: one ink2 location-off block under Share with a primary Open Settings; pace card has none', () => {
+  assert.equal(en.map.locationOffShare, 'Location is off for Qrew. Turn it on to share and use the pace maker.');
+  const map = src('app/room/[id]/map.tsx');
+  assert.match(map, /<Hint>\{en\.map\.locationOffShare\}<\/Hint>\s*<Button title=\{en\.map\.openSettings\} onPress=/);
+  assert.match(map, /locate === 'denied' \|\| locate === 'settings' \? \(\s*<>\s*<Hint>\{en\.pace\.locationOff\}<\/Hint>/);
+  assert.doesNotMatch(src('features/pace/pace-card.tsx'), /t\.locationOff/);
+});

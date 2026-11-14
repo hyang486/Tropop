@@ -671,6 +671,8 @@ export const en = {
     tryAgain: 'Try again',
     // UX2-117: a refetch failed while rows were already on screen.
     presenceStale: 'Couldn’t refresh. Showing the last update.',
+    // UX2-87: under the Share switch, for sharing and the pace maker.
+    locationOffShare: 'Location is off for Qrew. Turn it on to share and use the pace maker.',
     // UX2-86
     shareUnknown: 'Couldn’t check your sharing.',
     you: 'You',

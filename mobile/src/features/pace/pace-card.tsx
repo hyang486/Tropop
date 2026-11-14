@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReduceMotion } from '@/components/enter-view';
@@ -112,12 +112,6 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
       </View>
       {switchFailed ? <Hint tone="error">{t.switchSaveFailed}</Hint> : null}
       <Hint>{share ? t.switchHint : t.needsSharing}</Hint>
-      {hint === 'denied' ? (
-        <>
-          <Hint tone="error">{t.locationOff}</Hint>
-          <Button title={t.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
-        </>
-      ) : null}
       {settings.on && share && paceAllowed(plus) ? (
         <>
           <Hint>{t.mapOnly}</Hint>
