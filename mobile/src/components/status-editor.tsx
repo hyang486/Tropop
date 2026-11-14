@@ -136,13 +136,14 @@ export function StatusEditor({ roomId, isHost, editing = true }: { roomId: strin
         <Text style={styles.sectionTitle} accessibilityRole="header">
           {en.room.statusOptions}
         </Text>
-        <View>
-          {saved.map((label) => (
-            <Text key={label} style={styles.line}>
-              {label}
-            </Text>
+        {/* Spec 11 A18: one grouped box (iOS Settings style), rows split by inset hairlines. */}
+        <View style={styles.group}>
+          {saved.map((label, i) => (
+            <View key={label} style={[styles.groupRow, i > 0 && styles.groupDivider]}>
+              <Text style={styles.line}>{label}</Text>
+            </View>
           ))}
-          <View style={styles.lineRow}>
+          <View style={[styles.groupRow, saved.length > 0 && styles.groupDivider]}>
             <Text style={styles.lineDanger}>Emergency</Text>
             <Text style={styles.fixedTag}>{en.statusEditor.emergencyFixed}</Text>
           </View>
@@ -222,22 +223,12 @@ export function StatusEditor({ roomId, isHost, editing = true }: { roomId: strin
 const styles = StyleSheet.create({
   section: { gap: 8 },
   sectionTitle: { fontSize: 13, color: colors.secondaryLabel, textTransform: 'uppercase' },
-  // Q 03.03: plain lines with a hairline under each.
-  line: {
-    fontSize: 15,
-    color: colors.label,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.separator,
-  },
-  lineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.separator,
-  },
-  lineDanger: { flex: 1, fontSize: 15, color: colors.danger, paddingVertical: 10 },
+  // Spec 11 A18 (human): a grouped box like iOS Settings instead of plain lines.
+  group: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingLeft: 16 },
+  groupRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 46, paddingRight: 16 },
+  groupDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
+  line: { flex: 1, fontSize: 16, color: colors.label, paddingVertical: 12 },
+  lineDanger: { flex: 1, fontSize: 16, color: colors.danger, paddingVertical: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -2,21 +2,49 @@ import { DatePicker, Host } from '@expo/ui/swift-ui';
 import { dynamicTypeSize, labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActionSheetIOS, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { InkIcon } from '@/components/calendar';
 import { PlacePinMap } from '@/components/place-time-cards';
+import { usePlusPreview } from '@/features/calendar/calendar-store';
 import { defaultDraft, type QuestionPayload, validateQuestions } from '@/features/event/entry-questions';
 import { useAnnounce } from '@/features/event/announce';
 import { createBarLayout } from '@/features/event/create-bar';
+import {
+  defaultEndHours,
+  endError,
+  endMs,
+  endRange,
+  type EndChoice,
+  MORE_PRESETS,
+  moreAction,
+  QUICK_PRESETS,
+  selectedPreset,
+} from '@/features/event/create-room-plan';
+import { InkSwitch } from '@/features/event/ink-switch';
+import {
+  type Capacity,
+  capacityMax,
+  defaultRoomIcon,
+  MAX_AREA,
+  MIN_MEMBERS,
+  OPEN_ROOMS_LIVE,
+  openRoomProblem,
+  ROOM_ICONS,
+  stepCapacity,
+  type Visibility,
+} from '@/features/event/open-room-plan';
+import { createOpenAwareRoom } from '@/features/event/open-rooms-api';
 import { QuestionEditor, questionProblemText } from '@/features/event/question-editor';
 import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api';
-import { QCard, QField, QLabel, QLink, QScreen } from '@/components/q-screen';
+import { QField, QLabel, QLink, QScreen } from '@/components/q-screen';
+import { useAuth } from '@/lib/auth';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { createRoom, ROOM_TYPES, type RoomType } from '@/lib/rooms';
-import { defaultRoomHours, formatDeletedAt } from '@/lib/create-defaults';
 import {
   clampStart,
   MAX_PLACE_NAME,
@@ -46,9 +74,11 @@ export default function CreateRoom() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [type, setType] = useState<RoomType>('sports');
-  // #11: the length follows the type's default until the host picks one by hand.
-  const [pickedHours, setPickedHours] = useState<number | null>(null);
-  const hours = pickedHours ?? defaultRoomHours(type);
+  const uid = useAuth().session?.user.id;
+  const plus = usePlusPreview(uid);
+  // #11 / Spec 11 A7: End follows the type's default until the host picks a preset or a time by hand.
+  const [pickedEnd, setPickedEnd] = useState<EndChoice | null>(null);
+  const choice: EndChoice = pickedEnd ?? { kind: 'preset', hours: defaultEndHours(type, plus) };
   const [locationAllowed, setLocationAllowed] = useState(true);
   const [statuses, setStatuses] = useState<string>(en.createRoom.statusesDefault);
   // Qrewing AI (spec 3.2): off by default for every type; entry info is offered for event rooms only.
@@ -57,6 +87,13 @@ export default function CreateRoom() {
   // Spec 9.4: the host's entry questions, prefilled with the default four.
   const [questions, setQuestions] = useState(defaultDraft);
   const [questionProblem, setQuestionProblem] = useState<ReturnType<typeof validateQuestions> | null>(null);
+  // Spec 11 B/D: capacity ("No limit" = the plan maximum) and who can join. A public room needs an icon (follows the
+  // type until picked) and an area for Open chat.
+  const [capacity, setCapacity] = useState<Capacity>('none');
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [pickedIcon, setPickedIcon] = useState<string | null>(null);
+  const icon = pickedIcon ?? defaultRoomIcon(type);
+  const [area, setArea] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // iOS VoiceOver ignores Hint's live region: each failure bumps the counter so a repeated identical error is read
@@ -85,14 +122,13 @@ export default function CreateRoom() {
 
   // #11: refreshed every 5 s and shown without seconds, so the time stays current while the screen is open.
   const now = useNow(5_000);
-  const expiresPreview = new Date(now + hours * 3_600_000);
-  const startRange = { ...startTimeRange(expiresPreview.getTime(), now), start: new Date(openedAt) };
+  const endAt = endMs(choice, now);
+  const startRange = { ...startTimeRange(endAt, now), start: new Date(openedAt) };
   const hasPlace = normalizePlaceName(placeName) !== null;
 
-  // qa 3: a new room length moves a start time that no longer fits, and says so, so what the picker shows is
-  // what is sent.
-  function changeHours(nextHours: number) {
-    const range = { ...startTimeRange(now + nextHours * 3_600_000, now), start: new Date(openedAt) };
+  // qa 3: a new End moves a start time that no longer fits, and says so, so what the picker shows is what is sent.
+  function changeEnd(nextEnd: number) {
+    const range = { ...startTimeRange(nextEnd, now), start: new Date(openedAt) };
     const { startsAt: clamped, moved } = clampStart(startsAt, range);
     setStartsAt(clamped);
     setStartNote(moved ? en.createRoom.startMoved : null);
@@ -100,12 +136,31 @@ export default function CreateRoom() {
 
   function pickType(t: RoomType) {
     setType(t);
-    if (pickedHours === null) changeHours(defaultRoomHours(t));
+    if (pickedEnd === null) changeEnd(now + defaultEndHours(t, plus) * 3_600_000);
   }
 
-  function pickHours(h: number) {
-    setPickedHours(h);
-    changeHours(h);
+  function pickPreset(h: number) {
+    setPickedEnd({ kind: 'preset', hours: h });
+    changeEnd(now + h * 3_600_000);
+  }
+
+  function pickEndAt(d: Date) {
+    setPickedEnd({ kind: 'at', ms: d.getTime() });
+    changeEnd(d.getTime());
+  }
+
+  // A5: "More" opens 3–7 days on Plus and the Plus screen on Free; nothing while the Plus flag loads.
+  function openMore() {
+    const action = moreAction(plus);
+    if (action === 'upgrade') router.push('/plan-preview');
+    if (action !== 'choices') return;
+    const labels = MORE_PRESETS.map((h) => en.createRoom.presetLabel(h));
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: en.createRoom.moreTitle, options: [...labels, en.createRoom.cancel], cancelButtonIndex: labels.length },
+      (i) => {
+        if (i < labels.length) pickPreset(MORE_PRESETS[i]);
+      },
+    );
   }
 
   // qa 4: any edit of the name drops the pin, so Find on map shows again for the new name.
@@ -159,7 +214,12 @@ export default function CreateRoom() {
       fail(en.createRoom.nameRequired);
       return;
     }
-    const expiresAt = new Date(Date.now() + hours * 3_600_000);
+    const expiresAt = new Date(endMs(choice, Date.now()));
+    const endProblem = endError(expiresAt.getTime(), Date.now(), plus);
+    if (endProblem) {
+      fail(endProblem === 'tooSoon' ? en.createRoom.endTooSoon : en.createRoom.endTooLong(!!plus));
+      return;
+    }
     const startProblem = startTimeError(startsAt, expiresAt.getTime(), Date.now());
     if (startProblem) {
       fail(startProblem === 'afterClose' ? en.createRoom.startAfterClose : en.createRoom.startTooEarly);
@@ -177,10 +237,14 @@ export default function CreateRoom() {
       }
       payload = checked.value;
     }
+    if (OPEN_ROOMS_LIVE && openRoomProblem(visibility, area)) {
+      fail(en.createRoom.areaMissing);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const room = await createRoom({
+      const input = {
         name: trimmed,
         type,
         expiresAt,
@@ -192,7 +256,10 @@ export default function CreateRoom() {
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean),
-      });
+      };
+      const room = OPEN_ROOMS_LIVE
+        ? await createOpenAwareRoom({ ...input, capacity, plus, visibility, icon, area })
+        : await createRoom(input);
       // A failed Qrewing save never blocks the room; the chat screen shows the note once.
       let aiNote: string | undefined;
       let questionsNote: string | undefined;
@@ -218,11 +285,10 @@ export default function CreateRoom() {
     }
   }
 
-  // Qrew Q 02.02 (human placement B): name, Room type chips, Room closes after chips (4 and 7 days as extra
-  // chips, no Custom), the deletion line, the Plus preview link under it, the location card with its switch
-  // and hint, the Status options card (editable), Create room pinned at the bottom. Place and time unit (0026):
-  // the optional meeting place and time card sits under the Plus link. UI audit 2026-11-13 item 8 (qa, human "fix
-  // all"): the location and Qrewing AI switches with their hints moved up, right under Room type.
+  // Qrew Q 02.02 + Spec 11 (human review 2026-11-13): name, Room type, the location and Qrewing AI rows (outlined, ink
+  // switches, one-line AI hint; UI audit item 8 keeps them right under Room type), then a Luma-style place row and
+  // Start ⋮ End block with one line of End presets (A5, A7), then Status options. The Plus preview link is gone (A6).
+  const preset = selectedPreset(choice);
   return (
     <QScreen
       title={en.createRoom.title}
@@ -250,33 +316,113 @@ export default function CreateRoom() {
         ))}
       </View>
 
-      {/* UI audit item 8: the location and AI switches (with their helper lines) sit right under Room type, so
-          both helpers show without scrolling on a 402x874 pt phone at the default text size. */}
-      <QCard row>
+      {OPEN_ROOMS_LIVE ? (
+        <>
+          {/* Spec 11 B: People stepper, 2 … plan max; "No limit" means the plan max (the server caps at 30). */}
+          <View style={styles.row}>
+            <Text style={styles.cardTitle}>{en.createRoom.capacityLabel}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={en.createRoom.fewerPeople}
+              disabled={capacity !== 'none' && capacity <= MIN_MEMBERS}
+              onPress={() => setCapacity(stepCapacity(capacity, -1, plus))}
+              hitSlop={8}
+            >
+              <SymbolView name="minus.circle" size={26} tintColor={colors.label} />
+            </Pressable>
+            <Text
+              style={styles.capacity}
+              accessibilityRole="adjustable"
+              accessibilityLabel={en.createRoom.capacityLabel}
+              accessibilityValue={{ text: capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity) }}
+              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+              onAccessibilityAction={(e) =>
+                setCapacity(stepCapacity(capacity, e.nativeEvent.actionName === 'increment' ? 1 : -1, plus))
+              }
+            >
+              {capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={en.createRoom.morePeople}
+              disabled={capacity === 'none' || capacity >= capacityMax(plus)}
+              onPress={() => setCapacity(stepCapacity(capacity, 1, plus))}
+              hitSlop={8}
+            >
+              <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
+            </Pressable>
+          </View>
+          <Hint>{plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree}</Hint>
+          {capacity !== 'none' ? <QLink title={en.createRoom.noLimit} onPress={() => setCapacity('none')} /> : null}
+
+          {/* Spec 11 D: Private (code or QR) or Public (listed in Open chat, joins without a code). */}
+          <QLabel>{en.createRoom.visibilityLabel}</QLabel>
+          <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.visibilityLabel}>
+            {(['private', 'public'] as const).map((v) => (
+              <Choice key={v} label={en.createRoom[v]} selected={visibility === v} onPress={() => setVisibility(v)} />
+            ))}
+          </View>
+          <Hint>{visibility === 'public' ? en.createRoom.publicHint : en.createRoom.privateHint}</Hint>
+          {visibility === 'public' ? (
+            <>
+              <QLabel>{en.createRoom.iconLabel}</QLabel>
+              <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.iconLabel}>
+                {ROOM_ICONS.map((i) => (
+                  <Pressable
+                    key={i.key}
+                    accessibilityRole="radio"
+                    accessibilityLabel={i.key}
+                    accessibilityState={{ selected: icon === i.key }}
+                    onPress={() => setPickedIcon(i.key)}
+                    style={[styles.iconChip, icon === i.key && styles.iconChipOn]}
+                  >
+                    <InkIcon emoji={i.emoji} size={24} />
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.row}>
+                <TextInput
+                  placeholder={en.createRoom.areaPlaceholder}
+                  placeholderTextColor={colors.secondaryLabel}
+                  accessibilityLabel={en.createRoom.areaPlaceholder}
+                  value={area}
+                  onChangeText={setArea}
+                  maxLength={MAX_AREA}
+                  returnKeyType="done"
+                  style={styles.rowInput}
+                />
+                {pinArea && !area.trim() ? (
+                  <Pressable accessibilityRole="button" onPress={() => setArea(pinArea)} hitSlop={8}>
+                    <Text style={styles.rowAction}>{en.createRoom.areaUsePin(pinArea)}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </>
+          ) : null}
+        </>
+      ) : null}
+
+      <View style={styles.row}>
         <Text style={styles.cardTitle}>{en.createRoom.locationLabel}</Text>
-        <Switch
-          value={locationAllowed}
-          onValueChange={setLocationAllowed}
-          accessibilityLabel={en.createRoom.locationLabel}
-        />
-      </QCard>
+        <InkSwitch value={locationAllowed} onValueChange={setLocationAllowed} accessibilityLabel={en.createRoom.locationLabel} />
+      </View>
       <Hint>{en.createRoom.locationHint}</Hint>
 
-      <QCard row>
+      <View style={styles.row}>
         <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
-        <Switch value={aiEnabled} onValueChange={setAiEnabled} accessibilityLabel={en.qrewing.create.aiLabel} />
-      </QCard>
+        <InkSwitch value={aiEnabled} onValueChange={setAiEnabled} accessibilityLabel={en.qrewing.create.aiLabel} />
+      </View>
       <Hint>{en.qrewing.create.aiHint}</Hint>
       {aiEnabled && type === 'event' ? (
         <>
-          <QCard row>
+          <View style={styles.row}>
             <Text style={styles.cardTitle}>{en.qrewing.create.entryLabel}</Text>
-            <Switch
+            <InkSwitch
               value={entryRequired}
               onValueChange={setEntryRequired}
               accessibilityLabel={en.qrewing.create.entryLabel}
             />
-          </QCard>
+          </View>
           <Hint>{en.qrewing.create.entryHint}</Hint>
           {entryRequired ? (
             <QuestionEditor
@@ -291,30 +437,28 @@ export default function CreateRoom() {
         </>
       ) : null}
 
-      <QLabel>{en.createRoom.expiryLabel}</QLabel>
-      <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.expiryLabel}>
-        {en.createRoom.expiryOptions.map((o) => (
-          <Choice key={o.hours} label={o.label} selected={hours === o.hours} onPress={() => pickHours(o.hours)} />
-        ))}
+      <QLabel>{en.createRoom.whenLabel}</QLabel>
+      {/* A7: one place row (pin icon, name, Find on map at the end), Luma style. */}
+      <View style={styles.row}>
+        <InkIcon emoji="📍" size={22} />
+        <TextInput
+          placeholder={en.createRoom.placeLabel}
+          placeholderTextColor={colors.secondaryLabel}
+          accessibilityLabel={en.createRoom.placeLabel}
+          accessibilityHint={en.createRoom.placePlaceholder}
+          value={placeName}
+          onChangeText={changePlaceName}
+          maxLength={MAX_PLACE_NAME}
+          returnKeyType="search"
+          onSubmitEditing={findOnMap}
+          style={styles.rowInput}
+        />
+        {hasPlace && !pin ? (
+          <Pressable accessibilityRole="button" onPress={findOnMap} disabled={finding} hitSlop={8}>
+            <Text style={styles.rowAction}>{finding ? en.createRoom.finding : en.createRoom.findOnMap}</Text>
+          </Pressable>
+        ) : null}
       </View>
-      <Text style={styles.deletes}>{en.createRoom.expiryHint(formatDeletedAt(expiresPreview.getTime()))}</Text>
-      <Pressable accessibilityRole="link" onPress={() => router.push('/plan-preview')} hitSlop={8}>
-        <Text style={styles.planLink}>{en.planPreview.createRoomLink}</Text>
-      </Pressable>
-
-      <QLabel>{en.createRoom.placeTimeLabel}</QLabel>
-      <QField
-        label={en.createRoom.placeLabel}
-        placeholder={en.createRoom.placePlaceholder}
-        value={placeName}
-        onChangeText={changePlaceName}
-        maxLength={MAX_PLACE_NAME}
-        returnKeyType="search"
-        onSubmitEditing={findOnMap}
-      />
-      {hasPlace && !pin ? (
-        <QLink title={finding ? en.createRoom.finding : en.createRoom.findOnMap} onPress={findOnMap} disabled={finding} />
-      ) : null}
       {placeNote ? <Hint>{placeNote}</Hint> : null}
       {hasPlace && pin ? (
         <>
@@ -324,15 +468,17 @@ export default function CreateRoom() {
           <QLink title={en.createRoom.removePin} onPress={() => setPin(null)} />
         </>
       ) : null}
-      {startsAt ? (
-        <QCard>
-          {/* qa 1: the label sits above, and date and time are two compact pickers that wrap onto two rows when
-              they do not fit side by side. Their Dynamic Type is capped at xxxLarge so each stays inside the card
-              on a 390 pt screen at the largest text size. */}
-          <Text style={styles.cardTitle} maxFontSizeMultiplier={1.5}>
+
+      {/* A7: Start ⋮ End, two dots joined by a dotted line. End is when the room closes and is deleted. Date and
+          time pickers wrap onto a second line when they do not fit; their Dynamic Type is capped at xxxLarge. */}
+      <View style={styles.when}>
+        <View style={styles.whenRow}>
+          <View style={[styles.dot, styles.dotStart]} />
+          <Text style={styles.whenLabel} maxFontSizeMultiplier={1.5}>
             {en.createRoom.startTimeLabel}
           </Text>
-          <View style={styles.pickers}>
+          {startsAt ? (
+            <View style={styles.pickers}>
             {(['date', 'hourAndMinute'] as const).map((part) => (
               <Host key={part} matchContents>
                 <DatePicker
@@ -348,23 +494,66 @@ export default function CreateRoom() {
                 />
               </Host>
             ))}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={en.createRoom.removeStartTime}
+                onPress={() => {
+                  setStartsAt(null);
+                  setStartNote(null);
+                }}
+                hitSlop={10}
+              >
+                <SymbolView name="xmark.circle" size={20} tintColor={colors.secondaryLabel} />
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable accessibilityRole="button" accessibilityLabel={en.createRoom.addStartTime} onPress={addStartTime} hitSlop={8}>
+              <Text style={styles.rowAction}>{en.createRoom.addTime}</Text>
+            </Pressable>
+          )}
+        </View>
+        <View style={styles.dotted} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={styles.dotSmall} />
+          ))}
+        </View>
+        <View style={styles.whenRow}>
+          <View style={[styles.dot, styles.dotEnd]} />
+          <Text style={styles.whenLabel} maxFontSizeMultiplier={1.5}>
+            {en.createRoom.endLabel}
+          </Text>
+          <View style={styles.pickers}>
+            {(['date', 'hourAndMinute'] as const).map((part) => (
+              <Host key={part} matchContents>
+                <DatePicker
+                  title={en.createRoom.endLabel}
+                  selection={new Date(endAt)}
+                  range={endRange(now, plus)}
+                  displayedComponents={[part]}
+                  onDateChange={pickEndAt}
+                  modifiers={[labelsHidden(), dynamicTypeSize({ max: 'xxxLarge' })]}
+                />
+              </Host>
+            ))}
           </View>
-          {/* Human decision: the "start moved" note sits right under the pickers, inside the card, so the pinned
-              Create room button never covers it. */}
-          {startNote ? <Hint>{startNote}</Hint> : null}
-          <QLink
-            title={en.createRoom.removeStartTime}
-            onPress={() => {
-              setStartsAt(null);
-              setStartNote(null);
-            }}
-          />
-        </QCard>
-      ) : (
-        <QLink title={en.createRoom.addStartTime} onPress={addStartTime} />
-      )}
+        </View>
+        {/* Human decision: the "start moved" note sits inside the block, so the pinned Create bar never covers it. */}
+        {startNote ? <Hint>{startNote}</Hint> : null}
+      </View>
+      {/* A5: one line of End presets up to 2 days, then More (Plus: 3–7 days; Free: the Plus screen). */}
+      <View style={styles.presets} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.presetsLabel}>
+        {QUICK_PRESETS.map((h) => (
+          <Choice key={h} label={en.createRoom.presetLabel(h)} selected={preset === h} onPress={() => pickPreset(h)} />
+        ))}
+        <Choice
+          label={preset === 'more' && choice.kind === 'preset' ? en.createRoom.presetLabel(choice.hours) : en.createRoom.more}
+          selected={preset === 'more'}
+          onPress={openMore}
+        />
+      </View>
+      <Text style={styles.deletes}>{en.createRoom.endHint}</Text>
 
-      <QCard>
+      <View style={styles.box}>
         <Text style={styles.cardTitle}>{en.createRoom.statusesLabel}</Text>
         <TextInput
           value={statuses}
@@ -377,16 +566,23 @@ export default function CreateRoom() {
           returnKeyType="done"
         />
         <Text style={styles.cardNote}>{en.createRoom.statusesHint}</Text>
-      </QCard>
+      </View>
     </QScreen>
   );
 }
 
+const outline = {
+  borderWidth: StyleSheet.hairlineWidth * 2,
+  borderColor: colors.separator,
+  borderRadius: 12,
+  borderCurve: 'continuous',
+} as const;
+
 const styles = StyleSheet.create({
   bar: { ...createBarLayout, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
-  planLink: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
-  deletes: { fontSize: 14, color: colors.label, fontVariant: ['tabular-nums'] },
+  deletes: { fontSize: 13, color: colors.secondaryLabel },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  presets: { flexDirection: 'row', flexWrap: 'nowrap', gap: 8 },
   chip: {
     backgroundColor: colors.field,
     borderRadius: radius.pill,
@@ -395,9 +591,25 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   chipText: { fontSize: 15, color: colors.label },
+  // A3: outlined rows, no grey fill.
+  row: { ...outline, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10 },
+  rowInput: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 4 },
+  rowAction: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
+  box: { ...outline, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
   statuses: { fontSize: 14, color: colors.secondaryLabel, paddingVertical: 2 },
   cardNote: { fontSize: 12, color: colors.secondaryLabel },
   pinArea: { fontSize: 14, color: colors.label },
-  pickers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  capacity: { minWidth: 84, textAlign: 'center', fontSize: 16, color: colors.label, fontVariant: ['tabular-nums'] },
+  iconChip: { ...outline, width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
+  iconChipOn: { borderColor: colors.label, borderWidth: 2 },
+  when: { ...outline, paddingHorizontal: 14, paddingVertical: 12, gap: 2 },
+  whenRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 40 },
+  whenLabel: { width: 44, fontSize: 16, color: colors.label },
+  dot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, borderColor: colors.label },
+  dotStart: { backgroundColor: colors.label },
+  dotEnd: { backgroundColor: colors.background },
+  dotted: { gap: 3, paddingLeft: 3.5, paddingVertical: 1 },
+  dotSmall: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.label },
+  pickers: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
 });

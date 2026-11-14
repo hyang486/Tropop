@@ -17,6 +17,7 @@ import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
+import { OpenChatSection } from '@/features/event/open-chat-section';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
 import { syncCalendarRooms } from '@/features/calendar/calendar-store';
 import { roomListEntry } from '@/features/recap/grace-plan';
@@ -156,6 +157,9 @@ export default function Rooms() {
           </Pressable>
           );
         })}
+
+        {/* Spec 11 D: public rooms anyone can join without a code (hidden until 0031 is live). */}
+        <OpenChatSection />
       </QScreen>
     </>
   );
