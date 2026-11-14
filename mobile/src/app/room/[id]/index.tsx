@@ -389,8 +389,9 @@ function ChatRoom({
             <EmergencyAlerts roomId={room.id} activity={activity} userId={userId} names={names} presence={presence} />
           </View>
 
-          {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it. */}
-          <View style={styles.flex}>
+          {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it.
+              Clipped so a message scrolled past the top never shows behind the Emergency card above. */}
+          <View style={[styles.flex, styles.clip]}>
           {qrewing.gates.entry ? (
             <EntryGate roomId={room.id} />
           ) : chat.loading ? (
@@ -653,6 +654,7 @@ function MessageRow({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  clip: { overflow: 'hidden' },
   loading: { marginTop: 48 },
   center: { padding: 20, gap: 12 },
   // The nav bar title: smaller than a screen title so a long room name fits beside back, bell and gear.
