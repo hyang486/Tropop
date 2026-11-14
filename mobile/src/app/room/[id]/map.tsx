@@ -8,7 +8,7 @@ import { ActivityIndicator, Alert, Animated, AppState, Linking, Pressable, Scrol
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
 import { useInlineHeaderTitle } from '@/components/inline-header-title';
-import { EmergencyAlerts } from '@/components/room-activity';
+import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { edgeSolid, QLink } from '@/components/q-screen';
@@ -248,6 +248,9 @@ function RoomMap({
   const permissionDenied = granted === false && (askDenied || sharingState === 'no-permission');
 
   const presence = useLivePresence(room.id, active);
+  // C39: the Emergency bar reads presence while an Emergency is open, with or without an activity (the same source
+  // as chat), so its location line never waits on `active` and stays on Checking.
+  const emergencyPresence = useEmergencyPresence(room.id, activity);
   const presenceState = presenceView({ loaded: presence.loaded, error: presence.error, count: presence.rows.length });
   const savedRoute = useMemo(() => parseRoute(room.route), [room.route]);
   // R1-C: the host edits the route in a full-screen editor (a Modal outside the stack, with its own map).
@@ -564,7 +567,7 @@ function RoomMap({
         activity={activity}
         userId={userId}
         names={names}
-        presence={presence.rows}
+        presence={emergencyPresence}
         onOpenLocation={(_sender, coordinates) => focusOn(coordinates)}
       />
 

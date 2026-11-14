@@ -35,3 +35,18 @@ test('C39: failed line is ink2 with a semibold label "Try again"; the text block
   assert.match(src, /lineState === 'blank'\s*\?\s*' '/);
   assert.match(src, /setTimeout\(\(\) => setPresenceLate\(true\), 1000\)/);
 });
+
+test('C39 Map: the bar uses the Emergency presence source, enabled by an open Emergency, not by the activity', () => {
+  const map = readFileSync(new URL('../src/app/room/[id]/map.tsx', import.meta.url), 'utf8');
+  assert.match(map, /const emergencyPresence = useEmergencyPresence\(room\.id, activity\);/);
+  assert.match(map, /<EmergencyAlerts[\s\S]*?presence=\{emergencyPresence\}/);
+  assert.doesNotMatch(map, /presence=\{presence\.rows\}/);
+  assert.match(src, /useLivePresence\(roomId, activity\.emergencies\.length > 0\)/);
+  const loc = readFileSync(new URL('../src/lib/location.ts', import.meta.url), 'utf8');
+  // Once enabled, a read that works sets loaded (and a failed one sets error), so the line leaves blank/checking.
+  assert.match(loc, /setError\(!!failed\);\s+if \(failed\) return;\s+setRows\(data \?\? \[\]\);\s+setLoaded\(true\);/);
+  // Emergency open, no activity running: presence enabled, the read lands with no row for the sender.
+  assert.equal(locationLineState({ shared: false, loaded: false, error: false, late: true }), 'checking');
+  assert.equal(locationLineState({ shared: false, loaded: true, error: false, late: true }), 'none');
+  assert.equal(locationLineState({ shared: false, loaded: false, error: true, late: true }), 'failed');
+});
