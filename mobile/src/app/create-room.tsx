@@ -19,6 +19,7 @@ import {
   endRange,
   type EndChoice,
   MORE_PRESETS,
+  aiSwitchAction,
   moreAction,
   QUICK_PRESETS,
   selectedPreset,
@@ -174,6 +175,13 @@ export default function CreateRoom() {
   function pickEndAt(d: Date) {
     setPickedEnd({ kind: 'at', ms: d.getTime() });
     changeEnd(d.getTime());
+  }
+
+  // Free hosts: turning Qrewing AI on opens the Plus screen instead of toggling (human, via qa 2026-11-13).
+  function changeAi(next: boolean) {
+    const action = aiSwitchAction(plus, next);
+    if (action === 'toggle') setAiEnabled(next);
+    if (action === 'upgrade') router.push({ pathname: '/plan-preview', params: { from: 'room-ai' } });
   }
 
   // A5: "More" opens 3–7 days on Plus and the Plus screen on Free; nothing while the Plus flag loads.
@@ -451,7 +459,7 @@ export default function CreateRoom() {
 
       <View style={styles.row}>
         <Text style={styles.cardTitle}>{en.qrewing.create.aiLabel}</Text>
-        <InkSwitch value={aiEnabled} onValueChange={setAiEnabled} accessibilityLabel={en.qrewing.create.aiLabel} />
+        <InkSwitch value={aiEnabled} onValueChange={changeAi} accessibilityLabel={en.qrewing.create.aiLabel} />
       </View>
       <Hint>{en.qrewing.create.aiHint}</Hint>
       {aiEnabled && type === 'event' ? (

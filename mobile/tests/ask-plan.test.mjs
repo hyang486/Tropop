@@ -179,3 +179,13 @@ test('askBody: anchor is sent as {lat,lng} only when known', () => {
   });
   assert.equal('anchor' in plan.askBody('r1', 'q', [], null, 'UTC'), false);
 });
+
+test('Ask Qrewing button: AI on + probe ok for this room; never a plan check', () => {
+  const ok = { roomId: 'r1', ok: true };
+  assert.equal(plan.askFabVisible(true, ok, 'r1'), true);
+  assert.equal(plan.askFabVisible(false, ok, 'r1'), false);
+  assert.equal(plan.askFabVisible(true, null, 'r1'), false);
+  assert.equal(plan.askFabVisible(true, { roomId: 'r1', ok: false }, 'r1'), false);
+  assert.equal(plan.askFabVisible(true, ok, 'r2'), false);
+  assert.equal(plan.askFabVisible.length, 3);
+});

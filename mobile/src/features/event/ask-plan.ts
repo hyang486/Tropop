@@ -10,6 +10,14 @@ export type AskTurn = { q: string; a: string; at: number };
  */
 export type AskMe = { elapsedSec: number; distanceM: number; paceSecPerKm: number | null; activity: 'moving' | 'stopped' };
 
+/**
+ * The Ask Qrewing button shows only when the room has Qrewing AI on and the probe for this room answered ok. With AI on
+ * every member may ask, Free or Plus: the plan is deliberately not an input (human, via qa 2026-11-13). AI off → none.
+ */
+export function askFabVisible(aiEnabled: boolean, probe: { roomId: string; ok: boolean } | null, roomId: string): boolean {
+  return aiEnabled && probe?.roomId === roomId && probe.ok;
+}
+
 export const ASK_LIMITS = { question: 300, keep: 30, send: 4 } as const;
 
 /** AsyncStorage key of a room's history (10.1). */

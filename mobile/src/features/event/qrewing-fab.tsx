@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 
+import { askFabVisible } from './ask-plan';
 import { DisclosureSheet } from './disclosure-sheet';
 import { probeQrewing, useQrewingRoom } from './qrewing-api';
 import { QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './qrewing-fab-size';
@@ -17,7 +18,7 @@ const s = en.qrewing.ask;
 const ART = require('../../../assets/images/icon.png');
 export { QREWING_FAB_CLEARANCE, QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './qrewing-fab-size';
 
-/** The room's Qrewing switch plus a probe ok, and my consent. `available` is false until both answer. */
+/** The room's Qrewing switch plus a probe ok (no plan check), and my consent. `available` is false until both answer. */
 export function useQrewingAsk(roomId: string) {
   const q = useQrewingRoom(roomId);
   const [probe, setProbe] = useState<{ roomId: string; ok: boolean } | null>(null);
@@ -29,7 +30,7 @@ export function useQrewingAsk(roomId: string) {
       alive = false;
     };
   }, [roomId, q.aiEnabled]);
-  const available = q.aiEnabled && probe?.roomId === roomId && probe.ok;
+  const available = askFabVisible(q.aiEnabled, probe, roomId);
   return { available, agreed: !!q.me?.aiOk, reload: q.reload };
 }
 
