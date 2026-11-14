@@ -440,6 +440,14 @@ export const en = {
       `Pace maker: ${(distanceM / 1000).toFixed(2)} km, moving ${moving}, total ${total}, ${pace} per km`,
     stats: (distanceM: number, duration: string, pace: string | null) =>
       `${(distanceM / 1000).toFixed(2)} km · ${duration}${pace ? ` · ${pace} per km` : ''}`,
+    // Spec 11 A19: big stats row (Strava/NRC: big numbers, small labels) and the target box.
+    statKm: 'km',
+    statMoving: 'Moving',
+    statPace: 'Pace per km',
+    segUsual: 'Usual',
+    segPace: 'Pace',
+    segTime: 'Time',
+    targetNow: (pace: string | null) => (pace ? `${pace} per km` : 'Not set'),
     // Cues (spoken when voice is available; otherwise a vibration and this banner).
     cueKm: (n: number, pace: string | null, target: string | null) =>
       `Kilometer ${n}${pace ? `: ${pace} per km` : ''}${target ? `, target ${target}` : ''}.`,
@@ -472,7 +480,8 @@ export const en = {
     reporter: {
       off: '',
       starting: 'Finding your position…',
-      sharing: 'Sharing your position',
+      // Spec 11 A19: no line while sharing works (the switch already says it is on).
+      sharing: '',
       'no-permission': 'Location access was turned off, so sharing stopped.',
       error: 'Could not send your position. Retrying…',
       refused: 'Sharing stopped because the activity or room settings changed.',
