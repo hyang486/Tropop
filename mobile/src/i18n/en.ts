@@ -767,6 +767,8 @@ export const en = {
     you: 'You',
     stale: (age: string) => `Last seen ${age}`,
     stalePin: 'stale',
+    /** P0: the Emergency row in "Sharing now": "Needs help · 2 min ago" (last fix), or no location at all. */
+    needsHelp: (age: string | null) => `Needs help · ${age ?? 'No location'}`,
     emergencyPin: (name: string) => `${name} · help`,
     /** UX2-41 sweep: a pin for VoiceOver, "Mina, 2 min ago". */
     pinSpoken: (name: string, age: string | null) => (age ? `${name}, ${age} ago` : name),

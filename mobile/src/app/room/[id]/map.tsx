@@ -54,6 +54,7 @@ import {
   planAvatarPins,
   planPins,
   presenceView,
+  sharingNowEntries,
   ROOM_MAP_SIZE,
   ROUTE_LINE_WIDTH,
   stalePinId,
@@ -259,7 +260,9 @@ function RoomMap({
   // C39: the Emergency bar reads presence while an Emergency is open, with or without an activity (the same source
   // as chat), so its location line never waits on `active` and stays on Checking.
   const emergencyPresence = useEmergencyPresence(room.id, activity);
-  const presenceState = presenceView({ loaded: presence.loaded, error: presence.error, count: presence.rows.length });
+  // P0: a member in Emergency is pinned to the top of "Sharing now" and never dropped, with or without a row.
+  const sharingNow = sharingNowEntries(presence.rows, activity.emergencies.map((e) => e.userId));
+  const presenceState = presenceView({ loaded: presence.loaded, error: presence.error, count: sharingNow.length });
   const savedRoute = useMemo(() => parseRoute(room.route), [room.route]);
   // R1-C: the host edits the route in a full-screen editor (a Modal outside the stack, with its own map).
   // Holds where the editor's map opens, captured when it opens; null when not editing.
@@ -753,20 +756,20 @@ function RoomMap({
           {presence.error ? (
             <Button title={en.map.tryAgain} variant="secondary" onPress={() => void presence.reload()} />
           ) : null}
-          {presence.rows.map((row) => (
+          {sharingNow.map(({ userId: memberId, row, emergency }) => (
             <PresenceRow
               gap={
-                row.user_id === userId
+                !row || memberId === userId
                   ? null
                   : personGap(meNow, { latitude: row.lat, longitude: row.lng }, savedRoute)
               }
-              key={row.user_id}
+              key={memberId}
               row={row}
-              name={displayName(row, userId, names)}
-              initialOf={names.get(row.user_id) ?? ''}
-              avatarPath={avatars.get(row.user_id) ?? null}
-              status={statusOf.get(row.user_id) ?? null}
-              emergency={emergencyPinIds.has(row.user_id)}
+              name={memberName(memberId, userId, names)}
+              initialOf={names.get(memberId) ?? ''}
+              avatarPath={avatars.get(memberId) ?? null}
+              status={statusOf.get(memberId) ?? null}
+              emergency={emergency}
               now={now}
             />
           ))}
@@ -807,7 +810,11 @@ function gapLabel(gap: PersonGap): string {
 }
 
 function displayName(row: Presence, userId: string | undefined, names: Map<string, string>) {
-  return row.user_id === userId ? en.map.you : (names.get(row.user_id) ?? en.chat.formerMember);
+  return memberName(row.user_id, userId, names);
+}
+
+function memberName(memberId: string, userId: string | undefined, names: Map<string, string>) {
+  return memberId === userId ? en.map.you : (names.get(memberId) ?? en.chat.formerMember);
 }
 
 /**
@@ -825,7 +832,8 @@ function PresenceRow({
   now,
 }: {
   gap: PersonGap | null;
-  row: Presence;
+  /** Null only for a member in Emergency with no position on the server (P0). */
+  row: Presence | null;
   name: string;
   initialOf: string;
   avatarPath: string | null;
@@ -833,6 +841,23 @@ function PresenceRow({
   emergency: boolean;
   now: number;
 }) {
+  if (emergency) {
+    // P0: the red disc and "Needs help · <age of the last fix>"; the row stays even when the fix is old or missing.
+    return (
+      <View style={styles.presence}>
+        <View style={styles.emergencyDisc}>
+          <Text style={styles.emergencyInitial}>{(initialOf || name).slice(0, 1).toUpperCase()}</Text>
+        </View>
+        <View style={styles.presenceText}>
+          <Text style={styles.presenceName}>{name}</Text>
+          <Text style={[styles.presenceMeta, styles.emergencyText]}>
+            {en.map.needsHelp(row ? formatAge(row.updated_at, now) : null)}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+  if (!row) return null;
   const age = formatAge(row.updated_at, now);
   const stale = isStale(row.updated_at, now);
   const speed = stale ? null : formatSpeedKmh(row.speed_mps);
@@ -844,7 +869,7 @@ function PresenceRow({
       <View style={styles.presenceText}>
         <Text style={styles.presenceName}>
           {name}
-          {status ? <Text style={[styles.presenceStatus, emergency && styles.emergencyText]}>{` · ${status}`}</Text> : null}
+          {status ? <Text style={styles.presenceStatus}>{` · ${status}`}</Text> : null}
         </Text>
         {meta && stale ? (
           // C15: a stale row reads "Last seen 4 min ago" in ink2 with a clock (no orange).
@@ -938,4 +963,13 @@ const styles = StyleSheet.create({
   staleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   presenceStatus: { color: colors.ink2 },
   emergencyText: { color: colors.errorText, fontWeight: '600' },
+  emergencyDisc: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.errorText,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emergencyInitial: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 });
