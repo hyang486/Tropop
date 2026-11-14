@@ -9,6 +9,7 @@ import { Button, colors, Hint } from '@/components/ui';
 
 import { setQrewingMember } from './qrewing-api';
 import { en } from '@/i18n/en';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 const s = en.qrewing.disclosure;
 const SUMMARY_ICONS: SFSymbol[] = ['sparkles', 'megaphone', 'trash'];
@@ -50,12 +51,14 @@ export function DisclosureSheet({
     onDone();
   }
 
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(visible ? onClose : null);
   return (
     <Modal
       key={present.key}
       visible={visible && settled}
       onShow={present.onShow}
-      animationType="slide"
+      animationType={instant ? 'none' : 'slide'}
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >

@@ -9,6 +9,7 @@ import { en } from '@/i18n/en';
 import type { StatusDefinition } from '@/lib/activity';
 import { statusSymbol } from '@/lib/chat-plan';
 import { statusPickerPlan } from '@/lib/emergency-plan';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 /**
  * UX2-05b: Emergency is never set without its confirm, and a failed write is never dropped silently: "Emergency not
@@ -69,10 +70,12 @@ export function StatusPicker({
   onRetry?: () => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(visible ? onClose : null);
   const plan = statusPickerPlan({ statuses, currentId, failed });
   const emergencyId = plan.emergency === 'builtin' ? undefined : plan.emergency.id;
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={instant ? 'none' : 'slide'} onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={styles.flex} accessibilityLabel={en.room.cancel} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]} accessibilityViewIsModal>

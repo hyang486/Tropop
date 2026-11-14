@@ -13,6 +13,7 @@ import '@/features/calendar/calendar-store';
 import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { dismissSheets } from '@/lib/dismiss-sheets';
 import { reminderRoomFromResponse, setPendingReminderRoom } from '@/lib/expiry-reminders';
 import { hasOpenModal, setRootLinkHandler } from '@/lib/root-link';
 import { pushFromRoot, resetToRoot } from '@/lib/root-nav';
@@ -47,6 +48,8 @@ function RootNavigator() {
     if (!roomId) return;
     Notifications.clearLastNotificationResponse();
     // C-3: from the root, so the room is never pushed inside an open Invite/Upgrade modal.
+    // UX2-46: open custom sheets close first (no animation).
+    dismissSheets();
     if (signedIn) pushFromRoot(router, { pathname: '/room/[id]', params: { id: roomId, from: 'reminder' } });
     else setPendingReminderRoom(roomId);
   }, [response, loading, signedIn, router]);

@@ -11,7 +11,8 @@ test('Reduce Motion: the pace target sheet and answer sheet fade, from the live 
     const s = src(p);
     assert.match(s, /import \{ useReduceMotion \} from '@\/components\/enter-view';/, p);
     assert.match(s, /const reduceMotion = useReduceMotion\(\);/, p);
-    assert.match(s, /animationType=\{reduceMotion \? 'fade' : 'slide'\}/, p);
+    // UX2-46: a link-dismissed sheet may go 'none' first.
+    assert.match(s, /animationType=\{(?:instant \? 'none' : )?reduceMotion \? 'fade' : 'slide'\}/, p);
     assert.doesNotMatch(s, /animationType="slide"/, p);
   }
   // The hook follows changes, not a one-time read.

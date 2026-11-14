@@ -9,6 +9,7 @@ import { HandTitle } from '@/components/hand-title';
 import { qSpacing } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 import { useRoomCards } from './question-store';
 import { AnsweredCard } from './relayed-cards';
@@ -37,12 +38,14 @@ export function AnswerSheet({
   const { cards } = useRoomCards(roomId);
   const card = cardId ? cards.find((c) => c.id === cardId && c.status === 'answered') : undefined;
   const plusAfter = useRef(false);
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(card ? onClose : null);
 
   return (
     <Modal
       visible={!!card}
       transparent
-      animationType={reduceMotion ? 'fade' : 'slide'}
+      animationType={instant ? 'none' : reduceMotion ? 'fade' : 'slide'}
       onRequestClose={onClose}
       onDismiss={() => {
         if (!plusAfter.current) return;

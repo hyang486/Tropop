@@ -1,3 +1,4 @@
+import { dismissSheets } from '@/lib/dismiss-sheets';
 import { handleRootLink } from '@/lib/root-link';
 
 // Native-only URL hook (Expo Router). While signed in, a warm `moment:///` resets to the Rooms
@@ -7,6 +8,8 @@ import { handleRootLink } from '@/lib/root-link';
 // a join link with no modal open, other links) passes through unchanged.
 export function redirectSystemPath({ path, initial }: { path: string; initial: boolean }) {
   try {
+    // UX2-46: a warm link first closes every open custom sheet (no animation) so none covers its screen.
+    if (!initial) dismissSheets();
     if (handleRootLink(path, initial)) return null;
   } catch (e) {
     console.warn('[root-link] handling failed', e);

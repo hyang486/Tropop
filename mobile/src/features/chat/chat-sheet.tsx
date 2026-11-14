@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HandTitle } from '@/components/hand-title';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 /**
  * Spec 11 A9/A12: the bottom sheet behind the chat header's bell and gear. Same paper sheet as the status
@@ -25,8 +26,10 @@ export function ChatSheet({
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  // UX2-46: Notices and every other chat sheet close at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(visible ? onClose : null);
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} onShow={onShow}>
+    <Modal visible={visible} transparent animationType={instant ? 'none' : 'slide'} onRequestClose={onClose} onShow={onShow}>
       <View style={styles.backdrop}>
         <Pressable style={styles.flex} accessibilityLabel={en.chat.moreClose} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]} accessibilityViewIsModal>
