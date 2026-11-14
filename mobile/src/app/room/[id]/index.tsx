@@ -451,23 +451,24 @@ function ChatRoom({
           <QrewingFab ask={ask} />
           </View>
 
-          {/* UX P1-1: before entry info the chat is read-only; the entry card takes the composer's place (no "+"). */}
-          {qrewing.gates.entry ? (
-            <EntryGate roomId={room.id} bottomInset={insets.bottom} />
-          ) : (
-            <View style={[styles.composer, { paddingBottom: plusOpen ? 8 : Math.max(insets.bottom, 8) }]}>
-              {/* Spec 11 A11: "+" left of the field (KakaoTalk); it turns into a cross while the grid is open. */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={plusOpen ? en.chat.moreClose : en.chat.more}
-                accessibilityState={{ expanded: plusOpen }}
-                onPress={togglePlus}
-                hitSlop={6}
-                style={({ pressed }) => [styles.plusButton, pressed && { opacity: 0.5 }]}
-              >
-                <SymbolView name={plusOpen ? 'xmark' : 'plus'} size={20} tintColor={colors.label} />
-              </Pressable>
-              {/* UX P1-11: the shared Composer (same field and ink up-arrow as Ask Qrewing). */}
+          {/* UX P1-1 / UX2-02: before entry info only Send is gated. The entry card takes the text field's place; the
+              "+" and its panel (Emergency, Arrived, Photos, Map) stay, since Emergency must never sit behind a form. */}
+          <View style={[styles.composer, { paddingBottom: plusOpen ? 8 : Math.max(insets.bottom, 8) }]}>
+            {/* Spec 11 A11: "+" left of the field (KakaoTalk); it turns into a cross while the grid is open. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={plusOpen ? en.chat.moreClose : en.chat.more}
+              accessibilityState={{ expanded: plusOpen }}
+              onPress={togglePlus}
+              hitSlop={6}
+              style={({ pressed }) => [styles.plusButton, pressed && { opacity: 0.5 }]}
+            >
+              <SymbolView name={plusOpen ? 'xmark' : 'plus'} size={20} tintColor={colors.label} />
+            </Pressable>
+            {/* UX P1-11: the shared Composer (same field and ink up-arrow as Ask Qrewing). */}
+            {qrewing.gates.entry ? (
+              <EntryGate roomId={room.id} />
+            ) : (
               <View style={styles.composerField}>
                 <Composer
                   key={composer.key}
@@ -482,9 +483,9 @@ function ChatRoom({
                   maxLength={MAX_MESSAGE_LENGTH}
                 />
               </View>
-            </View>
-          )}
-          {plusOpen && userId && !qrewing.gates.entry ? (
+            )}
+          </View>
+          {plusOpen && userId ? (
             <PlusPanel
               activity={activity}
               userId={userId}
@@ -705,6 +706,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     backgroundColor: colors.background,
   },
-  plusButton: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
+  plusButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   composerField: { flex: 1 },
 });
