@@ -39,3 +39,8 @@ When the model lacks the answer it sets `needs_human`; the function then creates
 - Existing rooms keep their stored cap and time. Join checks the room's stored `max_members` (PT409), never the host's plan.
 - qrewing `calendar_add` and `recap` with `diary: true` (Qrewing Calendar): Free → `402 {error:'plan_limit'}` before any
   count or model call. A plain recap (no diary) stays open to every member.
+
+## 0035 room AI (Qrewing AI in a room is Plus)
+- `set_qrewing_room(p_room_id, p_ai_enabled, p_entry_required)`: a Free host turning AI on (stored off or no row) → PT402
+  message `plan_limit` (show the upsell; nothing is written). Turning AI off, or leaving it as stored (a room that was on
+  before 0035), stays open to Free hosts. Plus hosts unchanged. Non-host stays 42501 and is checked first.
