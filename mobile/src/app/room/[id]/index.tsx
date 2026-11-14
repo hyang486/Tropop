@@ -30,6 +30,8 @@ import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { ChatHeaderButtons, NoticesSheet, SettingsSheet, useChatNoticeProducers } from '@/features/chat/chat-header';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
+import { cardsToAnswer } from '@/features/questions/question-plan';
+import { useQuestionCards, useRoomCards } from '@/features/questions/question-store';
 import { useRoomActivity } from '@/lib/activity';
 import { clearRoomNotices, type Notice } from '@/lib/room-notices';
 import { en } from '@/i18n/en';
@@ -253,6 +255,9 @@ function ChatRoom({
   );
 
   useChatNoticeProducers({ roomId: room.id, endsSoon, endsLine, activity, userId, names });
+  // Spec 11 C: question cards (bell notices, read aloud while moving) and the "+" tile count.
+  useQuestionCards(room, userId, names);
+  const questionsWaiting = cardsToAnswer(useRoomCards(room.id).cards, userId).length;
 
   function submit() {
     if (!canSend) return;
@@ -294,8 +299,18 @@ function ChatRoom({
   function openNotice(n: Notice) {
     setSheet(null);
     if (n.action?.kind === 'open-info') go('/room/[id]/info');
+    else if (n.action?.kind === 'open-question') openQuestions(n.action.cardId);
+    else if (n.action?.kind === 'open-ask') {
+      setPlusOpen(false);
+      router.push({ pathname: '/room/[id]/ask', params: { id: room.id } });
+    }
     // open-chat (Emergency): the card is already on this screen, above the messages.
-    // open-question: Spec 11 C (questions screen) is not built yet.
+  }
+
+  function openQuestions(cardId?: string) {
+    setSheet(null);
+    setPlusOpen(false);
+    router.push({ pathname: '/room/[id]/questions', params: cardId ? { id: room.id, cardId } : { id: room.id } });
   }
 
   function togglePlus() {
@@ -319,6 +334,17 @@ function ChatRoom({
     },
     ...(room.location_allowed || room.host_id === userId
       ? [{ key: 'map', symbol: 'map', label: en.map.headerLink, onPress: () => go('/room/[id]/map') } satisfies PlusTile]
+      : []),
+    ...(qrewing.available || questionsWaiting > 0
+      ? [
+          {
+            key: 'questions',
+            symbol: 'questionmark.bubble',
+            label: en.questions.tile,
+            badge: questionsWaiting,
+            onPress: () => openQuestions(),
+          } satisfies PlusTile,
+        ]
       : []),
   ];
 
@@ -664,7 +690,8 @@ const styles = StyleSheet.create({
   failedMeta: { color: colors.danger },
   noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
   notice: { fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' },
-  emergency: { color: colors.danger, fontWeight: '600' },
+  // Spec 11 A17: Emergency reads in black (weight, not red), as on the card.
+  emergency: { color: colors.label, fontWeight: '700' },
   mediaNotice: { color: colors.label, textDecorationLine: 'underline' },
   composer: {
     flexDirection: 'row',

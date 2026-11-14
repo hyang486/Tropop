@@ -5,6 +5,7 @@ import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAnnounce } from '@/features/event/announce';
+import { RelayedCards } from '@/features/questions/relayed-cards';
 import { QField, QScreen, type QScreenReveal } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { paceSnapshot, paceStartPoint } from '@/features/pace/engine';
@@ -129,6 +130,8 @@ export function AskScreen() {
               <Bubble text={t.a} />
             </View>
           ))}
+          {/* Spec 11 C: questions Qrewing passed on to a person, their answers and the ask-in-chat offer. */}
+          <RelayedCards roomId={id} refreshKey={turns.length} />
           {sending ? (
             <View style={styles.turn} ref={!error ? lastRef : undefined}>
               <Bubble mine text={sending} />
