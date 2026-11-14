@@ -49,6 +49,15 @@ export function selectedPreset(choice: EndChoice): number | 'more' | null {
 }
 
 /** What tapping "More" does: Plus opens the 3–7 day choices, Free opens the upgrade screen, loading does nothing. */
+/**
+ * The Qrewing AI switch on Create room: Plus toggles; a Free host turning it on opens the Plus screen instead (never a
+ * grey switch with no reason). Turning it off always works; nothing happens while the plan loads.
+ */
+export function aiSwitchAction(plus: boolean | null, next: boolean): 'toggle' | 'upgrade' | null {
+  if (!next || plus) return 'toggle';
+  return plus === null ? null : 'upgrade';
+}
+
 export function moreAction(plus: boolean | null): 'choices' | 'upgrade' | null {
   if (plus === null) return null;
   return plus ? 'choices' : 'upgrade';
