@@ -424,7 +424,11 @@ function RoomMap({
       await action();
       if (refresh) reload();
     } catch (e) {
-      Alert.alert(errorMessage(e));
+      // UX2-91: a title, the reason, and Try again that reruns the same action.
+      Alert.alert(en.map.actionFailedTitle, errorMessage(e), [
+        { text: en.map.cancel, style: 'cancel' },
+        { text: en.map.tryAgain, onPress: () => void run(key, action, refresh) },
+      ]);
     } finally {
       setBusy(null);
     }

@@ -106,3 +106,8 @@ test('UX2-89: an empty draft over a saved route reads Remove route and confirms;
   assert.match(ed, /variant="destructiveFill"[^>]*onPress=\{confirmRemove\}/);
   assert.match(ed, /disabled=\{route\.length === 0\}/);
 });
+
+test('UX2-91: a failed Map action alert has a title, the reason, Try again and Cancel', () => {
+  assert.equal(en.map.actionFailedTitle, 'Didn’t go through');
+  assert.match(src('app/room/[id]/map.tsx'), /Alert\.alert\(en\.map\.actionFailedTitle, errorMessage\(e\), \[[\s\S]*?onPress: \(\) => void run\(key, action, refresh\)/);
+});

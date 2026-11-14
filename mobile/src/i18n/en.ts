@@ -675,6 +675,8 @@ export const en = {
     presenceStale: 'Couldn’t refresh. Showing the last update.',
     // UX2-87: under the Share switch, for sharing and the pace maker.
     locationOffShare: 'Location is off for Qrew. Turn it on to share and use the pace maker.',
+    // UX2-91
+    actionFailedTitle: 'Didn’t go through',
     // UX2-89
     removeRoute: 'Remove route',
     removeRouteTitle: 'Remove the route?',
