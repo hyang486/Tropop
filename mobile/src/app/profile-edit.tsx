@@ -121,6 +121,10 @@ export default function ProfileEdit() {
           );
         })}
       </View>
+      {/* UX2-63: a "Name" label above the field, styled like "Or choose a picture". */}
+      <Text style={styles.pickLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {en.profile.nameHeading}
+      </Text>
       <QField
         label={en.profile.nameLabel}
         value={name}
