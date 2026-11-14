@@ -87,6 +87,12 @@ test('the request sends the last 4 turns, each side cut to 300, and only a whole
   assert.equal(plan.askBody('r1', 'q', [], { ...me, distanceM: -1 }).me, undefined);
 });
 
+test('402 plan_limit maps to plan_limit, with or without the body code', () => {
+  assert.equal(classifyQrewingError(402, 'plan_limit'), 'plan_limit');
+  assert.equal(classifyQrewingError(402), 'plan_limit');
+  assert.equal(classifyQrewingError(500, 'plan_limit'), 'plan_limit');
+});
+
 test('contract errors map to the four the ask screen names', () => {
   assert.equal(classifyQrewingError(403, 'not_consented'), 'not_consented');
   assert.equal(classifyQrewingError(429, 'ask_limit'), 'ask_limit');

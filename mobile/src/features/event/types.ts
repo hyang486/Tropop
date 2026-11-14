@@ -16,6 +16,8 @@ export type QrewingError =
   | 'ask_limit'
   | 'unclear'
   | 'rate_limited'
+  /** 402: the action needs Plus (calendar_add, migration 0032). */
+  | 'plan_limit'
   | 'ai_failed'
   | 'network';
 

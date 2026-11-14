@@ -952,6 +952,7 @@ export const en = {
       ask_limit: 'You have asked Qrewing a lot today. Try again later.',
       unclear: "Qrewing couldn't understand that. Try saying it another way.",
       rate_limited: 'Too many requests. Try again in a little while.',
+      plan_limit: 'This needs Qrew Plus.',
       ai_failed: 'Qrewing could not finish this. Try again.',
       network: 'No connection. Try again.',
     },

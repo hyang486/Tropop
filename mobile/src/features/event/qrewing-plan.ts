@@ -12,6 +12,7 @@ const KNOWN: readonly QrewingError[] = [
   'ask_limit',
   'unclear',
   'rate_limited',
+  'plan_limit',
   'ai_failed',
   'network',
 ];
@@ -23,6 +24,7 @@ const KNOWN: readonly QrewingError[] = [
 export function classifyQrewingError(status: number, bodyError?: unknown): QrewingError {
   if (typeof bodyError === 'string' && (KNOWN as readonly string[]).includes(bodyError)) return bodyError as QrewingError;
   if (status === 0) return 'network';
+  if (status === 402) return 'plan_limit';
   // The function always names ai_not_configured in its 503 body, so a bare 503 is a gateway failure.
   if (status === 401 || status === 403) return 'not_member';
   return 'ai_failed';
