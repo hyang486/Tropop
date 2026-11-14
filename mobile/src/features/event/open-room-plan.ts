@@ -99,10 +99,10 @@ export function openRoomArgs(input: {
 }
 
 /**
- * Migration 0031 (capacity and public rooms) is not on the live project yet. While false, Create room hides the B/D
- * controls and calls the pre-0031 create_room, so live room creation keeps working. Flip once 0031 is applied.
+ * Migration 0031 (capacity and public rooms) is live (20261114054841). While false, Create room hides the B/D
+ * controls and calls the pre-0031 create_room; kept as a switch to turn B/D off again.
  */
-export const OPEN_ROOMS_LIVE = false;
+export const OPEN_ROOMS_LIVE = true;
 
 /**
  * join_open_room's result: the room id, or null when the room went private, was deleted or expired between the list
