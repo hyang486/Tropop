@@ -658,6 +658,12 @@ export const en = {
     },
     members: 'Sharing now',
     nobody: 'Nobody is sharing yet.',
+    // UX2-85: before the first read that worked, and after a failed read with nobody on screen.
+    presenceLoading: 'Checking who’s sharing…',
+    presenceFailed: 'Couldn’t load who’s sharing.',
+    tryAgain: 'Try again',
+    // UX2-117: a refetch failed while rows were already on screen.
+    presenceStale: 'Couldn’t refresh. Showing the last update.',
     you: 'You',
     stale: (age: string) => `Last seen ${age}`,
     stalePin: 'stale',

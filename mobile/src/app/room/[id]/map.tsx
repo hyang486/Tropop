@@ -53,6 +53,7 @@ import {
   type PinInput,
   planAvatarPins,
   planPins,
+  presenceView,
   ROOM_MAP_SIZE,
   ROUTE_LINE_WIDTH,
   stalePinId,
@@ -246,6 +247,7 @@ function RoomMap({
   const permissionDenied = granted === false && (askDenied || sharingState === 'no-permission');
 
   const presence = useLivePresence(room.id, active);
+  const presenceState = presenceView({ loaded: presence.loaded, error: presence.error, count: presence.rows.length });
   const savedRoute = useMemo(() => parseRoute(room.route), [room.route]);
   // R1-C: the host edits the route in a full-screen editor (a Modal outside the stack, with its own map).
   // Holds where the editor's map opens, captured when it opens; null when not editing.
@@ -711,7 +713,14 @@ function RoomMap({
       {active ? (
         <View style={styles.group}>
           <Text style={styles.status}>{en.map.members}</Text>
-          {presence.rows.length === 0 ? <Hint>{en.map.nobody}</Hint> : null}
+          {presenceState === 'loading' ? <Hint>{en.map.presenceLoading}</Hint> : null}
+          {presenceState === 'empty' ? <Hint>{en.map.nobody}</Hint> : null}
+          {presenceState === 'error' ? <Hint tone="error">{en.map.presenceFailed}</Hint> : null}
+          {/* UX2-117: rows already shown stay; one ink2 line says they may be old. */}
+          {presenceState === 'rows' && presence.error ? <Hint>{en.map.presenceStale}</Hint> : null}
+          {presence.error ? (
+            <Button title={en.map.tryAgain} variant="secondary" onPress={() => void presence.reload()} />
+          ) : null}
           {presence.rows.map((row) => (
             <PresenceRow
               gap={
