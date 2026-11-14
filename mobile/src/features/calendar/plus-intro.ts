@@ -7,7 +7,7 @@
  * no `from`; unknown values count as none, and none shows the diary preview.
  */
 // capacity B item 4: 'ask' and 'pace' are personal features on the caller's own plan (existing slides, no new one).
-export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity', 'ask', 'pace'] as const;
+export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity', 'ask', 'pace', 'meet'] as const;
 export type PlusFrom = (typeof PLUS_FROM)[number];
 
 // Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): calendar AI add, diary, room Qrewing AI, rooms
@@ -33,6 +33,8 @@ const PREVIEW: Record<PlusFrom, PlusPreview> = {
   capacity: 'trip',
   ask: 'chat',
   pace: 'trip',
+  // UX2-01: People to meet is a Qrewing AI feature, so the room AI pitch ('people' is the room-size source).
+  meet: 'chat',
 };
 
 /** The route param (string, array or missing) → a known source, or null (no reason card). */

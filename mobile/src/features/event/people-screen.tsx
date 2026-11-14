@@ -145,7 +145,7 @@ export function PeopleScreen() {
           <Button
             title={en.planPreview.seePlus}
             accessibilityHint={s.seePlusHint}
-            onPress={() => router.push(plusIntroHref('people'))}
+            onPress={() => router.push(plusIntroHref('meet'))}
           />
         ) : gate === 'consent' ? (
           <Button title={s.agree} onPress={() => setConsent(true)} />

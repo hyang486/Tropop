@@ -113,7 +113,7 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
                 subtitle={plus === false ? s.peopleToMeetPlus : undefined}
                 onPress={() =>
                   plus === false
-                    ? router.push(plusIntroHref('people'))
+                    ? router.push(plusIntroHref('meet'))
                     : router.push({ pathname: '/room/[id]/people', params: { id: roomId } })
                 }
               />

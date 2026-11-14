@@ -31,7 +31,7 @@ test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   assert.match(a, /isPlanLimit\(res\.error\)\) \{\s*\/\/.*\n\s*if \(userId\) refreshPlus\(userId\);\s*router\.push\(plusIntroHref\('ask'\)\);/);
   const p = src('features/event/people-screen.tsx');
   // UX2-01: the plan gate's pinned button opens the people slide; a 402 re-reads my plan; no red plan line.
-  assert.match(p, /gate === 'plus' \? \(\s*<Button\s*title=\{en\.planPreview\.seePlus\}[\s\S]{0,120}plusIntroHref\('people'\)/);
+  assert.match(p, /gate === 'plus' \? \(\s*<Button\s*title=\{en\.planPreview\.seePlus\}[\s\S]{0,120}plusIntroHref\('meet'\)/);
   assert.match(p, /isPlanLimit\(next\.error\) && uid\) refreshPlus\(uid\)/);
   assert.match(p, /if \(!skip\) run\(\);/);
   assert.doesNotMatch(p, /QLink/);
@@ -41,5 +41,5 @@ test('Ask and people to meet: plan_limit opens the matching Plus slide', () => {
   assert.match(p, /<DisclosureSheet\s*roomId=\{id\}\s*visible=\{consent\}\s*onDone=\{\(\) => \{\s*setConsent\(false\);\s*refresh\(\);/);
   const info = src('features/event/info-section.tsx');
   assert.match(info, /subtitle=\{plus === false \? s\.peopleToMeetPlus : undefined\}/);
-  assert.match(info, /plus === false\s*\? router\.push\(plusIntroHref\('people'\)\)/);
+  assert.match(info, /plus === false\s*\? router\.push\(plusIntroHref\('meet'\)\)/);
 });
