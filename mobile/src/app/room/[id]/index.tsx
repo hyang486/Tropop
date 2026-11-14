@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import {
   ActivityIndicator,
   Keyboard,
+  AccessibilityInfo,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -51,6 +52,7 @@ import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
 import { endsDay, headerSubtitle } from '@/lib/chat-plan';
 import { arrivedMemberCount } from '@/lib/info-plan';
+import { roomHasEnded } from '@/lib/error-kind';
 import { canSendDraft, composerAutoFocus, composerReducer, initialComposer } from '@/lib/composer';
 import { errorMessage } from '@/lib/errors';
 import { disclosureHeld } from '@/lib/emergency-plan';
@@ -359,8 +361,20 @@ function ChatRoom({
   useQuestionCards(room, userId, names);
   const questionsWaiting = cardsToAnswer(useRoomCards(room.id).cards, userId).length;
 
+  // F-EM-EXP: a send into an ended room shows one inline line (draft kept, no alert, no Retry) and re-checks the room.
+  const [endedNote, setEndedNote] = useState(false);
+  function noteEnded() {
+    setEndedNote(true);
+    AccessibilityInfo.announceForAccessibility(en.errors.ended);
+    onSendFailed();
+  }
+
   function submit() {
     if (!canSend) return;
+    if (roomHasEnded(room, Date.now())) {
+      noteEnded();
+      return;
+    }
     chat.send(draft);
     // Remount the input instead of clearing it in place (C-2, see lib/composer.ts).
     dispatchComposer({ type: 'sent' });
@@ -644,6 +658,7 @@ function ChatRoom({
               pointerEvents="none"
               style={[styles.composerFade, { backgroundImage: `linear-gradient(${paper}00 0%, ${paper} 55%, ${paper} 100%)` }]}
             />
+          {endedNote ? <Text style={styles.endedNote}>{en.errors.ended}</Text> : null}
           <View style={[styles.composer, lift]}>
             {/* Spec 11 A11: "+" left of the field (KakaoTalk); it turns into a cross while the grid is open. */}
             <Pressable
@@ -694,6 +709,9 @@ function ChatRoom({
               tiles={plusTiles}
               onDone={() => setPlusOpen(false)}
               bottomInset={insets.bottom}
+              room={room}
+              onEndedSend={noteEnded}
+              onEmergencyEnded={onSendFailed}
             />
           ) : null}
         </View>
@@ -1007,6 +1025,7 @@ const styles = StyleSheet.create({
   body: { fontSize: 16, color: colors.label },
   bodyMine: { color: colors.onTint },
   meta: { fontSize: 12, color: colors.ink2 },
+  endedNote: { fontSize: 13, lineHeight: 18, color: colors.ink2, textAlign: 'center', paddingBottom: 6 },
   failedMeta: { color: colors.errorText },
   // V3 system lines: a wash capsule, radius 10, 4 x 10 pt padding, centred (13 pt ink2 text below).
   noticeRow: {

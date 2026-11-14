@@ -97,3 +97,31 @@ export function errorKind(error: unknown): ErrorKind {
   }
   return 'generic';
 }
+
+// F-EM-EXP: why a send failed, with its own cause for "the room has ended" (never shown as a network error).
+// Same fields as room-ended's EndedRoomFields (kept here: node --test can't resolve cross-file imports).
+type EndedRoomFields = { deleted_at: string | null; expires_at: string };
+
+/** ended: the room is closed (client clock, host end, or the server's refusal). offline: never reached the server. other: anything else. */
+export type SendFailure = 'ended' | 'offline' | 'other';
+
+/** True when the loaded room row already shows it closed (expires_at passed or deleted_at set). */
+export function roomHasEnded(room: EndedRoomFields | null | undefined, nowMs: number): boolean {
+  if (!room) return false;
+  if (room.deleted_at !== null) return true;
+  const expires = new Date(room.expires_at).getTime();
+  return Number.isFinite(expires) && expires <= nowMs;
+}
+
+/**
+ * Cause of a failed send. The server answers an ended room with P0002 or "Not a member of an open room" (errorKind 'ended'),
+ * but also with 42501 "Not a member of this room" (set_my_status) and an RLS refusal (messages insert), which look like
+ * removal or a permission problem. Those count as ended only when the client's own room row shows it closed.
+ */
+export function sendFailure(error: unknown, room: EndedRoomFields | null | undefined, nowMs: number): SendFailure {
+  const kind = errorKind(error);
+  if (kind === 'offline') return 'offline';
+  if (kind === 'ended') return 'ended';
+  if ((kind === 'notMember' || kind === 'notAllowed' || kind === 'generic') && roomHasEnded(room, nowMs)) return 'ended';
+  return 'other';
+}

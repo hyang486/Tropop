@@ -1,3 +1,5 @@
+import { type EndedRoomFields } from '@/lib/room-ended';
+import { roomHasEnded, sendFailure } from '@/lib/error-kind';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
@@ -40,6 +42,9 @@ export function PlusPanel({
   tiles,
   onDone,
   bottomInset,
+  room,
+  onEndedSend,
+  onEmergencyEnded,
 }: {
   /** UX2-51: the panel stays mounted while collapsed so the status picker it opened outlives the grid. */
   open: boolean;
@@ -48,17 +53,31 @@ export function PlusPanel({
   tiles: PlusTile[];
   onDone: () => void;
   bottomInset: number;
+  /** F-EM-EXP: the room's end fields, to skip a send into an ended room and to tell why a send failed. */
+  room: EndedRoomFields;
+  /** A non-Emergency send hit an ended room: the screen shows its inline line and switches to the ended state. */
+  onEndedSend: () => void;
+  /** After OK on the Emergency "Room has ended" alert. */
+  onEmergencyEnded: () => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function run(key: string, action: () => Promise<void>) {
+    if (roomHasEnded(room, Date.now())) {
+      onEndedSend();
+      return;
+    }
     setBusy(key);
     try {
       await action();
       onDone();
     } catch (e) {
+      if (sendFailure(e, room, Date.now()) === 'ended') {
+        onEndedSend();
+        return;
+      }
       // UX2-52 server guard: Emergency is still on; reopen the picker (now in its Emergency layout) and say why.
       if (isEmergencyActiveNotice(e)) {
         setNotice(errorMessage(e));
@@ -90,7 +109,11 @@ export function PlusPanel({
       } finally {
         setBusy(null);
       }
-    }, onDone);
+    }, onDone, {
+      ended: () => roomHasEnded(room, Date.now()),
+      classify: (e) => sendFailure(e, room, Date.now()),
+      onEnded: onEmergencyEnded,
+    });
   }
 
   function clear() {

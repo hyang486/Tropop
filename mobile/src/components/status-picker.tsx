@@ -20,16 +20,45 @@ export function isEmergencyActiveNotice(error: unknown): boolean {
   return error instanceof Error && error.message === en.activity.emergencyActiveError;
 }
 
-export function confirmEmergency(send: () => Promise<void>, after?: () => void) {
+/**
+ * F-EM-EXP: the one place that builds the "Emergency not sent" alerts. HOLD (waits for the human's OK, not shipped):
+ * ux also wants a "Call 911" button (number from expo-localization: US/CA 911, KR 119, else 112) and the body line
+ * "If you need help now, call 911." Add both to the 'ended' and 'offline' cases here and nowhere else.
+ */
+function emergencyFailedAlert(cause: 'ended' | 'offline', retry: () => void, onEnded?: () => void) {
+  if (cause === 'ended') {
+    Alert.alert(en.activity.emergencyEndedTitle, en.activity.emergencyEndedBody, [
+      { text: en.activity.emergencyEndedOk, onPress: () => onEnded?.() },
+    ]);
+    return;
+  }
+  Alert.alert(en.activity.emergencyNotSent, en.activity.emergencyOfflineBody, [
+    { text: en.room.cancel, style: 'cancel' },
+    { text: en.activity.readRetry, isPreferred: true, onPress: retry },
+  ]);
+}
+
+/**
+ * `ended` reports whether the loaded room already shows closed (checked before sending: the request is skipped);
+ * `classify` tells a failed send's cause (see lib/send-failure sendFailure); `onEnded` switches the room to its ended
+ * state after the alert's OK.
+ */
+export function confirmEmergency(
+  send: () => Promise<void>,
+  after?: () => void,
+  room?: { ended: () => boolean; classify: (error: unknown) => 'ended' | 'offline' | 'other'; onEnded: () => void },
+) {
   async function attempt() {
+    if (room?.ended()) {
+      emergencyFailedAlert('ended', () => {}, room.onEnded);
+      return;
+    }
     try {
       await send();
       after?.();
-    } catch {
-      Alert.alert(en.activity.emergencyNotSent, en.activity.actionFailed, [
-        { text: en.room.cancel, style: 'cancel' },
-        { text: en.activity.readRetry, isPreferred: true, onPress: () => void attempt() },
-      ]);
+    } catch (e) {
+      const cause = room?.classify(e) === 'ended' ? 'ended' : 'offline';
+      emergencyFailedAlert(cause, () => void attempt(), room?.onEnded);
     }
   }
   Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [

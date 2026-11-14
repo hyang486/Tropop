@@ -613,6 +613,11 @@ export const en = {
     emergencyTile: 'Emergency',
     emergencyTileA11y: 'Emergency, alerts everyone in the room',
     emergencyNotSent: 'Emergency not sent',
+    // F-EM-EXP: the Emergency alerts. Network failure and ended room have their own text.
+    emergencyOfflineBody: 'Check your connection and try again.',
+    emergencyEndedTitle: 'Room has ended',
+    emergencyEndedBody: "Your Emergency wasn't sent.",
+    emergencyEndedOk: 'OK',
     arrived: 'Arrived',
     arrivedAt: (time: string) => `Arrived ${time}`,
     status: 'Status',
