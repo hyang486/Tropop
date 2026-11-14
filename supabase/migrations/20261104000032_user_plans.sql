@@ -192,7 +192,8 @@ begin
   if p_expires_at < now() + interval '5 minutes' or p_expires_at > now() + interval '7 days' then
     raise exception 'Expiration must be between 5 minutes and 7 days from now' using errcode = '22023';
   end if;
-  if private.user_plan(auth.uid()) = 'free' and p_expires_at > now() + interval '2 days 5 minutes' then
+  -- Free cap counts from the room's creation, so repeated changes cannot extend a Free room past 2 days.
+  if private.user_plan(auth.uid()) = 'free' and p_expires_at > (select r.created_at from public.rooms r where r.id = p_room_id) + interval '2 days 5 minutes' then
     raise exception 'plan_limit' using errcode = 'PT402', detail = 'Free rooms close within 2 days.';
   end if;
   update public.rooms

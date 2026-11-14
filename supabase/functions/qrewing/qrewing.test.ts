@@ -1722,3 +1722,12 @@ test('calendar_add is Plus-only (0032): Free or no plan row → 402 plan_limit b
     assert.deepEqual(w.usage, []);
   }
 });
+
+test('recap diary is Plus-only (0032): Free diary:true → 402 before any count or model call', async () => {
+  const w = world({ plans: { [HOST]: 'free' } });
+  const { m, calls } = model(() => ({ text: '{}' }));
+  const r = await handle({ store: store(w), model: m, now: () => NOW }, HOST, { action: 'recap', roomId: ROOM, diary: true });
+  assert.deepEqual(r, { status: 402, body: { error: 'plan_limit' } });
+  assert.equal(calls.length, 0);
+  assert.deepEqual(w.usage, []);
+});

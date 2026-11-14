@@ -125,6 +125,12 @@ select tests.login('c3200000-0000-4000-8000-000000000011', false);
 select tests.expect_state($$ select public.update_room_expiry((select room_id from tests.made where label = 'f6'), now() + interval '3 days') $$, 'PT402', 'Free extend to 3 days');
 select tests.expect_ok($$ select public.update_room_expiry((select room_id from tests.made where label = 'f6'), now() + interval '1 day') $$, 'Free extend within 2 days');
 select tests.expect_state($$ select public.update_room_expiry((select room_id from tests.made where label = 'f6'), now() + interval '8 days') $$, '22023', 'Free 8 days is out of range');
+-- R1: the Free cap counts from created_at, so a 1-day-old room can only reach created_at + 2 days.
+reset role;
+update public.rooms set created_at = now() - interval '1 day' where id = (select room_id from tests.made where label = 'f6');
+set local role authenticated;
+select tests.expect_state($$ select public.update_room_expiry((select room_id from tests.made where label = 'f6'), now() + interval '36 hours') $$, 'PT402', 'Free extend past created_at + 2 days');
+select tests.expect_ok($$ select public.update_room_expiry((select room_id from tests.made where label = 'f6'), now() + interval '23 hours') $$, 'Free extend within created_at + 2 days');
 
 -- 6. Grandfathered: the room from before 0032 is unchanged; a Plus host going back to Free keeps their rooms.
 select tests.expect_true($$ (select r.max_members = o.max_members and r.expires_at = o.expires_at and o.max_members = 30

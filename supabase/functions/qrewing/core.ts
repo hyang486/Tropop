@@ -508,6 +508,8 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
     case 'triage':
       return triage(ctx, body.messageIds);
     case 'recap': {
+      // diary is Qrewing Calendar (Plus, 0032): Free gets 402 before the shared recap, any count or model call.
+      if (body.diary && (await deps.store.plan(userId)) !== 'plus') return { status: 402, body: { error: 'plan_limit' } };
       const res = await (body.refresh ? recapRefresh(ctx) : recap(ctx));
       return body.diary ? withDiary(ctx, res) : res;
     }

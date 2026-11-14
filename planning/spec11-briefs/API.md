@@ -34,8 +34,8 @@ When the model lacks the answer it sets `needs_human`; the function then creates
   calls it on toggle; the app reads `rpc('get_my_plan')` (or its own row), keeps the AsyncStorage value only as an offline
   cache, and never pushes the cached value on launch.
 - `create_room`: Free 2..6 people, closes ≤ 2 days from now; Plus 2..30, ≤ 7 days. `p_no_limit: true` (or no capacity) stores
-  the plan max (6 or 30). `update_room_expiry`: same day caps. A value the plan forbids → PT402 message `plan_limit`
+  the plan max (6 or 30). `update_room_expiry`: Plus ≤ 7 days from now; Free ≤ `created_at` + 2 days (+5 min skew), so re-extending never passes 2 days. A value the plan forbids → PT402 message `plan_limit`
   (show the upsell); outside every plan (1 or 31 people, > 7 days) stays 22023.
 - Existing rooms keep their stored cap and time. Join checks the room's stored `max_members` (PT409), never the host's plan.
-- qrewing `calendar_add`: Free → `402 {error:'plan_limit'}` before any count or model call.
-- Not gated (listed for a decision): qrewing `recap` with `diary: true` (the Qrewing Calendar diary) stays open to any member.
+- qrewing `calendar_add` and `recap` with `diary: true` (Qrewing Calendar): Free → `402 {error:'plan_limit'}` before any
+  count or model call. A plain recap (no diary) stays open to every member.
