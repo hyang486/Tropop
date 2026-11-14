@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActionSheetIOS, Alert, PlatformColor, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar';
 import { PlacePinMap } from '@/components/place-time-cards';
@@ -583,9 +583,20 @@ export default function CreateRoom() {
               </Pressable>
             </View>
           ) : (
-            <Pressable accessibilityRole="button" accessibilityLabel={en.createRoom.addStartTime} onPress={addStartTime} hitSlop={8}>
-              <Text style={styles.rowAction}>{en.createRoom.addTime}</Text>
-            </Pressable>
+            // UX2-73: unset, Start is a pill like End's pickers reading "Now"; a tap sets a time and shows the pickers.
+            <View style={styles.pickers}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={en.createRoom.addStartTime}
+                accessibilityValue={{ text: en.createRoom.startNow }}
+                onPress={addStartTime}
+                style={({ pressed }) => [styles.timePill, pressed && { opacity: 0.6 }]}
+              >
+                <Text style={styles.timePillText} maxFontSizeMultiplier={1.5}>
+                  {en.createRoom.startNow}
+                </Text>
+              </Pressable>
+            </View>
           )}
         </View>
         <View style={styles.dotted} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
@@ -707,5 +718,8 @@ const styles = StyleSheet.create({
   dotEnd: { backgroundColor: colors.background },
   dotted: { gap: 3, paddingLeft: 3.5, paddingVertical: 1 },
   dotSmall: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.label },
+  // UX2-73: matches the iOS compact date picker pill (tertiarySystemFill, 17 pt label).
+  timePill: { backgroundColor: PlatformColor('tertiarySystemFill'), borderRadius: 7, borderCurve: 'continuous', paddingHorizontal: 11, paddingVertical: 6 },
+  timePillText: { fontSize: 17, color: colors.label },
   pickers: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
 });

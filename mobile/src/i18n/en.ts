@@ -111,7 +111,8 @@ export const en = {
     pinHint: 'Tap the map to move the pin.',
     removePin: 'Remove pin',
     addStartTime: 'Add start time',
-    addTime: 'Add time',
+    // UX2-73: the Start pill before a start time is set.
+    startNow: 'Now',
     startTimeLabel: 'Start',
     removeStartTime: 'Remove start time',
     startAfterClose: 'The start time must be before the room closes.',
