@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { type SFSymbol, SymbolView } from 'expo-symbols';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -59,11 +59,12 @@ import { graceTime, useGrace } from '@/features/recap/use-grace';
 
 /** 'me' = Photos of me (face matching); it lists from the 'all' media query. */
 type GalleryFilter = MediaFilter | 'me';
-const FILTERS: { key: GalleryFilter; label: string }[] = [
+const FILTERS: { key: GalleryFilter; label: string; a11y?: string; symbol?: SFSymbol }[] = [
   { key: 'all', label: en.media.all },
   { key: 'mine', label: en.media.mine },
   { key: 'others', label: en.media.others },
-  { key: 'me', label: en.face.filter },
+  // UX2-66: face.smiling 13 pt before "Of me"; VoiceOver reads "Photos of me".
+  { key: 'me', label: en.face.filter, a11y: en.face.title, symbol: 'face.smiling' },
 ];
 const COLUMNS = 3;
 const GAP = 2;
@@ -281,9 +282,13 @@ export default function GalleryScreen() {
                 key={f.key}
                 onPress={() => setFilter(f.key)}
                 accessibilityRole="tab"
+                accessibilityLabel={f.a11y ?? f.label}
                 accessibilityState={{ selected }}
                 style={({ pressed }) => [styles.pill, selected && styles.pillSelected, pressed && !selected && { opacity: 0.5 }]}
               >
+                {f.symbol ? (
+                  <SymbolView name={f.symbol} size={13} tintColor={selected ? colors.onTint : colors.label} />
+                ) : null}
                 <Text
                   style={[styles.pillText, selected && styles.pillTextSelected]}
                   numberOfLines={1}
@@ -507,6 +512,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 36,
     paddingHorizontal: 6,
+    // UX2-66: an optional 13 pt symbol sits before the label.
+    flexDirection: 'row',
+    gap: 4,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
@@ -514,7 +522,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.field,
   },
   pillSelected: { backgroundColor: colors.tint },
-  pillText: { fontSize: 14, color: colors.label },
+  // flexShrink: in the row with a symbol, the label still shrinks to fit (adjustsFontSizeToFit).
+  pillText: { fontSize: 14, color: colors.label, flexShrink: 1 },
   pillTextSelected: { color: colors.onTint },
   emergency: { paddingHorizontal: qSpacing.side, paddingBottom: 8 },
   loading: { marginTop: 40 },

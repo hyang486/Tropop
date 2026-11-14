@@ -280,7 +280,8 @@ export const en = {
     cancel: 'Cancel',
   },
   face: {
-    filter: 'Me',
+    // UX2-66: 'Mine' (I shared) and 'Me' read alike; the chip says 'Of me' (VoiceOver: title, 'Photos of me').
+    filter: 'Of me',
     title: 'Photos of me',
     consentTitle: 'Find photos of you in this room',
     consentPoints: [
