@@ -671,31 +671,46 @@ export const en = {
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
   },
   planPreview: {
-    // Built to docs/evidence/plus-page-mockup (human copy review pending).
+    // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (human copy review pending).
     title: 'Qrew Plus',
     pill: 'Qrew Plus',
-    heading: 'Let Qrewing do the remembering',
-    sub: 'Bigger, longer rooms, and Qrewing working for your whole crew.',
-    // Reason card by `from` (features/calendar/plus-intro.ts). Odd-index parts are bold.
-    reason: {
-      calendar: { tag: 'From Calendar', parts: ['', 'Add with Qrewing', ' and your ', 'room diary', ' are part of Plus. Your own events stay free.'] },
-      diary: { tag: 'From Calendar', parts: ['Your ', 'Qrewing diary', ' is part of Plus. Your calendar and your own events stay free.'] },
-      'room-ai': { tag: 'From your room', parts: ['', 'Qrewing in your rooms', ' is part of Plus. Rooms, chat and photos stay free.'] },
-      more: { tag: 'From room length', parts: ['Rooms longer than ', '2 days', ' are part of Plus. Free rooms run up to 2 days.'] },
-      people: { tag: 'From room size', parts: ['Rooms with more than ', '6 people', ' are part of Plus. Free rooms hold up to 6.'] },
+    close: 'Close',
+    // Headline (hand font, ≤2 lines) and one sub line per preview (features/calendar/plus-intro.ts plusPitch).
+    pitch: {
+      diary: { heading: 'Every meetup,\na page in your diary', sub: 'Qrewing writes it for you when the room ends.' },
+      chat: { heading: 'Your room,\nwith a helper', sub: 'Answers from the chat, asks the host when it isn’t sure.' },
+      trip: { heading: 'Keep the whole\ntrip in one room', sub: 'Up to 7 days and 30 people. Free rooms stop at 2 days and 6.' },
     },
-    whatYouGet: 'What you get',
-    benefits: {
-      diary: { title: 'Your Qrewing diary', body: 'Every room you join becomes up to three handwritten lines on your calendar, written by Qrewing after it ends.' },
-      add: { title: 'Add with Qrewing', body: 'Say “Run with Jun next Saturday at 7” and it lands on the right day.' },
-      ai: {
-        title: 'Qrewing in your rooms',
-        body: 'Flags what matters, suggests people to meet, answers questions from the chat, and asks the host when it isn’t sure. Writes the recap at the end.',
-      },
-      people: { title: 'Bigger rooms · 30', body: 'Bring the whole club.', free: 'Free: up to 6 people' },
-      days: { title: 'Longer rooms · 7 days', body: 'Keep a trip or a festival room open all week.', free: 'Free: up to 2 days' },
+    // Sample content for the preview card (illustration, not real data).
+    sample: {
+      diaryTitle: 'Saturday Lake Loop',
+      diaryDate: 'Nov 14',
+      diaryLines: ['Ran the lake with Jun and Sora.', '6:00 first lap, then we pushed.', 'Pastries after. Good morning.'],
+      ask: 'Where do we meet if it rains?',
+      qrewing: 'Qrewing',
+      asked: 'The chat doesn’t say yet. I asked Mina (host) for you.',
+      answered: 'Mina: under the boathouse roof, same time.',
+      endsAfter: 'Ends after',
+      days: ['2 days', '5 days', '7 days'],
+      people: 'People',
+      peopleCount: '24',
+      tripName: 'Big Sur trip',
+      tripOpen: 'open until Fri',
+      a11y: 'Example',
     },
-    compareLabel: 'Free vs Plus',
+    // One-line benefits; odd-index parts are bold.
+    lines: {
+      ai: ['', 'Qrewing', ' in every room you host'],
+      rooms: ['Rooms up to ', '30 people', ' and ', '7 days', ''],
+      add: ['', 'Add with Qrewing', ': just say the plan'],
+      diary: ['A ', 'diary page', ' for every room'],
+      recap: ['Flags what matters, writes the ', 'recap', ''],
+    },
+    tryCta: 'Try Plus free',
+    fine: 'Preview · no payment · ',
+    seeIncluded: 'See what’s included',
+    // "See what's included" sheet.
+    compareTitle: 'Free vs Plus',
     free: 'Free',
     plus: 'Plus',
     compare: [
@@ -705,21 +720,18 @@ export const en = {
       { label: 'Add with Qrewing', free: null, plus: true },
       { label: 'Calendar diary', free: null, plus: true },
     ],
+    alwaysFree: 'Always free: rooms, chat, original photos, Photos of me, map and arrival, Emergency, and your own calendar events.',
     tbdNote: 'Prices are not decided yet.',
     included: 'Included',
     notIncluded: 'Not included',
-    alwaysFreeLabel: 'Always free',
-    alwaysFree: ['Rooms, chat and original photos', ', Photos of me, map and arrival, Emergency, and your own calendar events.'],
-    tryCta: 'Try Plus preview',
-    tryFine: 'Preview only · no payment · turn it off anytime in Profile',
+    done: 'Done',
+    // Plus state.
     onHeading: 'You’re on Plus',
     onBadge: '✓ Preview on this account',
-    includedNow: 'Included now',
     now: [
-      { key: 'ai', title: 'Qrewing in your rooms', body: 'Turn on Qrewing AI when you create a room.' },
-      { key: 'people', title: 'Rooms up to 30 people', body: 'Set the size, or choose No limit.' },
-      { key: 'days', title: 'Rooms up to 7 days', body: 'Use More when you set the end.' },
-      { key: 'diary', title: 'Diary and Add with Qrewing', body: 'Open Qrewing Calendar from Rooms.' },
+      { key: 'ai', line: 'Turn on Qrewing AI when you create a room.' },
+      { key: 'rooms', line: 'Rooms up to 30 people and 7 days.' },
+      { key: 'diary', line: 'Diary and Add with Qrewing in Qrewing Calendar.' },
     ],
     offCta: 'Turn off Plus preview',
     offFine: 'Rooms you already made keep their settings.',

@@ -1,22 +1,33 @@
 /**
- * Plus page (/plan-preview?from=...), built to docs/evidence/plus-page-mockup. `from` picks the reason card and
- * moves the tapped benefit(s) to the top. Pushers: calendar (Add with Qrewing, Free tap or 402), diary (calendar
- * diary upsell), room-ai (room Qrewing button), more (create-room "More" end time / PT402), people (room size).
- * The profile link sends no `from`: no reason card, default order. Unknown values count as none.
+ * Plus page v2 (/plan-preview?from=...), built to docs/evidence/plus-page-mockup/v2.html: one screen, a feature
+ * preview and headline picked by `from`, then three one-line benefits that skip the one already previewed.
+ * Pushers: calendar (Add with Qrewing, Free tap or 402), diary (calendar diary upsell), room-ai (room Qrewing
+ * button), more (create-room "More" end time / PT402), people (room size, no caller yet). The profile link sends
+ * no `from`; unknown values count as none, and none shows the diary preview.
  */
 export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary'] as const;
 export type PlusFrom = (typeof PLUS_FROM)[number];
 
-// Human tiers (USER_DECISIONS l.288-289, l.307): calendar AI add, diary, more people and days, room Qrewing AI.
-export const PLUS_BENEFITS = ['diary', 'add', 'ai', 'people', 'days'] as const;
-export type PlusBenefit = (typeof PLUS_BENEFITS)[number];
+// Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): calendar AI add, diary, room Qrewing AI, rooms
+// up to 30 people and 7 days. `recap` is part of room Qrewing AI, worded for the room preview.
+export const PLUS_LINES = ['ai', 'rooms', 'add', 'diary', 'recap'] as const;
+export type PlusLine = (typeof PLUS_LINES)[number];
 
-const FOCUS: Record<PlusFrom, readonly PlusBenefit[]> = {
-  calendar: ['diary', 'add'],
-  diary: ['diary'],
-  'room-ai': ['ai'],
-  more: ['days'],
-  people: ['people'],
+export const PLUS_PREVIEWS = ['diary', 'chat', 'trip'] as const;
+export type PlusPreview = (typeof PLUS_PREVIEWS)[number];
+
+const PITCH: Record<PlusPreview, readonly [PlusLine, PlusLine, PlusLine]> = {
+  diary: ['ai', 'rooms', 'add'],
+  chat: ['recap', 'rooms', 'diary'],
+  trip: ['ai', 'diary', 'add'],
+};
+
+const PREVIEW: Record<PlusFrom, PlusPreview> = {
+  calendar: 'diary',
+  diary: 'diary',
+  'room-ai': 'chat',
+  more: 'trip',
+  people: 'trip',
 };
 
 /** The route param (string, array or missing) → a known source, or null (no reason card). */
@@ -25,10 +36,10 @@ export function plusFrom(param: unknown): PlusFrom | null {
   return (PLUS_FROM as readonly unknown[]).includes(v) ? (v as PlusFrom) : null;
 }
 
-/** The benefits in display order: the ones matching `from` first (marked), then the rest in default order. */
-export function plusBenefits(from: PlusFrom | null): { key: PlusBenefit; focus: boolean }[] {
-  const focus = from ? FOCUS[from] : [];
-  return [...focus, ...PLUS_BENEFITS.filter((k) => !focus.includes(k))].map((key) => ({ key, focus: focus.includes(key) }));
+/** The preview card and the three benefit lines for a source (none: the diary pitch). */
+export function plusPitch(from: PlusFrom | null): { preview: PlusPreview; lines: readonly PlusLine[] } {
+  const preview = from ? PREVIEW[from] : 'diary';
+  return { preview, lines: PITCH[preview] };
 }
 
 /**
