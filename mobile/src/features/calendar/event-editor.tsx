@@ -1,6 +1,6 @@
 /**
  * Qrewing Calendar personal event: add ("+"), edit or delete my own event, or confirm one Qrewing read from a
- * sentence (`ask=1` with title/start/end/emoji params). Dates only; saved on this phone.
+ * sentence (`ask=1` with title/start/end/emoji params). UX3-A13: a start and end time unless All day; saved on this phone.
  */
 import { DatePicker, Host } from '@expo/ui/swift-ui';
 import { labelsHidden } from '@expo/ui/swift-ui/modifiers';
@@ -12,13 +12,13 @@ import { InkIcon, inkIconKey, inkIconLabel } from '@/components/calendar';
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
+import { InkSwitch } from '@/features/event/ink-switch';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
-import { useNow } from '@/lib/use-now';
 
 import { checkEvent, editorTarget, EVENT_TITLE_MAX, type PersonalEvent } from './calendar-data';
-import { keyToLocalDate, localDateToKey } from './calendar-format';
-import { isDateKey, localDateKey } from './calendar-plan';
+import { defaultEventTimes, endAfterStart, keyTimeToLocalDate, localDateToKeyTime } from './calendar-format';
+import { isDateKey } from './calendar-plan';
 import { removeEvent, saveEvent, useCalendar } from './calendar-store';
 
 const t = en.calendar;
@@ -69,10 +69,15 @@ export function EventEditor() {
 
 function EventForm({ uid, params, existing }: { uid: string | undefined; params: Params; existing: PersonalEvent | undefined }) {
   const router = useRouter();
-  const today = localDateKey(useNow(60_000));
+  // UX3-A13: a new event starts at the next full hour and lasts an hour; read once when the form opens.
+  const [fresh] = useState(() => defaultEventTimes(new Date()));
   const [title, setTitle] = useState(existing?.title ?? params.title ?? '');
-  const [start, setStart] = useState(existing?.start ?? (isDateKey(params.start) ? params.start : today));
-  const [end, setEnd] = useState(existing?.end ?? (isDateKey(params.end) ? params.end : today));
+  const [start, setStart] = useState(existing?.start ?? (isDateKey(params.start) ? params.start : fresh.start));
+  const [end, setEnd] = useState(existing?.end ?? (isDateKey(params.end) ? params.end : fresh.end));
+  // Existing events without a time, and Qrewing's date-only picks, open as all day.
+  const [allDay, setAllDay] = useState(existing ? !existing.startTime : params.ask === '1');
+  const [startTime, setStartTime] = useState(existing?.startTime ?? fresh.startTime);
+  const [endTime, setEndTime] = useState(existing?.endTime ?? fresh.endTime);
   const [emoji, setEmoji] = useState(existing?.emoji ?? params.emoji ?? EVENT_EMOJIS[0]);
   const [problem, setProblem] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
@@ -85,7 +90,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
 
   async function save() {
     if (!uid) return;
-    const input = { title, start, end, emoji };
+    const input = allDay ? { title, start, end, emoji } : { title, start, end, emoji, startTime, endTime };
     const p = checkEvent(input);
     if (p) {
       setProblem(t.problems[p]);
@@ -143,6 +148,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
       />
       <QField
         label={t.titleLabel}
+        labelAbove
         placeholder={t.titlePlaceholder}
         value={title}
         onChangeText={setTitle}
@@ -150,11 +156,38 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
         accessibilityLabel={t.titleLabel}
         returnKeyType="done"
       />
-      <DateRow label={t.startLabel} value={start} onChange={(k) => {
-        setStart(k);
-        if (end < k) setEnd(k);
-      }} />
-      <DateRow label={t.endLabel} value={end} onChange={setEnd} />
+      <View style={styles.dateRow}>
+        <Text style={styles.dateLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          {t.allDayLabel}
+        </Text>
+        <InkSwitch value={allDay} onValueChange={setAllDay} accessibilityLabel={t.allDayLabel} />
+      </View>
+      <DateRow
+        label={t.startLabel}
+        date={start}
+        time={startTime}
+        allDay={allDay}
+        onChange={(k, tm) => {
+          setStart(k);
+          setStartTime(tm);
+          // Keep the end after the start: the same date when all day, one hour later when timed.
+          const kept = endAfterStart(k, tm, end, endTime, allDay);
+          setEnd(kept.end);
+          setEndTime(kept.endTime);
+        }}
+      />
+      <DateRow
+        label={t.endLabel}
+        date={end}
+        time={endTime}
+        allDay={allDay}
+        onChange={(k, tm) => {
+          // ux P1: an end picked before the start moves the same way.
+          const kept = endAfterStart(start, startTime, k, tm, allDay);
+          setEnd(kept.end);
+          setEndTime(kept.endTime);
+        }}
+      />
       <QLabel>{t.emojiLabel}</QLabel>
       <View
         style={[styles.emojis, { columnGap: colGap }]}
@@ -177,7 +210,15 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
   );
 }
 
-function DateRow({ label, value, onChange }: { label: string; value: string; onChange: (key: string) => void }) {
+type DateRowProps = {
+  label: string;
+  date: string;
+  time: string;
+  allDay: boolean;
+  onChange: (date: string, time: string) => void;
+};
+
+function DateRow({ label, date, time, allDay, onChange }: DateRowProps) {
   // UX2-55: the row label is SF body 17 regular; the hand font is for titles only.
   return (
     <View style={styles.dateRow}>
@@ -189,9 +230,13 @@ function DateRow({ label, value, onChange }: { label: string; value: string; onC
       <Host matchContents>
         <DatePicker
           title={label}
-          selection={keyToLocalDate(value)}
-          displayedComponents={['date']}
-          onDateChange={(d) => onChange(localDateToKey(d))}
+          selection={keyTimeToLocalDate(date, allDay ? undefined : time)}
+          displayedComponents={allDay ? ['date'] : ['date', 'hourAndMinute']}
+          onDateChange={(d) => {
+            const picked = localDateToKeyTime(d);
+            // All day: only the date changed; keep the stored time for when All day is turned off.
+            onChange(picked.date, allDay ? time : picked.time);
+          }}
           modifiers={[labelsHidden()]}
         />
       </Host>

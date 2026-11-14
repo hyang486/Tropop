@@ -25,7 +25,22 @@ export type RoomSnapshot = {
   diary?: string[] | null;
 };
 
-export type PersonalEvent = { id: string; title: string; start: DateKey; end: DateKey; emoji: string };
+/** UX3-A13: local 24 h "HH:MM". An event has both times or none (none = all day). */
+export type TimeKey = string;
+const TIME_KEY = /^([01]\d|2[0-3]):[0-5]\d$/;
+export function isTimeKey(v: unknown): v is TimeKey {
+  return typeof v === 'string' && TIME_KEY.test(v);
+}
+
+type EventTimes = { startTime?: TimeKey; endTime?: TimeKey };
+export type PersonalEvent = { id: string; title: string; start: DateKey; end: DateKey; emoji: string } & EventTimes;
+
+/** Both times valid and not ending before they start on a one-day event; otherwise none. */
+function timePair(start: DateKey, end: DateKey, startTime: unknown, endTime: unknown): EventTimes {
+  if (!isTimeKey(startTime) || !isTimeKey(endTime)) return {};
+  if (start === end && endTime < startTime) return {};
+  return { startTime, endTime };
+}
 
 export type CalendarDoc = { version: 1; rooms: Record<string, RoomSnapshot>; events: PersonalEvent[] };
 
@@ -57,7 +72,7 @@ function parseEvent(v: unknown): PersonalEvent | null {
   const title = str(e.title, EVENT_TITLE_MAX);
   const emoji = str(e.emoji, 16);
   if (!id || !title || !emoji || !isDateKey(e.start) || !isDateKey(e.end) || e.end < e.start) return null;
-  return { id, title, start: e.start, end: e.end, emoji };
+  return { id, title, start: e.start, end: e.end, emoji, ...timePair(e.start, e.end, e.startTime, e.endTime) };
 }
 
 /** A stored value back into a doc; anything unreadable or of another version starts empty. */
@@ -140,20 +155,31 @@ export function applyRecap(
   return { ...base, rooms: { ...base.rooms, [roomId]: { ...prev, emoji, diary } } };
 }
 
-export type EventInput = { title: string; start: DateKey; end: DateKey; emoji: string };
+export type EventInput = { title: string; start: DateKey; end: DateKey; emoji: string } & EventTimes;
 export type EventProblem = 'title' | 'dates' | 'order' | 'span' | 'emoji';
 
 export function checkEvent(e: EventInput): EventProblem | null {
   if (!e.title.trim()) return 'title';
   if (!isDateKey(e.start) || !isDateKey(e.end)) return 'dates';
   if (e.end < e.start) return 'order';
+  if (e.startTime !== undefined || e.endTime !== undefined) {
+    if (!isTimeKey(e.startTime) || !isTimeKey(e.endTime)) return 'dates';
+    if (e.start === e.end && e.endTime < e.startTime) return 'order';
+  }
   if (daysBetween(e.start, e.end) > EVENT_SPAN_MAX) return 'span';
   if (!e.emoji.trim()) return 'emoji';
   return null;
 }
 
 export function upsertEvent(doc: CalendarDoc, id: string, e: EventInput): CalendarDoc {
-  const ev: PersonalEvent = { id, title: e.title.trim().slice(0, EVENT_TITLE_MAX), start: e.start, end: e.end, emoji: e.emoji.trim() };
+  const ev: PersonalEvent = {
+    id,
+    title: e.title.trim().slice(0, EVENT_TITLE_MAX),
+    start: e.start,
+    end: e.end,
+    emoji: e.emoji.trim(),
+    ...timePair(e.start, e.end, e.startTime, e.endTime),
+  };
   const exists = doc.events.some((x) => x.id === id);
   return { ...doc, events: exists ? doc.events.map((x) => (x.id === id ? ev : x)) : [...doc.events, ev] };
 }
