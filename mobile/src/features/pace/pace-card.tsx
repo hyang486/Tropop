@@ -43,12 +43,18 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
     <View style={styles.group}>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <InkSwitch value={settings.on} onValueChange={(on) => setOn(room.id, on)} accessibilityLabel={t.title} />
+        {/* Spec 11 polish: off and disabled until Share my location is on; the saved choice returns with sharing. */}
+        <InkSwitch
+          value={settings.on && share}
+          disabled={!share}
+          onValueChange={(on) => setOn(room.id, on)}
+          accessibilityLabel={t.title}
+        />
       </View>
-      <Hint>{t.switchHint}</Hint>
-      {settings.on ? (
+      <Hint>{share ? t.switchHint : t.needsSharing}</Hint>
+      {settings.on && share ? (
         <>
-          {!share ? <Hint tone="error">{t.needsSharing}</Hint> : !active ? <Hint>{t.needsActivity}</Hint> : null}
+          {!active ? <Hint>{t.needsActivity}</Hint> : null}
           {stats ? <StatsRow {...stats} /> : null}
           <TargetEditor target={settings.target} usual={usual} goal={goal} />
           {goal == null ? <Hint>{t.noTarget}</Hint> : null}
