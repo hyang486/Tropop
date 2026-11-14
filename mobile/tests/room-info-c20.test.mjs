@@ -13,9 +13,10 @@ test('UX2-53: the host sees no "Qrewing AI" header over the switch row; members 
   assert.equal((src.match(/<QLabel>\{s\.section\}<\/QLabel>/g) ?? []).length, 2);
 });
 
-test('UX2-57: the Room info host footer gets the 0.5 pt top separator, as Create room', () => {
+test('UX2-57 / UX2-78: the Room info footer (host and guest) gets the 0.5 pt top separator, as Create room', () => {
   const info = read('../src/app/room/[id]/info.tsx');
-  assert.match(info, /actionsDivider=\{isHost\}/);
+  assert.match(info, /^\s*actionsDivider$/m);
+  assert.doesNotMatch(info, /actionsDivider=\{isHost\}/);
   const q = read('../src/components/q-screen.tsx');
   assert.match(q, /actionsDivider = false,/);
   assert.match(q, /actionsDivider: \{ borderTopWidth: StyleSheet\.hairlineWidth, borderTopColor: colors\.separator \}/);
