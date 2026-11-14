@@ -2,6 +2,19 @@
 
 Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-14: hidden-state sweep (pace, calendar), branch audit2-hidden-states (local, rebased on 0c486a3)
+
+Sweep 8 (target 'Saved' clears on edit), sweep 1 + C14 (event editor waits for the doc, gone event, save/delete
+failure lines), sweep 2 (late Ask answer dropped after Cancel), review nits (editor spinner label, no spinner when
+signed out), C14 C/D/F on the pace card (finding GPS / still looking after 30 s / location off + Open Settings; Plus
+gate only on a confirmed Free plan), C14 E/F on the calendar ('Nothing planned this month.', plan gates on
+usePlanState). `tsc` (no errors in tracked files), lint, 800/800 pass. No simulator check yet.
+
+Known gaps:
+- Failed delete, month view: `update` puts the new doc in memory before the phone write. If the write fails, the
+  editor keeps the event and says "Couldn't delete. Try again.", but the month view already hides the event until
+  the next launch, when the stored doc brings it back.
+
 ## 2026-11-14: audit2 photos/map + a11y sweep, branch audit2-photos-map (local, not pushed)
 
 Commits c0cd535 (UX2-35 upload row), 9752417 (map pin labels), 2299e2a (Photos tile labels), b8a1b40 (viewer
