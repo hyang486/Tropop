@@ -109,6 +109,34 @@ export const en = {
     startAfterClose: 'The start time must be before the room closes.',
     startTooEarly: 'The start time is too far in the past.',
     startMoved: 'The start time moved to fit the new end time.',
+    // Spec 11 B: capacity.
+    capacityLabel: 'People',
+    noLimit: 'No limit',
+    fewerPeople: 'Fewer people',
+    morePeople: 'More people',
+    capacityCount: (n: number) => `${n} people`,
+    capacityHintFree: 'Free rooms hold up to 6 people. Plus rooms hold up to 30.',
+    capacityHintPlus: 'Rooms hold up to 30 people.',
+    // Spec 11 D: public rooms in Open chat.
+    visibilityLabel: 'Who can join',
+    private: 'Private',
+    public: 'Public',
+    privateHint: 'Only people with the code or QR can join.',
+    publicHint: 'Anyone can find this room in Open chat and join without a code.',
+    iconLabel: 'Icon',
+    areaPlaceholder: 'Area, e.g. Echo Park',
+    areaUseMine: 'Use my area',
+    areaMissing: 'Add an area so people nearby can find this room.',
+  },
+  // Spec 11 D: the Open chat section on Rooms.
+  openChat: {
+    section: 'Open chat',
+    empty: 'No open rooms right now.',
+    loadFailed: "Couldn't load open rooms.",
+    count: (n: number, max: number) => `${n}/${max}`,
+    joined: 'Joined',
+    joinHint: 'Joins without a code',
+    dailyLimit: 'You can create up to 5 public rooms per day.',
   },
   // Q 02.03
   join: {
