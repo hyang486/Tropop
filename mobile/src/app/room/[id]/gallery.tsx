@@ -254,15 +254,8 @@ export default function GalleryScreen() {
         options={{
           title: en.media.title,
           headerTitle: '',
-          headerRight: () =>
-            can.upload ? (
-              <View style={styles.headerButtons}>
-                {ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null}
-                <Pressable onPress={() => setSheetOpen(true)} accessibilityRole="button" accessibilityLabel={en.media.add} hitSlop={8}>
-                  <SymbolView name="plus" size={22} tintColor={colors.tint} />
-                </Pressable>
-              </View>
-            ) : null,
+          // UX2-67: no header "+"; the labeled "Add photos or files" button at the bottom is the one way to add.
+          headerRight: () => (can.upload ? (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null) : null),
         }}
       />
       {can.upload ? ask.sheet : null}
@@ -503,7 +496,6 @@ function UploadRow({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   head: { paddingHorizontal: qSpacing.side, paddingTop: 4, paddingBottom: 10, gap: 4 },
   title: { fontSize: 30, lineHeight: 38 },
   subtitle: { fontSize: 15, color: colors.ink2 },

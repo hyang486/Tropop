@@ -15,3 +15,11 @@ test('UX2-66: chips read All · Mine · Others · Of me; Of me has face.smiling 
   assert.match(src, /accessibilityLabel=\{f\.a11y \?\? f\.label\}/);
   assert.match(src, /<SymbolView name=\{f\.symbol\} size=\{13\} tintColor=\{selected \? colors\.onTint : colors\.label\} \/>/);
 });
+
+test('UX2-67: no header "+" on Photos & files; the labeled bottom button adds', () => {
+  const src = gallery();
+  const header = src.slice(src.indexOf('headerRight: () => (can.upload'), src.indexOf('{can.upload ? ask.sheet'));
+  assert.doesNotMatch(header, /name="plus"/);
+  assert.doesNotMatch(header, /setSheetOpen\(true\)/);
+  assert.match(src, /title=\{en\.media\.addButton\}[\s\S]*?onPress=\{\(\) => setSheetOpen\(true\)\}/);
+});
