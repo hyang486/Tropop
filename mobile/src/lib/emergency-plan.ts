@@ -237,3 +237,51 @@ export function emergencyCheckLine(o: {
 export function spokenEllipsis(text: string): string {
   return text.replace(/\s*…$/, '.');
 }
+
+/**
+ * Emergency "On my way" (ux spec 2026-11-14): who is on the way, in answer order with me first as "You". Former
+ * members are left out. null when the member names are unknown (the bar then shows only the count).
+ */
+export function onWayWho(o: {
+  userId: string;
+  onWay: readonly string[];
+  names: ReadonlyMap<string, string> | null;
+  you: string;
+}): string[] | null {
+  if (o.names === null) return null;
+  const others: string[] = [];
+  for (const id of o.onWay) {
+    if (id === o.userId) continue;
+    const name = o.names.get(id);
+    if (name !== undefined) others.push(name);
+  }
+  return o.onWay.includes(o.userId) ? [o.you, ...others] : others;
+}
+
+/**
+ * The bar's on-the-way line, or null to hide it: hidden when nobody is on the way, and when only I am (my own
+ * "You're on the way" row already says it).
+ */
+export function onWayLine(o: {
+  userId: string;
+  onWay: readonly string[];
+  names: ReadonlyMap<string, string> | null;
+  copy: { you: string; onWayNames: (who: string[]) => string; onWayCount: (n: number) => string };
+}): string | null {
+  if (o.onWay.length === 0) return null;
+  const who = onWayWho({ userId: o.userId, onWay: o.onWay, names: o.names, you: o.copy.you });
+  if (who === null) return o.copy.onWayCount(o.onWay.length);
+  if (who.length === 0 || (who.length === 1 && o.onWay.length === 1 && o.onWay[0] === o.userId)) return null;
+  return o.copy.onWayNames(who);
+}
+
+/**
+ * Before 0040 is live, selecting emergency_acks.on_way fails with 42703 (undefined column). The read then falls
+ * back to the seen columns and the bar keeps today's "I see it" only.
+ */
+export function ackColumnMissing(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: unknown; message?: unknown };
+  if (e.code === '42703') return true;
+  return typeof e.message === 'string' && /on_way/.test(e.message) && /does not exist|column/i.test(e.message);
+}
