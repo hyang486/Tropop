@@ -34,11 +34,12 @@ test('(d/e) UX P2-6: the screens sit on the app paper; the calendar notebook col
   assert.doesNotMatch(editor, /useCalendarColors/);
 });
 
-test('(f) the Starts/Ends row labels use the hand font; the title field and Save stay system', () => {
+test('(f) UX2-55: the Starts/Ends row labels are SF body 17 regular (hand font is for titles only); the form stays system', () => {
   const ed = read('features/calendar/event-editor.tsx');
   const row = ed.slice(ed.indexOf('function DateRow('), ed.indexOf('const styles'));
-  assert.match(row, /const \[handLoaded\] = useFonts\(HAND_FONTS\);/);
-  assert.match(row, /styles\.dateLabel, handLoaded \? \{ fontFamily: handFontFor\(label\) \} : null/);
+  assert.doesNotMatch(row, /fontFamily|handFontFor|useFonts/);
+  assert.match(ed, /dateLabel: \{ flex: 1, fontSize: 17, color: colors\.label \}/);
+  assert.match(ed, /styles\.emojis, \{ columnGap: colGap \}/);
   const form = ed.slice(ed.indexOf('export function EventEditor'), ed.indexOf('function DateRow('));
   assert.doesNotMatch(form, /fontFamily|handFontFor/);
 });
