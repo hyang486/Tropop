@@ -27,8 +27,8 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
   const uid = useAuth().session?.user.id;
   // C14: upsell lines only on a confirmed Free plan; their space is held while the plan loads.
   const plan = usePlanState(uid);
-  // Spec 9.4 R4: entry info needs questions, which are set only on Create room. Read for the host of an event room.
-  const entryQuestions = useEntryQuestions(isHost && roomType === 'event' ? roomId : '');
+  // Spec 9.4 R4: entry info needs questions, which are set only on Create room. Read for anyone in an event room.
+  const entryQuestions = useEntryQuestions(roomType === 'event' ? roomId : '');
   const noQuestions = entryQuestions.loaded && !entryQuestions.failed && entryQuestions.questions.length === 0;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,19 +101,20 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
               accessibilityLabel={en.qrewing.create.aiLabel}
             />
           </QCard>
-          {q.aiEnabled && isEvent ? (
+          {/* UX2-70: with no entry questions the switch could never turn on, so the row and its text are hidden
+              (still shown while it is on, so it can be turned off). */}
+          {q.aiEnabled && isEvent && !(noQuestions && !q.entryRequired) ? (
             <QCard row>
               <Text style={styles.cardTitle}>{en.qrewing.create.entryLabel}</Text>
               <InkSwitch
                 value={q.entryRequired}
                 // Turning it off always works; turning it on needs questions (22023 otherwise).
-                disabled={busy || (noQuestions && !q.entryRequired)}
-                onValueChange={(v) => (v && noQuestions ? undefined : run(() => setQrewingRoom(roomId, true, v)))}
+                disabled={busy}
+                onValueChange={(v) => run(() => setQrewingRoom(roomId, true, v))}
                 accessibilityLabel={en.qrewing.create.entryLabel}
               />
             </QCard>
           ) : null}
-          {q.aiEnabled && isEvent && noQuestions && !q.entryRequired ? <Hint>{s.entryNoQuestions}</Hint> : null}
         </>
       ) : null}
       {q.aiEnabled ? (
@@ -127,11 +128,14 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
           />
           {isEvent ? (
             <>
-              <QRowCard
-                icon="person.text.rectangle"
-                title={s.editEntry}
-                onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id: roomId } })}
-              />
+              {/* UX2-70: no entry questions, nothing to edit. */}
+              {noQuestions ? null : (
+                <QRowCard
+                  icon="person.text.rectangle"
+                  title={s.editEntry}
+                  onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id: roomId } })}
+                />
+              )}
               <QRowCard
                 icon="person.2.wave.2"
                 title={s.peopleToMeet}

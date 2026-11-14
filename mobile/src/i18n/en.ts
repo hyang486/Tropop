@@ -1094,7 +1094,6 @@ export const en = {
     },
     info: {
       section: 'Qrewing AI',
-      entryNoQuestions: 'This room has no entry questions, so entry info cannot be turned on. Questions can only be set when the room is created.',
       consentOn: 'Your messages are included',
       consentOff: 'Your messages are not included',
       agree: 'Include my messages',
