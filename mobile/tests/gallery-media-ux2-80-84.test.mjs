@@ -25,3 +25,15 @@ test('UX2-81: a failed reference photo keeps the box, shows the person icon, a l
   assert.match(face, /refRetry: \{ minHeight: 44/);
   assert.match(face, /refFailedText: \{ fontSize: 15, color: colors\.ink2/);
 });
+
+test('UX2-82: the recap card shows pattern E on a failed read instead of swallowing it', () => {
+  const card = readFileSync(new URL('../src/features/recap/recap-card.tsx', import.meta.url), 'utf8');
+  assert.equal(en.qrewing.recap.loadFailed, "Couldn't load the recap.");
+  assert.equal(en.qrewing.recap.loadOffline, "You're offline. Try again when you're back.");
+  assert.doesNotMatch(card, /\.catch\(\(\) => \{\}\)/);
+  assert.match(card, /setFailed\(\{ roomId, offline: errorKind\(e\) === 'offline' \}\)/);
+  assert.match(card, /failed\.offline \? s\.loadOffline : s\.loadFailed/);
+  assert.match(card, /retry: \{[^}]*minHeight: 36,[^}]*borderColor: colors\.label/);
+  assert.match(card, /hitSlop=\{4\}/);
+  assert.match(card, /accessibilityState=\{\{ disabled: retrying, busy: retrying \}\}/);
+});

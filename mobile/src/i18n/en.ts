@@ -1166,6 +1166,9 @@ export const en = {
       none: 'No recap was saved for this room.',
       pending: 'Qrewing is still writing the recap.',
       offline: 'Could not get the recap. Check your connection.',
+      // UX2-82: the card's read failed.
+      loadFailed: "Couldn't load the recap.",
+      loadOffline: "You're offline. Try again when you're back.",
       retry: 'Try again',
       you: 'You in this room',
       messages: (n: number) => (n === 1 ? '1 message sent' : `${n} messages sent`),

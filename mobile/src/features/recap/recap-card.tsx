@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { QCard, QLabel } from '@/components/q-screen';
-import { Button, colors } from '@/components/ui';
+import { Button, colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { errorKind } from '@/lib/error-kind';
 import { useRoomEvents } from '@/lib/room-channel';
 
 import { type RecapMark, type RecapMiss, recapCardView, rereadOnSubscribe, type SavedRecap } from './recap-plan';
@@ -44,6 +45,8 @@ export function SavedRecapCard({ roomId, grace }: { roomId: string; grace: boole
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [tick, setTick] = useState(0);
   const [retrying, setRetrying] = useState(false);
+  // UX2-82: the last read failed (pattern E in the card's slot) instead of the card staying blank.
+  const [failed, setFailed] = useState<{ roomId: string; offline: boolean } | null>(null);
   // Set by a room_recaps notice: read the row even when a copy is saved (the recap may have been refreshed).
   const fromNotice = useRef(false);
   const loadedRef = useRef<Loaded | null>(null);
@@ -67,9 +70,14 @@ export function SavedRecapCard({ roomId, grace }: { roomId: string; grace: boole
         if ('saved' in res) saved = res.saved;
         else miss = res.miss;
       }
-      if (alive) setLoaded({ roomId, saved, mark, miss });
+      if (alive) {
+        setLoaded({ roomId, saved, mark, miss });
+        setFailed(null);
+      }
     })()
-      .catch(() => {})
+      .catch((e: unknown) => {
+        if (alive) setFailed({ roomId, offline: errorKind(e) === 'offline' });
+      })
       .finally(() => alive && setRetrying(false));
     return () => {
       alive = false;
@@ -94,27 +102,58 @@ export function SavedRecapCard({ roomId, grace }: { roomId: string; grace: boole
   return (
     <>
       {notices}
-      <RecapCardBody loaded={loaded} roomId={roomId} retrying={retrying} onRetry={() => {
-        setRetrying(true);
-        setTick((n) => n + 1);
-      }} />
+      <RecapCardBody
+        loaded={loaded}
+        failed={failed}
+        roomId={roomId}
+        retrying={retrying}
+        onRetry={() => {
+          setRetrying(true);
+          setTick((n) => n + 1);
+        }}
+      />
     </>
   );
 }
 
 function RecapCardBody({
   loaded,
+  failed,
   roomId,
   retrying,
   onRetry,
 }: {
   loaded: Loaded | null;
+  failed: { roomId: string; offline: boolean } | null;
   roomId: string;
   retrying: boolean;
   onRetry: () => void;
 }) {
-  if (!loaded || loaded.roomId !== roomId) return null;
-  const { saved, mark, miss } = loaded;
+  const shown = loaded && loaded.roomId === roomId ? loaded : null;
+  // UX2-82: a failed read shows pattern E, unless a recap from an earlier read is already on screen.
+  if (failed && failed.roomId === roomId && !shown?.saved) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.line} accessibilityLiveRegion="polite">
+          {failed.offline ? s.loadOffline : s.loadFailed}
+        </Text>
+        {/* Pattern E: ink outline, 36 pt tall, 44 pt hit. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={s.retry}
+          accessibilityState={{ disabled: retrying, busy: retrying }}
+          disabled={retrying}
+          onPress={onRetry}
+          hitSlop={4}
+          style={({ pressed }) => [styles.retry, pressed && { opacity: 0.5 }]}
+        >
+          {retrying ? <ActivityIndicator color={colors.label} /> : <Text style={styles.retryText}>{s.retry}</Text>}
+        </Pressable>
+      </View>
+    );
+  }
+  if (!shown) return null;
+  const { saved, mark, miss } = shown;
   const view = recapCardView(saved !== null, mark?.ai === true, miss);
   if (view === 'hidden') return null;
   if (view === 'none') return <Text style={styles.line}>{s.none}</Text>;
@@ -169,4 +208,17 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '600', color: colors.label, marginBottom: 4 },
   body: { fontSize: 15, lineHeight: 21, color: colors.label },
   line: { fontSize: 15, lineHeight: 21, color: colors.ink2 },
+  retry: {
+    alignSelf: 'flex-start',
+    minHeight: 36,
+    minWidth: 88,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    borderCurve: 'continuous',
+    borderWidth: 1.5,
+    borderColor: colors.label,
+  },
+  retryText: { fontSize: 15, fontWeight: '600', color: colors.label },
 });
