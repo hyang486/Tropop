@@ -141,3 +141,12 @@ test('UX2-124: calendar shows a spinner while loading and Try again after a fail
   assert.match(cal, /!doc && !docFailed \? <ActivityIndicator[^>]*accessibilityLabel=\{t\.loading\}/);
   assert.match(cal, /reloadCalendar\(uid\)/);
 });
+
+test('UX2-93: Map fades its large title block and draws the QScreen top edge fade once scrolled', () => {
+  const map = src('app/room/[id]/map.tsx');
+  assert.match(map, /<Animated\.View style=\{\[styles\.head, \{ opacity: inlineTitle\.blockOpacity \}\]\}/);
+  assert.match(map, /setScrolled\(y > 1\)/);
+  assert.match(map, /scrolled && headerHeight > 0 \?/);
+  assert.match(map, /edgeSolid\(headerHeight\)/);
+  assert.match(map, /<\/ScrollView>\s*\{scrolled[\s\S]*<PaceLayer/);
+});

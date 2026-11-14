@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
@@ -11,7 +11,7 @@ import { useInlineHeaderTitle } from '@/components/inline-header-title';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
-import { QLink } from '@/components/q-screen';
+import { edgeSolid, QLink } from '@/components/q-screen';
 import { Button, colors, Hint, palette, radius, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
@@ -524,7 +524,11 @@ function RoomMap({
 
   const reporterText = en.map.reporter[sharingState];
   // UX2-59: "Map" moves into the nav bar once the large title scrolls under the header.
-  const inlineTitle = useInlineHeaderTitle(en.map.title, useHeaderHeight());
+  const headerHeight = useHeaderHeight();
+  const inlineTitle = useInlineHeaderTitle(en.map.title, headerHeight);
+  // UX2-93: QScreen's top edge fade, since Map has its own ScrollView.
+  const [scrolled, setScrolled] = useState(false);
+  const paper = usePalette().paper;
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission'; // UX2-32: 'refused' is a normal event (ink2)
 
   return (
@@ -534,7 +538,11 @@ function RoomMap({
         style={styles.screen}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
-        onScroll={(e) => inlineTitle.onScrollY(e.nativeEvent.contentOffset.y)}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          inlineTitle.onScrollY(y);
+          setScrolled(y > 1);
+        }}
         scrollEventThrottle={16}
       >
       <Stack.Screen
@@ -545,12 +553,12 @@ function RoomMap({
       />
       {ask.sheet}
       {/* Qrew unit 4 (Q 04.02, 08.03): handwritten title and the room name; no art on the map. */}
-      <View style={styles.head} onLayout={inlineTitle.onTitleLayout}>
+      <Animated.View style={[styles.head, { opacity: inlineTitle.blockOpacity }]} onLayout={inlineTitle.onTitleLayout}>
         <HandTitle>{en.map.title}</HandTitle>
         <Text style={styles.roomName} numberOfLines={2}>
           {room.name}
         </Text>
-      </View>
+      </Animated.View>
       <EmergencyAlerts
         roomId={room.id}
         activity={activity}
@@ -772,6 +780,15 @@ function RoomMap({
         />
       ) : null}
       </ScrollView>
+      {scrolled && headerHeight > 0 ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.edgeFade,
+            { height: headerHeight + 16, backgroundImage: `linear-gradient(${paper} 0%, ${paper} ${edgeSolid(headerHeight)}%, ${paper}00 100%)` },
+          ]}
+        />
+      ) : null}
       <PaceLayer roomId={room.id} />
     </View>
   );
@@ -840,6 +857,7 @@ function PresenceRow({
 // "Recenter" never overlap (qa, largest Dynamic Type). The screen text around the map still scales fully.
 const MAP_OVERLAY_MAX_SCALE = 1.3;
 const styles = StyleSheet.create({
+  edgeFade: { position: 'absolute', top: 0, left: 0, right: 0 },
   root: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 16 },
