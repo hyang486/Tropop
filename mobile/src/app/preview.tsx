@@ -14,6 +14,7 @@ import {
   joinRoom,
   previewRoom,
   REMINDER_WINDOW_MS,
+  RoomError,
   type Invite,
   type RoomPreview,
 } from '@/lib/rooms';
@@ -26,6 +27,9 @@ export default function Preview() {
   const [preview, setPreview] = useState<RoomPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // UX2-14 (pattern D): Join failed because the room is full or the invite is no longer valid. Retrying can't fix
+  // it, so the screen switches to "Invite unavailable" with the reason instead of a red line under Join.
+  const [joinDeadEnd, setJoinDeadEnd] = useState<string | null>(null);
   const now = useNow();
 
   const invite: Invite = token ? { token } : { code: code ?? '' };
@@ -54,19 +58,20 @@ export default function Preview() {
     try {
       openRoom(await joinRoom(invite));
     } catch (e) {
-      setError(errorMessage(e));
+      if (e instanceof RoomError && (e.kind === 'full' || e.kind === 'invalid')) setJoinDeadEnd(e.message);
+      else setError(errorMessage(e));
       setBusy(false);
     }
   }
 
   // G-U6-1: the room's end time passing while the preview is open makes the invite unavailable (Join would fail).
   const ended = useRoomOver(preview ? { deleted_at: null, expires_at: preview.expires_at } : null);
-  const unavailable = ended.over ? en.rooms.errors.invalid : preview ? null : error;
+  const unavailable = ended.over ? en.rooms.errors.invalid : (joinDeadEnd ?? (preview ? null : error));
 
   // Qrew Q 07.03: an invite that can't be previewed (invalid, ended, rotated, full, throttled) gets its own
   // screen: "Invite unavailable", the same cause message as before, the paper art, then Enter a room code /
   // Back to rooms. While loading, only a spinner.
-  if (!preview || ended.over) {
+  if (!preview || ended.over || joinDeadEnd) {
     if (!unavailable) {
       return (
         <QScreen>
