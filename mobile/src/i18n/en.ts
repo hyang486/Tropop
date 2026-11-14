@@ -424,6 +424,8 @@ export const en = {
     savedFile: 'Original saved.',
     verified: (size: string) => `Original verified (${size}).`,
     notFound: 'This item is no longer available.',
+    removed: 'This item was removed.',
+    backToPhotos: 'Back to Photos',
     video: 'Video',
     file: 'File',
     // Qrew unit 5 (Q 05.01-05.04, 06.03)

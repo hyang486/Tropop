@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useState } from 'react';
 import { ActionSheetIOS, ActivityIndicator, Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 
+import { EmptyState } from '@/components/empty-state';
 import { SavedCard } from '@/components/media-cards';
 import { QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
@@ -97,6 +98,21 @@ export default function MediaScreen() {
         <Stack.Screen options={{ title: '' }} />
         <RoomEnded room={state.status === 'ready' ? state.room : null} nowMs={ended.nowMs} />
       </>
+    );
+  }
+  // UX2-19 (D): a removed item is a dead end, not an error; Retry cannot bring it back.
+  if (state.status === 'missing') {
+    return (
+      <QScreen>
+        <Stack.Screen options={{ title: '' }} />
+        <EmptyState
+          title={en.media.removed}
+          action={{
+            title: en.media.backToPhotos,
+            onPress: () => (router.canGoBack() ? router.back() : router.replace(`/room/${id}/gallery`)),
+          }}
+        />
+      </QScreen>
     );
   }
   if (state.status !== 'ready' || !token) {
