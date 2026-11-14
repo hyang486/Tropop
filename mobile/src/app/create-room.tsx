@@ -24,6 +24,19 @@ import {
   selectedPreset,
 } from '@/features/event/create-room-plan';
 import { InkSwitch } from '@/features/event/ink-switch';
+import {
+  type Capacity,
+  capacityMax,
+  defaultRoomIcon,
+  MAX_AREA,
+  MIN_MEMBERS,
+  OPEN_ROOMS_LIVE,
+  openRoomProblem,
+  ROOM_ICONS,
+  stepCapacity,
+  type Visibility,
+} from '@/features/event/open-room-plan';
+import { createOpenAwareRoom } from '@/features/event/open-rooms-api';
 import { QuestionEditor, questionProblemText } from '@/features/event/question-editor';
 import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api';
 import { QField, QLabel, QLink, QScreen } from '@/components/q-screen';
@@ -74,6 +87,13 @@ export default function CreateRoom() {
   // Spec 9.4: the host's entry questions, prefilled with the default four.
   const [questions, setQuestions] = useState(defaultDraft);
   const [questionProblem, setQuestionProblem] = useState<ReturnType<typeof validateQuestions> | null>(null);
+  // Spec 11 B/D: capacity ("No limit" = the plan maximum) and who can join. A public room needs an icon (follows the
+  // type until picked) and an area for Open chat.
+  const [capacity, setCapacity] = useState<Capacity>('none');
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [pickedIcon, setPickedIcon] = useState<string | null>(null);
+  const icon = pickedIcon ?? defaultRoomIcon(type);
+  const [area, setArea] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // iOS VoiceOver ignores Hint's live region: each failure bumps the counter so a repeated identical error is read
@@ -217,10 +237,14 @@ export default function CreateRoom() {
       }
       payload = checked.value;
     }
+    if (OPEN_ROOMS_LIVE && openRoomProblem(visibility, area)) {
+      fail(en.createRoom.areaMissing);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const room = await createRoom({
+      const input = {
         name: trimmed,
         type,
         expiresAt,
@@ -232,7 +256,10 @@ export default function CreateRoom() {
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean),
-      });
+      };
+      const room = OPEN_ROOMS_LIVE
+        ? await createOpenAwareRoom({ ...input, capacity, plus, visibility, icon, area })
+        : await createRoom(input);
       // A failed Qrewing save never blocks the room; the chat screen shows the note once.
       let aiNote: string | undefined;
       let questionsNote: string | undefined;
@@ -288,6 +315,92 @@ export default function CreateRoom() {
           <Choice key={t} label={en.rooms.types[t]} selected={type === t} onPress={() => pickType(t)} />
         ))}
       </View>
+
+      {OPEN_ROOMS_LIVE ? (
+        <>
+          {/* Spec 11 B: People stepper, 2 … plan max; "No limit" means the plan max (the server caps at 30). */}
+          <View style={styles.row}>
+            <Text style={styles.cardTitle}>{en.createRoom.capacityLabel}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={en.createRoom.fewerPeople}
+              disabled={capacity !== 'none' && capacity <= MIN_MEMBERS}
+              onPress={() => setCapacity(stepCapacity(capacity, -1, plus))}
+              hitSlop={8}
+            >
+              <SymbolView name="minus.circle" size={26} tintColor={colors.label} />
+            </Pressable>
+            <Text
+              style={styles.capacity}
+              accessibilityRole="adjustable"
+              accessibilityLabel={en.createRoom.capacityLabel}
+              accessibilityValue={{ text: capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity) }}
+              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+              onAccessibilityAction={(e) =>
+                setCapacity(stepCapacity(capacity, e.nativeEvent.actionName === 'increment' ? 1 : -1, plus))
+              }
+            >
+              {capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={en.createRoom.morePeople}
+              disabled={capacity === 'none' || capacity >= capacityMax(plus)}
+              onPress={() => setCapacity(stepCapacity(capacity, 1, plus))}
+              hitSlop={8}
+            >
+              <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
+            </Pressable>
+          </View>
+          <Hint>{plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree}</Hint>
+          {capacity !== 'none' ? <QLink title={en.createRoom.noLimit} onPress={() => setCapacity('none')} /> : null}
+
+          {/* Spec 11 D: Private (code or QR) or Public (listed in Open chat, joins without a code). */}
+          <QLabel>{en.createRoom.visibilityLabel}</QLabel>
+          <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.visibilityLabel}>
+            {(['private', 'public'] as const).map((v) => (
+              <Choice key={v} label={en.createRoom[v]} selected={visibility === v} onPress={() => setVisibility(v)} />
+            ))}
+          </View>
+          <Hint>{visibility === 'public' ? en.createRoom.publicHint : en.createRoom.privateHint}</Hint>
+          {visibility === 'public' ? (
+            <>
+              <QLabel>{en.createRoom.iconLabel}</QLabel>
+              <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={en.createRoom.iconLabel}>
+                {ROOM_ICONS.map((i) => (
+                  <Pressable
+                    key={i.key}
+                    accessibilityRole="radio"
+                    accessibilityLabel={i.key}
+                    accessibilityState={{ selected: icon === i.key }}
+                    onPress={() => setPickedIcon(i.key)}
+                    style={[styles.iconChip, icon === i.key && styles.iconChipOn]}
+                  >
+                    <InkIcon emoji={i.emoji} size={24} />
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.row}>
+                <TextInput
+                  placeholder={en.createRoom.areaPlaceholder}
+                  placeholderTextColor={colors.secondaryLabel}
+                  accessibilityLabel={en.createRoom.areaPlaceholder}
+                  value={area}
+                  onChangeText={setArea}
+                  maxLength={MAX_AREA}
+                  returnKeyType="done"
+                  style={styles.rowInput}
+                />
+                {pinArea && !area.trim() ? (
+                  <Pressable accessibilityRole="button" onPress={() => setArea(pinArea)} hitSlop={8}>
+                    <Text style={styles.rowAction}>{en.createRoom.areaUsePin(pinArea)}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </>
+          ) : null}
+        </>
+      ) : null}
 
       <View style={styles.row}>
         <Text style={styles.cardTitle}>{en.createRoom.locationLabel}</Text>
@@ -487,6 +600,9 @@ const styles = StyleSheet.create({
   statuses: { fontSize: 14, color: colors.secondaryLabel, paddingVertical: 2 },
   cardNote: { fontSize: 12, color: colors.secondaryLabel },
   pinArea: { fontSize: 14, color: colors.label },
+  capacity: { minWidth: 84, textAlign: 'center', fontSize: 16, color: colors.label, fontVariant: ['tabular-nums'] },
+  iconChip: { ...outline, width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
+  iconChipOn: { borderColor: colors.label, borderWidth: 2 },
   when: { ...outline, paddingHorizontal: 14, paddingVertical: 12, gap: 2 },
   whenRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 40 },
   whenLabel: { width: 44, fontSize: 16, color: colors.label },

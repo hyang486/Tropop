@@ -97,3 +97,9 @@ export function openRoomArgs(input: {
   if (input.visibility === 'private') return base;
   return { ...base, p_public_icon: input.icon, p_public_location: normalizeArea(input.area) };
 }
+
+/**
+ * Migration 0031 (capacity and public rooms) is not on the live project yet. While false, Create room hides the B/D
+ * controls and calls the pre-0031 create_room, so live room creation keeps working. Flip once 0031 is applied.
+ */
+export const OPEN_ROOMS_LIVE = false;

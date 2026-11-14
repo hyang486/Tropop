@@ -125,7 +125,7 @@ export const en = {
     publicHint: 'Anyone can find this room in Open chat and join without a code.',
     iconLabel: 'Icon',
     areaPlaceholder: 'Area, e.g. Echo Park',
-    areaUseMine: 'Use my area',
+    areaUsePin: (area: string) => `Use ${area}`,
     areaMissing: 'Add an area so people nearby can find this room.',
   },
   // Spec 11 D: the Open chat section on Rooms.
