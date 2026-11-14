@@ -27,10 +27,10 @@ test('UX2-138: disabled Button is the enabled style at 40%; pressed, busy and ac
   const ui = readFileSync(new URL('../src/components/ui.tsx', import.meta.url), 'utf8');
   const at = ui.indexOf('export function Button(');
   const button = ui.slice(at, ui.indexOf('\n}\n', at));
-  assert.match(button, /disabled \? \{ opacity: 0\.4 \} : pressed && \{ opacity: variant === 'destructiveFill' \? 0\.85 : 0\.6 \}/);
+  assert.match(button, /disabled \? \{ opacity: 0\.4 \} : pressed && !quiet && \{ opacity: variant === 'destructiveFill' \? 0\.85 : 0\.6 \}/);
   assert.doesNotMatch(button, /disabled \? \{ opacity: 0\.6 \}/);
   // Busy alone never dims (spinner at full opacity); it still reads disabled and busy to VoiceOver.
   assert.doesNotMatch(button, /busy \? \{ opacity/);
   assert.match(button, /accessibilityState=\{\{ disabled: disabled \|\| busy, busy \}\}/);
-  assert.match(button, /filled \? \{ backgroundColor: fill \}/);
+  assert.match(button, /backgroundColor: quiet && pressed && !disabled \? colors\.wash2 : fill/);
 });

@@ -1,6 +1,6 @@
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
-import type { ReactElement, ReactNode } from 'react';
+import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   DynamicColorIOS,
@@ -9,17 +9,19 @@ import {
   Pressable,
   type RefreshControlProps,
   ScrollView,
+  type StyleProp,
   StyleSheet,
   Text,
   TextInput,
   View,
   type TextInputProps,
   useColorScheme,
+  type ViewStyle,
 } from 'react-native';
 
 /**
  * Qrew palette (work list "Palette and controls", supervisor A2): white ground, ink #181817, pale cards
- * #F6F6F2, black primary / outlined secondary buttons, pill chips, red only for Emergency and danger. Dark mode
+ * #F6F6F2, ink primary / wash secondary buttons, pill chips, red only for Emergency and danger. Dark mode
  * inverts ink and ground (the ink art and title already use the light ink #EDEDE8 there).
  */
 export const palette = {
@@ -27,31 +29,42 @@ export const palette = {
   // ink2 (UX §3): hints, labels and timestamps; 6.4:1 on paper (light). secondaryLabel stays for placeholders only.
   // UX2-45: sheet is the iOS elevated background (dark #1C1C1E lifts a sheet off the #000 screen); scrim behind it;
   // grabber is ink2 at 40%.
+  // V1 Paper & Graphite (docs/evidence/ux/paper-graphite-spec-2026-11-14.md): three paper tones and a lift. paper is
+  // the ground, wash the quiet fills, wash2 avatars/dividers on wash, lift what you act on, redwash Emergency surfaces.
+  // card/cardStrong/dangerCard keep their names and now hold wash/wash2/redwash; sheet = lift, sheetCard = wash.
   light: {
     ink: '#181817',
     ink2: '#5E5E58',
-    paper: '#FFFFFF',
-    card: '#F6F6F2',
-    cardStrong: '#EAEAE5',
-    dangerCard: '#FDECEC',
+    paper: '#F7F6F2',
+    wash: '#EDECE6',
+    wash2: '#E3E2DB',
+    lift: '#FFFFFF',
+    redwash: '#FBE9E7',
+    card: '#EDECE6',
+    cardStrong: '#E3E2DB',
+    dangerCard: '#FBE9E7',
     errorText: '#D70015',
     sheet: '#FFFFFF',
     scrim: 'rgba(0,0,0,0.25)',
     grabber: 'rgba(94,94,88,0.4)',
-    sheetCard: '#F6F6F2',
+    sheetCard: '#EDECE6',
   },
   dark: {
     ink: '#EDEDE8',
     ink2: '#A8A8A2',
-    paper: '#000000',
-    card: '#1C1C1E',
-    cardStrong: '#2C2C2E',
+    paper: '#121211',
+    wash: '#1F1F1D',
+    wash2: '#2A2A27',
+    lift: '#232321',
+    redwash: '#3A1A1A',
+    card: '#1F1F1D',
+    cardStrong: '#2A2A27',
     dangerCard: '#3A1A1A',
     errorText: '#FF6961',
-    sheet: '#1C1C1E',
+    sheet: '#232321',
     scrim: 'rgba(0,0,0,0.5)',
     grabber: 'rgba(168,168,162,0.4)',
-    sheetCard: '#2C2C2E',
+    sheetCard: '#1F1F1D',
   },
 } as const;
 
@@ -74,6 +87,14 @@ export const colors = {
   field: themed('card'),
   fieldStrong: themed('cardStrong'),
   dangerField: themed('dangerCard'),
+  /** V1: quiet fills (secondary buttons, tags, thumbs, system capsules). */
+  wash: themed('wash'),
+  /** V1: avatars, grabber, dividers on wash; pressed secondary buttons. */
+  wash2: themed('wash2'),
+  /** V1: cards you act on, others' bubbles, floating controls (with `useLift`). */
+  lift: themed('lift'),
+  /** V1: Emergency surfaces and the destructive button. */
+  redwash: themed('redwash'),
   separator: PlatformColor('separator'),
   /** The accent is ink: primary buttons, links, selected chips and segments, own chat bubbles. */
   tint: themed('ink'),
@@ -102,20 +123,36 @@ export const sheetStyle = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber },
 });
 
-/** Chips are pills. */
-export const radius = { pill: 999 };
+/** Chips and buttons are pills. V1: card 22, thumb/tile 14, tag 10 (all borderCurve continuous). */
+export const radius = { pill: 999, card: 22, tile: 14, tag: 10 };
 
-/** UX §3 spacing: a 4 pt grid. Screen gutter 16, gap between rows 8, gap before a section 24. */
-export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32, gutter: 16, row: 8, section: 24 } as const;
+/**
+ * V1 lift shadow: a soft two-layer shadow on light; none on dark (shadows don't read there), a 6% white hairline
+ * instead, since the dark lift tone already sits above paper.
+ */
+export const elevation = {
+  lift: {
+    light: { boxShadow: '0 1px 2px rgba(24,24,23,0.06), 0 8px 24px rgba(24,24,23,0.08)' },
+    dark: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.06)' },
+  },
+} as const satisfies Record<string, Record<'light' | 'dark', ViewStyle>>;
+
+/** The lift shadow (or its dark hairline) for the current scheme. */
+export function useLift(): ViewStyle {
+  return useColorScheme() === 'dark' ? elevation.lift.dark : elevation.lift.light;
+}
+
+/** UX §3 spacing: a 4 pt grid. V1: screen gutter 20 (was 16), gap between rows 8, gap before a section 24. */
+export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32, gutter: 20, row: 8, section: 24 } as const;
 
 /** UX §3 minimum heights: rows 44 pt (56 with a subtitle, 64 for a room row); hit areas 44. */
 export const size = { row: 44, rowSubtitle: 56, roomRow: 64, hit: 44, chip: 36, button: 52, avatar: 32 } as const;
 
 /**
- * UX §3 type roles for the system font. Titles use HandTitle (Patrick Hand): `titleSize.screen` 30, `.sheet` 24.
+ * UX §3 type roles for the system font. Titles use HandTitle (Patrick Hand): `titleSize.screen` 40 (V1), `.sheet` 24.
  * Colors are included, so a role can be spread into a style as is.
  */
-export const titleSize = { screen: 30, sheet: 24 } as const;
+export const titleSize = { screen: 40, sheet: 24 } as const;
 export const textRole = StyleSheet.create({
   section: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   body: { fontSize: 17, color: colors.label },
@@ -193,12 +230,21 @@ export function Button({
   accessibilityLabel,
   compact,
 }: ButtonProps) {
-  const filled = variant === 'primary' || variant === 'destructiveFill';
-  // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red. UX2-72: destructiveFill
-  // is #D70015 (light errorText) in light and dark, so the white label reads about 5.4:1; pressed is 85%.
-  const accent = variant === 'destructive' ? colors.danger : colors.tint;
-  const fill = variant === 'destructiveFill' ? DESTRUCTIVE_FILL : colors.tint;
-  const label = variant === 'destructiveFill' ? '#FFFFFF' : colors.onTint;
+  // V1: no outlines. Primary is an ink fill with a paper label; secondary a wash fill (wash2 pressed) with an ink
+  // label; destructive a redwash fill with an errorText label. UX2-72: destructiveFill stays #D70015 with white.
+  const fill = {
+    primary: colors.tint,
+    secondary: colors.wash,
+    destructive: colors.redwash,
+    destructiveFill: DESTRUCTIVE_FILL,
+  }[variant];
+  const label = {
+    primary: colors.onTint,
+    secondary: colors.label,
+    destructive: colors.errorText,
+    destructiveFill: '#FFFFFF',
+  }[variant];
+  const quiet = variant === 'secondary';
   return (
     <Pressable
       accessibilityRole="button"
@@ -210,16 +256,16 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         compact && { minHeight: 48 },
-        filled ? { backgroundColor: fill } : [styles.outlined, { borderColor: accent }],
+        { backgroundColor: quiet && pressed && !disabled ? colors.wash2 : fill },
         // UX2-138: disabled is the enabled style at 40% (0.6 read as an enabled gray fill in light mode).
-        disabled ? { opacity: 0.4 } : pressed && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
+        disabled ? { opacity: 0.4 } : pressed && !quiet && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
       ]}
     >
       {busy ? (
-        <ActivityIndicator color={filled ? label : accent} />
+        <ActivityIndicator color={label} />
       ) : (
         <Text
-          style={[styles.buttonText, { color: filled ? label : accent }]}
+          style={[styles.buttonText, { color: label }]}
           maxFontSizeMultiplier={maxFontSizeMultiplier}
         >
           {title}
@@ -274,7 +320,53 @@ export function GlassIconButton({
   );
 }
 
+/**
+ * V1 Card: lift fill, lift shadow, radius 22. Rows are separated by a 1 pt wash line inset 16 pt from both sides
+ * (iOS inset grouped); use one Card per section instead of a grey box per row.
+ */
+export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const lift = useLift();
+  const rows = Children.toArray(children).filter(isValidElement);
+  return (
+    <View style={[styles.card, lift, style]}>
+      {rows.map((row, i) => (
+        <View key={row.key ?? i}>
+          {i > 0 ? <View style={styles.cardDivider} /> : null}
+          {row}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** V1 Tag ("Live", "Run on"): wash fill, radius 10, 12 pt semibold ink, an optional 6 pt ink dot. No outline. */
+export function Tag({ label, dot }: { label: string; dot?: boolean }) {
+  return (
+    <View style={styles.tag}>
+      {dot ? <View style={styles.tagDot} /> : null}
+      <Text style={styles.tagText} maxFontSizeMultiplier={1.4}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  card: { backgroundColor: colors.lift, borderRadius: radius.card, borderCurve: 'continuous' },
+  cardDivider: { height: 1, marginHorizontal: 16, backgroundColor: colors.wash },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: colors.wash,
+    borderRadius: radius.tag,
+    borderCurve: 'continuous',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  tagDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.label },
+  tagText: { fontSize: 12, fontWeight: '600', color: colors.label },
   screen: { padding: 20, gap: 16 },
   fieldWrap: { gap: 6 },
   fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
@@ -286,17 +378,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 17,
   },
+  // V1: full pills (height / 2; 999 keeps the pill when Dynamic Type grows the button).
   button: {
     minHeight: 52,
-    borderRadius: 12,
+    borderRadius: radius.pill,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  outlined: { borderWidth: 1.5, backgroundColor: 'transparent' },
-  // Q 01.04: regular-weight label ("Join the room").
-  buttonText: { fontSize: 17, fontWeight: '400' },
+  // V1: 17 pt semibold (was 400).
+  buttonText: { fontSize: 17, fontWeight: '600' },
   hint: { fontSize: 15, color: colors.ink2 },
   glassButton: { width: size.hit, height: size.hit, borderRadius: size.hit / 2, alignItems: 'center', justifyContent: 'center' },
   glassFallback: { backgroundColor: colors.field },

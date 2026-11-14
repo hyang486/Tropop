@@ -57,6 +57,7 @@ import { useHeaderOverlap } from '@/lib/use-header-overlap';
  */
 export function QScreen({
   title,
+  titleUnderline,
   subtitle,
   children,
   actions,
@@ -72,6 +73,8 @@ export function QScreen({
   inlineTitle,
 }: {
   title?: string;
+  /** V1: the pencil underline under the title, on the three root screens only. */
+  titleUnderline?: boolean;
   /** Small gray line right under the title. */
   subtitle?: string;
   children?: ReactNode;
@@ -160,7 +163,9 @@ export function QScreen({
           {title ? (
             <Animated.View style={[styles.head, { opacity: inline.blockOpacity }]} onLayout={inline.onTitleLayout}>
               <View onLayout={inline.onTitleTextLayout}>
-                <HandTitle>{title}</HandTitle>
+                <HandTitle screen underline={titleUnderline}>
+                  {title}
+                </HandTitle>
               </View>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </Animated.View>

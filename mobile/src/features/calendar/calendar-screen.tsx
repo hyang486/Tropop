@@ -152,6 +152,7 @@ function CalendarMonth({ uid }: { uid: string }) {
       />
       <QScreen
         title={t.title}
+        titleUnderline
         floating={
           // "Add with Qrewing" is Plus only (tiers FINAL). Free taps open the Plus intro with no server call.
           addTapAction(plus) === null ? undefined : (

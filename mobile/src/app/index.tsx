@@ -127,6 +127,7 @@ export default function Rooms() {
           />
         }
         title={en.home.title}
+        titleUnderline
       >
         {/* UX3-A02: no subtitle (the "Name · Host" line said nothing useful). With rooms (or while they load):
             one row of two 48 pt buttons, Join and Create; a guest gets Join alone, full width, and the

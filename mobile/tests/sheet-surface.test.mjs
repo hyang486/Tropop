@@ -15,7 +15,7 @@ const SHEETS = [
 test('UX2-45: sheet, scrim and grabber tokens, light and dark', () => {
   const ui = src('components/ui.tsx');
   assert.match(ui, /sheet: '#FFFFFF',\s*scrim: 'rgba\(0,0,0,0\.25\)',\s*grabber: 'rgba\(94,94,88,0\.4\)'/);
-  assert.match(ui, /sheet: '#1C1C1E',\s*scrim: 'rgba\(0,0,0,0\.5\)',\s*grabber: 'rgba\(168,168,162,0\.4\)'/);
+  assert.match(ui, /sheet: '#232321',\s*scrim: 'rgba\(0,0,0,0\.5\)',\s*grabber: 'rgba\(168,168,162,0\.4\)'/);
   assert.match(ui, /sheet: themed\('sheet'\),\s*scrim: themed\('scrim'\),\s*grabber: themed\('grabber'\)/);
 });
 
@@ -35,8 +35,8 @@ test('UX2-45: every custom bottom sheet uses the sheet surface, the scrim, a 16 
 
 test('UX2-48: pageSheets use the sheet ground with sheetField cards and bubbles', () => {
   const ui = src('components/ui.tsx');
-  assert.match(ui, /grabber: 'rgba\(94,94,88,0\.4\)',\s*sheetCard: '#F6F6F2'/);
-  assert.match(ui, /grabber: 'rgba\(168,168,162,0\.4\)',\s*sheetCard: '#2C2C2E'/);
+  assert.match(ui, /grabber: 'rgba\(94,94,88,0\.4\)',\s*sheetCard: '#EDECE6'/);
+  assert.match(ui, /grabber: 'rgba\(168,168,162,0\.4\)',\s*sheetCard: '#1F1F1D'/);
   assert.match(ui, /sheetField: themed\('sheetCard'\)/);
   const q = src('components/q-screen.tsx');
   assert.match(q, /<OnSheet value=\{!!sheet\}>/);
