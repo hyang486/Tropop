@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } 
 
 import { InkIcon } from '@/components/calendar/ink-icon';
 import { InkArt } from '@/components/ink-art';
-import { placeTimeLine } from '@/components/place-time-cards';
+import { Pill } from '@/components/pill';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, size, textRole } from '@/components/ui';
@@ -13,13 +13,24 @@ import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
-import { placeTimeOf } from '@/lib/place-time';
 import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room, type RoomWithCount } from '@/lib/rooms';
+import { chatLine } from '@/lib/chat-line';
 import { useNow } from '@/lib/use-now';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
 import { OpenChatSection } from '@/features/event/open-chat-section';
 import { groupBySection, roomSection } from '@/features/event/rooms-sections';
+import { fetchRoomSummaries } from '@/features/event/room-summary-api';
+import {
+  isLive,
+  lastItemLine,
+  rowAccessibilityLabel,
+  rowTimeLabel,
+  sortByLastItem,
+  startsLabel,
+  unreadLabel,
+  type RoomSummary,
+} from '@/features/event/room-summary';
 import { defaultRoomIcon, iconEmoji } from '@/features/event/open-room-plan';
 import { Snackbar } from '@/features/event/snackbar';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
@@ -33,6 +44,8 @@ export default function Rooms() {
   const uid = session?.user.id;
   const now = useNow();
   const [rooms, setRooms] = useState<RoomWithCount[] | null>(null);
+  // UX3-A01: last item and unread per room (0037); null while unknown or when the read failed.
+  const [summaries, setSummaries] = useState<Map<string, RoomSummary> | null>(null);
   const [error, setError] = useState<string | null>(null);
   // UX2-26: while Rooms already says offline, Open chat hides its own load error.
   const [offline, setOffline] = useState(false);
@@ -53,6 +66,7 @@ export default function Rooms() {
       const list = await listMyRooms();
       setRooms(list);
       setError(null);
+      setSummaries(await fetchRoomSummaries(list.filter((r) => r.deleted_at === null).map((r) => r.id)));
       setOffline(false);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
@@ -190,43 +204,69 @@ export default function Rooms() {
             <Text style={styles.sectionHeader} accessibilityRole="header">
               {en.home.sections[group.section]}
             </Text>
-            {group.rows.map(({ room, entry }) => {
+            {sortByLastItem(group.rows, (r) => summaries?.get(r.room.id)?.last_at).map(({ room, entry }) => {
           // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
           // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.
           // UX P1-5: those ended rows are dimmed to 45% (UX3-A02: under Ending soon).
           const ended = entry.kind === 'grace';
+          if (ended) {
+            return (
+              <Pressable
+                key={room.id}
+                accessibilityRole="button"
+                onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
+                style={({ pressed }) => [styles.row, styles.ended, pressed && { opacity: 0.3 }]}
+              >
+                <RoomRing room={room} />
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {room.name}
+                  </Text>
+                  <Text style={styles.rowMeta}>{en.qrewing.grace.listRow(graceTime(entry.untilMs))}</Text>
+                </View>
+              </Pressable>
+            );
+          }
+          // UX3-A01: name / last item / Live + people + ends (or Starts …); time and unread pill trailing.
+          const summary = summaries?.get(room.id);
+          const line = summaries ? lastItemLine(summary, uid, en, chatLine) : null;
+          const live = isLive(room, now);
+          const people = room.member_count !== null ? `${en.room.people(room.member_count)} · ` : '';
+          const meta =
+            startsLabel(room.starts_at, now, en) ??
+            `${people}${en.home.row.endsIn(formatRemaining(new Date(room.expires_at).getTime() - now))}`;
+          const time = rowTimeLabel(summary?.last_at ?? null, now, en);
+          const unread = unreadLabel(summary?.unread);
           return (
           <Pressable
             key={room.id}
             accessibilityRole="button"
+            accessibilityLabel={rowAccessibilityLabel(en, { name: room.name, live, unread: summary?.unread, line: line?.text ?? null, meta })}
             onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
-            style={({ pressed }) => [styles.row, ended && styles.ended, pressed && { opacity: ended ? 0.3 : 0.6 }]}
+            style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
           >
-            {/* UX P1-5: the room's own ink icon (the Create room set) in a 40 pt ring, not the same art on every row. */}
-            <View style={styles.ring}>
-              <InkIcon emoji={iconEmoji(roomIcon(room))} size={22} />
-            </View>
+            <RoomRing room={room} />
             <View style={styles.rowText}>
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {room.name}
               </Text>
-              {entry.kind === 'grace' ? (
-                <Text style={styles.rowSubtitle}>{en.qrewing.grace.listRow(graceTime(entry.untilMs))}</Text>
-              ) : (
-                <>
-                  <Text style={styles.rowSubtitle}>
-                    {en.rooms.types[room.type as keyof typeof en.rooms.types] ?? room.type} ·{' '}
-                    {isPublic(room) ? `${en.createRoom.public} · ` : ''}
-                    {en.home.endsIn(formatRemaining(new Date(room.expires_at).getTime() - now))}
-                  </Text>
-                  {/* Place and time (0026), when set: one extra line; rooms without them look as before. */}
-                  <PlaceTimeLine room={room} />
-                </>
-              )}
+              {line ? (
+                <Text style={[styles.rowLast, line.danger && styles.rowDanger]} numberOfLines={1}>
+                  {line.text}
+                </Text>
+              ) : null}
+              <View style={styles.metaLine}>
+                {live ? <Pill variant="tag" text={en.home.row.live} /> : null}
+                <Text style={styles.rowMeta} numberOfLines={1}>
+                  {meta}
+                </Text>
+              </View>
             </View>
-            {/* UX P1-5: people count at the trailing edge; ended rows and an unread count show none. */}
-            {!ended && room.member_count !== null ? (
-              <Text style={styles.count}>{en.room.people(room.member_count)}</Text>
+            {time || unread ? (
+              <View style={styles.trailing}>
+                {time ? <Text style={styles.rowMeta}>{time}</Text> : null}
+                {unread ? <Pill variant="count" text={unread} /> : null}
+              </View>
             ) : null}
           </Pressable>
           );
@@ -269,22 +309,16 @@ function roomIcon(room: Room): string {
   return (room as Room & { public_icon?: string | null }).public_icon ?? defaultRoomIcon(room.type);
 }
 
-/** UX2-58: a public room (0031 visibility; not in the generated types yet) says so in its Your rooms meta. */
-function isPublic(room: Room): boolean {
-  return (room as Room & { visibility?: string | null }).visibility === 'public';
-}
-
 function initialOf(name: string | null | undefined): string {
   return name?.trim().charAt(0).toUpperCase() || '?';
 }
 
-function PlaceTimeLine({ room }: { room: Room }) {
-  const placeTime = placeTimeOf(room);
-  if (!placeTime) return null;
+/** UX P1-5: the room's own ink icon (the Create room set) in a 40 pt ring, not the same art on every row. */
+function RoomRing({ room }: { room: Room }) {
   return (
-    <Text style={styles.rowSubtitle} numberOfLines={1}>
-      {placeTimeLine(placeTime)}
-    </Text>
+    <View style={styles.ring}>
+      <InkIcon emoji={iconEmoji(roomIcon(room))} size={22} />
+    </View>
   );
 }
 
@@ -315,12 +349,12 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 64,
+    minHeight: 76,
     borderWidth: 1,
     borderColor: colors.separator,
     borderRadius: 12,
     borderCurve: 'continuous',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 12,
   },
@@ -336,6 +370,10 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, gap: 2 },
   rowTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
-  count: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'] },
-  rowSubtitle: { fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
+  rowLast: { fontSize: 15, color: colors.ink2 },
+  rowDanger: { color: colors.danger },
+  metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  rowMeta: { flexShrink: 1, fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
+  // Top-aligned: time, then 6 pt, then the unread pill.
+  trailing: { alignSelf: 'flex-start', alignItems: 'flex-end', gap: 6 },
 });

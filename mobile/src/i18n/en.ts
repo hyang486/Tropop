@@ -74,6 +74,16 @@ export const en = {
     loadFailed: 'Could not load your rooms.',
     retry: 'Try again',
     endsIn: (remaining: string) => `Ends in ${remaining}`,
+    // UX3-A01: a Rooms row's last item, time, unread pill and Live tag.
+    row: {
+      noMessages: 'No messages yet',
+      yesterday: 'Yesterday',
+      live: 'Live',
+      liveSpoken: 'live',
+      unreadSpoken: (n: number) => `${n} unread`,
+      endsIn: (remaining: string) => `ends in ${remaining}`,
+      starts: (when: string) => `Starts ${when}`,
+    },
   },
   rooms: {
     someone: 'Someone',

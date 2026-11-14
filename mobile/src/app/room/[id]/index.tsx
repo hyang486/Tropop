@@ -29,6 +29,7 @@ import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
 import { useSmallTalk } from '@/features/event/use-small-talk';
 import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { ChatHeaderButtons, NoticesSheet, SettingsSheet, useChatNoticeProducers } from '@/features/chat/chat-header';
+import { useMarkRoomRead } from '@/features/event/room-summary-api';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
 import { cardsToAnswer } from '@/features/questions/question-plan';
@@ -201,6 +202,8 @@ function ChatRoom({
   const { rootRef, onLayout: measureRoot, top, overlap: headerOverlap } = useHeaderOverlap();
   const router = useRouter();
   const chat = useChat(room.id, userId, onNewSender);
+  // UX3-A01: Rooms unread counts what arrived since I last had this chat open (focus, new item, blur).
+  useMarkRoomRead(room.id, chat.messages.find((m) => !m.pending)?.id);
   // Spec 10.5: the room I opened last is the one Siri asks about.
   useEffect(() => noteSiriRoomOpened(room.id), [room.id]);
   const uploadSummary = useRoomUploadSummary(room.id);
