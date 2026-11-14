@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EnterView } from '@/components/enter-view';
 import { colors } from '@/components/ui';
+import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { en } from '@/i18n/en';
 
 import { type AskProbe, askMode } from './ask-plan';
@@ -37,7 +38,7 @@ export function useQrewingAsk(roomId: string) {
     };
   }, [roomId, q.aiEnabled]);
   const mode = askMode(q.aiEnabled, probe?.ai === q.aiEnabled ? probe : null, roomId);
-  return { available: mode !== null, agreed: mode === 'personal' || !!q.me?.aiOk, reload: q.reload };
+  return { available: mode !== null, mode, agreed: mode === 'personal' || !!q.me?.aiOk, reload: q.reload };
 }
 
 /**
@@ -47,7 +48,7 @@ export function useQrewingAsk(roomId: string) {
  */
 export function useQrewingAskButton(roomId: string) {
   const router = useRouter();
-  const { available, agreed, reload } = useQrewingAsk(roomId);
+  const { available, mode, agreed, reload } = useQrewingAsk(roomId);
   const [consent, setConsent] = useState(false);
   // Set when the consent sheet saved an answer: the ask screen opens once the reload shows I agreed.
   const openAfterConsent = useRef(false);
@@ -58,8 +59,14 @@ export function useQrewingAskButton(roomId: string) {
     router.push({ pathname: '/room/[id]/ask', params: { id: roomId } });
   }, [agreed, roomId, router]);
 
-  const open = () => (agreed ? router.push({ pathname: '/room/[id]/ask', params: { id: roomId } }) : setConsent(true));
-  const sheet = available ? (
+  // A Free asker in an AI-on room goes straight to the Plus intro (Ask is Plus on the caller's own plan).
+  const open = () =>
+    mode === 'plus'
+      ? router.push(plusIntroHref('ask'))
+      : agreed
+        ? router.push({ pathname: '/room/[id]/ask', params: { id: roomId } })
+        : setConsent(true);
+  const sheet = mode === 'room' ? (
     <DisclosureSheet
       roomId={roomId}
       visible={consent}

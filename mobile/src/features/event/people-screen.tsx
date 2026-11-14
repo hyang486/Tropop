@@ -156,7 +156,10 @@ export function PeopleScreen() {
           <EmptyState art="meetup" title={s.noEntryTitle} body={s.noEntry} />
         ) : (
           <>
-            <Hint tone="error">{notConsented ? s.notConsented : en.qrewing.errors[state.error]}</Hint>
+            {/* A Free caller gets 402 before consent is checked: the Plus line, never 'Agree to Qrewing AI' (qa v15). */}
+            <Hint tone="error">
+              {notConsented && !isPlanLimit(state.error) ? s.notConsented : en.qrewing.errors[state.error]}
+            </Hint>
             {isPlanLimit(state.error) ? (
               // capacity B item 4: people to meet (for me) is Plus on the caller's own plan.
               <QLink title={en.planPreview.seePlus} onPress={() => router.push(plusIntroHref('people'))} />

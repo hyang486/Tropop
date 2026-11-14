@@ -180,7 +180,7 @@ test('askBody: anchor is sent as {lat,lng} only when known', () => {
   assert.equal('anchor' in plan.askBody('r1', 'q', [], null, 'UTC'), false);
 });
 
-test('askMode: AI on + probe ok → room for every plan; AI off → personal only on Plus', () => {
+test('askMode: AI on → room (Plus) or plus (Free, Plus intro first); AI off → personal only on Plus', () => {
   const ok = { roomId: 'r1', ok: true };
   // An older server sends only { ok } and only with AI on.
   assert.equal(plan.askMode(true, ok, 'r1'), 'room');
@@ -188,7 +188,11 @@ test('askMode: AI on + probe ok → room for every plan; AI off → personal onl
   assert.equal(plan.askMode(true, null, 'r1'), null);
   assert.equal(plan.askMode(true, { roomId: 'r1', ok: false }, 'r1'), null);
   assert.equal(plan.askMode(true, ok, 'r2'), null);
-  for (const p of ['free', 'plus']) assert.equal(plan.askMode(true, { ...ok, roomAi: true, plan: p }, 'r1'), 'room');
+  assert.equal(plan.askMode(true, { ...ok, roomAi: true, plan: 'plus' }, 'r1'), 'room');
+  // qa v15: Free in an AI-on room → the Plus intro, no consent; AI off on Free stays hidden.
+  assert.equal(plan.askMode(true, { ...ok, roomAi: true, plan: 'free' }, 'r1'), 'plus');
+  assert.equal(plan.askMode(false, { ...ok, roomAi: true, plan: 'free' }, 'r1'), null);
+  assert.equal(plan.askMode(true, { ...ok, roomAi: true }, 'r1'), 'room');
   assert.equal(plan.askMode(false, { ...ok, roomAi: true, plan: 'plus' }, 'r1'), null);
   assert.equal(plan.askMode(false, { ...ok, roomAi: false, plan: 'plus' }, 'r1'), 'personal');
   assert.equal(plan.askMode(true, { ...ok, roomAi: false, plan: 'plus' }, 'r1'), 'personal');

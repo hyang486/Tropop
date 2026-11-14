@@ -15,13 +15,14 @@ export type AskProbe = { roomId: string; ok: boolean; roomAi?: boolean; plan?: '
 
 /**
  * How Ask Qrewing works in this room, or null for no button (capacity B item 4, qrewing caller-plan contract).
- * room: the room has Qrewing AI on (client read and probe agree); every member sees the button, a Free asker gets 402
- * and the Plus link, and consent is asked first. personal: AI is off and the asker is on Plus; the answer uses room
+ * room: the room has Qrewing AI on (client read and probe agree) and the asker is on Plus (or the probe sent no plan):
+ * consent first. plus: the same room and the probe says Free; the button opens the Plus intro directly, never consent
+ * for something a Free asker cannot use (qa v15). personal: AI is off and the asker is on Plus; the answer uses room
  * details only, so there is no consent step and no relayed question cards. AI off on Free → none.
  */
-export function askMode(aiEnabled: boolean, probe: AskProbe | null, roomId: string): 'room' | 'personal' | null {
+export function askMode(aiEnabled: boolean, probe: AskProbe | null, roomId: string): 'room' | 'plus' | 'personal' | null {
   if (probe?.roomId !== roomId || !probe.ok) return null;
-  if (probe.roomAi ?? true) return aiEnabled ? 'room' : null;
+  if (probe.roomAi ?? true) return !aiEnabled ? null : probe.plan === 'free' ? 'plus' : 'room';
   return probe.plan === 'plus' ? 'personal' : null;
 }
 
