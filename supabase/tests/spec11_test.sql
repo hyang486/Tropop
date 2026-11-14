@@ -232,5 +232,14 @@ reset role;
 delete from public.rooms where id = (select room_id from tests.made where label = 'qroom');
 select tests.expect_count($$ select 1 from public.question_cards where room_id = (select room_id from tests.made where label = 'qroom') $$, 0, 'cards cascade with the room');
 
+-- 12. A1 default avatars: 'default:<key>' is accepted, anything else outside the owner's folder is not.
+reset role;
+insert into public.profiles (id, display_name) values ('c3100000-0000-4000-8000-000000000001', 'H') on conflict (id) do nothing;
+select tests.expect_ok($$ update public.profiles set avatar_path = 'default:star' where id = 'c3100000-0000-4000-8000-000000000001' $$, 'default avatar accepted');
+select tests.expect_state($$ update public.profiles set avatar_path = 'default:Bad Key' where id = 'c3100000-0000-4000-8000-000000000001' $$, '22023', 'bad default key refused');
+select tests.expect_state($$ update public.profiles set avatar_path = 'someone/else.jpg' where id = 'c3100000-0000-4000-8000-000000000001' $$, '22023', 'foreign path refused');
+select tests.expect_ok($$ update public.profiles set avatar_path = null where id = 'c3100000-0000-4000-8000-000000000001' $$, 'default avatar cleared');
+select tests.expect_count($$ select 1 from public.cleanup_jobs where reason = 'avatar_replaced' $$, 0, 'a default avatar queues no cleanup');
+
 select 'SPEC11 TESTS PASSED' as result;
 rollback;

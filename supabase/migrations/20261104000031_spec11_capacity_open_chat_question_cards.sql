@@ -389,3 +389,24 @@ revoke execute on function public.set_room_notice(uuid, text) from public, anon;
 grant execute on function public.set_room_notice(uuid, text) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ------------------------------------------------------------------------------------------------ A1: default avatars
+-- profiles.avatar_path may also be 'default:<key>' (a bundled picture; no Storage object, so nothing to clean up).
+create or replace function private.on_profile_avatar()
+returns trigger language plpgsql security definer
+set search_path = ''
+as $$
+begin
+  if new.avatar_path is not null
+     and new.avatar_path !~ '^default:[a-z0-9-]{1,30}$'
+     and (new.avatar_path !~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.jpg$'
+          or split_part(new.avatar_path, '/', 1) <> new.id::text) then
+    raise exception 'Invalid profile photo path' using errcode = '22023';
+  end if;
+  if tg_op = 'UPDATE' and old.avatar_path is not null and old.avatar_path !~ '^default:'
+     and old.avatar_path is distinct from new.avatar_path then
+    perform private.enqueue_cleanup('avatars', old.avatar_path, 'avatar_replaced');
+  end if;
+  return new;
+end;
+$$;

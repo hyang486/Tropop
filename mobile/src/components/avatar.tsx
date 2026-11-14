@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { avatarUrl } from '@/lib/avatar';
+import { defaultAvatarFor, isDefaultAvatarPath } from '@/lib/default-avatars';
 import { authHeaders } from '@/lib/media';
 
 type Props = { path: string | null | undefined; name: string; size?: number };
@@ -18,7 +19,16 @@ export function Avatar({ path, name, size = 32 }: Props) {
   const [failedPath, setFailedPath] = useState<string | null>(null);
   const round = { width: size, height: size, borderRadius: size / 2 };
 
-  if (path && session && failedPath !== path) {
+  const preset = isDefaultAvatarPath(path) ? defaultAvatarFor(path) : undefined;
+  if (preset) {
+    if (preset.source) return <Image style={round} source={preset.source} accessibilityIgnoresInvertColors />;
+    return (
+      <View style={[round, styles.empty, { backgroundColor: preset.tint }]}>
+        <Text style={[styles.initial, { fontSize: Math.round(size * 0.5), color: '#2B2B2B' }]}>{preset.glyph}</Text>
+      </View>
+    );
+  }
+  if (path && session && !isDefaultAvatarPath(path) && failedPath !== path) {
     return (
       <Image
         style={round}

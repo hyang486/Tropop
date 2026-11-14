@@ -24,3 +24,6 @@ All RPCs need a signed-in user (42501 otherwise). Errors: PT409 conflict, PT422 
 
 ## qrewing `ask` (C)
 When the model lacks the answer it sets `needs_human`; the function then creates a card for the member it named (who spoke in the chat), else the host, never the asker, and replies `200 {answer, usage, card: {id, answererName, timeoutAt}}`. `answer` is a fixed sentence ("I asked <name> for you…", Korean for a Korean question). The asker reads the answer later from `question_cards` (RLS). If the host asks with nobody else to ask, or the insert fails, the reply is the plain answer with no `card`.
+
+## A1 default avatars
+`profiles.avatar_path` may be `default:<key>` (`[a-z0-9-]{1,30}`): a bundled picture, no Storage object, no cleanup job. Clients render unknown keys as the initial. Keys shipped as placeholders: star, moon, sun, flower, note, peak, gem, leaf.

@@ -83,3 +83,22 @@ end;
 $$;
 revoke execute on function public.create_room(text, text, timestamptz, boolean, text[], text, double precision, double precision, timestamptz) from public, anon;
 grant execute on function public.create_room(text, text, timestamptz, boolean, text[], text, double precision, double precision, timestamptz) to authenticated;
+
+-- on_profile_avatar as of 0021 (rows already set to 'default:<key>' must be cleared first)
+update public.profiles set avatar_path = null where avatar_path like 'default:%';
+create or replace function private.on_profile_avatar()
+returns trigger language plpgsql security definer
+set search_path = ''
+as $$
+begin
+  if new.avatar_path is not null
+     and (new.avatar_path !~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.jpg$'
+          or split_part(new.avatar_path, '/', 1) <> new.id::text) then
+    raise exception 'Invalid profile photo path' using errcode = '22023';
+  end if;
+  if tg_op = 'UPDATE' and old.avatar_path is not null and old.avatar_path is distinct from new.avatar_path then
+    perform private.enqueue_cleanup('avatars', old.avatar_path, 'avatar_replaced');
+  end if;
+  return new;
+end;
+$$;

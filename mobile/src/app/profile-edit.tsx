@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { QField, QScreen } from '@/components/q-screen';
-import { Button, Hint } from '@/components/ui';
+import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { updateDisplayName, useAuth } from '@/lib/auth';
-import { pickAvatar, removeProfilePhoto, setProfilePhoto } from '@/lib/avatar';
+import { pickAvatar, removeProfilePhoto, setDefaultAvatar, setProfilePhoto } from '@/lib/avatar';
+import { DEFAULT_AVATARS, defaultAvatarPath } from '@/lib/default-avatars';
 import { errorMessage } from '@/lib/errors';
 
 /** Qrew unit 5 (Q 07.01 Edit profile): profile photo and display name, moved here from Profile unchanged. */
@@ -52,6 +53,20 @@ export default function ProfileEdit() {
     }
   }
 
+  async function chooseDefault(key: string) {
+    if (!session) return;
+    setBusy('photo');
+    setError(null);
+    try {
+      await setDefaultAvatar(session.user.id, key);
+      await refreshProfile();
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function clearPhoto() {
     if (!session) return;
     setBusy('photo');
@@ -86,6 +101,26 @@ export default function ProfileEdit() {
           )}
         </View>
       </View>
+      <Text style={styles.pickLabel}>{en.profile.chooseAvatar}</Text>
+      <View style={styles.pickRow}>
+        {DEFAULT_AVATARS.map((a) => {
+          const path = defaultAvatarPath(a.key);
+          const selected = profile?.avatar_path === path;
+          return (
+            <Pressable
+              key={a.key}
+              onPress={() => chooseDefault(a.key)}
+              disabled={busy !== null}
+              accessibilityRole="button"
+              accessibilityLabel={`${en.profile.avatarOption} ${a.key}`}
+              accessibilityState={{ selected }}
+              style={[styles.pick, selected && styles.pickSelected]}
+            >
+              <Avatar path={path} name={a.key} size={44} />
+            </Pressable>
+          );
+        })}
+      </View>
       <QField
         label={en.profile.nameLabel}
         value={name}
@@ -103,4 +138,8 @@ export default function ProfileEdit() {
 const styles = StyleSheet.create({
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   photoActions: { flex: 1, gap: 8 },
+  pickLabel: { fontSize: 13, color: colors.secondaryLabel },
+  pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  pick: { padding: 3, borderRadius: 30, borderWidth: 2, borderColor: 'transparent' },
+  pickSelected: { borderColor: colors.tint },
 });

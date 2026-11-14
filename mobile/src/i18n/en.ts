@@ -571,6 +571,8 @@ export const en = {
     nameLabel: 'Display name',
     save: 'Save name',
     saved: 'Saved',
+    chooseAvatar: 'Or choose a picture',
+    avatarOption: 'Picture',
     accountType: 'Account',
     guest: 'Guest',
     host: 'Host',
