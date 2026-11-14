@@ -198,7 +198,7 @@ export function EmergencyAlerts({
   return (
     <ScrollView
       ref={scrollRef}
-      style={{ maxHeight: Math.round(windowHeight * EMERGENCY_MAX_HEIGHT_SHARE), flexGrow: 0 }}
+      style={{ maxHeight: Math.round(windowHeight * EMERGENCY_MAX_HEIGHT_SHARE), flexGrow: 0, backgroundColor: 'transparent' }}
       contentContainerStyle={styles.alerts}
       contentInsetAdjustmentBehavior="never"
       alwaysBounceVertical={false}

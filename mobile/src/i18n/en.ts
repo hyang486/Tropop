@@ -406,6 +406,12 @@ export const en = {
     headerHint: 'Opens room info',
     // UX3-B04: expands a collapsed run of system lines.
     showLines: 'Show',
+    // V3 P2: the collapsed run on one line with a chevron; VoiceOver reads "Sora is OK now, 18 more. Show."
+    showLinesRun: (summary: string) => `${summary} ›`,
+    showLinesLabel: (summary: string) => {
+      const i = summary.lastIndexOf(' · ');
+      return `${i < 0 ? summary : `${summary.slice(0, i)}, ${summary.slice(i + 3)}`}. Show.`;
+    },
     // UX3-B01: the header's second line, joined with " · ".
     header: {
       people: (n: number) => (n === 1 ? '1 person' : `${n} people`),

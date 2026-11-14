@@ -500,6 +500,13 @@ function ChatRoom({
           {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it.
               Clipped so a message scrolled past the top never shows behind the Emergency card above. */}
           <View style={[styles.flex, styles.clip]}>
+          {/* V3 P1: a 16 pt paper fade under the Emergency card so scrolled text doesn't cut off hard below it. */}
+          {activity.emergencies.length > 0 ? (
+            <View
+              pointerEvents="none"
+              style={[styles.alertFade, { backgroundImage: `linear-gradient(${paper} 0%, ${paper}00 100%)` }]}
+            />
+          ) : null}
           {chat.loading ? (
             <ActivityIndicator style={styles.loading} />
           ) : chat.error && chat.messages.length === 0 ? (
@@ -553,20 +560,18 @@ function ChatRoom({
                   return (
                     <>
                       {card}
-                      <View style={styles.noticeRow}>
-                        <Text style={styles.notice} numberOfLines={2}>
-                          {row.summary} ·{' '}
+                      {/* V3 P2: one line, "Sora is OK now · 18 more ›"; the whole capsule is the tap target (44 pt). */}
+                      <Pressable
+                        onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
+                        hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={en.chat.showLinesLabel(row.summary)}
+                        style={({ pressed }) => [styles.noticeRow, pressed && { opacity: 0.6 }]}
+                      >
+                        <Text style={styles.notice} numberOfLines={1} ellipsizeMode="tail">
+                          {en.chat.showLinesRun(row.summary)}
                         </Text>
-                        <Pressable
-                          onPress={() => setExpanded((cur) => new Set(cur).add(row.key))}
-                          hitSlop={14}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${row.summary}. ${en.chat.showLines}`}
-                          style={styles.showHit}
-                        >
-                          <Text style={styles.showLink}>{en.chat.showLines}</Text>
-                        </Pressable>
-                      </View>
+                      </Pressable>
                     </>
                   );
                 }
@@ -916,7 +921,9 @@ const styles = StyleSheet.create({
   // UX3-B01: the title block is one ≥44 pt button; the second line is 12 pt ink2, tail-truncated.
   headerTitleBlock: { minHeight: 44, justifyContent: 'center', alignItems: 'center', maxWidth: 210 },
   headerSub: { fontSize: 12, lineHeight: 15, color: colors.ink2, maxWidth: 210 },
-  alerts: { paddingHorizontal: 24 },
+  // V3 P1: no fill, so the paper page shows behind the Emergency card's rounded corners (not a square block).
+  alerts: { paddingHorizontal: 24, backgroundColor: 'transparent' },
+  alertFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 16, zIndex: 1 },
   aiNote: { paddingHorizontal: 24, paddingBottom: 6 },
   compactStrip: { paddingHorizontal: 24, paddingVertical: 6, alignItems: 'flex-end' },
   offline: { fontSize: 13, color: colors.warning },
@@ -960,8 +967,6 @@ const styles = StyleSheet.create({
   // UX3-B04: day separator (12 pt semibold ink2, 12 above, 6 below; inverted list, so margins are flipped) and the
   // collapsed run's "Show" (13 pt semibold ink, 44 pt hit via hitSlop).
   dayLabel: { alignSelf: 'center', fontSize: 12, fontWeight: '600', color: colors.ink2, marginTop: 12, marginBottom: 6 },
-  showHit: { justifyContent: 'center' },
-  showLink: { fontSize: 13, fontWeight: '600', color: colors.label },
   // UX2-56 follow-up: 44 pt tap target; less outer margin so the gap to its neighbours stays about the same.
   mediaRow: { minHeight: 44, justifyContent: 'center', marginVertical: 2 },
   notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },

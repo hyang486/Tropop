@@ -55,3 +55,23 @@ test('V3 Emergency card: redwash, radius 22, lift, no frame; 40 pt danger disc w
   assert.match(r, /barLocationLink: \{ textDecorationLine: 'underline' \}/);
   assert.match(r, /pillSecondary: \{ backgroundColor: colors\.lift \}/);
 });
+
+test('V3 P1: Emergency wrapper has no fill; a 16 pt paper fade sits under the card only while one shows', () => {
+  const s = src('app/room/[id]/index.tsx');
+  assert.match(block(s, 'alerts'), /backgroundColor: 'transparent'/);
+  assert.match(block(s, 'alertFade'), /top: 0[\s\S]*height: 16/);
+  assert.match(s, /activity\.emergencies\.length > 0 \? \(\s*<View\s+pointerEvents="none"\s+style=\{\[styles\.alertFade, \{ backgroundImage: `linear-gradient\(\$\{paper\} 0%, \$\{paper\}00 100%\)` \}\]\}/);
+  assert.match(src('components/room-activity.tsx'), /flexGrow: 0, backgroundColor: 'transparent' \}\}/);
+});
+
+test('V3 P2: the collapsed run is one tappable capsule line with a chevron and a spoken Show', async () => {
+  const s = src('app/room/[id]/index.tsx');
+  assert.match(s, /accessibilityLabel=\{en\.chat\.showLinesLabel\(row\.summary\)\}\s+style=\{\(\{ pressed \}\) => \[styles\.noticeRow/);
+  assert.match(s, /hitSlop=\{\{ top: 10, bottom: 10/);
+  assert.match(s, /numberOfLines=\{1\} ellipsizeMode="tail">\s*\{en\.chat\.showLinesRun\(row\.summary\)\}/);
+  assert.doesNotMatch(s, /styles\.showLink|styles\.showHit/);
+  const { en } = await import('../src/i18n/en.ts');
+  assert.equal(en.chat.showLinesRun('Sora is OK now · 18 more'), 'Sora is OK now · 18 more ›');
+  assert.equal(en.chat.showLinesLabel('Sora is OK now · 18 more'), 'Sora is OK now, 18 more. Show.');
+  assert.equal(en.chat.showLinesLabel('Sora is OK now'), 'Sora is OK now. Show.');
+});
