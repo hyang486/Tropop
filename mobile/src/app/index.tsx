@@ -11,7 +11,6 @@ import { Button, colors, Hint, size, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
-import { errorMessage } from '@/lib/errors';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
 import { placeTimeOf } from '@/lib/place-time';
@@ -67,7 +66,7 @@ export default function Rooms() {
         { ask: false },
       );
     } catch (e) {
-      setError(`${en.home.loadFailed} ${errorMessage(e)}`);
+      setError(en.home.loadFailed);
       setOffline(errorKind(e) === 'offline');
     }
   }, [uid]);
