@@ -9,12 +9,25 @@ import { QLabel } from '@/components/q-screen';
 import { colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
+import { RoomError } from '@/lib/rooms';
 
-import { cameToForeground, iconEmoji, OPEN_ROOMS_LIVE, openRowSpoken } from './open-room-plan';
+import { cameToForeground, iconEmoji, joinableOpenRooms, OPEN_ROOMS_LIVE, openRowSpoken, openRowWhen } from './open-room-plan';
 import { joinOpenRoom, listOpenRooms, type OpenRoom } from './open-rooms-api';
 
-/** `refreshKey`: Rooms bumps it on pull to refresh; each change re-reads the list (BUG-OC1). */
-export function OpenChatSection({ refreshKey = 0 }: { refreshKey?: number }) {
+/** "today 6:30 AM", "tomorrow 6:30 AM", "Sat 6:30 AM"; the end time reads "until …" (no start time yet). */
+function rowWhen(room: OpenRoom, now: Date) {
+  const { kind, at, day } = openRowWhen(room, now);
+  const time = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const date = day ? en.openChat[day] : at.toLocaleDateString([], { weekday: 'short' });
+  const when = `${date} ${time}`;
+  return kind === 'until' ? en.openChat.until(when) : when;
+}
+
+/**
+ * `refreshKey`: Rooms bumps it on pull to refresh; each change re-reads the list (BUG-OC1).
+ * `onNotice` (UX P1-6): a join that fails once (full, closed) is a snackbar on Rooms, not a red line that stays.
+ */
+export function OpenChatSection({ refreshKey = 0, onNotice }: { refreshKey?: number; onNotice: (text: string) => void }) {
   const router = useRouter();
   const [rooms, setRooms] = useState<OpenRoom[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,9 +38,8 @@ export function OpenChatSection({ refreshKey = 0 }: { refreshKey?: number }) {
     listOpenRooms()
       .then((rows) => {
         if (!live) return;
-        setRooms(rows);
-        // Clears only a load failure, so a join error ("This room is full.") stays after the refresh it triggers.
-        setError((e) => (e === en.openChat.loadFailed ? null : e));
+        setRooms(joinableOpenRooms(rows));
+        setError(null);
       })
       .catch(() => live && setError(en.openChat.loadFailed));
     return () => {
@@ -68,7 +80,15 @@ export function OpenChatSection({ refreshKey = 0 }: { refreshKey?: number }) {
       const id = await joinOpenRoom(room.room_id);
       router.push({ pathname: '/room/[id]', params: { id } });
     } catch (e) {
-      setError(errorMessage(e));
+      // UX P1-6: the room leaves the list and a snackbar says why; the re-read keeps the rest current.
+      const full = e instanceof RoomError && e.kind === 'full';
+      const gone = e instanceof Error && e.message === en.openChat.gone;
+      if (full || gone) {
+        setRooms((rows) => rows?.filter((r) => r.room_id !== room.room_id) ?? rows);
+        onNotice(full ? en.openChat.filledUp(room.name) : en.openChat.closedNow(room.name));
+      } else {
+        onNotice(errorMessage(e));
+      }
       load();
     } finally {
       setJoining(null);
@@ -86,7 +106,7 @@ export function OpenChatSection({ refreshKey = 0 }: { refreshKey?: number }) {
           key={room.room_id}
           accessibilityRole="button"
           accessibilityLabel={openRowSpoken(room.public_icon, room.name, room.public_location)}
-          accessibilityValue={{ text: en.openChat.count(room.member_count, room.max_members) }}
+          accessibilityValue={{ text: `${rowWhen(room, new Date())}, ${en.openChat.count(room.member_count, room.max_members)}` }}
           accessibilityHint={room.already_member ? undefined : en.openChat.joinHint}
           accessibilityState={{ busy: joining === room.room_id }}
           disabled={joining !== null}
@@ -99,7 +119,7 @@ export function OpenChatSection({ refreshKey = 0 }: { refreshKey?: number }) {
               {room.name}
             </Text>
             <Text style={styles.area} numberOfLines={1}>
-              {room.public_location}
+              {`${room.public_location} · ${rowWhen(room, new Date())}`}
             </Text>
           </View>
           <Text style={styles.count}>

@@ -18,6 +18,7 @@ import { formatRemaining, listMyRooms, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
 import { OpenChatSection } from '@/features/event/open-chat-section';
+import { Snackbar } from '@/features/event/snackbar';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
 import { syncCalendarRooms } from '@/features/calendar/calendar-store';
 import { roomListEntry } from '@/features/recap/grace-plan';
@@ -33,6 +34,10 @@ export default function Rooms() {
   // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
   const [refreshing, setRefreshing] = useState(false);
   const [openChatKey, setOpenChatKey] = useState(0);
+  // UX P1-6: one Open chat notice at a time; the id re-shows (and re-reads) the same text.
+  const [notice, setNotice] = useState<{ id: number; text: string } | null>(null);
+  const showNotice = useCallback((text: string) => setNotice((n) => ({ id: (n?.id ?? 0) + 1, text })), []);
+  const hideNotice = useCallback(() => setNotice(null), []);
 
   const load = useCallback(async () => {
     try {
@@ -94,6 +99,7 @@ export default function Rooms() {
         }}
       />
       <QScreen
+        floating={notice ? <Snackbar notice={notice} onHide={hideNotice} /> : undefined}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -183,7 +189,7 @@ export default function Rooms() {
         })}
 
         {/* Spec 11 D: public rooms anyone can join without a code (hidden until 0031 is live). */}
-        <OpenChatSection refreshKey={openChatKey} />
+        <OpenChatSection refreshKey={openChatKey} onNotice={showNotice} />
       </QScreen>
     </>
   );

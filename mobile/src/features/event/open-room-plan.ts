@@ -100,6 +100,26 @@ export function openRowSpoken(iconLabel: string, name: string, area: string | nu
   return [iconLabel, name, area].filter(Boolean).join(', ');
 }
 
+/**
+ * UX P1-6: the time on an Open chat row. The start time when the room has one (list_open_rooms does not return it
+ * yet), otherwise the end time. `day` is 'today' or 'tomorrow' in local time, else null (the caller shows a weekday).
+ */
+export function openRowWhen(room: { starts_at?: string | null; expires_at: string }, now: Date) {
+  const kind: 'starts' | 'until' = room.starts_at ? 'starts' : 'until';
+  const at = new Date(room.starts_at ?? room.expires_at);
+  const dayIndex = (d: Date) => Math.round(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86_400_000);
+  const diff = dayIndex(at) - dayIndex(now);
+  const day: 'today' | 'tomorrow' | null = diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : null;
+  return { kind, at, day };
+}
+
+/** UX P1-6: a full room leaves the list (unless you are in it); the list shows only rooms you can still join. */
+export function joinableOpenRooms<T extends { member_count: number; max_members: number; already_member: boolean }>(
+  rows: readonly T[],
+): T[] {
+  return rows.filter((r) => r.already_member || r.member_count < r.max_members);
+}
+
 export type Visibility = 'private' | 'public';
 
 /** Why a public room can't be created yet; null when it can. Private rooms have nothing to check. */

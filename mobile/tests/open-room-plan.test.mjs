@@ -126,3 +126,25 @@ test('UX P1-10: the People hint names the plan maxima, not a fixed 30', async ()
   assert.equal(en.createRoom.capacityHintFree(p.capacityMax(false), p.capacityMax(true)), 'Free rooms hold up to 6. Plus up to 30.');
   assert.equal(en.createRoom.capacityHintPlus(p.capacityMax(true)), 'Plus rooms hold up to 30.');
 });
+
+test('UX P1-6: row time is the start when known, else the end; today/tomorrow in local days', () => {
+  const now = new Date(2026, 10, 14, 9, 0);
+  const at = (d, h) => new Date(2026, 10, d, h, 30).toISOString();
+  const r1 = p.openRowWhen({ expires_at: at(14, 18) }, now);
+  assert.equal(r1.kind, 'until');
+  assert.equal(r1.day, 'today');
+  const r2 = p.openRowWhen({ starts_at: at(15, 6), expires_at: at(15, 9) }, now);
+  assert.equal(r2.kind, 'starts');
+  assert.equal(r2.day, 'tomorrow');
+  assert.equal(r2.at.getHours(), 6);
+  assert.equal(p.openRowWhen({ starts_at: null, expires_at: at(16, 9) }, now).day, null);
+});
+
+test('UX P1-6: full rooms leave the Open chat list unless you are already in them', () => {
+  const rows = [
+    { room_id: 'a', member_count: 3, max_members: 6, already_member: false },
+    { room_id: 'b', member_count: 6, max_members: 6, already_member: false },
+    { room_id: 'c', member_count: 6, max_members: 6, already_member: true },
+  ];
+  assert.deepEqual(p.joinableOpenRooms(rows).map((r) => r.room_id), ['a', 'c']);
+});

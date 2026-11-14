@@ -132,7 +132,12 @@ export const en = {
   // Spec 11 D: the Open chat section on Rooms.
   openChat: {
     section: 'Open chat',
-    empty: 'No open rooms right now.',
+    empty: 'No open rooms nearby. Check back later.',
+    today: 'today',
+    tomorrow: 'tomorrow',
+    until: (when: string) => `until ${when}`,
+    filledUp: (name: string) => `${name} just filled up.`,
+    closedNow: (name: string) => `${name} is no longer open.`,
     loadFailed: "Couldn't load open rooms.",
     count: (n: number, max: number) => `${n}/${max}`,
     joined: 'Joined',

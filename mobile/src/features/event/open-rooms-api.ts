@@ -18,6 +18,8 @@ export type OpenRoom = {
   member_count: number;
   max_members: number;
   expires_at: string;
+  /** Not returned by list_open_rooms yet; the row shows the end time until it is. */
+  starts_at?: string | null;
   already_member: boolean;
 };
 
