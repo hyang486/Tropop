@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { type ReactNode, useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -38,6 +38,7 @@ import {
   objectUrl,
   pickFile,
   pickPhotosAndVideos,
+  stopRoomUploads,
   takePhoto,
   type UploadJob,
   useRoomMedia,
@@ -141,6 +142,12 @@ export default function GalleryScreen() {
   // Spec 7.3: in the host's early-end grace window the gallery stays open read-only (view and download).
   const grace = useGrace(room);
   const can = screenActions('gallery', grace.grace ? 'grace' : 'open');
+  // Sweep fix 5: once the room is over its uploads stop; failed rows stay through the grace window.
+  const over = gone || ended.over;
+  const keepFailed = !gone && grace.grace;
+  useEffect(() => {
+    if (over) stopRoomUploads(id, keepFailed);
+  }, [over, keepFailed, id]);
   // UX P0-2: Ask Qrewing is a header icon next to Add, not a floating button over the grid; not in grace.
   const ask = useQrewingAskButton(id);
 

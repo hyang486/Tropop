@@ -36,6 +36,15 @@ export function removeJob<J extends QueueJob>(jobs: readonly J[], id: string): J
   return jobs.some((j) => j.id === id) ? jobs.filter((j) => j.id !== id) : (jobs as J[]);
 }
 
+/**
+ * Sweep fix 5: the room ended, so its queued and running jobs stop. Failed rows stay while the gallery can still
+ * show them (grace window, keepFailed); once the room is gone they go too.
+ */
+export function withoutRoomJobs<J extends QueueJob>(jobs: readonly J[], roomId: string, keepFailed: boolean): J[] {
+  const next = jobs.filter((j) => j.roomId !== roomId || (keepFailed && j.state === 'failed'));
+  return next.length === jobs.length ? (jobs as J[]) : next;
+}
+
 /** A failed job goes back to the queue with its progress reset. Other states are unchanged. */
 export function requeue<J extends QueueJob>(jobs: readonly J[], id: string): J[] {
   const job = jobs.find((j) => j.id === id);

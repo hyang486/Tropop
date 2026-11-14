@@ -35,3 +35,22 @@ test('fix 4: a failed location watch start is retried with a capped backoff whil
   assert.match(loc, /retry = setTimeout\(\(\) => void startWatch\(\), watchRetryDelayMs\(watchAttempt\+\+\)\)/);
   assert.match(loc, /if \(retry\) clearTimeout\(retry\);/);
 });
+
+test('fix 5: a room that ended stops its uploads; failed rows stay only through the grace window', async () => {
+  const { withoutRoomJobs } = await import('../src/lib/upload-plan.ts');
+  const jobs = [
+    { id: 'a', roomId: 'r1', state: 'uploading', progress: 0.4 },
+    { id: 'b', roomId: 'r1', state: 'queued', progress: 0 },
+    { id: 'c', roomId: 'r1', state: 'failed', progress: 0 },
+    { id: 'd', roomId: 'r2', state: 'queued', progress: 0 },
+  ];
+  assert.deepEqual(withoutRoomJobs(jobs, 'r1', true).map((j) => j.id), ['c', 'd']);
+  assert.deepEqual(withoutRoomJobs(jobs, 'r1', false).map((j) => j.id), ['d']);
+  assert.equal(withoutRoomJobs(jobs, 'r3', false), jobs);
+  const media = read('lib/media.ts');
+  assert.match(media, /export function stopRoomUploads\(roomId: string, keepFailed: boolean\)/);
+  assert.match(media, /controllers\.get\(j\.id\)\?\.abort\(\)/);
+  assert.match(media, /if \(errorKind\(e\) === 'ended'\) setJobs/);
+  const gallery = read('app/room/[id]/gallery.tsx');
+  assert.match(gallery, /if \(over\) stopRoomUploads\(id, keepFailed\);/);
+});

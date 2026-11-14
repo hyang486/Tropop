@@ -12,6 +12,7 @@ import { en } from '@/i18n/en';
 
 import type { Tables } from './database.types';
 import { CameraError, cameraStep } from './camera-plan';
+import { errorKind } from './error-kind';
 import { appError, errorMessage } from './errors';
 import { EXT_BY_MIME, exportFileName, extensionFor } from './file-name';
 import { clearImageDiskCache } from './image-cache';
@@ -31,6 +32,7 @@ import {
   type RoomUploadSummary,
   roomSummary,
   sharedBody,
+  withoutRoomJobs,
 } from './upload-plan';
 import { deadEndError, deadEndOf, isRoomStorageFull, type UploadDeadEnd } from './storage-cap';
 
@@ -419,6 +421,8 @@ async function pump() {
           setJobs((js) => removeJob(js, current.id));
         } else {
           const failed = (e as { job?: UploadJob }).job ?? current;
+          // Sweep fix 5: the server says the room ended; its other queued jobs would only fail the same way.
+          if (errorKind(e) === 'ended') setJobs((js) => js.filter((j) => j.roomId !== current.roomId || j.state !== 'queued'));
           setJobs((js) =>
             js.some((j) => j.id === current.id)
               ? patchJob(js, current.id, { ...failed, state: 'failed', error: errorMessage(e), deadEnd: deadEndOf(e) })
@@ -461,6 +465,16 @@ export function cancelUpload(id: string) {
 
 export function dismissUpload(id: string) {
   setJobs((js) => (js.find((j) => j.id === id)?.state === 'failed' ? removeJob(js, id) : js));
+}
+
+/**
+ * Sweep fix 5: the room ended. Abort its running upload and drop its queued ones; failed rows stay only while
+ * keepFailed (grace window, the gallery still shows them).
+ */
+export function stopRoomUploads(roomId: string, keepFailed: boolean) {
+  for (const j of store.jobs) if (j.roomId === roomId) controllers.get(j.id)?.abort();
+  unannounced.delete(roomId);
+  setJobs((js) => withoutRoomJobs(js, roomId, keepFailed));
 }
 
 /** Sign-out / account gone: stop every upload and forget the queue. */
