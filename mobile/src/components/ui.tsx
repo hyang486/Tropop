@@ -203,7 +203,8 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         filled ? { backgroundColor: fill } : [styles.outlined, { borderColor: accent }],
-        disabled ? { opacity: 0.6 } : pressed && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
+        // UX2-138: disabled is the enabled style at 40% (0.6 read as an enabled gray fill in light mode).
+        disabled ? { opacity: 0.4 } : pressed && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
       ]}
     >
       {busy ? (

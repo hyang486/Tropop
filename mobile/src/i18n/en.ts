@@ -1178,7 +1178,8 @@ export const en = {
       // UX2-74: one line beside Add my info.
       chatPrompt: 'Add your intro to chat.',
       addMyInfo: 'Add my info',
-      intro: 'The host asks attendees for a short intro. Everyone in this room can see it, and it is deleted when the room ends, or 30 minutes after the host ends it early.',
+      // UX2-138: short; Room info explains the 30-minute grace.
+      intro: "Everyone in this room can see your intro. It's deleted when the room ends.",
       linksNote: 'Links are shown to attendees only. Qrewing does not open them.',
       save: 'Save',
       tooLong: (field: string, max: number) => `${field} can be up to ${max} characters.`,
@@ -1237,6 +1238,8 @@ export const en = {
       empty: 'No one else has shared entry info yet. Check back after more people join.',
       noQuestionsTitle: 'No intros in this room',
       noQuestions: "The host didn't add entry questions, so Qrewing can't suggest people to meet here.",
+      // UX2-137: the host sees it about themselves.
+      noQuestionsHost: "You didn't add entry questions, so Qrewing can't suggest people to meet here.",
       noEntryTitle: 'Tell Qrewing about you',
       noEntry: 'Qrewing suggests people from the entry info members share. Add yours to see who to meet.',
       stale: 'Showing the last list. A new one is available in a few minutes.',
@@ -1251,7 +1254,7 @@ export const en = {
       plusTitle: 'Find who to meet',
       plus: "Qrewing suggests people from the entry info members share. It's part of Qrew Plus.",
       seePlusHint: 'Opens the Qrew Plus page',
-      consentTitle: 'See who to meet',
+      consentTitle: 'Find who to meet',
       agree: 'Agree',
       // UX2-09: dead ends (pattern D), neutral with Back instead of a red Refresh.
       off: 'Qrewing is off in this room.',
