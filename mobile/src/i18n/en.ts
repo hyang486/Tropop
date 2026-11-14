@@ -1072,6 +1072,8 @@ export const en = {
       agree: 'Agree',
       notNow: 'Not now',
       failed: 'Could not save your choice. Try again.',
+      // UX2-112: Agree saved, but the read after it failed (or still shows no consent).
+      turnOnFailed: "Couldn't turn on Qrewing AI. Try again.",
     },
     ask: {
       fabLabel: 'Ask Qrewing',

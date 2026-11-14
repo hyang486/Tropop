@@ -57,7 +57,13 @@ export function useQrewingAsk(roomId: string) {
     };
   }, [offline]);
   const mode = askMode(q.aiEnabled, probe?.ai === q.aiEnabled ? probe : null, roomId);
-  return { available: mode !== null, mode, agreed: mode === 'personal' || !!q.me?.aiOk, reload: q.reload };
+  return {
+    available: mode !== null,
+    mode,
+    agreed: mode === 'personal' || !!q.me?.aiOk,
+    reload: q.reload,
+    reads: q.reads,
+  };
 }
 
 /**
@@ -67,34 +73,51 @@ export function useQrewingAsk(roomId: string) {
  */
 export function useQrewingAskButton(roomId: string) {
   const router = useRouter();
-  const { available, mode, agreed, reload } = useQrewingAsk(roomId);
+  const { available, mode, agreed, reload, reads } = useQrewingAsk(roomId);
   const [consent, setConsent] = useState(false);
   // Set when the consent sheet saved an answer: the ask screen opens once the reload shows I agreed.
   const openAfterConsent = useRef(false);
+  // UX2-112: the read count when Agree saved. The sheet stays open (Agree busy) until a later read ends; if that
+  // read failed or still shows no consent, the sheet says so and Agree is the retry.
+  const [confirmFrom, setConfirmFrom] = useState<number | null>(null);
+  const done = confirmFrom !== null && reads > confirmFrom;
+  const confirmFailed = done && !agreed;
 
   useEffect(() => {
-    if (!openAfterConsent.current || !agreed) return;
+    if (!openAfterConsent.current || !agreed || !done) return;
     openAfterConsent.current = false;
     router.push({ pathname: '/room/[id]/ask', params: { id: roomId } });
-  }, [agreed, roomId, router]);
+  }, [agreed, done, roomId, router]);
 
   // A Free asker in an AI-on room goes straight to the Plus intro (Ask is Plus on the caller's own plan).
-  const open = () =>
-    mode === 'plus'
-      ? router.push(plusIntroHref('ask'))
-      : agreed
-        ? router.push({ pathname: '/room/[id]/ask', params: { id: roomId } })
-        : setConsent(true);
+  const open = () => {
+    setConfirmFrom(null);
+    setConsent(false);
+    if (mode === 'plus') router.push(plusIntroHref('ask'));
+    else if (agreed) router.push({ pathname: '/room/[id]/ask', params: { id: roomId } });
+    else setConsent(true);
+  };
   const sheet = mode === 'room' ? (
     <DisclosureSheet
       roomId={roomId}
-      visible={consent}
-      onDone={() => {
-        setConsent(false);
+      visible={consent && !(done && agreed)}
+      confirming={confirmFrom !== null && !done}
+      confirmFailed={confirmFailed}
+      onDone={(agree) => {
+        if (!agree) {
+          setConsent(false);
+          reload();
+          return;
+        }
         openAfterConsent.current = true;
+        setConfirmFrom(reads);
         reload();
       }}
-      onClose={() => setConsent(false)}
+      onClose={() => {
+        setConsent(false);
+        setConfirmFrom(null);
+        openAfterConsent.current = false;
+      }}
     />
   ) : null;
   return { available, open, sheet };

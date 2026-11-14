@@ -24,11 +24,17 @@ export function DisclosureSheet({
   visible,
   onDone,
   onClose,
+  confirming = false,
+  confirmFailed = false,
 }: {
   roomId: string;
   visible: boolean;
   /** An answer was saved. */
-  onDone: () => void;
+  onDone: (agreed: boolean) => void;
+  /** UX2-112: Agree saved and the caller is reading the room again; Agree stays busy. */
+  confirming?: boolean;
+  /** UX2-112: that read failed or still shows no consent; Agree is the retry. */
+  confirmFailed?: boolean;
   /** Swiped down without answering. */
   onClose: () => void;
 }) {
@@ -48,7 +54,7 @@ export function DisclosureSheet({
       setError(res.offline ? en.qrewing.errors.network : s.failed);
       return;
     }
-    onDone();
+    onDone(agree);
   }
 
   // UX2-46: closes at once when a link or notification tap navigates.
@@ -89,9 +95,22 @@ export function DisclosureSheet({
             : null}
         </ScrollView>
         <View style={styles.actions}>
-          {error ? <Hint tone="error">{error}</Hint> : null}
-          <Button title={s.agree} onPress={() => answer(true)} busy={busy === 'agree'} disabled={busy !== null} />
-          <Button title={s.notNow} variant="secondary" onPress={() => answer(false)} busy={busy === 'later'} disabled={busy !== null} />
+          {error || confirmFailed ? (
+            <Hint tone="error">{error ?? (confirmFailed ? s.turnOnFailed : null)}</Hint>
+          ) : null}
+          <Button
+            title={s.agree}
+            onPress={() => answer(true)}
+            busy={busy === 'agree' || confirming}
+            disabled={busy !== null || confirming}
+          />
+          <Button
+            title={s.notNow}
+            variant="secondary"
+            onPress={() => answer(false)}
+            busy={busy === 'later'}
+            disabled={busy !== null || confirming}
+          />
         </View>
       </View>
     </Modal>

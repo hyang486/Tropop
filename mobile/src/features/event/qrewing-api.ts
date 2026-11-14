@@ -229,8 +229,10 @@ type RoomState = QrewingRoomState;
  * (no AI UI shows, settings screens say they could not load, chat retries); a missing row or missing table is off.
  * `loaded` is false until the first read answers; an empty `roomId` never reads.
  */
-export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
+export function useQrewingRoom(roomId: string): RoomState & { reload(): void; reads: number } {
   const [kept, setKept] = useState<KeyedRoomState | null>(null);
+  // UX2-112: counts finished reads (ok or failed), so a caller can wait for the read after its own change.
+  const [reads, setReads] = useState(0);
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
@@ -256,13 +258,15 @@ export function useQrewingRoom(roomId: string): RoomState & { reload(): void } {
           : Promise.resolve({ data: null, error: null }),
       ]);
       if (alive) setKept({ roomId, state: roomStateFrom(room, member) });
+      if (alive) setReads((n) => n + 1);
     })().catch(() => {
       if (alive) setKept({ roomId, state: ROOM_READ_FAILED });
+      if (alive) setReads((n) => n + 1);
     });
     return () => {
       alive = false;
     };
   }, [roomId, tick]);
 
-  return { ...roomStateFor(kept, roomId), reload };
+  return { ...roomStateFor(kept, roomId), reload, reads };
 }
