@@ -327,6 +327,11 @@ export const en = {
     shared: (who: string, body: string) => `${who} ${body}`,
     sharedFallback: 'shared a photo or file',
     openPhotosHint: 'Opens Photos',
+    // UX P1-2: one short grey line each; a tappable line ends in " ›".
+    emergencySet: (name: string) => `${name} set Emergency`,
+    activityStarted: 'Activity started',
+    openMapLink: 'Open Map',
+    openMapHint: 'Opens Map',
     // Spec 11 A9: the header bell.
     notices: 'Notices',
     noticesA11y: (unread: number) => (unread > 0 ? `Notices, ${unread} new` : 'Notices'),

@@ -32,6 +32,7 @@ import { PinnedNotice } from '@/features/chat/pinned-notice';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
 import { cardsToAnswer } from '@/features/questions/question-plan';
 import { useQuestionCards, useRoomCards } from '@/features/questions/question-store';
+import { chatLine } from '@/lib/chat-line';
 import { useRoomActivity } from '@/lib/activity';
 import { clearRoomNotices, type Notice } from '@/lib/room-notices';
 import { en } from '@/i18n/en';
@@ -441,6 +442,7 @@ function ChatRoom({
                     isHost={!!item.sender_id && item.sender_id === room.host_id}
                     onFailedPress={onFailedPress}
                     onMediaPress={openPhotos}
+                    onMapPress={room.location_allowed || room.host_id === userId ? () => go('/room/[id]/map') : undefined}
                   />
                 );
               }}
@@ -557,6 +559,7 @@ function MessageRow({
   isHost,
   onFailedPress,
   onMediaPress,
+  onMapPress,
 }: {
   item: ChatItem;
   mine: boolean;
@@ -565,6 +568,8 @@ function MessageRow({
   isHost: boolean;
   onFailedPress: (item: ChatItem) => void;
   onMediaPress: () => void;
+  /** Set when this person can open the Map, so "Activity started" links there. */
+  onMapPress?: () => void;
 }) {
   const time = useMemo(
     () => new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
@@ -580,19 +585,31 @@ function MessageRow({
         accessibilityHint={en.chat.openPhotosHint}
         onPress={onMediaPress}
       >
-        <Text style={[styles.notice, styles.mediaNotice]}>
-          {text} · {time}
+        <Text style={styles.notice} numberOfLines={1}>
+          {text} · {time} ›
         </Text>
       </Pressable>
     );
   }
 
   if (NOTICE_KINDS.has(item.kind)) {
-    const emergency = item.kind === 'emergency';
+    // UX P1-2: one grey line, no red or bold (the pinned bar carries the Emergency itself).
+    const line = chatLine(item.kind, item.body ?? '');
+    if (line.kind === 'activityStarted' && onMapPress) {
+      return (
+        <Pressable style={styles.noticeRow} accessibilityRole="button" accessibilityHint={en.chat.openMapHint} onPress={onMapPress}>
+          <Text style={styles.notice} numberOfLines={1}>
+            {en.chat.activityStarted} · {en.chat.openMapLink} ›
+          </Text>
+        </Pressable>
+      );
+    }
+    const text =
+      line.kind === 'emergency' ? en.chat.emergencySet(line.name) : line.kind === 'activityStarted' ? en.chat.activityStarted : line.text;
     return (
-      <View style={styles.noticeRow} accessibilityRole={emergency ? 'alert' : 'text'}>
-        <Text style={[styles.notice, emergency && styles.emergency]}>
-          {item.body} · {time}
+      <View style={styles.noticeRow}>
+        <Text style={styles.notice} numberOfLines={1}>
+          {text} · {time}
         </Text>
       </View>
     );
@@ -689,9 +706,6 @@ const styles = StyleSheet.create({
   failedMeta: { color: colors.danger },
   noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
   notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },
-  // Spec 11 A17: Emergency reads in black (weight, not red), as on the card.
-  emergency: { color: colors.label, fontWeight: '700' },
-  mediaNotice: { color: colors.label, textDecorationLine: 'underline' },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
