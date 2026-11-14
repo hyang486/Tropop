@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { peopleEmpty } from '../src/features/event/people-empty.ts';
+import { peopleEmpty, peopleGate } from '../src/features/event/people-empty.ts';
 
 const none = { loaded: true, failed: false, count: 0 };
 const some = { loaded: true, failed: false, count: 2 };
@@ -26,4 +26,15 @@ test('other states are not empty states', () => {
   assert.equal(peopleEmpty({ ...base, error: 'network', questions: none }), null);
   assert.equal(peopleEmpty({ ...base, status: 'ready', error: null, matches: 3, questions: none }), null);
   assert.equal(peopleEmpty({ ...base, status: 'loading', error: null, questions: none }), null);
+});
+
+test('UX2-01 gate: Free or a 402 → plus (over consent); Plus or unknown and not agreed → consent; else none', () => {
+  assert.equal(peopleGate({ plus: false, error: null, notConsented: false }), 'plus');
+  assert.equal(peopleGate({ plus: false, error: null, notConsented: true }), 'plus');
+  assert.equal(peopleGate({ plus: null, error: 'plan_limit', notConsented: true }), 'plus');
+  assert.equal(peopleGate({ plus: true, error: 'plan_limit', notConsented: false }), 'plus');
+  assert.equal(peopleGate({ plus: true, error: null, notConsented: true }), 'consent');
+  assert.equal(peopleGate({ plus: null, error: 'not_consented', notConsented: true }), 'consent');
+  assert.equal(peopleGate({ plus: true, error: 'network', notConsented: false }), null);
+  assert.equal(peopleGate({ plus: true, error: null, notConsented: false }), null);
 });

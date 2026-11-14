@@ -5,17 +5,26 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmptyState } from '@/components/empty-state';
-import { QCard, QLink, QScreen } from '@/components/q-screen';
+import { QCard, QScreen } from '@/components/q-screen';
+import { refreshPlus, usePlusPreview } from '@/features/calendar/calendar-store';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { Button, colors, Hint } from '@/components/ui';
 
 import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
 import { QrewingHeaderButton, useQrewingAskButton } from './qrewing-fab';
-import { peopleEmpty } from './people-empty';
-import { type MatchResult, type QrewingError, requestMatches, useEntryQuestions, useQrewingRoom } from './qrewing-api';
+import { peopleEmpty, peopleGate } from './people-empty';
+import {
+  type MatchResult,
+  type QrewingError,
+  requestMatches,
+  setQrewingMember,
+  useEntryQuestions,
+  useQrewingRoom,
+} from './qrewing-api';
 import { isPlanLimit, matchStep } from './qrewing-plan';
 import { en } from '@/i18n/en';
+import { useAuth } from '@/lib/auth';
 import { listMembers } from '@/lib/rooms';
 
 const s = en.qrewing.people;
@@ -59,7 +68,13 @@ export function PeopleScreen() {
   const ask = useQrewingAskButton(id);
   const router = useRouter();
   const q = useQrewingRoom(id);
+  const uid = useAuth().session?.user.id;
+  // UX2-01: Free (known) → the Plus gate with no request; Free → Plus re-runs the effect, so the list loads after an upgrade.
+  const plus = usePlusPreview(uid);
+  const skip = plus === false;
   const [state, setState] = useState<State>({ status: 'loading' });
+  const [agreeing, setAgreeing] = useState(false);
+  const [agreeError, setAgreeError] = useState<string | null>(null);
   // Only the newest request may set the state (a Refresh after leaving, or two quick taps, must not).
   const latest = useRef(0);
   // The last list shown, kept while a 202 pending answer is re-asked.
@@ -74,24 +89,26 @@ export function PeopleScreen() {
       load(id, lastList.current, isRetry).then(({ state: next, retryInMs }) => {
         if (latest.current !== n) return;
         if (next.status === 'ready') lastList.current = next.result;
+        // A 402 means my plan read was stale (a lapse, or still loading): read it again.
+        if (next.status === 'error' && isPlanLimit(next.error) && uid) refreshPlus(uid);
         setState(next);
         // One re-ask after a pending answer; the re-ask itself never schedules another (isRetry).
         if (retryInMs !== null) retryTimer.current = setTimeout(() => ask(true), retryInMs);
       });
     };
     ask(false);
-  }, [id]);
+  }, [id, uid]);
 
   useEffect(() => {
     const req = latest;
     lastList.current = null;
-    run();
+    if (!skip) run();
     return () => {
       req.current++;
       if (retryTimer.current) clearTimeout(retryTimer.current);
       retryTimer.current = null;
     };
-  }, [run]);
+  }, [run, skip]);
 
   const refresh = useCallback(() => {
     setState({ status: 'loading' });
@@ -111,6 +128,15 @@ export function PeopleScreen() {
   }, [id]);
 
   const notConsented = q.me !== null && !q.me.aiOk;
+  const gate = peopleGate({ plus, error: state.status === 'error' ? state.error : null, notConsented });
+  const agree = async () => {
+    setAgreeing(true);
+    setAgreeError(null);
+    const res = await setQrewingMember(id, true, false);
+    setAgreeing(false);
+    if (res.error) setAgreeError(res.offline ? en.qrewing.errors.network : en.qrewing.info.saveFailed);
+    else refresh();
+  };
   const questions = useEntryQuestions(id);
   const empty = peopleEmpty({
     status: state.status,
@@ -123,7 +149,15 @@ export function PeopleScreen() {
   return (
     <QScreen
       actions={
-        empty === 'noQuestions' ? undefined : empty === 'noEntry' ? (
+        gate === 'plus' ? (
+          <Button
+            title={en.planPreview.seePlus}
+            accessibilityHint={s.seePlusHint}
+            onPress={() => router.push(plusIntroHref('people'))}
+          />
+        ) : gate === 'consent' ? (
+          <Button title={s.agree} onPress={agree} busy={agreeing} />
+        ) : empty === 'noQuestions' ? undefined : empty === 'noEntry' ? (
           <Button
             title={en.qrewing.info.addEntry}
             onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id } })}
@@ -142,7 +176,14 @@ export function PeopleScreen() {
         }}
       />
       {ask.sheet}
-      {state.status === 'loading' ? (
+      {gate === 'plus' ? (
+        <EmptyState art="meetup" artWidth={160} title={s.plusTitle} body={s.plus} />
+      ) : gate === 'consent' ? (
+        <>
+          <EmptyState art="meetup" artWidth={160} title={s.consentTitle} body={s.notConsented} />
+          {agreeError ? <Hint tone="error">{agreeError}</Hint> : null}
+        </>
+      ) : state.status === 'loading' ? (
         <View style={styles.center}>
           <ActivityIndicator />
           <Hint>{s.loading}</Hint>
@@ -155,16 +196,8 @@ export function PeopleScreen() {
         ) : empty === 'noEntry' ? (
           <EmptyState art="meetup" title={s.noEntryTitle} body={s.noEntry} />
         ) : (
-          <>
-            {/* A Free caller gets 402 before consent is checked: the Plus line, never 'Agree to Qrewing AI' (qa v15). */}
-            <Hint tone="error">
-              {notConsented && !isPlanLimit(state.error) ? s.notConsented : en.qrewing.errors[state.error]}
-            </Hint>
-            {isPlanLimit(state.error) ? (
-              // capacity B item 4: people to meet (for me) is Plus on the caller's own plan.
-              <QLink title={en.planPreview.seePlus} onPress={() => router.push(plusIntroHref('people'))} />
-            ) : null}
-          </>
+          // A real error (network, AI failed...): red with Refresh, since a retry can work. Plan and consent are gates.
+          <Hint tone="error">{en.qrewing.errors[state.error]}</Hint>
         )
       ) : empty === 'noQuestions' ? (
         <EmptyState art="meetup" title={s.noQuestionsTitle} body={s.noQuestions} />

@@ -987,6 +987,8 @@ export const en = {
       editEntry: 'Edit my entry info',
       addEntry: 'Add my entry info',
       peopleToMeet: 'People to meet',
+      /** UX2-01: the row's subtitle for a Free user (the tap opens the Plus page). */
+      peopleToMeetPlus: 'Part of Qrew Plus',
       loadFailed: 'Could not load Qrewing settings. Try again.',
       saveFailed: 'Could not save this change. Try again.',
       retry: 'Try again',
@@ -1019,6 +1021,12 @@ export const en = {
       updatingFinal: 'Showing the last list. Tap Refresh to check again.',
       updateFailed: 'Could not update the list. Tap Refresh to try again.',
       notConsented: 'Agree to Qrewing AI to get suggestions.',
+      // UX2-01: plan and consent gates are calm empty states, not errors.
+      plusTitle: 'Find who to meet',
+      plus: "Qrewing suggests people from the entry info members share. It's part of Qrew Plus.",
+      seePlusHint: 'Opens the Qrew Plus page',
+      consentTitle: 'Turn on Qrewing for you',
+      agree: 'Agree',
     },
     recap: {
       title: 'Recap',

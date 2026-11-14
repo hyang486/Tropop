@@ -125,15 +125,25 @@ type ButtonProps = {
   disabled?: boolean;
   /** Caps the title's Dynamic Type scale, for buttons in a pinned footer that must stay on screen. */
   maxFontSizeMultiplier?: number;
+  accessibilityHint?: string;
 };
 
-export function Button({ title, onPress, variant = 'primary', busy, disabled, maxFontSizeMultiplier }: ButtonProps) {
+export function Button({
+  title,
+  onPress,
+  variant = 'primary',
+  busy,
+  disabled,
+  maxFontSizeMultiplier,
+  accessibilityHint,
+}: ButtonProps) {
   const isPrimary = variant === 'primary';
   // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red.
   const accent = variant === 'destructive' ? colors.danger : colors.tint;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: disabled || busy, busy }}
       disabled={disabled || busy}
       onPress={onPress}

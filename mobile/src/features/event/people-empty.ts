@@ -5,6 +5,16 @@
  */
 export type PeopleEmpty = 'noQuestions' | 'noEntry' | 'noMatches' | null;
 
+/**
+ * UX2-01: the gate in place of the list, or null. plus: a Free user (known at mount, so no request) or a 402
+ * plan_limit (a deep link, a lapsed plan, or the plan still loading); it wins over consent, as the server checks the
+ * plan first. consent: on Plus (or not known yet) and not agreed to Qrewing AI here. Neither is an error.
+ */
+export function peopleGate(input: { plus: boolean | null; error: string | null; notConsented: boolean }): 'plus' | 'consent' | null {
+  if (input.plus === false || input.error === 'plan_limit') return 'plus';
+  return input.notConsented ? 'consent' : null;
+}
+
 export function peopleEmpty(input: {
   status: 'loading' | 'pending' | 'error' | 'ready';
   error: string | null;

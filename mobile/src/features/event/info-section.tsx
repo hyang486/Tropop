@@ -5,6 +5,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { QCard, QLabel } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
+import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { plusIntroHref } from '@/features/calendar/plus-intro';
+import { useAuth } from '@/lib/auth';
 
 import { InkSwitch } from './ink-switch';
 import { setQrewingMember, setQrewingRoom, useEntryQuestions, useQrewingRoom } from './qrewing-api';
@@ -20,6 +23,8 @@ const s = en.qrewing.info;
 export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: string; roomType: string; isHost: boolean }) {
   const router = useRouter();
   const q = useQrewingRoom(roomId);
+  // UX2-01: People to meet is Plus on my own plan; a Free user sees that on the row and the tap opens the Plus page.
+  const plus = usePlusPreview(useAuth().session?.user.id);
   // Spec 9.4 R4: entry info needs questions, which are set only on Create room. Read for the host of an event room.
   const entryQuestions = useEntryQuestions(isHost && roomType === 'event' ? roomId : '');
   const noQuestions = entryQuestions.loaded && !entryQuestions.failed && entryQuestions.questions.length === 0;
@@ -105,7 +110,12 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
               <QRowCard
                 icon="person.2.wave.2"
                 title={s.peopleToMeet}
-                onPress={() => router.push({ pathname: '/room/[id]/people', params: { id: roomId } })}
+                subtitle={plus === false ? s.peopleToMeetPlus : undefined}
+                onPress={() =>
+                  plus === false
+                    ? router.push(plusIntroHref('people'))
+                    : router.push({ pathname: '/room/[id]/people', params: { id: roomId } })
+                }
               />
             </>
           ) : null}
