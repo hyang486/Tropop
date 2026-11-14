@@ -26,7 +26,7 @@ test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to
   assert.match(q, /inline\.onScrollY\(e\.nativeEvent\.contentOffset\.y\)/);
   assert.match(q, /height: overlap \+ 16, backgroundImage: `linear-gradient\(\$\{paper\} 0%, \$\{paper\} \$\{edgeSolid\(overlap\)\}%/);
   const ed = src('features/calendar/event-editor.tsx');
-  assert.equal((ed.match(/<QScreen\s+sheet\s+inlineTitle\b/g) ?? []).length, 2);
+  assert.equal((ed.match(/<QScreen\s+inlineTitle\b/g) ?? []).length, 2);
   // A screen's own headerTitle: '' would override the inline title on its next render.
   for (const p of ['features/calendar/event-editor.tsx', 'app/room/[id]/map.tsx', 'app/profile.tsx', 'app/profile-edit.tsx', 'features/calendar/calendar-screen.tsx', 'app/room/[id]/info.tsx', 'components/join-code-screen.tsx']) {
     assert.doesNotMatch(src(p), /headerTitle: ''/, p);

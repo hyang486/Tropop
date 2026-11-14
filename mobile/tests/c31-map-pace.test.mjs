@@ -114,7 +114,7 @@ test('UX2-91: a failed Map action alert has a title, the reason, Try again and C
 
 test('UX2-115/116: calendar scrim and event-editor picked icon use themed tokens', () => {
   assert.match(src('features/calendar/calendar-screen.tsx'), /scrim: \{[^}]*backgroundColor: colors\.scrim/);
-  assert.match(src('features/calendar/event-editor.tsx'), /borderColor: colors\.tint, backgroundColor: colors\.sheetField/);
+  assert.match(src('features/calendar/event-editor.tsx'), /borderColor: colors\.tint, backgroundColor: colors\.field \}/);
 });
 
 test('UX2-122: without speech the card says cues will vibrate', () => {
@@ -149,4 +149,12 @@ test('UX2-93: Map fades its large title block and draws the QScreen top edge fad
   assert.match(map, /scrolled && headerHeight > 0 \?/);
   assert.match(map, /edgeSolid\(headerHeight\)/);
   assert.match(map, /<\/ScrollView>\s*\{scrolled[\s\S]*<PaceLayer/);
+});
+
+test('UX2-134 (C42): the pushed event editor uses the paper ground, not the sheet, and the picked icon fills with colors.field', () => {
+  const ed = src('features/calendar/event-editor.tsx');
+  assert.equal((ed.match(/<QScreen\b/g) ?? []).length, 2);
+  assert.doesNotMatch(ed, /<QScreen\s+sheet\b/);
+  assert.doesNotMatch(ed, /colors\.sheetField|colors\.sheet\b/);
+  assert.match(ed, /inkIconKey\(e\) === picked && \{ borderColor: colors\.tint, backgroundColor: colors\.field \}/);
 });

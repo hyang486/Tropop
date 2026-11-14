@@ -50,7 +50,6 @@ export function EventEditor() {
   if (target.kind === 'missing') {
     return (
       <QScreen
-        sheet
         inlineTitle
         title={t.editEvent}
         actions={
@@ -125,7 +124,6 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
 
   return (
     <QScreen
-      sheet
       inlineTitle
       title={editing ? t.editEvent : t.newEvent}
       subtitle={params.ask === '1' ? t.askConfirm : undefined}
@@ -169,7 +167,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
             accessibilityLabel={inkIconLabel(e)}
             accessibilityState={{ selected: inkIconKey(e) === picked }}
             onPress={() => setEmoji(e)}
-            style={[styles.emoji, inkIconKey(e) === picked && { borderColor: colors.tint, backgroundColor: colors.sheetField }]}
+            style={[styles.emoji, inkIconKey(e) === picked && { borderColor: colors.tint, backgroundColor: colors.field }]}
           >
             <InkIcon emoji={e} size={26} />
           </Pressable>

@@ -60,5 +60,6 @@ test('UX2-48 follow-up (C20): Ask composer, calendar sheets and the event editor
   assert.match(c, /styles\.field, onSheet && styles\.fieldOnSheet/);
   assert.match(src('components/calendar/day-items-sheet.tsx'), /styles\.sheet, \{ backgroundColor: colors\.sheet \}/);
   assert.match(src('features/calendar/calendar-screen.tsx'), /sheet: \{ flex: 1, padding: 24, gap: 12, backgroundColor: colors\.sheet \}/);
-  assert.equal((src('features/calendar/event-editor.tsx').match(/<QScreen\s+sheet\b/g) ?? []).length, 2);
+  // UX2-134 (C42): the event editor is pushed with a back chevron, so it is a plain screen, not a sheet.
+  assert.doesNotMatch(src('features/calendar/event-editor.tsx'), /<QScreen\s+sheet\b|colors\.sheet/);
 });
