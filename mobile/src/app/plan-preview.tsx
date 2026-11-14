@@ -75,7 +75,7 @@ export default function PlanPreview() {
           headerBackVisible: false,
           headerLeft: () => (
             <Pressable onPress={close} accessibilityRole="button" accessibilityLabel={t.close} hitSlop={8} style={styles.x}>
-              <SymbolView name="xmark" size={16} tintColor={colors.secondaryLabel} weight="semibold" />
+              <SymbolView name="xmark" size={16} tintColor={colors.label} weight="semibold" />
             </Pressable>
           ),
           headerTitle: () => (
@@ -239,7 +239,7 @@ function IncludedSheet({ visible, onClose }: { visible: boolean; onClose: () => 
 }
 
 const styles = StyleSheet.create({
-  x: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  x: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   pill: { borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 2 },
   pillText: { fontSize: 15, fontWeight: '600' },
   preview: { height: 230, borderRadius: 20, backgroundColor: colors.field, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
