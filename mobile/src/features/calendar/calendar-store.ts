@@ -15,7 +15,6 @@ import {
   calendarKey,
   clearUserCalendar,
   deleteEvent,
-  emptyDoc,
   mayWrite,
   type EventInput,
   mergeRooms,
@@ -46,15 +45,32 @@ function serial<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
+// UX2-124: users whose stored calendar could not be read. A failed read throws (never an empty doc that a later
+// write would save over the real one) and the screen offers Try again.
+const docFailed = new Set<string>();
+
 async function loadDoc(uid: string): Promise<CalendarDoc> {
   const hit = docs.get(uid);
   if (hit) return hit;
-  let doc = emptyDoc();
+  let doc: CalendarDoc;
   try {
     doc = parseDoc(await AsyncStorage.getItem(calendarKey(uid)));
-  } catch {}
+  } catch (e) {
+    docFailed.add(uid);
+    throw e;
+  }
+  docFailed.delete(uid);
   if (!docs.has(uid)) docs.set(uid, doc);
   return docs.get(uid)!;
+}
+
+/** UX2-124: 'failed' after a read that threw; reloadCalendar reads again. */
+export function useCalendarFailed(uid: string | null | undefined): boolean {
+  return useSyncExternalStore(subscribe, () => (uid ? docFailed.has(uid) : false));
+}
+
+export function reloadCalendar(uid: string): Promise<void> {
+  return loadDoc(uid).then(emit, emit);
 }
 
 /**
@@ -64,7 +80,14 @@ async function loadDoc(uid: string): Promise<CalendarDoc> {
 function update(uid: string, change: (doc: CalendarDoc) => CalendarDoc): Promise<boolean> {
   return serial(async () => {
     if (!mayWrite(uid, currentUid, authKnown)) return false;
-    const next = change(await loadDoc(uid));
+    let current: CalendarDoc;
+    try {
+      current = await loadDoc(uid);
+    } catch {
+      emit();
+      return false;
+    }
+    const next = change(current);
     docs.set(uid, next);
     emit();
     try {
@@ -88,7 +111,13 @@ export function saveRecapToCalendar(uid: string, roomId: string, recap: { emoji?
 /** True while this room has no good diary saved, so the recap call asks for one (Plus preview only; capped server-side). */
 export async function wantsDiary(uid: string, roomId: string): Promise<boolean> {
   if (!(await loadPlus(uid))) return false;
-  const room = (await loadDoc(uid)).rooms[roomId];
+  let doc: CalendarDoc;
+  try {
+    doc = await loadDoc(uid);
+  } catch {
+    return false; // UX2-124: unknown calendar, so no diary is asked for.
+  }
+  const room = doc.rooms[roomId];
   return !room || !Array.isArray(room.diary) || room.diary.length === 0;
 }
 
@@ -108,7 +137,7 @@ function subscribe(l: () => void) {
 
 export function useCalendar(uid: string | null | undefined): CalendarDoc | null {
   useEffect(() => {
-    if (uid && !docs.has(uid)) void loadDoc(uid).then(emit);
+    if (uid && !docs.has(uid)) void loadDoc(uid).then(emit, emit);
   }, [uid]);
   return useSyncExternalStore(subscribe, () => (uid ? (docs.get(uid) ?? null) : null));
 }

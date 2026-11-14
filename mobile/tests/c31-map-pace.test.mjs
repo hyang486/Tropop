@@ -130,3 +130,14 @@ test('UX2-123: a failed history save retries once on the next fix or foreground,
   assert.match(src('features/pace/pace-layer.tsx'), /retryFailedSaves\(\);/);
   assert.match(src('features/pace/pace-card.tsx'), /\{unsaved \? <Hint tone="error">\{t\.runNotSaved\}<\/Hint> : null\}/);
 });
+
+test('UX2-124: calendar shows a spinner while loading and Try again after a failed read; a failed read never becomes an empty doc', () => {
+  assert.equal(en.calendar.loading, 'Loading calendar');
+  assert.equal(en.calendar.loadFailed, 'Couldn’t load your calendar.');
+  const store = src('features/calendar/calendar-store.ts');
+  assert.match(store, /docFailed\.add\(uid\);\s*throw e;/);
+  assert.doesNotMatch(store, /emptyDoc\(\)/);
+  const cal = src('features/calendar/calendar-screen.tsx');
+  assert.match(cal, /!doc && !docFailed \? <ActivityIndicator[^>]*accessibilityLabel=\{t\.loading\}/);
+  assert.match(cal, /reloadCalendar\(uid\)/);
+});

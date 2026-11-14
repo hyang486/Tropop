@@ -913,6 +913,10 @@ export const en = {
     nextMonth: 'Next month',
     add: 'Add event',
     ask: 'Add with Qrewing',
+    // UX2-124
+    loading: 'Loading calendar',
+    loadFailed: 'Couldn’t load your calendar.',
+    tryAgain: 'Try again',
     more: (n: number) => `+${n}`,
     // Calendar tiers (human FINAL 2026-11-13 PM).
     barLabel: (title: string, range: string, action: 'diary' | 'plus' | 'edit' | 'none') =>
