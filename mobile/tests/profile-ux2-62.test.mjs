@@ -19,3 +19,10 @@ test('UX2-63: Edit profile shows a "Name" label above the name field, styled lik
   assert.match(p, /<Text style=\{styles\.pickLabel\}[^>]*>\s*\{en\.profile\.nameHeading\}\s*<\/Text>\s*<QField/);
   assert.match(src('i18n/en.ts'), /nameHeading: 'Name',/);
 });
+
+test('UX2-139: Save name is disabled until the trimmed name differs from the saved name and is not empty', () => {
+  const p = src('app/profile-edit.tsx');
+  assert.match(p, /const trimmedName = name\.trim\(\);/);
+  assert.match(p, /const nameChanged = trimmedName !== '' && trimmedName !== \(profile\?\.display_name \?\? ''\);/);
+  assert.match(p, /onPress=\{save\} busy=\{busy === 'save'\} disabled=\{!nameChanged\} \/>/);
+});

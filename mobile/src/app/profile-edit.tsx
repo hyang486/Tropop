@@ -16,6 +16,9 @@ export default function ProfileEdit() {
   // null until the user edits the field; until then it shows the stored name.
   const [draft, setDraft] = useState<string | null>(null);
   const name = draft ?? profile?.display_name ?? '';
+  // UX2-139: Save turns on only after a real change (iOS edit-form convention).
+  const trimmedName = name.trim();
+  const nameChanged = trimmedName !== '' && trimmedName !== (profile?.display_name ?? '');
   const [busy, setBusy] = useState<'save' | 'photo' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -85,7 +88,7 @@ export default function ProfileEdit() {
     <QScreen
       title={en.profile.editProfile}
       subtitle={en.profile.editProfileHint}
-      actions={<Button title={saved ? en.profile.saved : en.profile.save} onPress={save} busy={busy === 'save'} />}
+      actions={<Button title={saved ? en.profile.saved : en.profile.save} onPress={save} busy={busy === 'save'} disabled={!nameChanged} />}
     >
       <View style={styles.photoRow}>
         <Avatar path={profile?.avatar_path} name={profile?.display_name ?? '?'} size={72} />
