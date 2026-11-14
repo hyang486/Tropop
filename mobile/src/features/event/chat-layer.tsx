@@ -203,7 +203,8 @@ const styles = StyleSheet.create({
   bannerMain: { flex: 1 },
   bannerText: { fontSize: 15, fontWeight: '600', color: colors.label },
   bannerClose: { fontSize: 15, color: colors.ink2 },
-  hiddenRow: { alignSelf: 'center', marginVertical: 6, paddingHorizontal: 16, paddingVertical: 4 },
+  // UX2-35: a 44 pt tall target (was 24) with the same 13 pt text.
+  hiddenRow: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
   hiddenText: { fontSize: 13, color: colors.ink2 },
   hiddenLink: { color: colors.label, textDecorationLine: 'underline' },
   gate: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },

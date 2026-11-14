@@ -70,6 +70,8 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       onPress={onPress}
+      // UX2-35: the 38 pt chip keeps its look; 4 pt above and below make a 44 pt target (rows are 8 pt apart).
+      hitSlop={{ top: 4, bottom: 4 }}
       style={[styles.chip, selected && { backgroundColor: colors.tint }]}
     >
       <Text style={[styles.chipText, selected && { color: colors.onTint }]}>{label}</Text>

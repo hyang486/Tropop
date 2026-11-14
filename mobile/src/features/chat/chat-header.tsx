@@ -47,7 +47,7 @@ function HeaderIcon({
   badge?: number;
 }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={6} style={styles.icon}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={7} style={styles.icon}>
       <SymbolView name={symbol} size={22} tintColor={colors.tint} />
       {badge > 0 ? (
         <View style={styles.badge} importantForAccessibility="no-hide-descendants">

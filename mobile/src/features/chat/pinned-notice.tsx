@@ -9,6 +9,7 @@ import { en } from '@/i18n/en';
  * Spec 11 A13: the important message (host notice, Qrewing flag or a mention) pinned under the header,
  * KakaoTalk notice style: megaphone, who and why, the message itself. Folded it is one line; the chevron
  * unfolds the whole text. Tapping the text jumps to the message; the cross hides this notice.
+ * UX2-35: chevron and cross sit side by side, both shown folded, each a 28 pt box + 8 pt hitSlop = 44 pt target.
  */
 export function PinnedNotice({
   heading,
@@ -42,17 +43,22 @@ export function PinnedNotice({
         <Pressable
           onPress={() => setOpen((v) => !v)}
           hitSlop={8}
+          style={styles.target}
           accessibilityRole="button"
           accessibilityLabel={open ? en.chat.pinnedCollapse : en.chat.pinnedExpand}
           accessibilityState={{ expanded: open }}
         >
           <SymbolView name={open ? 'chevron.up' : 'chevron.down'} size={14} tintColor={colors.secondaryLabel} />
         </Pressable>
-        {open ? (
-          <Pressable onPress={onDismiss} hitSlop={8} accessibilityRole="button" accessibilityLabel={en.chat.pinnedDismiss}>
-            <SymbolView name="xmark" size={13} tintColor={colors.secondaryLabel} />
-          </Pressable>
-        ) : null}
+        <Pressable
+          onPress={onDismiss}
+          hitSlop={8}
+          style={styles.target}
+          accessibilityRole="button"
+          accessibilityLabel={en.chat.pinnedDismiss}
+        >
+          <SymbolView name="xmark" size={13} tintColor={colors.secondaryLabel} />
+        </Pressable>
       </View>
     </View>
   );
@@ -77,5 +83,7 @@ const styles = StyleSheet.create({
   main: { flex: 1, gap: 2 },
   heading: { fontSize: 12, fontWeight: '600', color: colors.ink2 },
   body: { fontSize: 15, color: colors.label },
-  side: { alignItems: 'center', gap: 14, paddingTop: 2 },
+  // 16 pt apart so the two 8 pt hitSlops never overlap.
+  side: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: -4, marginRight: -6 },
+  target: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
 });

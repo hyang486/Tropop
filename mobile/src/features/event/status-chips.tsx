@@ -77,6 +77,8 @@ export function StatusChips({ labels, onChange }: { labels: string[]; onChange: 
             accessibilityRole="button"
             accessibilityLabel={en.statusEditor.add}
             onPress={() => setDraft('')}
+            // UX2-35: 36 pt chip, 44 pt target.
+            hitSlop={{ top: 4, bottom: 4 }}
             style={({ pressed }) => [styles.chip, styles.add, pressed && { opacity: 0.5 }]}
           >
             <Text style={styles.chipText}>{en.createRoom.statusesAdd}</Text>
