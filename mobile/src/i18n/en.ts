@@ -1009,6 +1009,11 @@ export const en = {
     answerBy: (name: string, time: string) => `${name} · ${time}`,
     yourQuestion: 'Your question',
     askMoreIsPlus: 'Asking Qrewing more is part of Qrew Plus.',
+    // UX2-109: the answer sheet before the card is in the cache (spoken without the ellipsis).
+    answerLoading: 'Loading the answer…',
+    answerLoadingSpoken: 'Loading the answer.',
+    answerFailed: "Couldn't load the answer.",
+    answerGone: 'This question is gone.',
     done: 'Done',
     noAnswer: (name: string) => `${name} has not answered yet. Ask in the room chat instead?`,
     askInChat: 'Ask in chat',
