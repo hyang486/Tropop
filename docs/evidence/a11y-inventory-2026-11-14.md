@@ -59,7 +59,7 @@ Listed for review of wording; none is missing a label or role.
 | `features/chat/chat-header.tsx:50` | Room chat header | Notices bell (badge count hidden; count is in the label) / Settings gear | `en.chat.noticesA11y(unread)` / `en.chat.settings` |
 | `features/event/qrewing-fab.tsx:139` | Room (Qrewing FAB) | Open Qrewing menu (art image) | `s.fabLabel` |
 | `features/event/qrewing-fab.tsx:158` | Room (Qrewing FAB, alt) | Open Qrewing menu (art image) | `s.fabLabel` |
-| `features/event/question-editor.tsx:43` | Host RSVP form builder | Question row action icon | `label` prop |
+| `features/event/question-editor.tsx:43` | Host RSVP form builder | Question row icon buttons (`IconButton`, e.g. move/delete) | `label` prop, has disabled state |
 
 ## Not found
 
