@@ -1,5 +1,6 @@
 import { type EndedRoomFields } from '@/lib/room-ended';
-import { roomHasEnded, sendFailure } from '@/lib/error-kind';
+import { roomHasEnded } from '@/lib/error-kind';
+import { classifySend } from '@/lib/send-room';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
@@ -54,7 +55,7 @@ export function PlusPanel({
   onDone: () => void;
   bottomInset: number;
   /** F-EM-EXP: the room's end fields, to skip a send into an ended room and to tell why a send failed. */
-  room: EndedRoomFields;
+  room: EndedRoomFields & { id: string };
   /** A non-Emergency send hit an ended room: the screen shows its inline line and switches to the ended state. */
   onEndedSend: () => void;
   /** After OK on the Emergency "Room has ended" alert. */
@@ -74,7 +75,7 @@ export function PlusPanel({
       await action();
       onDone();
     } catch (e) {
-      if (sendFailure(e, room, Date.now()) === 'ended') {
+      if ((await classifySend(room.id, e, room)) === 'ended') {
         onEndedSend();
         return;
       }
@@ -111,7 +112,7 @@ export function PlusPanel({
       }
     }, onDone, {
       ended: () => roomHasEnded(room, Date.now()),
-      classify: (e) => sendFailure(e, room, Date.now()),
+      classify: (e) => classifySend(room.id, e, room),
       onEnded: onEmergencyEnded,
     });
   }

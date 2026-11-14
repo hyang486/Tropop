@@ -64,6 +64,7 @@ import {
 import { sharedAge } from '@/lib/media-plan';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
+import { classifySend } from '@/lib/send-room';
 import { mapStartCamera } from '@/lib/map-start';
 import { editorStartCamera, regionalDefaultCamera } from '@/lib/route-editor-plan';
 import { useNow } from '@/lib/use-now';
@@ -441,6 +442,12 @@ function RoomMap({
       await action();
       if (refresh) reload();
     } catch (e) {
+      // F-EM-EXP: an ended room is not a retryable failure: say so (announced) and let the room switch to ended.
+      if ((await classifySend(room.id, e, room)) === 'ended') {
+        AccessibilityInfo.announceForAccessibility(en.errors.ended);
+        reload();
+        return;
+      }
       // UX2-91: a title, the reason, and Try again that reruns the same action.
       Alert.alert(en.map.actionFailedTitle, errorMessage(e), [
         { text: en.map.cancel, style: 'cancel' },

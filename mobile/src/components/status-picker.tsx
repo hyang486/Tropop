@@ -46,7 +46,7 @@ function emergencyFailedAlert(cause: 'ended' | 'offline', retry: () => void, onE
 export function confirmEmergency(
   send: () => Promise<void>,
   after?: () => void,
-  room?: { ended: () => boolean; classify: (error: unknown) => 'ended' | 'offline' | 'other'; onEnded: () => void },
+  room?: { ended: () => boolean; classify: (error: unknown) => Promise<'ended' | 'offline' | 'other'>; onEnded: () => void },
 ) {
   async function attempt() {
     if (room?.ended()) {
@@ -57,7 +57,7 @@ export function confirmEmergency(
       await send();
       after?.();
     } catch (e) {
-      const cause = room?.classify(e) === 'ended' ? 'ended' : 'offline';
+      const cause = (await room?.classify(e)) === 'ended' ? 'ended' : 'offline';
       emergencyFailedAlert(cause, () => void attempt(), room?.onEnded);
     }
   }

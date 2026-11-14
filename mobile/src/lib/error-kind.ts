@@ -125,3 +125,25 @@ export function sendFailure(error: unknown, room: EndedRoomFields | null | undef
   if ((kind === 'notMember' || kind === 'notAllowed' || kind === 'generic') && roomHasEnded(room, nowMs)) return 'ended';
   return 'other';
 }
+
+/**
+ * F-EMX1: the loaded room row can be stale (the host ended the room early, so deleted_at is still null there). On a
+ * refusal that could mean "ended" (not a member, not allowed, generic), read the room once more and classify against
+ * that row. A network error stays offline; a failed or empty re-read stays 'other'.
+ */
+export async function sendFailureRefetched(
+  error: unknown,
+  room: EndedRoomFields | null | undefined,
+  nowMs: number,
+  refetch: () => Promise<EndedRoomFields | null | undefined>,
+): Promise<SendFailure> {
+  const first = sendFailure(error, room, nowMs);
+  if (first !== 'other') return first;
+  const kind = errorKind(error);
+  if (kind !== 'notMember' && kind !== 'notAllowed' && kind !== 'generic') return 'other';
+  try {
+    return sendFailure(error, await refetch(), nowMs);
+  } catch {
+    return 'other';
+  }
+}

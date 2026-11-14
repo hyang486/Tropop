@@ -1,4 +1,5 @@
-import { roomHasEnded, sendFailure } from '@/lib/error-kind';
+import { roomHasEnded } from '@/lib/error-kind';
+import { classifySend } from '@/lib/send-room';
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -177,7 +178,7 @@ function PaceRunner({ room, userId, onEnded }: { room: Room; userId: string; onE
       if (isEmergencyActiveNotice(e)) {
         setNotice(errorMessage(e));
         setPicking(true);
-      } else if (sendFailure(e, room, Date.now()) === 'ended') onEnded();
+      } else if ((await classifySend(room.id, e, room)) === 'ended') onEnded();
       else Alert.alert(en.activity.actionFailed, errorMessage(e));
     }
   }
@@ -192,7 +193,7 @@ function PaceRunner({ room, userId, onEnded }: { room: Room; userId: string; onE
     if (activity.statuses.some((s) => s.is_emergency && s.id === myStatusId)) return;
     confirmEmergency(activity.setEmergency, undefined, {
       ended: () => roomHasEnded(room, Date.now()),
-      classify: (e) => sendFailure(e, room, Date.now()),
+      classify: (e) => classifySend(room.id, e, room),
       onEnded,
     });
   }

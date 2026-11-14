@@ -39,3 +39,24 @@ test('an unrelated server error stays other while the room is open', () => {
   assert.equal(sendFailure({ code: 'PT409', message: 'room is full' }, open, NOW), 'other');
   assert.equal(sendFailure({ message: 'boom' }, open, NOW), 'other');
 });
+
+test('F-EMX1: a stale open row is re-read once, and a refusal then counts as ended', async () => {
+  const { sendFailureRefetched } = await import('../src/lib/error-kind.ts');
+  const rls = { code: '42501', message: 'new row violates row-level security policy for table "messages"' };
+  let reads = 0;
+  const fresh = async () => (reads++, hostEnded);
+  assert.equal(await sendFailureRefetched(rls, open, NOW, fresh), 'ended');
+  assert.equal(reads, 1);
+  // the re-read still shows open, empty, or fails: stays other
+  assert.equal(await sendFailureRefetched(rls, open, NOW, async () => open), 'other');
+  assert.equal(await sendFailureRefetched(rls, open, NOW, async () => null), 'other');
+  assert.equal(await sendFailureRefetched(rls, open, NOW, async () => { throw new Error('x'); }), 'other');
+});
+
+test('F-EMX1: no re-read for offline, already-ended or unrelated errors', async () => {
+  const { sendFailureRefetched } = await import('../src/lib/error-kind.ts');
+  const boom = async () => { throw new Error('must not read'); };
+  assert.equal(await sendFailureRefetched(new TypeError('Network request failed'), open, NOW, boom), 'offline');
+  assert.equal(await sendFailureRefetched({ code: 'P0002', message: 'x' }, open, NOW, boom), 'ended');
+  assert.equal(await sendFailureRefetched({ code: 'PT409', message: 'room is full' }, open, NOW, boom), 'other');
+});

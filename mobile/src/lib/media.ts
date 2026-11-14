@@ -1,3 +1,4 @@
+import { classifySend } from './send-room';
 import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -423,7 +424,7 @@ async function pump() {
         } else {
           const failed = (e as { job?: UploadJob }).job ?? current;
           // Sweep fix 5: the server says the room ended; its other queued jobs would only fail the same way.
-          if (errorKind(e) === 'ended') setJobs((js) => js.filter((j) => j.roomId !== current.roomId || j.state !== 'queued'));
+          if (errorKind(e) === 'ended' || (await classifySend(current.roomId, e)) === 'ended') setJobs((js) => js.filter((j) => j.roomId !== current.roomId || j.state !== 'queued'));
           setJobs((js) =>
             js.some((j) => j.id === current.id)
               ? patchJob(js, current.id, { ...failed, state: 'failed', error: errorMessage(e), deadEnd: deadEndOf(e) })
