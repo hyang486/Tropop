@@ -2,6 +2,9 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/avatar';
+import { HandTitle } from '@/components/hand-title';
+import { InkArt } from '@/components/ink-art';
 import { QCard, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 
@@ -11,6 +14,7 @@ import { peopleEmpty } from './people-empty';
 import { type MatchResult, type QrewingError, requestMatches, useEntryQuestions, useQrewingRoom } from './qrewing-api';
 import { matchStep } from './qrewing-plan';
 import { en } from '@/i18n/en';
+import { listMembers } from '@/lib/rooms';
 
 const s = en.qrewing.people;
 
@@ -90,6 +94,18 @@ export function PeopleScreen() {
     run();
   }, [run]);
 
+  // Spec 11 A15: each suggestion shows the member's profile photo (or initial). A failed read keeps the initials.
+  const [avatars, setAvatars] = useState<ReadonlyMap<string, string | null>>(new Map());
+  useEffect(() => {
+    let live = true;
+    listMembers(id)
+      .then((members) => live && setAvatars(new Map(members.map((m) => [m.user_id, m.avatar_path]))))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [id]);
+
   const notConsented = q.me !== null && !q.me.aiOk;
   const questions = useEntryQuestions(id);
   const empty = peopleEmpty({
@@ -102,7 +118,6 @@ export function PeopleScreen() {
 
   return (
     <QScreen
-      title={s.title}
       actions={
         empty === 'noQuestions' ? undefined : empty === 'noEntry' ? (
           <Button
@@ -114,7 +129,8 @@ export function PeopleScreen() {
         )
       }
     >
-      <Stack.Screen options={{ title: s.title, headerTitle: '' }} />
+      {/* Spec 11 A15: the handwritten title sits up in the header instead of under it. */}
+      <Stack.Screen options={{ title: s.title, headerTitle: () => <HandTitle style={styles.headerTitle}>{s.title}</HandTitle> }} />
       {state.status === 'loading' ? (
         <View style={styles.center}>
           <ActivityIndicator />
@@ -145,8 +161,13 @@ export function PeopleScreen() {
           ) : null}
           {state.result.matches.map((m) => (
             <QCard key={m.userId}>
-              <Text style={styles.name} accessibilityRole="header">{m.displayName}</Text>
-              {m.headline ? <Text style={styles.headline}>{m.headline}</Text> : null}
+              <View style={styles.who}>
+                <Avatar path={avatars.get(m.userId)} name={m.displayName} size={40} />
+                <View style={styles.whoText}>
+                  <Text style={styles.name} accessibilityRole="header">{m.displayName}</Text>
+                  {m.headline ? <Text style={styles.headline}>{m.headline}</Text> : null}
+                </View>
+              </View>
               <Text style={styles.reason}>{m.reason}</Text>
               {(state.links.get(m.userId) ?? []).map((url) => (
                 <Pressable key={url} onPress={() => Linking.openURL(url).catch(() => {})} accessibilityRole="link">
@@ -167,6 +188,8 @@ export function PeopleScreen() {
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <View style={styles.empty}>
+      {/* Spec 11 A16: an ink drawing so the empty screen does not look blank (decorative, hidden from VoiceOver). */}
+      <InkArt art="meetup" width={160} />
       <Text style={styles.emptyTitle} accessibilityRole="header">
         {title}
       </Text>
@@ -180,6 +203,9 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.label, textAlign: 'center' },
   emptyBody: { fontSize: 15, color: colors.secondaryLabel, textAlign: 'center' },
   center: { alignItems: 'center', gap: 12, paddingVertical: 24 },
+  headerTitle: { fontSize: 24, lineHeight: 30 },
+  who: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  whoText: { flex: 1, gap: 2 },
   name: { fontSize: 17, fontWeight: '600', color: colors.label },
   headline: { fontSize: 15, color: colors.secondaryLabel },
   reason: { fontSize: 15, color: colors.label, marginTop: 4 },
