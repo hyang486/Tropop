@@ -134,18 +134,19 @@ export function disclosureHeld(o: Parameters<typeof emergencyAreaMode>[0]): bool
 
 /** UX2-30: in chat, three or more Emergencies fold into one "N Emergencies · Show" line until it is opened. */
 export const EMERGENCY_FOLD_AT = 3;
-export function emergenciesFolded(o: { place: 'chat' | 'other'; count: number; shown: boolean }): boolean {
+export function emergenciesFolded(o: { place: 'chat' | 'other' | 'map'; count: number; shown: boolean }): boolean {
   return o.place === 'chat' && o.count >= EMERGENCY_FOLD_AT && !o.shown;
 }
 
 export function emergencyBarMode(o: {
-  place: 'chat' | 'other';
+  place: 'chat' | 'other' | 'map';
   mine: boolean;
   acked: boolean;
   expanded: boolean;
 }): 'bar' | 'line' {
   if (o.expanded) return 'bar';
-  if (o.place === 'other') return 'line';
+  // V4: Map shows the line as a redwash capsule; like the other non-chat screens it starts as a line.
+  if (o.place !== 'chat') return 'line';
   return o.mine || !o.acked ? 'bar' : 'line';
 }
 

@@ -18,7 +18,7 @@ import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 
 import { EnterView } from '@/components/enter-view';
-import { colors, radius } from '@/components/ui';
+import { colors, radius, useLift } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
@@ -62,8 +62,9 @@ export function EmergencyAlerts({
   onOpenLocation,
   place = 'other',
 }: {
-  /** UX P0-1: chat shows the pinned bar until "I see it"; other screens show the 44 pt line. */
-  place?: 'chat' | 'other';
+  /** UX P0-1: chat shows the pinned bar until "I see it"; other screens show the 44 pt line. V4: Map's line is a
+   *  48 pt redwash capsule (the map screen places it 16 pt from the sides). */
+  place?: 'chat' | 'other' | 'map';
   roomId: string;
   activity: ReturnType<typeof useRoomActivity>;
   userId: string | undefined;
@@ -78,6 +79,7 @@ export function EmergencyAlerts({
   onOpenLocation?: (userId: string, coordinates: LatLng) => void;
 }) {
   const router = useRouter();
+  const lift = useLift();
   const { height: windowHeight, fontScale } = useWindowDimensions();
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const now = useNow(15_000);
@@ -258,6 +260,49 @@ export function EmergencyAlerts({
         const meta = `${timeOf(e.createdAt)} · ${seenText.visible}`;
         const mode = emergencyBarMode({ place, mine, acked: iAcked, expanded: expanded.has(e.id) });
         const collapsible = emergencyBarMode({ place, mine, acked: iAcked, expanded: false }) === 'line';
+
+        if (mode === 'line' && place === 'map') {
+          // V4: redwash capsule, 48 pt, radius 24, lift shadow: disc + "**Sora** needs help · 2 on the way" (one
+          // line, tail truncation) + chevron. Tapping opens the bar, as the line does.
+          return (
+            <EnterView key={e.id}>
+              <Pressable
+                style={({ pressed }) => [styles.capsule, lift, pressed && { opacity: 0.6 }]}
+                onPress={() => toggle(e.id, true)}
+                accessibilityRole="button"
+                accessibilityLabel={spokenSentence([
+                  title,
+                  e.onWay.length > 0 ? en.activity.onWayCount(e.onWay.length) : '',
+                  meta,
+                ])}
+                accessibilityHint={en.activity.openEmergency}
+              >
+                <View style={styles.capsuleDisc}>
+                  <SymbolView name="exclamationmark" size={13} weight="bold" tintColor="#FFFFFF" />
+                </View>
+                <Text
+                  style={styles.capsuleText}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  maxFontSizeMultiplier={EMERGENCY_FONT_CAP}
+                >
+                  {mine ? (
+                    en.activity.capsuleMine
+                  ) : sender.kind === 'unknown' ? (
+                    en.activity.emergencyFromUnknown
+                  ) : (
+                    <>
+                      <Text style={styles.capsuleName}>{name}</Text>
+                      {en.activity.capsuleNeedsHelp}
+                    </>
+                  )}
+                  {e.onWay.length > 0 ? en.activity.onWayLineSuffix(e.onWay.length) : ''}
+                </Text>
+                <SymbolView name="chevron.down" size={11} weight="semibold" tintColor={colors.label} />
+              </Pressable>
+            </EnterView>
+          );
+        }
 
         if (mode === 'line') {
           // UX P0-1: after "I see it" (and on Map, Photos, Info) a 44 pt line; "Open" expands the bar.
@@ -726,6 +771,28 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
   },
   lineText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
+  // V4 Map capsule (no outline): redwash, 48 pt, full pill, a 24 pt danger disc.
+  capsule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 48,
+    paddingLeft: 12,
+    paddingRight: 16,
+    backgroundColor: colors.redwash,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+  },
+  capsuleDisc: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  capsuleText: { flex: 1, fontSize: 15, color: colors.label },
+  capsuleName: { fontWeight: '700' },
   lineOpen: { fontSize: 15, fontWeight: '600', color: colors.label },
   checking: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12 },
   checkingText: { flex: 1, fontSize: 13, color: colors.ink2 },
