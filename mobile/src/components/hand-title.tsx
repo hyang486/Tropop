@@ -48,6 +48,7 @@ export function HandTitle({
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 34, lineHeight: 42 },
+  // UX §3 screen title: Patrick Hand 30.
+  title: { fontSize: 30, lineHeight: 38 },
   fallback: { fontWeight: '300' },
 });

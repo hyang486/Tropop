@@ -22,8 +22,9 @@ import {
  */
 export const palette = {
   // cardStrong: own chat bubbles (Q 03.01 "On my way!"); dangerCard: the Emergency card and status (Q 03.02, 04.03).
-  light: { ink: '#181817', paper: '#FFFFFF', card: '#F6F6F2', cardStrong: '#EAEAE5', dangerCard: '#FDECEC' },
-  dark: { ink: '#EDEDE8', paper: '#000000', card: '#1C1C1E', cardStrong: '#2C2C2E', dangerCard: '#3A1A1A' },
+  // ink2 (UX §3): hints, labels and timestamps; 6.4:1 on paper (light). secondaryLabel stays for placeholders only.
+  light: { ink: '#181817', ink2: '#5E5E58', paper: '#FFFFFF', card: '#F6F6F2', cardStrong: '#EAEAE5', dangerCard: '#FDECEC' },
+  dark: { ink: '#EDEDE8', ink2: '#A8A8A2', paper: '#000000', card: '#1C1C1E', cardStrong: '#2C2C2E', dangerCard: '#3A1A1A' },
 } as const;
 
 function themed(key: keyof typeof palette.light) {
@@ -37,6 +38,9 @@ export function usePalette() {
 
 export const colors = {
   label: themed('ink'),
+  /** UX §3: secondary text, section labels, captions and times. */
+  ink2: themed('ink2'),
+  /** Placeholders only (UX P1-12); use `ink2` for any text people need to read. */
   secondaryLabel: PlatformColor('secondaryLabel'),
   background: themed('paper'),
   field: themed('card'),
@@ -53,6 +57,26 @@ export const colors = {
 
 /** Chips are pills. */
 export const radius = { pill: 999 };
+
+/** UX §3 spacing: a 4 pt grid. Screen gutter 16, gap between rows 8, gap before a section 24. */
+export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32, gutter: 16, row: 8, section: 24 } as const;
+
+/** UX §3 minimum heights: rows 44 pt (56 with a subtitle, 64 for a room row); hit areas 44. */
+export const size = { row: 44, rowSubtitle: 56, roomRow: 64, hit: 44, chip: 36, button: 52, avatar: 32 } as const;
+
+/**
+ * UX §3 type roles for the system font. Titles use HandTitle (Patrick Hand): `titleSize.screen` 30, `.sheet` 24.
+ * Colors are included, so a role can be spread into a style as is.
+ */
+export const titleSize = { screen: 30, sheet: 24 } as const;
+export const textRole = StyleSheet.create({
+  section: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
+  body: { fontSize: 17, color: colors.label },
+  bodyStrong: { fontSize: 17, fontWeight: '600', color: colors.label },
+  secondary: { fontSize: 15, color: colors.ink2 },
+  caption: { fontSize: 13, color: colors.ink2 },
+  stat: { fontSize: 34, fontWeight: '700', fontVariant: ['tabular-nums'], color: colors.label },
+});
 
 /**
  * J-1: under the translucent iOS 26 header the scroll view rests at a negative offset
@@ -166,5 +190,5 @@ const styles = StyleSheet.create({
   outlined: { borderWidth: 1.5, backgroundColor: 'transparent' },
   // Q 01.04: regular-weight label ("Join the room").
   buttonText: { fontSize: 17, fontWeight: '400' },
-  hint: { fontSize: 15, color: colors.secondaryLabel },
+  hint: { fontSize: 15, color: colors.ink2 },
 });
