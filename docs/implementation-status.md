@@ -1,6 +1,17 @@
 # Implementation status
 
-Updated: 2026-11-13 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
+Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
+
+## 2026-11-14: audit2 photos/map + a11y sweep, branch audit2-photos-map (local, not pushed)
+
+Commits c0cd535 (UX2-35 upload row), 9752417 (map pin labels), 2299e2a (Photos tile labels), b8a1b40 (viewer
+cross-fade under Reduce Motion), cf2c58b (upload row secondary action ink2 for contrast). `tsc`, lint, 785/785 tests pass.
+
+Known gaps:
+- Map recenter ignores Reduce Motion. expo-maps 58 wraps `setCameraPosition` in an unconditional `withAnimation`
+  (`AppleMapsViewiOS17/18.swift`) and has no `animated` flag. A fix needs a native patch; awaiting supervisor decision.
+- Upload row buttons use 8 pt padding, not the spec's 12 pt, so the labels do not overlap (ux informed).
+- Not tested on device: VoiceOver reading of pins and tiles, Reduce Motion cross-fade, rendered upload row.
 
 ## 2026-11-13 summary for the human's morning review (nothing pushed)
 
