@@ -693,7 +693,6 @@ export const en = {
       diary: { title: 'Qrewing diary', body: 'A short diary for each room you were in.' },
       ai: { title: 'Qrewing AI in rooms', body: 'Question cards, matches and the room recap.' },
       rooms: { title: 'Bigger and longer rooms', body: 'More members and more days per room.' },
-      icons: { title: 'Extra icons', body: 'More room icons to pick from.' },
     },
     forYou: 'For you',
     calendarFree: 'Qrewing Calendar itself stays free.',

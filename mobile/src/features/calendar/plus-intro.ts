@@ -6,7 +6,7 @@
 export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'diary'] as const;
 export type PlusFrom = (typeof PLUS_FROM)[number];
 
-export const PLUS_BENEFITS = ['add', 'diary', 'ai', 'rooms', 'icons'] as const;
+export const PLUS_BENEFITS = ['add', 'diary', 'ai', 'rooms'] as const;
 export type PlusBenefit = (typeof PLUS_BENEFITS)[number];
 
 const FOCUS: Record<PlusFrom, PlusBenefit> = { calendar: 'add', diary: 'diary', 'room-ai': 'ai', more: 'rooms' };
