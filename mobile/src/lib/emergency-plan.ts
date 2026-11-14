@@ -107,6 +107,22 @@ export function emergencyAreaMode(o: {
 }
 
 /**
+ * C39 (UX2-126): what the Emergency bar's location line shows. A found row wins even after a later failed read;
+ * "No location shared" only after a read that worked; unknown is blank for the first 1 s, then "Checking location…".
+ */
+export function locationLineState(o: {
+  shared: boolean;
+  loaded: boolean;
+  error: boolean;
+  late: boolean;
+}): 'shared' | 'none' | 'failed' | 'checking' | 'blank' {
+  if (o.shared) return 'shared';
+  if (o.error) return 'failed';
+  if (o.loaded) return 'none';
+  return o.late ? 'checking' : 'blank';
+}
+
+/**
  * UX2-110: the Qrewing AI disclosure sheet waits while any Emergency is open or the area is failed (or not read
  * yet, so it can't cover one that is about to show). It shows once the Emergency ends, or on the next open.
  * ux guard: if the first read took over 3 s (`slow`, which stays set for the visit), skip it for this visit so it

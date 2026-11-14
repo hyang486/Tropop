@@ -21,7 +21,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, locationLineState, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { errorMessage } from '@/lib/errors';
@@ -67,8 +67,11 @@ export function EmergencyAlerts({
   userId: string | undefined;
   /** UX2-79: null while the member list is not known yet or failed to load. */
   names: Map<string, string> | null;
-  /** Live position rows of the room (Q 04.03 "Last location shared · 4 min ago"). */
-  presence: readonly Presence[];
+  /**
+   * Live position rows of the room (Q 04.03 "Last location shared · 4 min ago"), or the whole useLivePresence
+   * result so the location line can tell "not loaded" and "failed" from "none" (C39). Bare rows count as loaded.
+   */
+  presence: readonly Presence[] | PresenceState;
   /** Map moves its own camera; elsewhere the link opens Map centered on the sender. */
   onOpenLocation?: (userId: string, coordinates: LatLng) => void;
 }) {
@@ -88,7 +91,28 @@ export function EmergencyAlerts({
     });
   // UX2-30: the folded "N Emergencies" line was opened with Show.
   const [shownAll, setShownAll] = useState(false);
-  const lastSeen = useMemo(() => new Map(presence.map((p) => [p.user_id, p])), [presence]);
+  const pres: PresenceState = isPresenceRows(presence) ? { rows: presence, loaded: true, error: false } : presence;
+  const rows = pres.rows;
+  const lastSeen = useMemo(() => new Map(rows.map((p) => [p.user_id, p])), [rows]);
+  // C39: the line stays blank for the first 1 s of an unknown read (no flicker on fast reads), then says Checking.
+  const presenceWaiting = activity.emergencies.length > 0 && !pres.loaded && !pres.error;
+  const [presenceLate, setPresenceLate] = useState(false);
+  useEffect(() => {
+    if (!presenceWaiting) return;
+    const t = setTimeout(() => setPresenceLate(true), 1000);
+    return () => clearTimeout(t);
+  }, [presenceWaiting]);
+  const [presenceRetrying, setPresenceRetrying] = useState(false);
+  const presenceReload = pres.reload;
+  async function retryPresence() {
+    if (!presenceReload || presenceRetrying) return;
+    setPresenceRetrying(true);
+    try {
+      await presenceReload();
+    } finally {
+      setPresenceRetrying(false);
+    }
+  }
   const seeded = useRef(false);
   useEffect(() => {
     if (activity.loading) return;
@@ -220,12 +244,25 @@ export function EmergencyAlerts({
         // Q 04.03 / UX P0-1: pinned bar with the requester, time and seen count, and one action. Who saw it
         // and the location age are read out; the text opens the last shared location when there is one.
         const canOpenLocation = !mine && location.kind === 'shared';
+        const lineState = locationLineState({
+          shared: location.kind === 'shared',
+          loaded: pres.loaded,
+          error: pres.error,
+          late: presenceLate,
+        });
         const spoken = spokenSentence([
           title,
           timeOf(e.createdAt),
           seenText.spoken,
-          location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
+          location.kind === 'shared'
+            ? en.activity.lastLocation(formatAge(location.updatedAt, now))
+            : lineState === 'none'
+              ? en.activity.noLocation
+              : lineState === 'failed'
+                ? en.activity.locationFailedSpoken
+                : en.activity.checkingLocationSpoken,
         ]);
+        const canRetry = lineState === 'failed' && !!presenceReload;
         return (
           <EnterView key={e.id}>
             <View style={styles.bar} accessibilityRole="alert">
@@ -234,13 +271,22 @@ export function EmergencyAlerts({
               </View>
               <Pressable
                 style={styles.barText}
-                disabled={!canOpenLocation}
-                onPress={canOpenLocation ? () => openLocation(e.userId, location.coordinates) : undefined}
-                accessibilityRole={canOpenLocation ? 'button' : 'text'}
+                disabled={!canOpenLocation && !canRetry}
+                onPress={
+                  canOpenLocation
+                    ? () => openLocation(e.userId, location.coordinates)
+                    : lineState === 'failed' ? () => retryPresence() : undefined
+                }
+                accessibilityRole={canOpenLocation || canRetry ? 'button' : 'text'}
                 accessibilityLabel={spoken}
                 accessibilityHint={
-                  canOpenLocation ? en.activity.locationHint(formatAge(location.updatedAt, now)) : undefined
+                  canOpenLocation
+                    ? en.activity.locationHint(formatAge(location.updatedAt, now))
+                    : canRetry
+                      ? en.activity.locationRetryHint
+                      : undefined
                 }
+                accessibilityState={{ busy: lineState === 'failed' && presenceRetrying }}
               >
                 <Text style={styles.barTitle} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                   {title}
@@ -250,18 +296,30 @@ export function EmergencyAlerts({
                   {meta}
                 </Text>
                 {/* C37 (UX2-126): the location line, so "no location" is told apart from "not loaded". */}
-                <View style={styles.barLocationRow}>
+                {/* C39: busy while the presence retry runs, dimmed so the line keeps its height. */}
+                <View style={[styles.barLocationRow, presenceRetrying && lineState === 'failed' && { opacity: 0.5 }]}>
                   {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} /> : null}
                   <Text
                     style={[styles.barLocation, canOpenLocation && styles.barLocationOpen]}
                     numberOfLines={1}
                     maxFontSizeMultiplier={EMERGENCY_FONT_CAP}
                   >
-                    {location.kind !== 'shared'
-                      ? en.activity.noLocation
-                      : mine
-                        ? en.activity.yourLastLocation(formatAge(location.updatedAt, now))
-                        : en.activity.openLastLocationAge(formatAge(location.updatedAt, now))}
+                    {location.kind === 'shared' ? (
+                      mine ? (
+                        en.activity.yourLastLocation(formatAge(location.updatedAt, now))
+                      ) : (
+                        en.activity.openLastLocationAge(formatAge(location.updatedAt, now))
+                      )
+                    ) : lineState === 'none' ? (
+                      en.activity.noLocation
+                    ) : lineState === 'failed' ? (
+                      <>
+                        {`${en.activity.locationFailed} · `}
+                        {canRetry ? <Text style={styles.barLocationOpen}>{en.activity.locationRetry}</Text> : null}
+                      </>
+                    ) : lineState === 'blank'
+                      ? ' '
+                      : en.activity.checkingLocation}
                   </Text>
                 </View>
               </Pressable>
@@ -299,8 +357,19 @@ export function EmergencyAlerts({
 }
 
 /** Live positions only while an Emergency is open (no presence traffic on screens that do not need it). */
-export function useEmergencyPresence(roomId: string, activity: ReturnType<typeof useRoomActivity>) {
-  return useLivePresence(roomId, activity.emergencies.length > 0).rows;
+export function useEmergencyPresence(roomId: string, activity: ReturnType<typeof useRoomActivity>): PresenceState {
+  return useLivePresence(roomId, activity.emergencies.length > 0);
+}
+
+/** C39: the useLivePresence result EmergencyAlerts reads (UX2-85 loaded/error and the reload). */
+export type PresenceState = {
+  rows: readonly Presence[];
+  loaded: boolean;
+  error: boolean;
+  reload?: () => Promise<void>;
+};
+function isPresenceRows(p: readonly Presence[] | PresenceState): p is readonly Presence[] {
+  return Array.isArray(p);
 }
 
 /**

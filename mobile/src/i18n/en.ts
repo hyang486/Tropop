@@ -517,6 +517,13 @@ export const en = {
     // UX2-05 (pattern E): the Emergency read failed; never shown as "no Emergency".
     readFailed: "Can't check for Emergencies. Try again.",
     readRetry: 'Try again',
+    // C39 (UX2-126): the Emergency bar's location line before a presence read worked.
+    checkingLocation: 'Checking location…',
+    checkingLocationSpoken: 'Checking location.',
+    locationFailed: "Couldn't check location",
+    locationFailedSpoken: "Couldn't check location.",
+    locationRetry: 'Try again',
+    locationRetryHint: 'Double-tap to try again.',
     // UX2-107: the room channel is down (the last known Emergencies stay listed below), and a slow first read.
     offlineStale: "You're offline. Emergencies may not be up to date.",
     checking: 'Checking for Emergencies…',
