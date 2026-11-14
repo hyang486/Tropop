@@ -20,6 +20,7 @@ import {
   endRange,
   type EndChoice,
   MORE_PRESETS,
+  aiEnabledValue,
   aiSwitchAction,
   moreAction,
   QUICK_PRESETS,
@@ -95,8 +96,13 @@ export default function CreateRoom() {
   const choice: EndChoice = pickedEnd ?? { kind: 'preset', hours: defaultEndHours(type, plus) };
   const [locationAllowed, setLocationAllowed] = useState(true);
   const [statuses, setStatuses] = useState<string[]>([...en.createRoom.statusesDefault]);
-  // Qrewing AI (spec 3.2): off by default for every type; entry info is offered for event rooms only.
-  const [aiEnabled, setAiEnabled] = useState(false);
+  // Qrewing AI (spec 3.2, D2 2026-11-14): on by default for Plus hosts, off for Free and while the plan loads. The
+  // default is applied once the plan first resolves and only until the host touches the switch. Entry info is offered
+  // for event rooms only.
+  const [pickedAi, setPickedAi] = useState<boolean | null>(null);
+  const [firstPlus, setFirstPlus] = useState<boolean | null>(null);
+  if (firstPlus === null && plus !== null) setFirstPlus(plus);
+  const aiEnabled = aiEnabledValue(pickedAi, firstPlus);
   const [entryRequired, setEntryRequired] = useState(false);
   // Spec 9.4: the host's entry questions, prefilled with the default four.
   const [questions, setQuestions] = useState(defaultDraft);
@@ -205,7 +211,7 @@ export default function CreateRoom() {
   function changeAi(next: boolean) {
     const action = aiSwitchAction(plus, next);
     setOfflineTap(action === null && plan === 'offline' ? 'ai' : null);
-    if (action === 'toggle') setAiEnabled(next);
+    if (action === 'toggle') setPickedAi(next);
     if (action === 'upgrade') router.push({ pathname: '/plan-preview', params: { from: 'room-ai' } });
   }
 

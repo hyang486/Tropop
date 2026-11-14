@@ -13,7 +13,6 @@ import { Button, colors, Hint } from '@/components/ui';
 import { DisclosureSheet } from './disclosure-sheet';
 import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
-import { QrewingHeaderButton, useQrewingAskButton } from './qrewing-fab';
 import { peopleEmpty, peopleGate } from './people-empty';
 import {
   type MatchResult,
@@ -64,8 +63,6 @@ async function load(roomId: string, last: MatchResult | null, isRetry: boolean):
  */
 export function PeopleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  // UX P0-2: Ask Qrewing as a header icon (only when the room has Qrewing AI on and the probe answers ok).
-  const ask = useQrewingAskButton(id);
   const router = useRouter();
   const q = useQrewingRoom(id);
   const uid = useAuth().session?.user.id;
@@ -193,10 +190,8 @@ export function PeopleScreen() {
         options={{
           title: s.title,
           headerTitle: () => <HandTitle style={styles.headerTitle}>{s.title}</HandTitle>,
-          headerRight: () => (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null),
         }}
       />
-      {ask.sheet}
       <DisclosureSheet
         roomId={id}
         visible={consent}

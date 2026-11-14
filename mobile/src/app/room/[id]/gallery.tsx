@@ -23,7 +23,6 @@ import { PhotosOfMe } from '@/components/photos-of-me';
 import { qSpacing } from '@/components/q-screen';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
-import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { Button, colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
@@ -164,8 +163,6 @@ export default function GalleryScreen() {
   useEffect(() => {
     if (over) stopRoomUploads(id, keepFailed);
   }, [over, keepFailed, id]);
-  // UX P0-2: Ask Qrewing is a header icon next to Add, not a floating button over the grid; not in grace.
-  const ask = useQrewingAskButton(id);
 
   const run = useCallback(
     async (pick: typeof takePhoto) => {
@@ -263,10 +260,8 @@ export default function GalleryScreen() {
           title: en.media.title,
           headerTitle: '',
           // UX2-67: no header "+"; the labeled "Add photos or files" button at the bottom is the one way to add.
-          headerRight: () => (can.upload ? (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null) : null),
         }}
       />
-      {can.upload ? ask.sheet : null}
       {/* Q 05.02 head: handwritten title, gray room name, filter pills. */}
       <View style={styles.head}>
         <HandTitle style={styles.title}>{en.media.title}</HandTitle>

@@ -1,27 +1,21 @@
-// Ask Qrewing (spec 10.1, UX P0-2): a floating button in chat, a header icon on map, info and photos; only when the
+// Ask Qrewing (spec 10.1, UX3-B05): a 36 pt button in the chat composer while the field is empty; only when the
 // room has Qrewing AI on and the probe answers ok, or AI is off and the asker is on Plus (askMode). With AI on, a
 // tap shows consent before the asker agrees to Qrewing AI here; the personal (AI off) mode needs no consent.
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppState, StyleSheet, View } from 'react-native';
 
-import { EnterView } from '@/components/enter-view';
 import { colors } from '@/components/ui';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
-import { en } from '@/i18n/en';
 
 import { type AskProbe, askMode } from './ask-plan';
 import { DisclosureSheet } from './disclosure-sheet';
 import { probeQrewing, useQrewingRoom } from './qrewing-api';
 import { QREWING_OFFLINE_RETRY_MS } from './qrewing-plan';
 import type { QrewingError } from './types';
-import { QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './qrewing-fab-size';
 
-const s = en.qrewing.ask;
 const ART = require('../../../assets/images/icon.png');
-export { QREWING_FAB_CLEARANCE, QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './qrewing-fab-size';
 
 /**
  * The room's Qrewing switch, the probe (room AI and my plan, no model call) and my consent. `available` is false
@@ -67,7 +61,7 @@ export function useQrewingAsk(roomId: string) {
 }
 
 /**
- * The Ask Qrewing tap with its consent step, for a floating button or a header icon. `open` pushes the ask
+ * The Ask Qrewing tap with its consent step, for the composer button. `open` pushes the ask
  * screen, or shows the consent sheet first; render `sheet` once in the screen body. Use it only on a live room
  * (never in grace or on Room ended).
  */
@@ -123,65 +117,19 @@ export function useQrewingAskButton(roomId: string) {
   return { available, open, sheet };
 }
 
-/**
- * UX P0-2: the floating Q, only in chat (calendar has its own). Mount it as the last child of the area that ends
- * at the top of the composer: 12 pt above it, 16 pt from the trailing edge. The list under it pads its bottom by
- * QREWING_FAB_CLEARANCE (composer + 64 pt in all). Other room screens use QrewingHeaderButton instead. `ask` is the
- * room screen's one useQrewingAskButton, shared with the "answered your question" notice (UX2-04).
- */
-export function QrewingFab({ ask }: { ask: ReturnType<typeof useQrewingAskButton> }) {
-  const insets = useSafeAreaInsets();
-  const { available, open, sheet } = ask;
-  if (!available) return null;
+/** UX3-B05: the Qrewing mark for the composer slot, 36 pt round with a 1.5 pt ink outline (the Composer owns the tap). */
+export function QrewingComposerMark() {
   return (
-    <>
-      <EnterView style={[styles.fab, { bottom: QREWING_FAB_MARGIN, right: insets.right + 16 }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={s.fabLabel}
-          onPress={open}
-          hitSlop={6}
-          style={({ pressed }) => [styles.fabHit, pressed && styles.pressed]}
-        >
-          <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
-          <View style={styles.ring} pointerEvents="none" />
-        </Pressable>
-      </EnterView>
-      {sheet}
-    </>
-  );
-}
-
-/** UX P0-2: Ask Qrewing as a 44 pt header icon (the Qrewing mark at 22 pt) on map, info and photos. */
-export function QrewingHeaderButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={s.fabLabel}
-      onPress={onPress}
-      style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}
-    >
-      <View style={styles.mark}>
-        <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
-        <View style={[styles.ring, styles.markRing]} pointerEvents="none" />
-      </View>
-    </Pressable>
+    <View style={styles.composerMark}>
+      <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
+      <View style={styles.ring} pointerEvents="none" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fab: {
-    position: 'absolute',
-    width: QREWING_FAB_SIZE,
-    height: QREWING_FAB_SIZE,
-    borderRadius: QREWING_FAB_SIZE / 2,
-  },
-  fabHit: { width: '100%', height: '100%', borderRadius: QREWING_FAB_SIZE / 2 },
-  // A thin ink ring, so the cream art stays visible on the cream screen (themed, no hard-coded shadow color).
-  ring: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: QREWING_FAB_SIZE / 2, borderWidth: 1.5, borderColor: colors.label },
+  composerMark: { width: 36, height: 36, borderRadius: 18 },
+  // A thin ink ring, so the cream art stays visible on the cream field (themed, no hard-coded shadow color).
+  ring: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 18, borderWidth: 1.5, borderColor: colors.label },
   art: { width: '100%', height: '100%', borderRadius: 999 },
-  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  mark: { width: 22, height: 22 },
-  markRing: { borderRadius: 11, borderWidth: 1 },
-  pressed: { opacity: 0.7 },
 });

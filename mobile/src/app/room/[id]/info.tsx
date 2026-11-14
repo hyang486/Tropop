@@ -10,7 +10,6 @@ import { RemindersOffNote } from '@/components/reminders-off-note';
 import { RoomEnded } from '@/components/room-ended';
 import { purgeAskHistory } from '@/features/event/ask-store';
 import { noteSiriRoomClosed } from '@/features/event/siri-mirror';
-import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { StatusEditor } from '@/components/status-editor';
 import { QrewingInfoSection } from '@/features/event/info-section';
 import { QLink, QScreen } from '@/components/q-screen';
@@ -44,8 +43,6 @@ type State =
  */
 export default function RoomInfoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  // UX P0-2: Ask Qrewing is a header icon here, not a floating button over the rows.
-  const ask = useQrewingAskButton(id);
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -217,8 +214,6 @@ export default function RoomInfoScreen() {
         </>
       }
     >
-      <Stack.Screen options={{ headerRight: () => (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null) }} />
-      {ask.sheet}
       <RoomEmergencyBanner roomId={room.id} />
       <QRowCard
         icon="person.2"

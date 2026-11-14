@@ -11,7 +11,8 @@ test('P1-11 composer: 44 pt field, 22 pt radius, 32 pt ink up-arrow circle hidde
   assert.match(composer, /width: 32,\s*height: 32,\s*borderRadius: 16/);
   assert.match(composer, /backgroundColor: colors\.tint/);
   assert.match(composer, /name="arrow\.up"/);
-  assert.match(composer, /showCircle = busy \|\| value\.trim\(\)\.length > 0/);
+  // UX3-B05: the empty-field rule moved to composer-plan (composerSlot); send shows once typed or busy.
+  assert.match(composer, /showCircle = slot === 'send'/);
 });
 
 test('P1-11 Ask uses the shared composer, not a separate Send button', () => {
