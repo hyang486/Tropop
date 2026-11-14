@@ -38,3 +38,14 @@ test('single size keeps aspect, caps height, squares unknown', () => {
   assert.deepEqual(singleSize(300, 900), { width: 220, height: 280 });
   assert.deepEqual(singleSize(null, 10), { width: 220, height: 220 });
 });
+
+test('paged chat: the first loaded line per sender stops at the oldest loaded message', () => {
+  // Loaded page starts at 10:30 (older lines, incl. a's 10:20 line for m1, are not loaded).
+  const lines = [line('T', 'b', '30', 'text'), line('L', 'a', '40')];
+  const media = [item('m1', 'a', '15'), item('m2', 'a', '35')];
+  assert.deepEqual(mediaForLines(lines, media, true).get('L').map((m) => m.id), ['m2']);
+  // All history loaded: the same line takes both.
+  assert.deepEqual(mediaForLines(lines, media, false).get('L').map((m) => m.id), ['m1', 'm2']);
+  // The oldest loaded message is the media line itself: no match, plain text.
+  assert.equal(mediaForLines([line('L', 'a', '40')], media, true).has('L'), false);
+});

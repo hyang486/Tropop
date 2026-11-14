@@ -8,19 +8,29 @@
 export type LineLike = { id: string; kind: string; sender_id: string | null; created_at: string };
 export type MediaLike = { id: string; uploader_id: string; created_at: string; kind: string };
 
-/** messages and media in any order; returns line id → its items, oldest first. */
-export function mediaForLines<M extends MediaLike>(messages: readonly LineLike[], media: readonly M[]): Map<string, M[]> {
+/**
+ * messages and media in any order; returns line id → its items, oldest first. `hasOlder`: chat is paged and older
+ * lines aren't loaded, so a sender's first loaded line only takes items after the oldest loaded message (an unloaded
+ * line's items are all at or before it). The oldest loaded line itself may then match nothing and stays plain text.
+ */
+export function mediaForLines<M extends MediaLike>(
+  messages: readonly LineLike[],
+  media: readonly M[],
+  hasOlder = false,
+): Map<string, M[]> {
   const lines = messages
     .filter((m) => m.kind === 'media' && m.sender_id)
     .slice()
     .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+  const floor =
+    hasOlder && messages.length > 0 ? Math.min(...messages.map((m) => Date.parse(m.created_at))) : -Infinity;
   const sorted = media.slice().sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
   const out = new Map<string, M[]>();
   const prevBySender = new Map<string, number>();
   for (const line of lines) {
     const sender = line.sender_id as string;
     const end = Date.parse(line.created_at);
-    const start = prevBySender.get(sender) ?? -Infinity;
+    const start = prevBySender.get(sender) ?? floor;
     const items = sorted.filter((m) => {
       const t = Date.parse(m.created_at);
       return m.uploader_id === sender && t > start && t <= end;
