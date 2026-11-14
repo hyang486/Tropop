@@ -33,12 +33,34 @@ test('UX2-06: dead-end uploads carry their kind and the right next step', async 
   assert.equal(deadEndOf(deadEndError('file', 'x')), 'file');
   assert.equal(deadEndOf(new Error('offline')), undefined);
   assert.equal(deadEndOf(null), undefined);
-  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: false }), 'plus');
-  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: true }), null);
-  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlus: null }), null);
-  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: false, hostPlus: null }), null);
-  assert.equal(deadEndStep({ deadEnd: 'file', isHost: false, hostPlus: null }), null);
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlan: 'free' }), 'plus');
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlan: 'plus' }), null);
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: false, hostPlan: 'loading' }), null);
+  assert.equal(deadEndStep({ deadEnd: 'file', isHost: true, hostPlan: 'free' }), null);
   assert.equal(en.media.outOfSpace, 'Not enough space left in this room for this file.');
   assert.equal(en.media.outOfSpaceHint, 'Smaller files may still fit.');
   assert.equal(en.media.cantUpload, "This file can't be uploaded.");
+});
+
+test('C14: a Plus gate shows only for a confirmed Free plan; loading reserves, offline says so', async () => {
+  const { deadEndStep, planState } = await import('../src/lib/storage-cap.ts');
+  assert.equal(planState(undefined, false), 'loading');
+  assert.equal(planState(undefined, true), 'loading');
+  assert.equal(planState(false, false), 'offline'); // no server read, nothing cached: never guess Free
+  assert.equal(planState(true, false), 'offline');
+  assert.equal(planState(false, true), 'free');
+  assert.equal(planState(true, true), 'plus');
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlan: 'loading' }), 'reserve');
+  assert.equal(deadEndStep({ deadEnd: 'storage', isHost: true, hostPlan: 'offline' }), 'offline');
+  assert.equal(en.media.planOffline, "Can't check your plan offline. Try again when you're back.");
+});
+
+test('C14: the plan cache stores Free as 0 so an offline Free host is known, and an unknown plan is marked', () => {
+  const src = readFileSync(new URL('../src/features/calendar/calendar-store.ts', import.meta.url), 'utf8');
+  assert.match(src, /setItem\(plusPreviewKey\(uid\), '0'\)/);
+  assert.doesNotMatch(src, /removeItem\(plusPreviewKey/);
+  assert.match(src, /if \(server === null && cached === null\) plusUnknown\.add\(uid\)/);
+  const gallery = readFileSync(new URL('../src/app/room/[id]/gallery.tsx', import.meta.url), 'utf8');
+  assert.match(gallery, /usePlanState\(isHost \? userId : null\)/);
+  assert.doesNotMatch(gallery, /usePlusPreview/);
 });

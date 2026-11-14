@@ -47,7 +47,7 @@ import { sharedAge, takeSaved } from '@/lib/media-plan';
 import { confirmOriginalsNotice } from '@/lib/originals-notice';
 import { useRoomEvents } from '@/lib/room-channel';
 import { deadEndStep } from '@/lib/storage-cap';
-import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { usePlanState } from '@/features/calendar/calendar-store';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { memberName } from '@/lib/member-name';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
@@ -89,9 +89,9 @@ export default function GalleryScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
   const [names, setNames] = useState<ReadonlyMap<string, string>>();
-  // UX2-06: a Free host's out-of-space row offers "See Plus"; the room's plan is the host's.
+  // UX2-06 + C14: only a host confirmed Free sees "See Plus" on an out-of-space row; the room's plan is the host's.
   const isHost = !!room && room.host_id === userId;
-  const hostPlus = usePlusPreview(isHost ? userId : null);
+  const hostPlan = usePlanState(isHost ? userId : null);
   // G-U6-1: the room read came back empty (RLS hides a room once it ends or expires, or after a leave).
   const [gone, setGone] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -212,7 +212,7 @@ export default function GalleryScreen() {
                 onDismiss={() => uploads.dismiss(job.id)}
                 onCancel={() => confirmCancel(job)}
                 closed={grace.grace}
-                step={job.deadEnd ? deadEndStep({ deadEnd: job.deadEnd, isHost, hostPlus }) : null}
+                step={job.deadEnd ? deadEndStep({ deadEnd: job.deadEnd, isHost, hostPlan }) : null}
                 onSeePlus={() => router.push({ pathname: '/plan-preview', params: { from: 'storage' } })}
               />
             ))}
@@ -390,8 +390,8 @@ function UploadRow({
   step,
   onSeePlus,
 }: {
-  /** UX2-06: the next step on a dead-end row (no Retry). */
-  step: 'plus' | null;
+  /** UX2-06 + C14: the next step on a dead-end row (no Retry). */
+  step: 'plus' | 'reserve' | 'offline' | null;
   onSeePlus: () => void;
   job: UploadJob;
   onRetry: () => void;
@@ -407,7 +407,7 @@ function UploadRow({
   const size = formatBytes(job.item.size);
   const status = deadEnd
     ? deadEnd === 'storage'
-      ? `${en.media.outOfSpace}\n${en.media.outOfSpaceHint}`
+      ? `${en.media.outOfSpace}\n${en.media.outOfSpaceHint}${step === 'offline' ? `\n${en.media.planOffline}` : ''}`
       : en.media.cantUpload
     : failed
       ? closed
@@ -447,6 +447,11 @@ function UploadRow({
                 <Pressable onPress={onSeePlus} accessibilityRole="button" style={styles.actionButton}>
                   <Text style={styles.action}>{en.media.seePlus}</Text>
                 </Pressable>
+              ) : step === 'reserve' ? (
+                // C14: the plan is loading; keep the button's space, empty and hidden from VoiceOver.
+                <View style={styles.actionButton} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Text style={[styles.action, styles.reserved]}>{en.media.seePlus}</Text>
+                </View>
               ) : null
             ) : closed ? null : (
               <Pressable onPress={onRetry} accessibilityRole="button" style={styles.actionButton}>
@@ -517,6 +522,7 @@ const styles = StyleSheet.create({
   jobActions: { flexDirection: 'row', minHeight: 44, marginStart: -8 },
   actionButton: { minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   action: { fontSize: 15, color: colors.label, fontWeight: '600' },
+  reserved: { opacity: 0 },
   actionSecondary: { fontSize: 15, color: colors.ink2 },
   track: { height: 4, borderRadius: 2, backgroundColor: colors.separator, overflow: 'hidden' },
   bar: { height: 4, backgroundColor: colors.tint },

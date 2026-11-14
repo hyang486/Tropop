@@ -21,10 +21,27 @@ export function deadEndOf(error: unknown): UploadDeadEnd | undefined {
   return d === 'storage' || d === 'file' ? d : undefined;
 }
 
+/** C14: a plan a Plus gate can trust. undefined = not read yet; known = the server or the cache said it. */
+export type PlanState = 'plus' | 'free' | 'loading' | 'offline';
+export function planState(plus: boolean | undefined, known: boolean): PlanState {
+  if (plus === undefined) return 'loading';
+  if (!known) return 'offline';
+  return plus ? 'plus' : 'free';
+}
+
 /**
- * The next step on a dead-end row: a Free host gets "See Plus" (from=storage); everyone else (guests, a Plus host,
- * a plan still loading) and a bad file get only Remove.
+ * The next step on a dead-end row (C14). Only a host confirmed Free gets "See Plus" (from=storage); while the plan
+ * loads its space is reserved and empty; offline with no known plan says so. Guests, a Plus host and a bad file
+ * get only Remove.
  */
-export function deadEndStep(o: { deadEnd: UploadDeadEnd; isHost: boolean; hostPlus: boolean | null }): 'plus' | null {
-  return o.deadEnd === 'storage' && o.isHost && o.hostPlus === false ? 'plus' : null;
+export function deadEndStep(o: {
+  deadEnd: UploadDeadEnd;
+  isHost: boolean;
+  hostPlan: PlanState;
+}): 'plus' | 'reserve' | 'offline' | null {
+  if (o.deadEnd !== 'storage' || !o.isHost) return null;
+  if (o.hostPlan === 'free') return 'plus';
+  if (o.hostPlan === 'loading') return 'reserve';
+  if (o.hostPlan === 'offline') return 'offline';
+  return null;
 }

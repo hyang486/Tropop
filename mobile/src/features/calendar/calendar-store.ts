@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useSyncExternalStore } from 'react';
 
+import { planState, type PlanState } from '@/lib/storage-cap';
 import { supabase } from '@/lib/supabase';
 
 import {
@@ -30,6 +31,8 @@ let currentUid: string | null = null;
 let authKnown = false;
 const docs = new Map<string, CalendarDoc>();
 const plus = new Map<string, boolean>();
+// C14: uids whose plan is a guess (no server read and no cached plan, e.g. offline on first launch).
+const plusUnknown = new Set<string>();
 const listeners = new Set<() => void>();
 let chain: Promise<unknown> = Promise.resolve();
 
@@ -116,11 +119,13 @@ type UntypedPlans = {
 };
 const plans = () => supabase as unknown as UntypedPlans;
 
-async function readCachedPlus(uid: string): Promise<boolean> {
+/** The cached plan: true (Plus), false (Free) or null (nothing cached). */
+async function readCachedPlus(uid: string): Promise<boolean | null> {
   try {
-    return (await AsyncStorage.getItem(plusPreviewKey(uid))) === '1';
+    const v = await AsyncStorage.getItem(plusPreviewKey(uid));
+    return v === '1' ? true : v === '0' ? false : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -128,14 +133,15 @@ async function writeCachedPlus(uid: string, on: boolean) {
   if (!mayWrite(uid, currentUid, authKnown)) return;
   try {
     if (on) await AsyncStorage.setItem(plusPreviewKey(uid), '1');
-    else await AsyncStorage.removeItem(plusPreviewKey(uid));
+    else await AsyncStorage.setItem(plusPreviewKey(uid), '0');
   } catch {}
 }
 
 /** Server plan first (user_plans, 0032); the local key is its cache and the fallback when 0032 is missing or offline. */
 async function loadPlus(uid: string): Promise<boolean> {
   if (plus.has(uid)) return plus.get(uid)!;
-  let on = await readCachedPlus(uid);
+  const cached = await readCachedPlus(uid);
+  let on = cached ?? false;
   let server: boolean | null = null;
   try {
     server = planFromRead(await plans().from('user_plans').select('plan').eq('user_id', uid).maybeSingle());
@@ -144,7 +150,11 @@ async function loadPlus(uid: string): Promise<boolean> {
     on = server;
     void writeCachedPlus(uid, on);
   }
-  if (!plus.has(uid)) plus.set(uid, on);
+  if (!plus.has(uid)) {
+    plus.set(uid, on);
+    if (server === null && cached === null) plusUnknown.add(uid);
+    else plusUnknown.delete(uid);
+  }
   return plus.get(uid)!;
 }
 
@@ -156,6 +166,7 @@ export async function setPlusPreview(uid: string, on: boolean): Promise<boolean>
   if (!mayWrite(uid, currentUid, authKnown)) return true;
   const before = plus.get(uid) ?? false;
   plus.set(uid, on);
+  plusUnknown.delete(uid);
   emit();
   let error: unknown = null;
   try {
@@ -181,6 +192,23 @@ export function refreshPlus(uid: string) {
   void loadPlus(uid).then(emit);
 }
 
+/**
+ * C14: the plan for a Plus gate. 'loading' until read, 'offline' when neither the server nor the cache knows it
+ * (a gate never guesses Free then). Mounting with 'offline' reads again.
+ */
+export function usePlanState(uid: string | null | undefined): PlanState {
+  useEffect(() => {
+    if (!uid) return;
+    if (plusUnknown.has(uid)) {
+      plus.delete(uid);
+      plusUnknown.delete(uid);
+      emit();
+    }
+    if (!plus.has(uid)) void loadPlus(uid).then(emit);
+  }, [uid]);
+  return useSyncExternalStore(subscribe, () => (uid ? planState(plus.get(uid), !plusUnknown.has(uid)) : 'loading'));
+}
+
 /** The Plus preview flag (null while loading). */
 export function usePlusPreview(uid: string | null | undefined): boolean | null {
   useEffect(() => {
@@ -199,6 +227,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   currentUid = null;
   docs.delete(uid);
   plus.delete(uid);
+  plusUnknown.delete(uid);
   emit();
   void serial(() => clearUserCalendar(AsyncStorage, uid)).catch(() => {});
 });
