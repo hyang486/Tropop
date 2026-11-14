@@ -187,11 +187,11 @@ export const en = {
     title: 'Find your room',
     subtitle: 'Enter the five-digit code from your host.',
     codeLabel: '5-digit room code',
-    submit: 'See room',
     scan: 'Scan QR code',
-    qrNoteTitle: 'At the meetup already?',
-    qrNoteBody: 'Ask your host for the QR code.',
     codeInvalid: 'Enter the 5 digits from the host.',
+    // UX3-A10: the code is checked on the 5th digit; a wrong code shows this red line under the boxes.
+    checking: 'Checking code',
+    noRoom: 'No room with that code. Check with your host.',
   },
   // Q 08.01
   scan: {

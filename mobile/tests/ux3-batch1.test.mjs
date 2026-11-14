@@ -43,3 +43,19 @@ test('UX3-A05: labels sit above the fields on Log in, Create account, Guest and 
   assert.match(src('app/guest.tsx'), /labelAbove/);
   assert.match(src('app/create-room.tsx'), /labelAbove\n\s+placeholder=\{en\.createRoom\.namePlaceholder\}/);
 });
+
+test('UX3-A10: the code goes on after the 5th digit; a wrong code shakes, buzzes once and shows the red line', () => {
+  const j = src('components/join-code-screen.tsx');
+  assert.match(j, /next\.length === CODE_LENGTH && next !== code\) void submit\(next\)/);
+  assert.doesNotMatch(j, /en\.join\.submit|qrNote|QCard|InkArt/);
+  assert.equal(j.match(/errorHaptic\(\)/g)?.length, 2, 'one definition, one call');
+  assert.match(j, /if \(reduceMotion !== false\) return;/);
+  assert.match(j, /e\.kind === 'invalid'/);
+  assert.match(j, /error: \{ fontSize: 15, color: colors\.errorText \}/);
+  const h = src('lib/join-code.ts');
+  const steps = [...h.matchAll(/\{ x: (-?\d+), ms: (\d+) \}/g)].map((m) => [Number(m[1]), Number(m[2])]);
+  assert.equal(steps.reduce((t, [, ms]) => t + ms, 0), 300);
+  assert.equal(Math.max(...steps.map(([x]) => Math.abs(x))), 6);
+  assert.equal(steps.at(-1)[0], 0);
+  assert.match(src('i18n/en.ts'), /noRoom: 'No room with that code\. Check with your host\.'/);
+});
