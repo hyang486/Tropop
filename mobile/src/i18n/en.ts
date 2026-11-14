@@ -523,6 +523,9 @@ export const en = {
     checkingSpoken: 'Checking for Emergencies.',
     // UX2-05b: the status picker when the status list failed to load.
     statusesFailed: "Couldn't load statuses.",
+    // UX2-108: the picker while the first status read runs (spoken without the ellipsis).
+    statusesLoading: 'Loading statuses…',
+    statusesLoadingSpoken: 'Loading statuses.',
     emergencyTile: 'Emergency',
     emergencyTileA11y: 'Emergency, alerts everyone in the room',
     emergencyNotSent: 'Emergency not sent',
