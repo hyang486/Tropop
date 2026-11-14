@@ -331,6 +331,12 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
     const ev = 'data' in res ? parseCalendarAdd(res.data) : null;
     if (!ev) {
       const code = 'error' in res ? res.error : 'other';
+      // 402 plan_limit: the server plan is not Plus (0032), so this goes to the Calendar Plus gate, as the diary does.
+      if (code === 'plan_limit') {
+        close();
+        router.push('/plan-preview');
+        return;
+      }
       setError(code === 'unclear' ? t.askErrors.unclear : code === 'rate_limited' ? t.askErrors.rate_limited : t.askErrors.other);
       setTries((n) => n + 1);
       return;

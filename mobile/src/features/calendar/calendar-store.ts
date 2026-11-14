@@ -1,5 +1,5 @@
 /**
- * Qrewing Calendar storage (phone only): the per-user calendar doc and the Plus preview flag in AsyncStorage,
+ * Qrewing Calendar storage: the per-user calendar doc (phone only) and the Plus flag (server user_plans, cached) in AsyncStorage,
  * with an in-memory copy and listeners so every screen sees one state. Writes are serialized per key.
  * Both keys are removed when the user signs out or the account is deleted (both end in SIGNED_OUT).
  */
@@ -19,6 +19,8 @@ import {
   type EventInput,
   mergeRooms,
   parseDoc,
+  planFromRead,
+  planSaveOutcome,
   plusPreviewKey,
   upsertEvent,
 } from './calendar-data';
@@ -102,24 +104,74 @@ export function useCalendar(uid: string | null | undefined): CalendarDoc | null 
   return useSyncExternalStore(subscribe, () => (uid ? (docs.get(uid) ?? null) : null));
 }
 
-async function loadPlus(uid: string): Promise<boolean> {
-  if (plus.has(uid)) return plus.get(uid)!;
-  let on = false;
+// 0032 is not in database.types.ts yet: user_plans / set_my_plan go through an untyped view of the client.
+// Regenerate the types after 0032 is applied and drop the cast.
+type UntypedPlans = {
+  rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ error: unknown }>;
+  from(table: string): {
+    select(cols: string): {
+      eq(col: string, v: string): { maybeSingle(): PromiseLike<{ data: { plan?: unknown } | null; error: unknown }> };
+    };
+  };
+};
+const plans = () => supabase as unknown as UntypedPlans;
+
+async function readCachedPlus(uid: string): Promise<boolean> {
   try {
-    on = (await AsyncStorage.getItem(plusPreviewKey(uid))) === '1';
-  } catch {}
-  if (!plus.has(uid)) plus.set(uid, on);
-  return plus.get(uid)!;
+    return (await AsyncStorage.getItem(plusPreviewKey(uid))) === '1';
+  } catch {
+    return false;
+  }
 }
 
-export async function setPlusPreview(uid: string, on: boolean) {
+async function writeCachedPlus(uid: string, on: boolean) {
   if (!mayWrite(uid, currentUid, authKnown)) return;
-  plus.set(uid, on);
-  emit();
   try {
     if (on) await AsyncStorage.setItem(plusPreviewKey(uid), '1');
     else await AsyncStorage.removeItem(plusPreviewKey(uid));
   } catch {}
+}
+
+/** Server plan first (user_plans, 0032); the local key is its cache and the fallback when 0032 is missing or offline. */
+async function loadPlus(uid: string): Promise<boolean> {
+  if (plus.has(uid)) return plus.get(uid)!;
+  let on = await readCachedPlus(uid);
+  let server: boolean | null = null;
+  try {
+    server = planFromRead(await plans().from('user_plans').select('plan').eq('user_id', uid).maybeSingle());
+  } catch {}
+  if (server !== null) {
+    on = server;
+    void writeCachedPlus(uid, on);
+  }
+  if (!plus.has(uid)) plus.set(uid, on);
+  return plus.get(uid)!;
+}
+
+/**
+ * Save the plan through set_my_plan. Before 0032 is live the local copy keeps it (no error). Any other failure
+ * flips the flag back and returns false so the screen shows the error.
+ */
+export async function setPlusPreview(uid: string, on: boolean): Promise<boolean> {
+  if (!mayWrite(uid, currentUid, authKnown)) return true;
+  const before = plus.get(uid) ?? false;
+  plus.set(uid, on);
+  emit();
+  let error: unknown = null;
+  try {
+    ({ error } = await plans().rpc('set_my_plan', { p_plan: on ? 'plus' : 'free' }));
+  } catch (e) {
+    error = e ?? new Error('set_my_plan failed');
+  }
+  if (planSaveOutcome(error) === 'revert') {
+    if (plus.get(uid) === on && mayWrite(uid, currentUid, authKnown)) {
+      plus.set(uid, before);
+      emit();
+    }
+    return false;
+  }
+  await writeCachedPlus(uid, on);
+  return true;
 }
 
 /** The Plus preview flag (null while loading). */

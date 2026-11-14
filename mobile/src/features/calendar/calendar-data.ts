@@ -177,6 +177,38 @@ export function mayWrite(uid: string, currentUid: string | null, authKnown: bool
   return !authKnown || uid === currentUid;
 }
 
+// Before 0032 is live public.user_plans / set_my_plan do not exist: the local copy stays the plan, with no error.
+const PLAN_MISSING = new Set(['42P01', 'PGRST205', '42883', 'PGRST202']);
+
+function errCode(error: unknown): string | undefined {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' ? code : undefined;
+}
+
+/** True when the error only says the 0032 plan table or RPC is not there yet. */
+export function planMissing(error: unknown): boolean {
+  const code = errCode(error);
+  return code !== undefined && PLAN_MISSING.has(code);
+}
+
+/**
+ * The user_plans read (select plan ... maybeSingle) → the Plus flag, or null to keep the local cache
+ * (0032 missing, offline or any read error). No row means free.
+ */
+export function planFromRead(res: { data: { plan?: unknown } | null; error: unknown }): boolean | null {
+  if (res.error) return null;
+  return res.data?.plan === 'plus';
+}
+
+/**
+ * set_my_plan result → what the switch does: 'saved' (server has it), 'local' (0032 missing: keep the local
+ * copy, no error) or 'revert' (any other failure: flip back and show the error).
+ */
+export function planSaveOutcome(error: unknown): 'saved' | 'local' | 'revert' {
+  if (!error) return 'saved';
+  return planMissing(error) ? 'local' : 'revert';
+}
+
 /** Sign-out and account deletion: both of the user's keys go. */
 export async function clearUserCalendar(storage: { multiRemove(keys: string[]): Promise<void> }, uid: string) {
   await storage.multiRemove([calendarKey(uid), plusPreviewKey(uid)]);
