@@ -427,7 +427,7 @@ function UploadRow({
         <Text numberOfLines={1} style={styles.jobName}>
           {size ? `${job.item.fileName} · ${size}` : job.item.fileName}
         </Text>
-        <Text numberOfLines={3} style={[styles.jobStatus, failed && !deadEnd && { color: colors.danger }]} selectable={failed && !deadEnd}>
+        <Text numberOfLines={3} style={[styles.jobStatus, failed && !deadEnd && { color: colors.errorText }]} selectable={failed && !deadEnd}>
           {status}
         </Text>
         {!failed ? (

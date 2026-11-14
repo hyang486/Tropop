@@ -320,6 +320,6 @@ const styles = StyleSheet.create({
   toolOnText: { color: colors.onTint },
   disabledText: { color: colors.secondaryLabel },
   hint: { fontSize: 14, color: colors.ink2 },
-  hintError: { color: colors.danger },
+  hintError: { color: colors.errorText },
   actions: { paddingHorizontal: qSpacing.side, paddingTop: 12, backgroundColor: colors.background },
 });
