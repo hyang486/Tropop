@@ -1,6 +1,6 @@
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { confirmEmergency, isEmergencyActiveNotice, StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';
@@ -15,6 +15,7 @@ import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
+import { setPaceWaiting } from './connection';
 import { breakRun, checkStationary, closeStationaryPrompt, feedFix, flushRun, runKey } from './engine';
 import { runStopped, targetSecPerKm, usualPace } from './pace-core';
 import { reloadHistory, usePaceSettings } from './settings';
@@ -45,13 +46,32 @@ export function PaceLayer({ roomId }: { roomId: string }) {
   const [room, setRoom] = useState<Room | null>(null);
   const load = useCallback(() => {
     getRoom(roomId)
-      .then((r) => setRoom(r))
-      .catch(() => {});
+      .then((r) => {
+        setPaceWaiting(roomId, false);
+        setRoom(r);
+      })
+      .catch(() => setPaceWaiting(roomId, true));
   }, [roomId]);
   useEffect(load, [load]);
-  useRoomEvents(roomId, (event) => {
-    if (event.table === 'rooms') load();
-  });
+  // UX2-118: retry on foreground and on reconnect.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') load();
+    });
+    return () => {
+      sub.remove();
+      setPaceWaiting(roomId, false);
+    };
+  }, [load, roomId]);
+  useRoomEvents(
+    roomId,
+    (event) => {
+      if (event.table === 'rooms') load();
+    },
+    (status) => {
+      if (status === 'SUBSCRIBED') load();
+    },
+  );
   if (!room || !userId || !paceApplies(room)) return null;
   return <PaceRunner room={room} userId={userId} />;
 }

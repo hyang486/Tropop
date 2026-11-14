@@ -15,6 +15,7 @@ import { useSharingState } from '@/lib/location';
 import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 import type { Room } from '@/lib/rooms';
 
+import { usePaceWaiting } from './connection';
 import { runKey, usePaceRun } from './engine';
 import { FIX_WAIT_MS, locationHint } from './location-hint';
 import {
@@ -53,6 +54,8 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
   const late = useWaitedLong(waiting);
   // UX2-120: the switch reverted after a failed save.
   const [switchFailed, setSwitchFailed] = useState(false);
+  // UX2-118: the layer could not read the room.
+  const offline = usePaceWaiting(room.id);
   if (!paceApplies(room)) return null;
   // capacity B item 4: the caller's own plan, not the host's. C14: the gate shows only for a confirmed Free plan;
   // while the plan loads the card keeps its title row empty, and offline with no known plan it says so.
@@ -116,7 +119,9 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
         <>
           <Hint>{t.mapOnly}</Hint>
           {!active ? <Hint>{t.needsActivity}</Hint> : null}
-          {hint === 'finding' || hint === 'still' ? (
+          {offline && !hasFix ? (
+            <Hint>{t.waitingConnection}</Hint>
+          ) : hint === 'finding' || hint === 'still' ? (
             <Hint>{hint === 'still' ? t.stillFinding : t.findingLocation}</Hint>
           ) : null}
           {stats ? <StatsRow {...stats} /> : null}

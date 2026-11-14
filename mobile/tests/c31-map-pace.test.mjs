@@ -87,3 +87,12 @@ test('UX2-87: one ink2 location-off block under Share with a primary Open Settin
   assert.match(map, /locate === 'denied' \|\| locate === 'settings' \? \(\s*<>\s*<Hint>\{en\.pace\.locationOff\}<\/Hint>/);
   assert.doesNotMatch(src('features/pace/pace-card.tsx'), /t\.locationOff/);
 });
+
+test('UX2-118: a failed room read makes the card wait for a connection; retried on reconnect and foreground', () => {
+  assert.equal(en.pace.waitingConnection, 'Pace maker is waiting for a connection.');
+  const layer = src('features/pace/pace-layer.tsx');
+  assert.match(layer, /\.catch\(\(\) => setPaceWaiting\(roomId, true\)\)/);
+  assert.match(layer, /status === 'SUBSCRIBED'\) load\(\)/);
+  assert.match(layer, /next === 'active'\) load\(\)/);
+  assert.match(src('features/pace/pace-card.tsx'), /offline && !hasFix \? \(\s*<Hint>\{t\.waitingConnection\}<\/Hint>/);
+});

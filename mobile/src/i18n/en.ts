@@ -595,6 +595,8 @@ export const en = {
     noTarget: 'No target yet. Run once, or set a target pace.',
     // C14 sweep 7: no position yet, or location is off.
     findingLocation: 'Finding your location…',
+    // UX2-118
+    waitingConnection: 'Pace maker is waiting for a connection.',
     stillFinding: 'Still looking for GPS. Moving outside can help.',
     locationOff: 'Location is off for Qrew.',
     openSettings: 'Open Settings',
