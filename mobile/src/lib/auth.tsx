@@ -6,6 +6,7 @@ import { en } from '@/i18n/en';
 import { checkAccount } from './account-check';
 import { clearImageDiskCache } from './image-cache';
 import { cancelAllUploads, clearAllRoomCaches } from './media';
+import { clearAllNotices } from './room-notices';
 import { cancelAllExpiryReminders } from './expiry-reminders';
 import { resetLocalLocation, stopMyLocation, stopMyLocationOnLaunch } from './location';
 import type { Tables } from './database.types';
@@ -134,6 +135,7 @@ export async function verifyAccount(): Promise<'ok' | 'gone' | 'unknown' | 'sign
   cancelAllUploads();
   resetLocalLocation();
   clearAllRoomCaches();
+  clearAllNotices();
   await supabase.auth.signOut({ scope: 'local' });
   return 'gone';
 }
@@ -212,6 +214,7 @@ export async function deleteAccount() {
   if (error) throw error;
   resetLocalLocation();
   clearAllRoomCaches();
+  clearAllNotices();
   cancelAllExpiryReminders();
   await supabase.auth.signOut({ scope: 'local' });
 }
@@ -223,5 +226,6 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   clearAllRoomCaches();
+  clearAllNotices();
   cancelAllExpiryReminders();
 }

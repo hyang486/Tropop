@@ -30,25 +30,31 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
   const usual = usualPace(settings.history);
   const goal = targetSecPerKm(settings.target, usual);
   const stats = run?.tracker.lastFix
-    ? t.stats(
-        run.tracker.distanceM,
-        formatDuration(run.tracker.movingMs / 1000),
-        formatPace(run.recent),
-      )
+    ? {
+        km: (run.tracker.distanceM / 1000).toFixed(2),
+        moving: formatDuration(run.tracker.movingMs / 1000),
+        pace: formatPace(run.recent),
+        spoken: t.stats(run.tracker.distanceM, formatDuration(run.tracker.movingMs / 1000), formatPace(run.recent)),
+      }
     : null;
 
   return (
     <View style={styles.group}>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <Switch value={settings.on} onValueChange={(on) => setOn(room.id, on)} accessibilityLabel={t.title} />
+        <Switch
+          value={settings.on}
+          onValueChange={(on) => setOn(room.id, on)}
+          accessibilityLabel={t.title}
+          trackColor={{ true: colors.tint }}
+        />
       </View>
       <Hint>{t.switchHint}</Hint>
       {settings.on ? (
         <>
           {!share ? <Hint tone="error">{t.needsSharing}</Hint> : !active ? <Hint>{t.needsActivity}</Hint> : null}
-          {stats ? <Text style={styles.stats}>{stats}</Text> : null}
-          <TargetEditor target={settings.target} usual={usual} />
+          {stats ? <StatsRow {...stats} /> : null}
+          <TargetEditor target={settings.target} usual={usual} goal={goal} />
           {goal == null ? <Hint>{t.noTarget}</Hint> : null}
         </>
       ) : null}
@@ -56,9 +62,32 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
   );
 }
 
+/** Spec 11 A19: full-width stats, Strava/NRC style: big numbers, small labels. VoiceOver reads one line. */
+function StatsRow({ km, moving, pace, spoken }: { km: string; moving: string; pace: string | null; spoken: string }) {
+  const cells = [
+    { value: km, label: t.statKm },
+    { value: moving, label: t.statMoving },
+    { value: pace ?? '–', label: t.statPace },
+  ];
+  return (
+    <View style={styles.statsRow} accessible accessibilityLabel={spoken}>
+      {cells.map((c, i) => (
+        <View key={c.label} style={[styles.statCell, i > 0 && styles.statDivider]}>
+          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+            {c.value}
+          </Text>
+          <Text style={styles.statLabel} numberOfLines={1}>
+            {c.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 type Mode = PaceTarget['kind'];
 
-function TargetEditor({ target, usual }: { target: PaceTarget; usual: number | null }) {
+function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: number | null; goal: number | null }) {
   const [mode, setMode] = useState<Mode>(target.kind);
   // E2E (j): prefilled with my target or usual pace; with neither, empty under an "e.g." hint.
   const [pace, setPace] = useState(formatPace(initialPaceSec(target, usual)) ?? '');
@@ -95,10 +124,11 @@ function TargetEditor({ target, usual }: { target: PaceTarget; usual: number | n
     setSaved(true);
   }
 
-  const options: { mode: Mode; label: string }[] = [
-    { mode: 'usual', label: t.targetUsual(formatPace(usual)) },
-    { mode: 'pace', label: t.targetPace },
-    { mode: 'time', label: t.targetTime },
+  // Short segment labels on one line; VoiceOver keeps the full names.
+  const options: { mode: Mode; label: string; a11y: string }[] = [
+    { mode: 'usual', label: t.segUsual, a11y: t.targetUsual(formatPace(usual)) },
+    { mode: 'pace', label: t.segPace, a11y: t.targetPace },
+    { mode: 'time', label: t.segTime, a11y: t.targetTime },
   ];
   const shown =
     mode === 'pace' || mode === 'time'
@@ -115,20 +145,28 @@ function TargetEditor({ target, usual }: { target: PaceTarget; usual: number | n
       : null;
 
   return (
+    // Spec 11 A19: one outlined box: the saved target on the head line, a one-line segmented control, then the
+    // fields for the chosen kind.
     <View style={styles.target}>
-      <Text style={styles.label} accessibilityRole="header">
-        {t.target}
-      </Text>
-      <View style={styles.chips}>
-        {options.map((o) => (
+      <View style={styles.targetHead}>
+        <Text style={styles.label} accessibilityRole="header">
+          {t.target}
+        </Text>
+        <Text style={styles.targetNow}>{t.targetNow(formatPace(goal))}</Text>
+      </View>
+      <View style={styles.segments} accessibilityRole="radiogroup">
+        {options.map((o, i) => (
           <Pressable
             key={o.mode}
             accessibilityRole="radio"
+            accessibilityLabel={o.a11y}
             accessibilityState={{ selected: mode === o.mode }}
             onPress={() => choose(o.mode)}
-            style={[styles.chip, mode === o.mode && styles.chipOn]}
+            style={[styles.segment, i > 0 && styles.segmentDivider, mode === o.mode && styles.segmentOn]}
           >
-            <Text style={[styles.chipText, mode === o.mode && styles.chipTextOn]}>{o.label}</Text>
+            <Text style={[styles.segmentText, mode === o.mode && styles.segmentTextOn]} numberOfLines={1}>
+              {o.label}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -190,35 +228,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.field,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: colors.separator,
     borderRadius: 12,
     borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   switchLabel: { fontSize: 17, color: colors.label, flexShrink: 1 },
-  stats: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: colors.label,
-    fontVariant: ['tabular-nums'],
+  statsRow: { flexDirection: 'row', paddingVertical: 8 },
+  statCell: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
+  statDivider: { borderLeftWidth: StyleSheet.hairlineWidth * 2, borderLeftColor: colors.separator },
+  statValue: { fontSize: 40, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 13, color: colors.secondaryLabel, marginTop: 2 },
+  target: {
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: colors.separator,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    padding: 14,
   },
-  target: { gap: 8 },
-  label: { fontSize: 15, fontWeight: '600', color: colors.label },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    backgroundColor: colors.field,
+  targetHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+  label: { fontSize: 17, fontWeight: '600', color: colors.label },
+  targetNow: { fontSize: 17, color: colors.label, fontVariant: ['tabular-nums'] },
+  segments: {
+    flexDirection: 'row',
+    borderWidth: 1.5,
+    borderColor: colors.tint,
     borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    overflow: 'hidden',
   },
-  chipOn: { backgroundColor: colors.tint },
-  chipText: { fontSize: 15, color: colors.label },
-  chipTextOn: { color: colors.onTint },
+  segment: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  segmentDivider: { borderLeftWidth: 1.5, borderLeftColor: colors.tint },
+  segmentOn: { backgroundColor: colors.tint },
+  segmentText: { fontSize: 15, color: colors.label },
+  segmentTextOn: { color: colors.onTint, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
     minWidth: 88,
-    backgroundColor: colors.field,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: colors.separator,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,

@@ -14,10 +14,9 @@ import {
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 
-import { StatusPicker } from '@/components/status-picker';
 import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
+import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
 import { createAnnouncer, seenSummary } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
@@ -167,7 +166,7 @@ export function EmergencyAlerts({
 }
 
 /** Live positions only while an Emergency is open (no presence traffic on screens that do not need it). */
-function useEmergencyPresence(roomId: string, activity: ReturnType<typeof useRoomActivity>) {
+export function useEmergencyPresence(roomId: string, activity: ReturnType<typeof useRoomActivity>) {
   return useLivePresence(roomId, activity.emergencies.length > 0).rows;
 }
 
@@ -197,96 +196,6 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
   return (
     <View style={style}>
       <EmergencyAlerts roomId={roomId} activity={activity} userId={userId} names={names} presence={presence} />
-    </View>
-  );
-}
-
-/**
- * Q 03.01 / 04.03: under the chat tabs, the Arrived and Set status pills, then open Emergencies. Set status
- * opens the Q 03.02 sheet. `hideControls` (keyboard open) keeps only the Emergency cards, so typing keeps the
- * message space.
- */
-export function RoomActivityBar({
-  roomId,
-  activitySeq,
-  userId,
-  names,
-  hideControls,
-}: {
-  roomId: string;
-  activitySeq: number;
-  userId: string | undefined;
-  names: Map<string, string>;
-  hideControls?: boolean;
-}) {
-  const activity = useRoomActivity(roomId, userId, activitySeq);
-  const presence = useEmergencyPresence(roomId, activity);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [picking, setPicking] = useState(false);
-
-  async function run(key: string, action: () => Promise<void>) {
-    setBusy(key);
-    try {
-      await action();
-    } catch (e) {
-      Alert.alert(en.activity.actionFailed, errorMessage(e));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const myStatusId = userId ? activity.memberStatus.get(userId) : undefined;
-  const myStatus = activity.statuses.find((s) => s.id === myStatusId);
-
-  function pick(def: StatusDefinition) {
-    setPicking(false);
-    if (def.id === myStatusId) return;
-    if (def.is_emergency) {
-      Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [
-        { text: en.room.cancel, style: 'cancel' },
-        { text: en.activity.sendEmergency, style: 'destructive', onPress: () => run('status', () => activity.setStatus(def.id)) },
-      ]);
-    } else {
-      run('status', () => activity.setStatus(def.id));
-    }
-  }
-
-  function clear() {
-    setPicking(false);
-    if (myStatusId) run('status', activity.clearStatus);
-  }
-
-  if (!userId || activity.loading) return null;
-
-  return (
-    <View style={styles.wrap}>
-      {hideControls ? null : (
-        <View style={styles.row}>
-          <Chip
-            label={activity.myArrivedAt ? en.activity.arrivedAt(timeOf(activity.myArrivedAt)) : en.activity.arrived}
-            // UI v2 bug 7 (qa, 2026-11-13): filled read as "selected" before arriving; it fills once I have arrived.
-            filled={!!activity.myArrivedAt}
-            selected={!!activity.myArrivedAt}
-            busy={busy === 'arrive'}
-            onPress={activity.myArrivedAt ? undefined : () => run('arrive', activity.arrive)}
-          />
-          <Chip
-            label={myStatus ? en.activity.statusValue(myStatus.label) : en.activity.setStatus}
-            danger={myStatus?.is_emergency}
-            busy={busy === 'status'}
-            onPress={() => setPicking(true)}
-          />
-        </View>
-      )}
-      <EmergencyAlerts roomId={roomId} activity={activity} userId={userId} names={names} presence={presence} />
-      <StatusPicker
-        visible={picking}
-        statuses={activity.statuses}
-        currentId={myStatusId}
-        onPick={pick}
-        onClear={clear}
-        onClose={() => setPicking(false)}
-      />
     </View>
   );
 }
@@ -347,9 +256,7 @@ function TextAction({ label, onPress, busy }: { label: string; onPress: () => vo
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 24, paddingBottom: 8, gap: 10 },
   alerts: { gap: 8 },
-  row: { flexDirection: 'row', gap: 8 },
   chip: {
     flexShrink: 1,
     minHeight: 32,
@@ -364,18 +271,17 @@ const styles = StyleSheet.create({
   chipTextFilled: { color: colors.onTint },
   chipDanger: { color: colors.danger },
   emergency: {
+    // Spec 11 A17: no red side bar; the pale red field and the warning icon carry the signal, the text is black.
     backgroundColor: colors.dangerField,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.danger,
     borderRadius: 12,
     borderCurve: 'continuous',
     padding: 14,
     gap: 4,
   },
   emergencyHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  emergencyTitle: { flexShrink: 1, fontSize: 18, color: colors.danger },
+  emergencyTitle: { flexShrink: 1, fontSize: 18, fontWeight: '600', color: colors.label },
   emergencyMeta: { fontSize: 13, color: colors.label },
   emergencyActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 6 },
   textAction: { paddingVertical: 4 },
-  textActionText: { fontSize: 14, color: colors.danger },
+  textActionText: { fontSize: 14, color: colors.label, textDecorationLine: 'underline' },
 });

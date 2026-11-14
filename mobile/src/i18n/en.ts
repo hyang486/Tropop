@@ -295,6 +295,25 @@ export const en = {
     shared: (who: string, body: string) => `${who} ${body}`,
     sharedFallback: 'shared a photo or file',
     openPhotosHint: 'Opens Photos',
+    // Spec 11 A9: the header bell.
+    notices: 'Notices',
+    noticesA11y: (unread: number) => (unread > 0 ? `Notices, ${unread} new` : 'Notices'),
+    noNotices: 'Nothing new. Room notices show up here.',
+    emergencyNotice: (name: string) => `${name} needs help`,
+    // Spec 11 A12: the header gear.
+    settings: 'Room settings',
+    // Spec 11 A11: the "+" panel left of the composer.
+    more: 'More',
+    moreClose: 'Close',
+    arrivedTile: 'Arrived',
+    statusTile: 'Set status',
+    // Spec 11 A13: the host's important message pinned on top.
+    pinnedExpand: 'Show the whole notice',
+    pinnedCollapse: 'Fold the notice',
+    pinnedOpen: 'Show in chat',
+    pinnedDismiss: 'Hide the notice',
+    // Spec 11 A14: the tag next to the host's name.
+    hostTag: 'Host',
   },
   media: {
     title: 'Photos & files',
@@ -440,6 +459,14 @@ export const en = {
       `Pace maker: ${(distanceM / 1000).toFixed(2)} km, moving ${moving}, total ${total}, ${pace} per km`,
     stats: (distanceM: number, duration: string, pace: string | null) =>
       `${(distanceM / 1000).toFixed(2)} km · ${duration}${pace ? ` · ${pace} per km` : ''}`,
+    // Spec 11 A19: big stats row (Strava/NRC: big numbers, small labels) and the target box.
+    statKm: 'km',
+    statMoving: 'Moving',
+    statPace: 'Pace per km',
+    segUsual: 'Usual',
+    segPace: 'Pace',
+    segTime: 'Time',
+    targetNow: (pace: string | null) => (pace ? `${pace} per km` : 'Not set'),
     // Cues (spoken when voice is available; otherwise a vibration and this banner).
     cueKm: (n: number, pace: string | null, target: string | null) =>
       `Kilometer ${n}${pace ? `: ${pace} per km` : ''}${target ? `, target ${target}` : ''}.`,
@@ -472,7 +499,8 @@ export const en = {
     reporter: {
       off: '',
       starting: 'Finding your position…',
-      sharing: 'Sharing your position',
+      // Spec 11 A19: no line while sharing works (the switch already says it is on).
+      sharing: '',
       'no-permission': 'Location access was turned off, so sharing stopped.',
       error: 'Could not send your position. Retrying…',
       refused: 'Sharing stopped because the activity or room settings changed.',
