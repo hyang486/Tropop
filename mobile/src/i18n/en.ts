@@ -371,6 +371,8 @@ export const en = {
     hostTag: 'Host',
   },
   media: {
+    // UX2-37: the viewer's photo failed to load.
+    photoLoadFailed: "Couldn't load this photo.",
     title: 'Photos & files',
     headerLink: 'Photos',
     all: 'All',

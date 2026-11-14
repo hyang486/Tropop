@@ -294,18 +294,7 @@ function MediaDetail({
         }}
       />
       {media.kind === 'photo' ? (
-        <Image
-          source={{ uri: objectUrl(media.original_path), headers: authHeaders(token), cacheKey: media.original_path }}
-          placeholder={
-            media.preview_path
-              ? { uri: objectUrl(media.preview_path), headers: authHeaders(token), cacheKey: media.preview_path }
-              : undefined
-          }
-          style={[styles.visual, aspect(media)]}
-          contentFit="contain"
-          cachePolicy="memory"
-          accessibilityLabel={media.file_name}
-        />
+        <Photo media={media} token={token} />
       ) : media.kind === 'video' ? (
         <Player media={media} token={token} />
       ) : (
@@ -320,6 +309,43 @@ function MediaDetail({
   );
 }
 
+/** UX2-37: a load failure shows ink2 copy and Try again (remounts the image) instead of an empty box. */
+function Photo({ media, token }: { media: Media; token: string }) {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <View style={[styles.visual, styles.failedBox, aspect(media)]}>
+        <Hint>{en.media.photoLoadFailed}</Hint>
+        <Button
+          title={en.home.retry}
+          variant="secondary"
+          onPress={() => {
+            setFailed(false);
+            setAttempt((n) => n + 1);
+          }}
+        />
+      </View>
+    );
+  }
+  return (
+    <Image
+      key={attempt}
+      source={{ uri: objectUrl(media.original_path), headers: authHeaders(token), cacheKey: media.original_path }}
+      placeholder={
+        media.preview_path
+          ? { uri: objectUrl(media.preview_path), headers: authHeaders(token), cacheKey: media.preview_path }
+          : undefined
+      }
+      style={[styles.visual, aspect(media)]}
+      contentFit="contain"
+      cachePolicy="memory"
+      accessibilityLabel={media.file_name}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function Player({ media, token }: { media: Media; token: string }) {
   const player = useVideoPlayer({ uri: objectUrl(media.original_path), headers: authHeaders(token) });
   return <VideoView player={player} style={[styles.visual, aspect(media)]} nativeControls contentFit="contain" />;
@@ -330,7 +356,8 @@ function aspect(media: Media) {
 }
 
 const styles = StyleSheet.create({
-  visual: { width: '100%', maxHeight: 520, borderRadius: 12, borderCurve: 'continuous', backgroundColor: 'black' },
+  visual: { width: '100%', maxHeight: 520, borderRadius: 12, borderCurve: 'continuous', backgroundColor: colors.field },
+  failedBox: { alignItems: 'center', justifyContent: 'center', gap: 12, padding: 16 },
   fileBox: {
     height: 160,
     alignItems: 'center',
