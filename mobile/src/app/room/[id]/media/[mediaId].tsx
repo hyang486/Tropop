@@ -75,7 +75,9 @@ export default function MediaScreen() {
         media.kind === 'photo' && userId ? await myVisibleMatch(id, userId, media.id).catch(() => null) : null;
       setState({ status: 'ready', room, media, uploader, matchEnrollment });
     } catch (e) {
-      setState({ status: 'error', message: errorMessage(e) });
+      // Sweep fix 7: a failed background reload (a rooms / room_members notice) keeps the open item and its
+      // Save / Share; only a first load that fails shows the error.
+      setState((s) => (s.status === 'ready' ? s : { status: 'error', message: errorMessage(e) }));
     }
   }, [id, mediaId, userId]);
 

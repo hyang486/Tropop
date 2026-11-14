@@ -61,3 +61,8 @@ test('fix 6: Photos pull to refresh shows its spinner until the read answers', (
   assert.match(gallery, /setPulling\(true\);\n\s+try \{\n\s+await reloadMedia\(\);\n\s+\} finally \{\n\s+setPulling\(false\);/);
   assert.doesNotMatch(gallery, /refreshing=\{false\}/);
 });
+
+test('fix 7: a failed background reload in the viewer keeps the open item and its actions', () => {
+  const viewer = read('app/room/[id]/media/[mediaId].tsx');
+  assert.match(viewer, /setState\(\(s\) => \(s\.status === 'ready' \? s : \{ status: 'error', message: errorMessage\(e\) \}\)\)/);
+});
