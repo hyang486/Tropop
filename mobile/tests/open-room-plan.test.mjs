@@ -120,3 +120,9 @@ test('BUG-OC1: Open chat re-reads only on a return to the foreground', () => {
   assert.equal(p.cameToForeground('active', 'background'), false);
   assert.equal(p.cameToForeground('inactive', 'background'), false);
 });
+
+test('UX P1-10: the People hint names the plan maxima, not a fixed 30', async () => {
+  const { en } = await import('../src/i18n/en.ts');
+  assert.equal(en.createRoom.capacityHintFree(p.capacityMax(false), p.capacityMax(true)), 'Free rooms hold up to 6. Plus up to 30.');
+  assert.equal(en.createRoom.capacityHintPlus(p.capacityMax(true)), 'Plus rooms hold up to 30.');
+});

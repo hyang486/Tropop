@@ -28,6 +28,7 @@ import { InkSwitch } from '@/features/event/ink-switch';
 import {
   type Capacity,
   capacityEnds,
+  capacityMax,
   defaultRoomIcon,
   isPlanLimit,
   MAX_AREA,
@@ -378,7 +379,7 @@ export default function CreateRoom() {
               maxLength={capacityDraft === null ? undefined : 2}
               selectTextOnFocus
               accessibilityLabel={en.createRoom.capacityLabel}
-              accessibilityHint={plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree}
+              accessibilityHint={capacityHint(plus)}
             />
             <Pressable
               accessibilityRole="button"
@@ -395,7 +396,7 @@ export default function CreateRoom() {
               <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
             </Pressable>
           </View>
-          <Hint>{plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree}</Hint>
+          <Hint>{capacityHint(plus)}</Hint>
 
           {/* Spec 11 D: Private (code or QR) or Public (listed in Open chat, joins without a code). */}
           <QLabel>{en.createRoom.visibilityLabel}</QLabel>
@@ -610,6 +611,13 @@ const outline = {
   borderRadius: 12,
   borderCurve: 'continuous',
 } as const;
+
+/** UX P1-10: the People hint names the plan maxima, so it follows FREE/PLUS_MAX_MEMBERS. */
+function capacityHint(plus: boolean | null): string {
+  return plus
+    ? en.createRoom.capacityHintPlus(capacityMax(true))
+    : en.createRoom.capacityHintFree(capacityMax(false), capacityMax(true));
+}
 
 const styles = StyleSheet.create({
   bar: { ...createBarLayout, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
