@@ -9,6 +9,7 @@ import { QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, size, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { errorKind } from '@/lib/error-kind';
 import { errorMessage } from '@/lib/errors';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
@@ -32,6 +33,8 @@ export default function Rooms() {
   const now = useNow();
   const [rooms, setRooms] = useState<RoomWithCount[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // UX2-26: while Rooms already says offline, Open chat hides its own load error.
+  const [offline, setOffline] = useState(false);
   // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
   const [refreshing, setRefreshing] = useState(false);
   const [openChatKey, setOpenChatKey] = useState(0);
@@ -45,6 +48,7 @@ export default function Rooms() {
       const list = await listMyRooms();
       setRooms(list);
       setError(null);
+      setOffline(false);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
       // Spec 10.4: Ask Qrewing history goes once a room ended (grace counts as ended), expired or was left.
@@ -60,6 +64,7 @@ export default function Rooms() {
       );
     } catch (e) {
       setError(`${en.home.loadFailed} ${errorMessage(e)}`);
+      setOffline(errorKind(e) === 'offline');
     }
   }, [uid]);
 
@@ -197,7 +202,7 @@ export default function Rooms() {
         })}
 
         {/* Spec 11 D: public rooms anyone can join without a code (hidden until 0031 is live). */}
-        <OpenChatSection refreshKey={openChatKey} onNotice={showNotice} />
+        <OpenChatSection refreshKey={openChatKey} onNotice={showNotice} roomsOffline={offline} />
       </QScreen>
     </>
   );

@@ -6,7 +6,7 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar';
 import { QLabel } from '@/components/q-screen';
-import { colors, Hint } from '@/components/ui';
+import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { RoomError } from '@/lib/rooms';
@@ -26,12 +26,23 @@ function rowWhen(room: OpenRoom, now: Date) {
 /**
  * `refreshKey`: Rooms bumps it on pull to refresh; each change re-reads the list (BUG-OC1).
  * `onNotice` (UX P1-6): a join that fails once (full, closed) is a snackbar on Rooms, not a red line that stays.
+ * `roomsOffline` (UX2-26): Rooms already shows its offline error, so this section's load error is hidden; otherwise
+ * it is pattern E (red line + "Try again", busy until the read answers).
  */
-export function OpenChatSection({ refreshKey = 0, onNotice }: { refreshKey?: number; onNotice: (text: string) => void }) {
+export function OpenChatSection({
+  refreshKey = 0,
+  onNotice,
+  roomsOffline = false,
+}: {
+  refreshKey?: number;
+  onNotice: (text: string) => void;
+  roomsOffline?: boolean;
+}) {
   const router = useRouter();
   const [rooms, setRooms] = useState<OpenRoom[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   const load = useCallback(() => {
     let live = true;
@@ -41,7 +52,8 @@ export function OpenChatSection({ refreshKey = 0, onNotice }: { refreshKey?: num
         setRooms(joinableOpenRooms(rows));
         setError(null);
       })
-      .catch(() => live && setError(en.openChat.loadFailed));
+      .catch(() => live && setError(en.openChat.loadFailed))
+      .finally(() => live && setRetrying(false));
     return () => {
       live = false;
     };
@@ -99,7 +111,20 @@ export function OpenChatSection({ refreshKey = 0, onNotice }: { refreshKey?: num
   return (
     <View style={styles.section}>
       <QLabel>{en.openChat.section}</QLabel>
-      {error ? <Hint tone="error">{error}</Hint> : null}
+      {error && !roomsOffline ? (
+        <>
+          <Hint tone="error">{error}</Hint>
+          <Button
+            title={en.errors.tryAgain}
+            variant="secondary"
+            busy={retrying}
+            onPress={() => {
+              setRetrying(true);
+              load();
+            }}
+          />
+        </>
+      ) : null}
       {rooms && rooms.length === 0 ? <Hint>{en.openChat.empty}</Hint> : null}
       {rooms?.map((room) => (
         <Pressable
