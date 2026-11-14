@@ -573,6 +573,11 @@ export const en = {
     invalidPace: 'Enter a pace like 5:30.',
     invalidTime: 'Enter a distance in km and a time like 50:00 or 1:45:00.',
     noTarget: 'No target yet. Run once, or set a target pace.',
+    // C14 sweep 7: no position yet, or location is off.
+    findingLocation: 'Finding your location…',
+    stillFinding: 'Still looking for GPS. Moving outside can help.',
+    locationOff: 'Location is off for Qrew.',
+    openSettings: 'Open Settings',
     // The recap's pace line (features/recap shows it under my part; spec 3.3).
     recap: (distanceM: number, moving: string, total: string, pace: string) =>
       `Pace maker: ${(distanceM / 1000).toFixed(2)} km, moving ${moving}, total ${total}, ${pace} per km`,

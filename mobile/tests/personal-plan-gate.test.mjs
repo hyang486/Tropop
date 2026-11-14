@@ -20,7 +20,8 @@ test('pace maker: Plus on the caller plan only; Free shows the Plus link, the ru
   assert.match(layer, /export function paceAllowed\(plus: boolean \| null\): boolean \{\s*return plus === true;/);
   assert.match(layer, /const plus = usePlusPreview\(userId\);\s*const running = .*&& paceAllowed\(plus\);/);
   const card = src('features/pace/pace-card.tsx');
-  assert.match(card, /if \(plus === false\) \{/);
+  assert.match(card, /const plan = usePlanState\(userId\);/);
+  assert.match(card, /if \(plan === 'free'\) \{/);
   assert.match(card, /plusIntroHref\('pace'\)/);
   assert.match(card, /disabled=\{!share \|\| !paceAllowed\(plus\)\}/);
   assert.match(src('app/room/[id]/map.tsx'), /<PaceCard room=\{room\} share=\{my\.share\} userId=\{userId\} \/>/);

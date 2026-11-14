@@ -1,18 +1,20 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReduceMotion } from '@/components/enter-view';
 import { HandTitle } from '@/components/hand-title';
 import { QLink, qSpacing } from '@/components/q-screen';
 import { Button, colors, Hint, radius, size, space, textRole } from '@/components/ui';
-import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { usePlanState } from '@/features/calendar/calendar-store';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { InkSwitch } from '@/features/event/ink-switch';
+import { useSharingState } from '@/lib/location';
 import type { Room } from '@/lib/rooms';
 
 import { runKey, usePaceRun } from './engine';
+import { FIX_WAIT_MS, locationHint } from './location-hint';
 import {
   formatDuration,
   formatPace,
@@ -41,11 +43,31 @@ const t = en.pace;
 export function PaceCard({ room, share, userId }: { room: Room; share: boolean; userId: string | undefined }) {
   const settings = usePaceSettings(room.id);
   const run = usePaceRun(runKey(room.id, room.activity_seq));
-  const plus = usePlusPreview(userId);
+  const plan = usePlanState(userId);
+  const sharing = useSharingState(room.id);
   const router = useRouter();
+  const hasFix = !!run?.tracker.lastFix;
+  const waiting = settings.on && share && plan === 'plus' && !hasFix;
+  const late = useWaitedLong(waiting);
   if (!paceApplies(room)) return null;
-  // capacity B item 4: the caller's own plan, not the host's. Free sees why and a way to Plus; null = still loading.
-  if (plus === false) {
+  // capacity B item 4: the caller's own plan, not the host's. C14: the gate shows only for a confirmed Free plan;
+  // while the plan loads the card keeps its title row empty, and offline with no known plan it says so.
+  if (plan === 'loading') {
+    return (
+      <View style={styles.group}>
+        <Text style={styles.switchLabel}>{t.title}</Text>
+      </View>
+    );
+  }
+  if (plan === 'offline') {
+    return (
+      <View style={styles.group}>
+        <Text style={styles.switchLabel}>{t.title}</Text>
+        <Hint>{en.media.planOffline}</Hint>
+      </View>
+    );
+  }
+  if (plan === 'free') {
     return (
       <View style={styles.group}>
         <Text style={styles.switchLabel}>{t.title}</Text>
@@ -55,6 +77,8 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
       </View>
     );
   }
+  const plus = plan === 'plus';
+  const hint = waiting ? locationHint({ sharing, hasFix, late }) : sharing === 'no-permission' ? 'denied' : null;
   const active = room.activity_state === 'active';
   const usual = usualPace(settings.history);
   const goal = targetSecPerKm(settings.target, usual);
@@ -80,9 +104,18 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
         />
       </View>
       <Hint>{share ? t.switchHint : t.needsSharing}</Hint>
+      {hint === 'denied' ? (
+        <>
+          <Hint tone="error">{t.locationOff}</Hint>
+          <Button title={t.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
+        </>
+      ) : null}
       {settings.on && share && paceAllowed(plus) ? (
         <>
           {!active ? <Hint>{t.needsActivity}</Hint> : null}
+          {hint === 'finding' || hint === 'still' ? (
+            <Hint>{hint === 'still' ? t.stillFinding : t.findingLocation}</Hint>
+          ) : null}
           {stats ? <StatsRow {...stats} /> : null}
           <TargetRow target={settings.target} usual={usual} goal={goal} current={run?.recent ?? null} />
           {goal == null ? <Hint>{t.noTarget}</Hint> : null}
@@ -90,6 +123,18 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
       ) : null}
     </View>
   );
+}
+
+/** C14 sweep 7: true once `waiting` has stayed true for FIX_WAIT_MS; false again when it turns false. */
+function useWaitedLong(waiting: boolean): boolean {
+  const [late, setLate] = useState(false);
+  if (!waiting && late) setLate(false);
+  useEffect(() => {
+    if (!waiting) return;
+    const id = setTimeout(() => setLate(true), FIX_WAIT_MS);
+    return () => clearTimeout(id);
+  }, [waiting]);
+  return waiting && late;
 }
 
 /** Spec 11 A19, UX P1-9: 34 pt tabular numbers, 13 pt labels under them, left aligned. VoiceOver reads one line. */
