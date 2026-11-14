@@ -16,7 +16,7 @@ test('only PT507 room_storage_full counts as a full room', () => {
 });
 
 test('the copy is the approved line', () => {
-  assert.equal(en.media.roomStorageFull, "This room's space is full. Older videos stay; new ones can be photos.");
+  assert.equal(en.media.roomStorageFull, "This room's space is full. Only files that fit the space left can be added.");
 });
 
 test('runJob maps both the insert and the ready update through the room-space check', () => {
