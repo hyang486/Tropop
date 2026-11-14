@@ -90,6 +90,9 @@ export default function CreateRoom() {
   // Spec 11 B/D: capacity ("No limit" = the plan maximum) and who can join. A public room needs an icon (follows the
   // type until picked) and an area for Open chat.
   const [capacity, setCapacity] = useState<Capacity>('none');
+  // + is off at No limit or the plan max; − is off at 2. Without the dim they looked tappable but did nothing.
+  const atMin = capacity !== 'none' && capacity <= MIN_MEMBERS;
+  const atMax = capacity === 'none' || capacity >= capacityMax(plus);
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [pickedIcon, setPickedIcon] = useState<string | null>(null);
   const icon = pickedIcon ?? defaultRoomIcon(type);
@@ -324,7 +327,9 @@ export default function CreateRoom() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={en.createRoom.fewerPeople}
-              disabled={capacity !== 'none' && capacity <= MIN_MEMBERS}
+              disabled={atMin}
+              accessibilityState={{ disabled: atMin }}
+              style={atMin && styles.stepOff}
               onPress={() => setCapacity(stepCapacity(capacity, -1, plus))}
               hitSlop={8}
             >
@@ -345,7 +350,9 @@ export default function CreateRoom() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={en.createRoom.morePeople}
-              disabled={capacity === 'none' || capacity >= capacityMax(plus)}
+              disabled={atMax}
+              accessibilityState={{ disabled: atMax }}
+              style={atMax && styles.stepOff}
               onPress={() => setCapacity(stepCapacity(capacity, 1, plus))}
               hitSlop={8}
             >
@@ -600,6 +607,7 @@ const styles = StyleSheet.create({
   statuses: { fontSize: 14, color: colors.secondaryLabel, paddingVertical: 2 },
   cardNote: { fontSize: 12, color: colors.secondaryLabel },
   pinArea: { fontSize: 14, color: colors.label },
+  stepOff: { opacity: 0.3 },
   capacity: { minWidth: 84, textAlign: 'center', fontSize: 16, color: colors.label, fontVariant: ['tabular-nums'] },
   iconChip: { ...outline, width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
   iconChipOn: { borderColor: colors.label, borderWidth: 2 },
