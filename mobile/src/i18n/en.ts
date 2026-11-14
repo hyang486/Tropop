@@ -732,7 +732,7 @@ export const en = {
   },
   planPreview: {
     /** capacity B item 4: the link from a personal Plus feature to the Plus intro. */
-    seePlus: 'See Plus ›',
+    seePlus: 'See Plus',
     // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).
     title: 'Qrew Plus',
     pill: 'Qrew Plus',
@@ -899,8 +899,6 @@ export const en = {
     answerBy: (name: string, time: string) => `${name} · ${time}`,
     yourQuestion: 'Your question',
     askMoreIsPlus: 'Asking Qrewing more is part of Qrew Plus.',
-    // A button: no chevron (› is only for text links).
-    seePlus: 'See Plus',
     done: 'Done',
     noAnswer: (name: string) => `${name} has not answered yet. Ask in the room chat instead?`,
     askInChat: 'Ask in chat',
