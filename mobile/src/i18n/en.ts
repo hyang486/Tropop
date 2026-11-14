@@ -273,6 +273,8 @@ export const en = {
       'The room from your reminder has ended. Its messages, photos, and files were deleted from the server. Anything you already saved to your device is still there.',
     back: 'Back',
     backToRooms: 'Back to rooms',
+    openFailedTitle: "Couldn't open this room",
+    openFailedBody: 'Check your connection and try again.',
     // Qrew unit 5 (Q 06.04): the shared ended screen. closedAt only when the client knows the time (lib/room-ended).
     endedTitle: 'This room has ended',
     closedAt: (name: string, when: string) => `${name} closed at ${when}.`,
@@ -400,6 +402,8 @@ export const en = {
     // #8: the uploader's line; `body` is the stored "shared 3 photos".
     shared: (who: string, body: string) => `${who} ${body}`,
     sharedFallback: 'shared a photo or file',
+    // UX3-B01: the header title block opens Room info.
+    headerHint: 'Opens room info',
     openPhotosHint: 'Opens Photos',
     // UX P1-2: one short grey line each; a tappable line ends in " ›".
     emergencySet: (name: string) => `${name} set Emergency`,
@@ -454,6 +458,7 @@ export const en = {
     emptyOthers: 'Nobody else has shared anything yet.',
     emptyHint: 'Photos, videos, and files are shared at original quality and deleted when the room ends, or 30 minutes after the host ends it early.',
     loadError: 'Photos and files could not be loaded.',
+    refreshFailed: "Couldn't refresh. Pull to try again.",
     uploading: (pct: number) => `Uploading ${pct}%`,
     uploadFailed: 'Upload failed',
     waiting: 'Waiting to upload',

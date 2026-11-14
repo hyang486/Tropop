@@ -222,8 +222,11 @@ export default function GalleryScreen() {
 
   // F1 (U5): upload rows and the Room closes / Original saved cards scroll with the content,
   // so at the largest text sizes they cannot squeeze the grid or the pinned footer off screen.
+  // UX2-145: a failed refresh with items already listed keeps the grid and shows one quiet line above it; the next
+  // successful load clears media.error. (With nothing listed, the EmptyState error below is used instead.)
+  const refreshFailed = !!media.error && media.items.length > 0;
   const notices =
-    uploads.jobs.length > 0 || saved || (closesIn != null && room) ? (
+    uploads.jobs.length > 0 || saved || (closesIn != null && room) || refreshFailed ? (
       <View style={styles.notices}>
         {uploads.jobs.length > 0 ? (
           <View style={styles.jobs}>
@@ -243,6 +246,7 @@ export default function GalleryScreen() {
         ) : null}
         {saved ? <SavedCard onDismiss={() => setSaved(false)} /> : null}
         {closesIn != null && room ? <ClosesSoonCard minutes={closesIn} time={timeOf(expiresMs)} /> : null}
+        {refreshFailed ? <Text style={styles.refreshFailed}>{en.media.refreshFailed}</Text> : null}
       </View>
     ) : null;
   const scroll = (children: ReactNode) => (
@@ -565,6 +569,7 @@ const styles = StyleSheet.create({
   fileTile: { alignItems: 'center', justifyContent: 'center', gap: 6, padding: 8, backgroundColor: colors.field },
   failedTile: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.field },
   fileName: { fontSize: 12, color: colors.ink2, textAlign: 'center' },
+  refreshFailed: { fontSize: 15, color: colors.ink2 },
   badge: {
     position: 'absolute',
     right: 6,

@@ -21,7 +21,7 @@ import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QREWING_FAB_CLEARANCE, QrewingFab, useQrewingAskButton } from '@/features/event/qrewing-fab';
-import { Button, colors, Hint, Screen, size } from '@/components/ui';
+import { colors, Hint, Screen, size } from '@/components/ui';
 import { EntryGate, HiddenRow, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
 import { noteSiriRoomOpened } from '@/features/event/siri-mirror';
@@ -29,6 +29,8 @@ import { collapseSmallTalk, type MutedRow } from '@/features/event/event-plan';
 import { useSmallTalk } from '@/features/event/use-small-talk';
 import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { ChatHeaderButtons, NoticesSheet, SettingsSheet, useChatNoticeProducers } from '@/features/chat/chat-header';
+import { ChatMedia } from '@/features/chat/chat-media';
+import { mediaForLines } from '@/features/chat/chat-media-plan';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
 import { cardsToAnswer } from '@/features/questions/question-plan';
@@ -42,16 +44,17 @@ import { AnswerSheet } from '@/features/questions/answer-sheet';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
-import { endsDay } from '@/lib/chat-plan';
+import { endsDay, headerSubtitle } from '@/lib/chat-plan';
+import { arrivedMemberCount } from '@/lib/info-plan';
 import { canSendDraft, composerAutoFocus, composerReducer, initialComposer } from '@/lib/composer';
 import { errorMessage } from '@/lib/errors';
 import { disclosureHeld } from '@/lib/emergency-plan';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
 import { ReminderCard, useReminderCard } from '@/features/event/reminder-card';
-import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
+import { clearRoomCache, type Media, useRoomMedia, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { showEndsSoon } from '@/lib/expiry-plan';
-import { getRoom, listMembers, type Room } from '@/lib/rooms';
+import { getRoom, listArrivedIds, listMembers, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useKeyboardOpen } from '@/lib/use-keyboard-open';
 import { memberName } from '@/lib/member-name';
@@ -156,9 +159,14 @@ export default function RoomScreen() {
 
   if (state.status === 'error') {
     return (
+      // UX2-144: a first-load failure is a calm EmptyState with a retry; the raw error text never shows.
       <Screen>
-        <Hint tone="error">{state.message}</Hint>
-        <Button title={en.home.retry} variant="secondary" onPress={load} />
+        <EmptyState
+          art="ended"
+          title={en.room.openFailedTitle}
+          body={en.room.openFailedBody}
+          action={{ title: en.home.retry, onPress: load }}
+        />
       </Screen>
     );
   }
@@ -204,6 +212,12 @@ function ChatRoom({
   // Spec 10.5: the room I opened last is the one Siri asks about.
   useEffect(() => noteSiriRoomOpened(room.id), [room.id]);
   const uploadSummary = useRoomUploadSummary(room.id);
+  // UX3-B08: shared photos inline. The room's ready media (thumbnails only), matched to each "shared …" line.
+  const token = useAuth().session?.access_token;
+  const roomMedia = useRoomMedia(room.id, 'all', userId);
+  const lineMedia = useMemo(() => mediaForLines(chat.messages, roomMedia.items, chat.hasMore),
+    [chat.messages, roomMedia.items, chat.hasMore],
+  );
   // Spec 11: one activity read for the Emergency cards, the "+" panel (Arrived, Set status) and the bell.
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const presence = useEmergencyPresence(room.id, activity);
@@ -282,6 +296,23 @@ function ChatRoom({
   );
 
   useChatNoticeProducers({ roomId: room.id, endsSoon, endsLine, activity, userId, names });
+  // UX3-B01: "5 people · 2 here · ends 3:05 PM" under the title. "here" = members who tapped Arrived (any activity,
+  // as in Room info, E2E c). Refetched on focus and when an arrivals row changes.
+  const [arrivedIds, setArrivedIds] = useState<string[]>([]);
+  const loadArrived = useCallback(() => {
+    listArrivedIds(room.id).then(setArrivedIds, () => {});
+  }, [room.id]);
+  useFocusEffect(loadArrived);
+  useRoomEvents(room.id, (event) => {
+    if (event.table === 'arrivals') loadArrived();
+  });
+  const headerLine = headerSubtitle(
+    names.size,
+    arrivedMemberCount([...names.keys()], arrivedIds),
+    endsDay(expiresMs, nowMs),
+    new Date(expiresMs).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    new Date(expiresMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+  );
   // Spec 11 C: question cards (bell notices, read aloud while moving) and the "+" tile count.
   useQuestionCards(room, userId, names);
   const questionsWaiting = cardsToAnswer(useRoomCards(room.id).cards, userId).length;
@@ -390,9 +421,20 @@ function ChatRoom({
         options={{
           title: room.name,
           headerTitle: () => (
-            <HandTitle style={styles.headerTitle} numberOfLines={1}>
-              {room.name}
-            </HandTitle>
+            <Pressable
+              style={styles.headerTitleBlock}
+              onPress={() => go('/room/[id]/info')}
+              accessibilityRole="button"
+              accessibilityLabel={`${room.name}, ${headerLine}`}
+              accessibilityHint={en.chat.headerHint}
+            >
+              <HandTitle style={styles.headerTitle} numberOfLines={1}>
+                {room.name}
+              </HandTitle>
+              <Text style={styles.headerSub} numberOfLines={1}>
+                {headerLine} ›
+              </Text>
+            </Pressable>
           ),
           headerRight: () => (
             <ChatHeaderButtons roomId={room.id} onBell={() => setSheet('notices')} onGear={() => setSheet('settings')} />
@@ -494,6 +536,11 @@ function ChatRoom({
                       isHost={!!item.sender_id && item.sender_id === room.host_id}
                       onFailedPress={onFailedPress}
                       onMediaPress={openPhotos}
+                      media={lineMedia.get(item.id)}
+                      token={token}
+                      onOpenMedia={(mediaId) =>
+                        router.push({ pathname: '/room/[id]/media/[mediaId]', params: { id: room.id, mediaId } })
+                      }
                       onMapPress={room.location_allowed || room.host_id === userId ? () => go('/room/[id]/map') : undefined}
                     />
                   </>
@@ -613,6 +660,9 @@ function MessageRow({
   onFailedPress,
   onMediaPress,
   onMapPress,
+  media,
+  token,
+  onOpenMedia,
 }: {
   item: ChatItem;
   mine: boolean;
@@ -621,6 +671,10 @@ function MessageRow({
   isHost: boolean;
   onFailedPress: (item: ChatItem) => void;
   onMediaPress: () => void;
+  /** UX3-B08: the items this "shared …" line stands for; none → the plain line. */
+  media?: Media[];
+  token?: string;
+  onOpenMedia?: (mediaId: string) => void;
   /** Set when this person can open the Map, so "Activity started" links there. */
   onMapPress?: () => void;
 }) {
@@ -628,6 +682,43 @@ function MessageRow({
     () => new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     [item.created_at],
   );
+
+  if (item.kind === 'media' && media && media.length > 0 && onOpenMedia) {
+    // UX3-B08: drawn as a message from the uploader (avatar + name for others; own items right-aligned).
+    const block = (
+      <ChatMedia
+        items={media}
+        token={token}
+        label={en.chat.shared(mine ? en.chat.you : name, item.body || en.chat.sharedFallback)}
+        onOpenItem={onOpenMedia}
+        onOpenPhotos={onMediaPress}
+      />
+    );
+    if (mine) {
+      return (
+        <View style={[styles.row, styles.rowMine]}>
+          {block}
+          <Text style={styles.meta}>{time}</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.theirRow}>
+        <View style={[styles.avatarRing, isHost && styles.avatarRingHost]}>
+          <Avatar path={avatarPath} name={name} size={size.avatar} />
+        </View>
+        <View style={[styles.row, styles.rowTheirs]}>
+          <View style={styles.nameLine}>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+            <Text style={styles.meta}>{time}</Text>
+          </View>
+          {block}
+        </View>
+      </View>
+    );
+  }
 
   if (item.kind === 'media') {
     const text = en.chat.shared(mine ? en.chat.you : name, item.body || en.chat.sharedFallback);
@@ -731,6 +822,9 @@ const styles = StyleSheet.create({
   loading: { marginTop: 48 },
   // The nav bar title: smaller than a screen title so a long room name fits beside back, bell and gear.
   headerTitle: { fontSize: 24, lineHeight: 30, maxWidth: 210 },
+  // UX3-B01: the title block is one ≥44 pt button; the second line is 12 pt ink2, tail-truncated.
+  headerTitleBlock: { minHeight: 44, justifyContent: 'center', alignItems: 'center', maxWidth: 210 },
+  headerSub: { fontSize: 12, lineHeight: 15, color: colors.ink2, maxWidth: 210 },
   alerts: { paddingHorizontal: 24 },
   aiNote: { paddingHorizontal: 24, paddingBottom: 6 },
   compactStrip: { paddingHorizontal: 24, paddingVertical: 6, alignItems: 'flex-end' },

@@ -13,6 +13,17 @@ export function endsDay(expiresMs: number, nowMs: number): 'today' | 'tomorrow' 
 }
 
 /**
+ * UX3-B01: the second line of the chat header, "5 people · 2 here · ends 3:05 PM". "here" is left out at 0.
+ * The end is the time today, "tomorrow 3:05 PM", or the date ("Nov 16") further out.
+ */
+export function headerSubtitle(people: number, here: number, day: 'today' | 'tomorrow' | 'later', date: string, time: string) {
+  const parts = [people === 1 ? '1 person' : `${people} people`];
+  if (here > 0) parts.push(`${here} here`);
+  parts.push(day === 'today' ? `ends ${time}` : day === 'tomorrow' ? `ends tomorrow ${time}` : `ends ${date}`);
+  return parts.join(' · ');
+}
+
+/**
  * Q 03.02: the icon of a status card, chosen by keyword in its (host-defined) label. Latin terms match whole
  * words, Korean terms are listed explicitly; anything else gets the generic tag icon. Emergency is fixed.
  */
