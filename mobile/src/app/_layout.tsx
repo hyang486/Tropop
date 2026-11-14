@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { type Href, Stack, useNavigationContainerRef, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 
@@ -67,6 +68,8 @@ function RootNavigator() {
 
   return (
     <>
+    {/* UX P1-13: the status bar follows the color scheme (light text in dark mode) on every stack, modals included. */}
+    <StatusBar style="auto" />
     <LocationReporters />
     {/* Spec 11 polish: a screen that opened as the root (deep link, cold start, Fast Refresh) has no Back, so it
         gets a way home instead of a dead end. */}
