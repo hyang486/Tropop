@@ -142,6 +142,17 @@ export default function GalleryScreen() {
   // Spec 7.3: in the host's early-end grace window the gallery stays open read-only (view and download).
   const grace = useGrace(room);
   const can = screenActions('gallery', grace.grace ? 'grace' : 'open');
+  // Sweep fix 6: pull to refresh shows its spinner until the read answers.
+  const [pulling, setPulling] = useState(false);
+  const reloadMedia = media.reload;
+  const pullRefresh = useCallback(async () => {
+    setPulling(true);
+    try {
+      await reloadMedia();
+    } finally {
+      setPulling(false);
+    }
+  }, [reloadMedia]);
   // Sweep fix 5: once the room is over its uploads stop; failed rows stay through the grace window.
   const over = gone || ended.over;
   const keepFailed = !gone && grace.grace;
@@ -325,8 +336,8 @@ export default function GalleryScreen() {
             style={styles.grid}
             columnWrapperStyle={{ gap: GAP }}
             contentContainerStyle={{ gap: GAP }}
-            onRefresh={media.reload}
-            refreshing={false}
+            onRefresh={pullRefresh}
+            refreshing={pulling}
             ListHeaderComponent={notices ?? undefined}
             ListEmptyComponent={
               <EmptyState art="camera" title={emptyText} body={en.media.emptyHint} />

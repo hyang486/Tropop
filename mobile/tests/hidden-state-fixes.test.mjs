@@ -54,3 +54,10 @@ test('fix 5: a room that ended stops its uploads; failed rows stay only through 
   const gallery = read('app/room/[id]/gallery.tsx');
   assert.match(gallery, /if \(over\) stopRoomUploads\(id, keepFailed\);/);
 });
+
+test('fix 6: Photos pull to refresh shows its spinner until the read answers', () => {
+  const gallery = read('app/room/[id]/gallery.tsx');
+  assert.match(gallery, /onRefresh=\{pullRefresh\}\n\s+refreshing=\{pulling\}/);
+  assert.match(gallery, /setPulling\(true\);\n\s+try \{\n\s+await reloadMedia\(\);\n\s+\} finally \{\n\s+setPulling\(false\);/);
+  assert.doesNotMatch(gallery, /refreshing=\{false\}/);
+});
