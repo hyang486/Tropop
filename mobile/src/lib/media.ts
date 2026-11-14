@@ -680,6 +680,14 @@ export async function downloadOriginal(media: Media, onProgress?: (fraction: num
   return { file, bytes, sha256 };
 }
 
+/** UX2-16: "Add to Photos" is off; the screen shows the permission state (P), not an error. */
+export class PhotosPermissionError extends Error {
+  constructor() {
+    super(en.errors.photosPermission);
+    this.name = 'PhotosPermissionError';
+  }
+}
+
 /**
  * Saves a verified original: photos and videos go to the photo library (add-only access),
  * other files open the share sheet so the user can choose where to keep them.
@@ -687,7 +695,7 @@ export async function downloadOriginal(media: Media, onProgress?: (fraction: num
 export async function saveOriginal(media: Media, file: File): Promise<'library' | 'shared' | 'cancelled'> {
   if (media.kind === 'photo' || media.kind === 'video') {
     const permission = await MediaLibrary.requestPermissionsAsync(true);
-    if (!permission.granted) throw new Error(en.errors.photosPermission);
+    if (!permission.granted) throw new PhotosPermissionError();
     await MediaLibrary.Asset.create(file.uri);
     return 'library';
   }

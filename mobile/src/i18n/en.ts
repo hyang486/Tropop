@@ -426,6 +426,8 @@ export const en = {
     notFound: 'This item is no longer available.',
     removed: 'This item was removed.',
     backToPhotos: 'Back to Photos',
+    photosOff: "Qrew can't save to Photos.",
+    openSettings: 'Open Settings',
     video: 'Video',
     file: 'File',
     // Qrew unit 5 (Q 05.01-05.04, 06.03)

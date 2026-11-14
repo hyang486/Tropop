@@ -2,8 +2,8 @@ import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useCallback, useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Alert, Pressable, Share, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActionSheetIOS, ActivityIndicator, Alert, AppState, Linking, Pressable, Share, StyleSheet, View } from 'react-native';
 
 import { EmptyState } from '@/components/empty-state';
 import { SavedCard } from '@/components/media-cards';
@@ -14,7 +14,17 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { excludeFaceMatch, myVisibleMatch } from '@/lib/face';
-import { authHeaders, discardDownload, downloadOriginal, formatBytes, getMedia, type Media, objectUrl, saveOriginal } from '@/lib/media';
+import {
+  authHeaders,
+  discardDownload,
+  downloadOriginal,
+  formatBytes,
+  getMedia,
+  type Media,
+  objectUrl,
+  PhotosPermissionError,
+  saveOriginal,
+} from '@/lib/media';
 import { mediaTitle, noteSaved, sharedAge } from '@/lib/media-plan';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
@@ -160,8 +170,17 @@ function MediaDetail({
     | { status: 'busy'; action: 'save' | 'share'; pct: number }
     | { status: 'done'; message: string }
     | { status: 'error'; message: string }
+    | { status: 'photosOff' }
   >({ status: 'idle' });
   const [saved, setSaved] = useState(false);
+
+  // UX2-16 (P): back from Settings, offer Save original again (it re-checks the permission).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') setDownload((d) => (d.status === 'photosOff' ? { status: 'idle' } : d));
+    });
+    return () => sub.remove();
+  }, []);
 
   async function onDownload() {
     setDownload({ status: 'busy', action: 'save', pct: 0 });
@@ -177,7 +196,7 @@ function MediaDetail({
       noteSaved(media.room_id);
       setDownload({ status: 'done', message: `${savedTo === 'library' ? en.media.savedToPhotos : en.media.savedFile} ${verified}` });
     } catch (e) {
-      setDownload({ status: 'error', message: errorMessage(e) });
+      setDownload(e instanceof PhotosPermissionError ? { status: 'photosOff' } : { status: 'error', message: errorMessage(e) });
     } finally {
       discardDownload(media);
     }
@@ -237,12 +256,19 @@ function MediaDetail({
       actions={
         <>
           {download.status === 'error' ? <Hint tone="error">{download.message}</Hint> : null}
-          <Button
-            title={busy && download.action === 'save' ? en.media.downloading(download.pct) : en.media.saveOriginal}
-            onPress={onDownload}
-            busy={busy && download.action === 'save' && download.pct === 0}
-            disabled={busy}
-          />
+          {download.status === 'photosOff' ? (
+            <>
+              <Hint>{en.media.photosOff}</Hint>
+              <Button title={en.media.openSettings} onPress={() => Linking.openSettings()} />
+            </>
+          ) : (
+            <Button
+              title={busy && download.action === 'save' ? en.media.downloading(download.pct) : en.media.saveOriginal}
+              onPress={onDownload}
+              busy={busy && download.action === 'save' && download.pct === 0}
+              disabled={busy}
+            />
+          )}
           <Button
             title={busy && download.action === 'share' ? en.media.downloading(download.pct) : en.media.share}
             variant="secondary"
