@@ -17,7 +17,7 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 
 import { checkEvent, editorTarget, EVENT_TITLE_MAX, type PersonalEvent } from './calendar-data';
-import { defaultEventTimes, keyTimeToLocalDate, localDateToKeyTime } from './calendar-format';
+import { defaultEventTimes, endAfterStart, keyTimeToLocalDate, localDateToKeyTime } from './calendar-format';
 import { isDateKey } from './calendar-plan';
 import { removeEvent, saveEvent, useCalendar } from './calendar-store';
 
@@ -171,11 +171,9 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
           setStart(k);
           setStartTime(tm);
           // Keep the end after the start: the same date when all day, one hour later when timed.
-          if (allDay ? end < k : `${end} ${endTime}` < `${k} ${tm}`) {
-            const next = localDateToKeyTime(new Date(keyTimeToLocalDate(k, tm).getTime() + 3_600_000));
-            setEnd(allDay ? k : next.date);
-            if (!allDay) setEndTime(next.time);
-          }
+          const kept = endAfterStart(k, tm, end, endTime, allDay);
+          setEnd(kept.end);
+          setEndTime(kept.endTime);
         }}
       />
       <DateRow
@@ -184,8 +182,10 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
         time={endTime}
         allDay={allDay}
         onChange={(k, tm) => {
-          setEnd(k);
-          setEndTime(tm);
+          // ux P1: an end picked before the start moves the same way.
+          const kept = endAfterStart(start, startTime, k, tm, allDay);
+          setEnd(kept.end);
+          setEndTime(kept.endTime);
         }}
       />
       <QLabel>{t.emojiLabel}</QLabel>

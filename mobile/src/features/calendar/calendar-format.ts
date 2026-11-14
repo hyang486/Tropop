@@ -67,6 +67,23 @@ export function localDateToKeyTime(date: Date): { date: DateKey; time: string } 
   return { date: localDateToKey(date), time: `${pad2(date.getHours())}:${pad2(date.getMinutes())}` };
 }
 
+/**
+ * UX3-A13: keep the end at or after the start. An earlier end moves to the start date when all day, or to one hour
+ * after the start when timed. Used by both the Start and the End rows.
+ */
+export function endAfterStart(
+  start: DateKey,
+  startTime: string,
+  end: DateKey,
+  endTime: string,
+  allDay: boolean,
+): { end: DateKey; endTime: string } {
+  if (allDay ? end >= start : `${end} ${endTime}` >= `${start} ${startTime}`) return { end, endTime };
+  if (allDay) return { end: start, endTime };
+  const next = localDateToKeyTime(new Date(keyTimeToLocalDate(start, startTime).getTime() + 3_600_000));
+  return { end: next.date, endTime: next.time };
+}
+
 /** UX3-A13: a new event starts at the next full hour and lasts one hour (local time). */
 export function defaultEventTimes(now: Date): { start: DateKey; startTime: string; end: DateKey; endTime: string } {
   const s = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
