@@ -628,7 +628,8 @@ function RoomMap({
         <Text style={styles.status} accessibilityRole="header">
           {active ? en.map.activityActive : en.map.activityIdle}
         </Text>
-        {!allowed ? <Hint>{en.map.notAllowed}</Hint> : !active ? <Hint>{en.map.activityIdleHint}</Hint> : null}
+        {/* UX2-41: the host has the switch right above, so no line. */}
+        {!allowed ? (isHost ? null : <Hint>{en.map.notAllowed}</Hint>) : !active ? <Hint>{en.map.activityIdleHint}</Hint> : null}
         {allowed ? (
           <>
             <View style={styles.switchRow}>

@@ -601,7 +601,7 @@ export const en = {
     headerLink: 'Map',
     allowLocation: 'Allow location sharing',
     allowLocationHint: 'Members can choose to share their position while an activity is running. Turning this off ends the activity and removes all positions.',
-    notAllowed: 'The host has not turned on location sharing for this room.',
+    notAllowed: "The host hasn't turned on location sharing.",
     startActivity: 'Start activity',
     endActivity: 'End activity',
     endConfirmTitle: 'End the activity?',
