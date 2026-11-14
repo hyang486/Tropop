@@ -583,6 +583,10 @@ export const en = {
     startActivity: 'Start activity',
     endActivity: 'End activity',
     endConfirmTitle: 'End the activity?',
+    // UX2-22: turning sharing off with no activity running ends nothing, so the alert says what it does.
+    stopSharingTitle: 'Stop sharing locations?',
+    stopSharingBody: 'Members stop seeing each other on the map.',
+    stopSharing: 'Stop sharing',
     activityActive: 'Activity running',
     activityIdle: 'No activity running',
     activityIdleHint: 'Positions appear only while the host runs an activity.',

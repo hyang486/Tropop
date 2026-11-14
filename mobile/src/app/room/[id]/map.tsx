@@ -392,9 +392,9 @@ function RoomMap({
       run('allowed', () => setLocationAllowed(room.id, true));
       return;
     }
-    Alert.alert(en.map.endConfirmTitle, en.map.allowLocationHint, [
+    Alert.alert(active ? en.map.endConfirmTitle : en.map.stopSharingTitle, active ? en.map.allowLocationHint : en.map.stopSharingBody, [
       { text: en.map.cancel, style: 'cancel' },
-      { text: en.map.endActivity, style: 'destructive', onPress: () => run('allowed', () => setLocationAllowed(room.id, false)) },
+      { text: active ? en.map.endActivity : en.map.stopSharing, style: 'destructive', onPress: () => run('allowed', () => setLocationAllowed(room.id, false)) },
     ]);
   }
 
