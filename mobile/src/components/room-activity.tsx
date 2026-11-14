@@ -18,7 +18,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, seenSummary } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyBarMode, seenSummary } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
@@ -43,7 +43,7 @@ const EMERGENCY_MAX_HEIGHT_SHARE = 0.36;
 const announcer = createAnnouncer();
 
 /**
- * #1: open Emergencies with their actions, the same card on chat, Map, Photos and Info. "I see it" and
+ * #1 / UX P0-1: open Emergencies as a pinned bar or a 44 pt line on chat, Map, Photos and Info. "I see it" and
  * "I'm OK" call the same RPCs everywhere (ack_emergency, clear_my_status). Vibrates once per new Emergency
  * raised by someone else, app-wide, while any of these screens is open.
  */
@@ -54,7 +54,10 @@ export function EmergencyAlerts({
   names,
   presence,
   onOpenLocation,
+  place = 'other',
 }: {
+  /** UX P0-1: chat shows the pinned bar until "I see it"; other screens show the 44 pt line. */
+  place?: 'chat' | 'other';
   roomId: string;
   activity: ReturnType<typeof useRoomActivity>;
   userId: string | undefined;
@@ -69,6 +72,15 @@ export function EmergencyAlerts({
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const now = useNow(15_000);
   const [busy, setBusy] = useState<string | null>(null);
+  // Lines this screen expanded with "Open" (UX P0-1); local to the screen.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (id: string, open: boolean) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (open) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const lastSeen = useMemo(() => new Map(presence.map((p) => [p.user_id, p])), [presence]);
   const seeded = useRef(false);
   useEffect(() => {
@@ -123,41 +135,95 @@ export function EmergencyAlerts({
         const iAcked = e.ackedBy.has(userId);
         const location = emergencyLocation(lastSeen.get(e.userId));
         const name = names.get(e.userId) ?? en.chat.formerMember;
+        const title = mine ? en.activity.helpRequested : en.activity.emergencyFrom(name);
+        const seenText = seen === 0 ? en.activity.noneSeen : en.activity.seenCount(seen, recipients);
+        const meta = `${timeOf(e.createdAt)} · ${seenText}`;
+        const mode = emergencyBarMode({ place, mine, acked: iAcked, expanded: expanded.has(e.id) });
+        const collapsible = emergencyBarMode({ place, mine, acked: iAcked, expanded: false }) === 'line';
+
+        if (mode === 'line') {
+          // UX P0-1: after "I see it" (and on Map, Photos, Info) a 44 pt line; "Open" expands the bar.
+          return (
+            <Pressable
+              key={e.id}
+              style={({ pressed }) => [styles.line, pressed && { opacity: 0.6 }]}
+              onPress={() => toggle(e.id, true)}
+              accessibilityRole="button"
+              accessibilityLabel={`${title}. ${meta}`}
+              accessibilityHint={en.activity.openEmergency}
+            >
+              <View style={[styles.ring, styles.ringSmall]}>
+                <SymbolView name="exclamationmark.triangle" size={12} tintColor={colors.danger} />
+              </View>
+              <Text style={styles.lineText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                {mine ? en.activity.emergencyLineMine : en.activity.emergencyLine(name)}
+              </Text>
+              <Text style={styles.lineOpen} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                {en.activity.openEmergency}
+              </Text>
+              <SymbolView name="chevron.down" size={11} weight="semibold" tintColor={colors.label} />
+            </Pressable>
+          );
+        }
+
+        // Q 04.03 / UX P0-1: pinned bar with the requester, time and seen count, and one action. Who saw it
+        // and the location age are read out; the text opens the last shared location when there is one.
+        const canOpenLocation = !mine && location.kind === 'shared';
+        const spoken = [
+          title,
+          `${timeOf(e.createdAt)} · ${seen === 0 ? en.activity.waitingSeen : en.activity.seenByNames(who, seen, recipients)}`,
+          location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
+        ].join('. ');
         return (
-          // Q 04.03: bright red card with the requester, who has seen it, the age of the last shared location
-          // and the actions; the same card on chat, Map, Photos and Info.
-          <View key={e.id} style={styles.emergency} accessibilityRole="alert">
-            <View style={styles.emergencyHead}>
-              <SymbolView name="exclamationmark.triangle" size={22} tintColor={colors.danger} />
-              <Text style={styles.emergencyTitle} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>{mine ? en.activity.helpRequested : en.activity.emergencyFrom(name)}</Text>
+          <View key={e.id} style={styles.bar} accessibilityRole="alert">
+            <View style={styles.ring}>
+              <SymbolView name="exclamationmark.triangle" size={16} tintColor={colors.danger} />
             </View>
-            <Text style={styles.emergencyMeta} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-              {timeOf(e.createdAt)} · {seen === 0 ? en.activity.waitingSeen : en.activity.seenByNames(who, seen, recipients)}
-            </Text>
-            <Text style={styles.emergencyMeta} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-              {location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation}
-            </Text>
-            <View style={styles.emergencyActions}>
-              {mine ? (
-                <TextAction label={en.activity.imOkNow} busy={busy === 'ok'} onPress={() => run('ok', activity.clearStatus)} />
-              ) : (
-                <>
-                  {location.kind === 'shared' ? (
-                    <TextAction label={en.activity.openLastLocation} onPress={() => openLocation(e.userId, location.coordinates)} />
-                  ) : null}
-                  {iAcked ? (
-                    <Text style={styles.emergencyMeta} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>{en.activity.acknowledged}</Text>
-                  ) : (
-                    <Chip
-                      label={en.activity.acknowledge}
-                      filled
-                      busy={busy === `ack:${e.id}`}
-                      onPress={() => run(`ack:${e.id}`, () => activity.acknowledge(e.id))}
-                    />
-                  )}
-                </>
-              )}
-            </View>
+            <Pressable
+              style={styles.barText}
+              disabled={!canOpenLocation}
+              onPress={canOpenLocation ? () => openLocation(e.userId, location.coordinates) : undefined}
+              accessibilityRole={canOpenLocation ? 'button' : 'text'}
+              accessibilityLabel={spoken}
+              accessibilityHint={
+                canOpenLocation ? en.activity.locationHint(formatAge(location.updatedAt, now)) : undefined
+              }
+            >
+              <Text style={styles.barTitle} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                {title}
+              </Text>
+              <View style={styles.barMetaRow}>
+                {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} /> : null}
+                <Text style={styles.barMeta} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                  {meta}
+                </Text>
+              </View>
+            </Pressable>
+            {mine ? (
+              <Pill label={en.activity.imOkNow} busy={busy === 'ok'} onPress={() => run('ok', activity.clearStatus)} />
+            ) : !iAcked ? (
+              <Pill
+                label={en.activity.acknowledge}
+                busy={busy === `ack:${e.id}`}
+                onPress={() =>
+                  run(`ack:${e.id}`, async () => {
+                    await activity.acknowledge(e.id);
+                    toggle(e.id, false);
+                  })
+                }
+              />
+            ) : null}
+            {collapsible ? (
+              <Pressable
+                onPress={() => toggle(e.id, false)}
+                hitSlop={8}
+                style={styles.hide}
+                accessibilityRole="button"
+                accessibilityLabel={en.activity.hideEmergency}
+              >
+                <SymbolView name="chevron.up" size={13} weight="semibold" tintColor={colors.label} />
+              </Pressable>
+            ) : null}
           </View>
         );
       })}
@@ -200,55 +266,19 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
   );
 }
 
-/** Q 03.01 pill: pale by default, black when `filled` (the next action, "Arrived" / "I see it"). */
-function Chip({
-  label,
-  onPress,
-  busy,
-  filled,
-  selected,
-  danger,
-}: {
-  label: string;
-  onPress?: () => void;
-  busy?: boolean;
-  filled?: boolean;
-  selected?: boolean;
-  danger?: boolean;
-}) {
-  const disabled = !onPress || busy;
+/** UX P0-1: the bar's one action, an ink pill 36 pt tall inside a 44 pt hit area ("I see it", "I'm OK now"). */
+function Pill({ label, onPress, busy }: { label: string; onPress: () => void; busy?: boolean }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: !!disabled, busy: !!busy, selected }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [styles.chip, filled && styles.chipFilled, (pressed || busy) && { opacity: 0.5 }]}
-    >
-      <Text
-        style={[styles.chipText, filled && styles.chipTextFilled, danger && styles.chipDanger]}
-        numberOfLines={1}
-        maxFontSizeMultiplier={EMERGENCY_FONT_CAP}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-/** Red text action on the Emergency card (Q 04.03 "I'm OK now", Q 04.04 "Open last shared location"). */
-function TextAction({ label, onPress, busy }: { label: string; onPress: () => void; busy?: boolean }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ busy: !!busy }}
+      accessibilityState={{ disabled: !!busy, busy: !!busy }}
       disabled={busy}
       onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => [styles.textAction, (pressed || busy) && { opacity: 0.5 }]}
+      hitSlop={4}
+      style={({ pressed }) => [styles.pill, (pressed || busy) && { opacity: 0.5 }]}
     >
-      <Text style={styles.textActionText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+      <Text style={styles.pillText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
         {label}
       </Text>
     </Pressable>
@@ -257,31 +287,58 @@ function TextAction({ label, onPress, busy }: { label: string; onPress: () => vo
 
 const styles = StyleSheet.create({
   alerts: { gap: 8 },
-  chip: {
-    flexShrink: 1,
-    minHeight: 32,
+  // UX P0-1: white (paper) fill, 1.5 pt ink border, 12 pt radius; only the icon ring is red (A17).
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 60,
+    paddingVertical: 8,
+    paddingLeft: 12,
+    paddingRight: 8,
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.label,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+  },
+  ring: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringSmall: { width: 24, height: 24, borderRadius: 12 },
+  barText: { flex: 1, gap: 1 },
+  barTitle: { fontSize: 16, fontWeight: '600', color: colors.label },
+  barMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  barMeta: { flexShrink: 1, fontSize: 13, color: colors.label },
+  pill: {
+    flexShrink: 0,
+    minHeight: 36,
     justifyContent: 'center',
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
-    backgroundColor: colors.field,
+    backgroundColor: colors.tint,
   },
-  chipFilled: { backgroundColor: colors.tint },
-  chipText: { fontSize: 14, color: colors.label },
-  chipTextFilled: { color: colors.onTint },
-  chipDanger: { color: colors.danger },
-  emergency: {
-    // Spec 11 A17: no red side bar; the pale red field and the warning icon carry the signal, the text is black.
-    backgroundColor: colors.dangerField,
+  pillText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
+  hide: { width: 28, height: 44, alignItems: 'center', justifyContent: 'center' },
+  line: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.label,
     borderRadius: 12,
     borderCurve: 'continuous',
-    padding: 14,
-    gap: 4,
   },
-  emergencyHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  emergencyTitle: { flexShrink: 1, fontSize: 18, fontWeight: '600', color: colors.label },
-  emergencyMeta: { fontSize: 13, color: colors.label },
-  emergencyActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 6 },
-  textAction: { paddingVertical: 4 },
-  textActionText: { fontSize: 14, color: colors.label, textDecorationLine: 'underline' },
+  lineText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
+  lineOpen: { fontSize: 15, fontWeight: '600', color: colors.label },
 });

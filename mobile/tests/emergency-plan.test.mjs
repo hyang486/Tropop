@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createAnnouncer, seenSummary } from '../src/lib/emergency-plan.ts';
+import { createAnnouncer, emergencyBarMode, seenSummary } from '../src/lib/emergency-plan.ts';
 
 const names = new Map([
   ['u1', 'Mina'],
@@ -40,4 +40,20 @@ test('announcer: a screen opened after the alert does not re-announce it', () =>
   assert.deepEqual(a.fresh(['e3']), ['e3']);
   a.seed(['e3']);
   assert.deepEqual(a.fresh(['e3']), []);
+});
+
+test('emergencyBarMode: chat shows the bar until I see it, then the line', () => {
+  assert.equal(emergencyBarMode({ place: 'chat', mine: false, acked: false, expanded: false }), 'bar');
+  assert.equal(emergencyBarMode({ place: 'chat', mine: false, acked: true, expanded: false }), 'line');
+});
+
+test('emergencyBarMode: my own Emergency keeps the bar in chat, the line elsewhere', () => {
+  assert.equal(emergencyBarMode({ place: 'chat', mine: true, acked: false, expanded: false }), 'bar');
+  assert.equal(emergencyBarMode({ place: 'other', mine: true, acked: false, expanded: false }), 'line');
+});
+
+test('emergencyBarMode: Map, Photos and Info show the line, Open expands it', () => {
+  assert.equal(emergencyBarMode({ place: 'other', mine: false, acked: false, expanded: false }), 'line');
+  assert.equal(emergencyBarMode({ place: 'other', mine: false, acked: true, expanded: true }), 'bar');
+  assert.equal(emergencyBarMode({ place: 'chat', mine: false, acked: true, expanded: true }), 'bar');
 });

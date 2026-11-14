@@ -384,9 +384,9 @@ function ChatRoom({
               onDismiss={smallTalk.dismissBanner}
             />
           ) : null}
-          {/* Emergency cards stay above the messages; Arrived and Set status moved into "+" (A11). */}
+          {/* UX P0-1: the pinned Emergency bar sits in the layout above the list, so the list starts below it. */}
           <View style={styles.alerts}>
-            <EmergencyAlerts roomId={room.id} activity={activity} userId={userId} names={names} presence={presence} />
+            <EmergencyAlerts place="chat" roomId={room.id} activity={activity} userId={userId} names={names} presence={presence} />
           </View>
 
           {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it.
