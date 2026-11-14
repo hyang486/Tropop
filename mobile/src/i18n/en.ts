@@ -84,6 +84,8 @@ export const en = {
     moreUpgrade: 'Longer rooms come with Plus.',
     cancel: 'Cancel',
     endTooSoon: 'The end time must be at least 5 minutes from now.',
+    // UX2-24: the plan lapsed to Free after a longer End was picked; End snaps back to 2 days (ink2, not red).
+    freeEndSnapped: 'Free rooms last up to 2 days.',
     endTooLong: (plus: boolean) => (plus ? 'Rooms last up to 7 days.' : 'Free rooms last up to 2 days. Plus rooms last up to 7.'),
     locationLabel: 'Allow location sharing',
     locationHint: 'Members still choose for themselves. Sharing starts only after you start the activity.',

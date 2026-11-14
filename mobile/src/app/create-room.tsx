@@ -22,6 +22,7 @@ import {
   aiSwitchAction,
   moreAction,
   QUICK_PRESETS,
+  FREE_MAX_HOURS,
   selectedPreset,
 } from '@/features/event/create-room-plan';
 import { InkSwitch } from '@/features/event/ink-switch';
@@ -141,6 +142,8 @@ export default function CreateRoom() {
   const [placeNote, setPlaceNote] = useState<string | null>(null);
   const [startsAt, setStartsAt] = useState<Date | null>(null);
   const [startNote, setStartNote] = useState<string | null>(null);
+  // UX2-24: End was snapped back to 2 days because the plan is Free now.
+  const [endSnapped, setEndSnapped] = useState(false);
   // qa 5: where the pin is ("Los Angeles, CA"), so a first geocoder hit in the wrong city is easy to spot.
   // Kept with the pin it was looked up for, so a moved or dropped pin never shows an old area.
   const [pinLookup, setPinLookup] = useState<{ pin: LatLng; area: string | null } | null>(null);
@@ -169,6 +172,7 @@ export default function CreateRoom() {
   }
 
   function pickPreset(h: number) {
+    setEndSnapped(false);
     setPickedEnd({ kind: 'preset', hours: h });
     changeEnd(now + h * 3_600_000);
   }
@@ -252,6 +256,13 @@ export default function CreateRoom() {
     }
     const expiresAt = new Date(endMs(choice, Date.now()));
     const endProblem = endError(expiresAt.getTime(), Date.now(), plus);
+    if (endProblem === 'tooLong' && !plus) {
+      // UX2-24 (pattern G, as PT402): not an error. Snap End back to 2 days and say why, with See Plus.
+      pickPreset(FREE_MAX_HOURS);
+      setEndSnapped(true);
+      setError(null);
+      return;
+    }
     if (endProblem) {
       fail(endProblem === 'tooSoon' ? en.createRoom.endTooSoon : en.createRoom.endTooLong(!!plus));
       return;
@@ -605,6 +616,16 @@ export default function CreateRoom() {
           onPress={openMore}
         />
       </View>
+      {endSnapped ? (
+        <>
+          <Hint>{en.createRoom.freeEndSnapped}</Hint>
+          <Button
+            title={en.planPreview.seePlus}
+            variant="secondary"
+            onPress={() => router.push({ pathname: '/plan-preview', params: { from: 'more' } })}
+          />
+        </>
+      ) : null}
       <Text style={styles.deletes}>{en.createRoom.endHint}</Text>
 
       <View style={styles.box}>
