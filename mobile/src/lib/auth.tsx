@@ -34,7 +34,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [profileFailed, setProfileFailed] = useState(false);
+  // The user id whose last profile read failed; keyed like currentProfile so a new sign-in never inherits it.
+  const [profileFailedFor, setProfileFailedFor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = useCallback(async () => {
     if (!userId) return;
     const { data: next, failed } = await fetchProfile(userId);
-    setProfileFailed(failed);
+    setProfileFailedFor(failed ? userId : null);
     if (next) setProfile(next);
   }, [userId]);
 
@@ -81,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     fetchProfile(userId).then(({ data: next, failed }) => {
       if (!active) return;
-      setProfileFailed(failed);
+      setProfileFailedFor(failed ? userId : null);
       if (next) setProfile(next);
     });
     return () => {
@@ -99,11 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isGuest: session?.user.is_anonymous ?? false,
       refreshProfile,
-      profileFailed: profileFailed && !currentProfile,
+      profileFailed: !!userId && profileFailedFor === userId && !currentProfile,
       notice,
       clearNotice,
     }),
-    [session, currentProfile, loading, refreshProfile, profileFailed, notice, clearNotice],
+    [session, currentProfile, loading, refreshProfile, profileFailedFor, userId, notice, clearNotice],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
