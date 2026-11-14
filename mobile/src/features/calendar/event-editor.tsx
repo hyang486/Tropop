@@ -148,6 +148,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
       />
       <QField
         label={t.titleLabel}
+        labelAbove
         placeholder={t.titlePlaceholder}
         value={title}
         onChangeText={setTitle}
