@@ -8,14 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteDrawLayer } from '@/components/route-draw-layer';
 import { HandTitle } from '@/components/hand-title';
 import { qSpacing } from '@/components/q-screen';
-import { Button, colors, radius } from '@/components/ui';
+import { Button, colors, radius, usePalette } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type Camera, formatRouteKm, type LatLng, MAX_ROUTE_POINTS, routeLengthMeters } from '@/lib/location-plan';
 import { NO_POIS } from '@/lib/map-pois';
 import { MAX_ROUTE_KM, routeTooLong } from '@/lib/route-editor-plan';
 import { appendStroke, isFlatNorthUp, joinStrokes, type MapRegion, type Point, type Size, strokeToRoute } from '@/lib/route-draw';
 
-const ROUTE_COLOR = '#FF9500';
 /** R1-A: how long a Pen press waits for its camera move to report back. */
 const PEN_WAIT_MS = 2000;
 
@@ -63,6 +62,8 @@ export function RouteEditor({
   const [draft, setDraft] = useState<LatLng[][]>(() => (savedRoute.length > 0 ? [savedRoute] : []));
   const [undoFloor, setUndoFloor] = useState(() => (savedRoute.length > 0 ? 1 : 0));
   const [pen, setPen] = useState(false);
+  // UX2-38: one route color, the same as the map's (ink in light, #EDEDE8 in dark), 4 pt.
+  const routeColor = usePalette().ink;
   const [note, setNote] = useState<PenNote>('none');
   const route = useMemo(() => joinStrokes(draft), [draft]);
   // #10: the length of the line drawn so far, live as strokes are added; hidden with fewer than 2 points.
@@ -205,13 +206,13 @@ export function RouteEditor({
               cameraPosition={startCamera ?? undefined}
               markers={memberMarkers}
               annotations={memberPhotos}
-              polylines={route.length > 1 ? [{ id: 'draft', coordinates: route, color: ROUTE_COLOR, width: 4 }] : []}
+              polylines={route.length > 1 ? [{ id: 'draft', coordinates: route, color: routeColor, width: 4 }] : []}
               // No Apple Maps place card when a store/POI is under a tap (human iPhone check, R-1). selectionEnabled:false
               // alone still showed the card (qa, c4058f9), so POIs are hidden (NO_POIS) and none can be tapped.
               properties={{ selectionEnabled: false, pointsOfInterest: NO_POIS, isMyLocationEnabled: showsMyLocation }}
               onCameraMove={onCameraMove}
             />
-            {pen ? <RouteDrawLayer color={ROUTE_COLOR} onStroke={onStroke} /> : null}
+            {pen ? <RouteDrawLayer color={routeColor} onStroke={onStroke} /> : null}
             {/* Q 04.01 "5.2 km loop": the length only (the app does not know loops); read as "Route 5.2 km". */}
             {routeKm ? (
               <View style={styles.distanceChip} pointerEvents="none" accessible accessibilityLabel={en.map.routeDistance(routeKm)}>

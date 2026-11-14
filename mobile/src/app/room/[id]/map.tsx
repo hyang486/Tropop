@@ -9,7 +9,7 @@ import { HandTitle } from '@/components/hand-title';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
-import { Button, colors, Hint, radius } from '@/components/ui';
+import { Button, colors, Hint, radius, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { PaceCard } from '@/features/pace/pace-card';
@@ -69,7 +69,6 @@ type State =
   | { status: 'error'; message: string }
   | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
 
-const ROUTE_COLOR = '#007AFF';
 // P2: the member label pill. Fixed light colors (not the app theme) so it reads the same on light and dark maps.
 const LABEL_BACKGROUND = '#FFFFFF';
 const LABEL_TEXT = '#000000';
@@ -180,6 +179,8 @@ function RoomMap({
   const [busy, setBusy] = useState<string | null>(null);
   // M2: the app-level LocationReporters does the reporting; this screen only reads its state.
   const sharingState = useSharingState(room.id);
+  // UX2-38: the route is ink (light) / #EDEDE8 (dark), the same as the editor.
+  const routeColor = usePalette().ink;
 
   // M5: the permission is read again whenever the app returns to the foreground (e.g. from Settings).
   const [granted, setGranted] = useState<boolean | null>(null);
@@ -530,7 +531,7 @@ function RoomMap({
           annotations={annotations}
           polylines={
             shownRoute.length > 1
-              ? [{ id: 'route', coordinates: shownRoute, color: ROUTE_COLOR, width: ROUTE_LINE_WIDTH }]
+              ? [{ id: 'route', coordinates: shownRoute, color: routeColor, width: ROUTE_LINE_WIDTH }]
               : []
           }
           properties={{ isMyLocationEnabled: showsMyLocation }}
