@@ -146,7 +146,8 @@ const styles = StyleSheet.create({
   card: { gap: 8 },
   bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
-  bot: { alignSelf: 'flex-start', backgroundColor: colors.field, gap: 2 },
+  // UX2-48: these bubbles show only on sheets (Ask pageSheet; answer sheet overrides with botOnSheet).
+  bot: { alignSelf: 'flex-start', backgroundColor: colors.sheetField, gap: 2 },
   // UX2-45: on a sheet the answer bubble is cardStrong (card would match the dark sheet).
   botOnSheet: { backgroundColor: colors.fieldStrong },
   by: { fontSize: 13, fontWeight: '600', color: colors.ink2 },

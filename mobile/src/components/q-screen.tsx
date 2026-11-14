@@ -4,6 +4,8 @@ import {
   type ReactElement,
   type ReactNode,
   type RefObject,
+  createContext,
+  use,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -59,6 +61,7 @@ export function QScreen({
   revealRef,
   floating,
   background,
+  sheet,
 }: {
   title?: string;
   /** Small gray line right under the title. */
@@ -89,6 +92,8 @@ export function QScreen({
   floating?: ReactNode;
   /** Opt-in screen and pinned-actions ground; default is the app background (calendar notebook paper stays on the grid only, UX P2-6). */
   background?: string;
+  /** UX2-48: the screen is a pageSheet: `sheet` ground (dark #1C1C1E) and `sheetField` cards and fields. */
+  sheet?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   // Pad the top by the header overlap ourselves instead of contentInsetAdjustmentBehavior "automatic": that
@@ -101,7 +106,9 @@ export function QScreen({
   // UX2-44: once the body scrolls, a top scroll-edge fade (paper → transparent, 56 pt below the safe area) keeps
   // content and the handwritten title from colliding with the floating glass header buttons. Only under a header.
   const [scrolled, setScrolled] = useState(false);
-  const paper = usePalette().paper;
+  const pal = usePalette();
+  const paper = sheet ? pal.sheet : pal.paper;
+  const ground = background ?? (sheet ? colors.sheet : undefined);
   const onScroll = (e: { nativeEvent: { contentOffset: { y: number } } }) => {
     scrollProps.onScroll(e);
     setScrolled(e.nativeEvent.contentOffset.y > 1);
@@ -143,7 +150,8 @@ export function QScreen({
         </ScrollView>
   );
   return (
-    <View style={[styles.root, { paddingBottom: keyboardPad }, background ? { backgroundColor: background } : null]}>
+    <OnSheet value={!!sheet}>
+    <View style={[styles.root, { paddingBottom: keyboardPad }, ground ? { backgroundColor: ground } : null]}>
       <View ref={rootRef} onLayout={onLayout} style={styles.flex}>
         {floating ? (
           <View style={styles.flex}>
@@ -162,9 +170,10 @@ export function QScreen({
             ]}
           />
         ) : null}
-        {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }, background ? { backgroundColor: background } : null]}>{actions}</View> : null}
+        {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }, ground ? { backgroundColor: ground } : null]}>{actions}</View> : null}
       </View>
     </View>
+    </OnSheet>
   );
 }
 
@@ -296,9 +305,18 @@ export function QLabel({ children }: { children: string }) {
   );
 }
 
+/** UX2-48: true inside a pageSheet QScreen, so cards and fields take the sheet colors. */
+const OnSheet = createContext(false);
+
+/** UX2-48: bubbles and custom cards inside a sheet QScreen use `colors.sheetField` when this is true. */
+export function useOnSheet() {
+  return use(OnSheet);
+}
+
 /** Pale card (Q #F6F6F2): rows, notes and settings on Q screens. */
 export function QCard({ children, row }: { children: ReactNode; row?: boolean }) {
-  return <View style={[styles.card, row && styles.cardRow]}>{children}</View>;
+  const onSheet = use(OnSheet);
+  return <View style={[styles.card, row && styles.cardRow, onSheet && styles.cardOnSheet]}>{children}</View>;
 }
 
 /**
@@ -311,7 +329,7 @@ export function QField({ label, style, ...props }: ComponentProps<typeof TextInp
       placeholder={label}
       placeholderTextColor={colors.secondaryLabel}
       accessibilityLabel={label}
-      style={[styles.field, style]}
+      style={[styles.field, use(OnSheet) && styles.fieldOnSheet, style]}
       {...props}
     />
   );
@@ -360,6 +378,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
   card: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardOnSheet: { backgroundColor: colors.sheetField },
+  fieldOnSheet: { backgroundColor: colors.sheet },
   field: {
     minHeight: 48,
     borderWidth: StyleSheet.hairlineWidth * 2,

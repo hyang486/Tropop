@@ -32,3 +32,24 @@ test('UX2-45: every custom bottom sheet uses the sheet surface, the scrim, a 16 
   assert.match(src('features/questions/answer-sheet.tsx'), /<AnsweredCard [^>]*onSheet \/>/);
   assert.match(src('features/questions/relayed-cards.tsx'), /botOnSheet: \{ backgroundColor: colors\.fieldStrong \}/);
 });
+
+test('UX2-48: pageSheets use the sheet ground with sheetField cards and bubbles', () => {
+  const ui = src('components/ui.tsx');
+  assert.match(ui, /grabber: 'rgba\(94,94,88,0\.4\)',\s*sheetCard: '#F6F6F2'/);
+  assert.match(ui, /grabber: 'rgba\(168,168,162,0\.4\)',\s*sheetCard: '#2C2C2E'/);
+  assert.match(ui, /sheetField: themed\('sheetCard'\)/);
+  const q = src('components/q-screen.tsx');
+  assert.match(q, /<OnSheet value=\{!!sheet\}>/);
+  assert.match(q, /cardOnSheet: \{ backgroundColor: colors\.sheetField \}/);
+  for (const p of ['features/event/ask-screen.tsx', 'features/questions/questions-screen.tsx']) {
+    assert.match(src(p), /<QScreen\s+sheet\b/, p);
+  }
+  assert.equal((src('app/room/[id]/invite.tsx').match(/<QScreen\s+sheet\b/g) ?? []).length, 2);
+  assert.match(src('components/host-account-form.tsx'), /sheet=\{mode === 'upgrade'\}/);
+  assert.match(src('features/event/disclosure-sheet.tsx'), /root: \{ flex: 1, backgroundColor: colors\.sheet \}/);
+  const plan = src('app/plan-preview.tsx');
+  assert.match(plan, /sheet: \{ flex: 1, backgroundColor: colors\.sheet,/);
+  assert.match(plan, /compare: \{[^}]*backgroundColor: colors\.sheetField/);
+  assert.match(src('features/event/ask-screen.tsx'), /bot: \{[^}]*backgroundColor: colors\.sheetField/);
+  assert.match(src('features/questions/relayed-cards.tsx'), /bot: \{[^}]*backgroundColor: colors\.sheetField/);
+});

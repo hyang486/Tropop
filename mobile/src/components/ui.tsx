@@ -38,6 +38,7 @@ export const palette = {
     sheet: '#FFFFFF',
     scrim: 'rgba(0,0,0,0.25)',
     grabber: 'rgba(94,94,88,0.4)',
+    sheetCard: '#F6F6F2',
   },
   dark: {
     ink: '#EDEDE8',
@@ -50,6 +51,7 @@ export const palette = {
     sheet: '#1C1C1E',
     scrim: 'rgba(0,0,0,0.5)',
     grabber: 'rgba(168,168,162,0.4)',
+    sheetCard: '#2C2C2E',
   },
 } as const;
 
@@ -86,6 +88,8 @@ export const colors = {
   sheet: themed('sheet'),
   scrim: themed('scrim'),
   grabber: themed('grabber'),
+  /** UX2-48: cards, fields and bubbles on a pageSheet screen (light #F6F6F2 as before; dark #2C2C2E on #1C1C1E). */
+  sheetField: themed('sheetCard'),
 };
 
 /** UX2-45: one look for every custom bottom sheet: scrim, 16 pt top radius on `sheet`, a 36×5 grabber. */

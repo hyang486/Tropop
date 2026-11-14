@@ -48,7 +48,7 @@ export function QuestionsScreen() {
   const name = (uid: string) => names.get(uid) ?? en.chat.formerMember;
 
   return (
-    <QScreen title={s.title} subtitle={s.intro}>
+    <QScreen sheet title={s.title} subtitle={s.intro}>
       <Stack.Screen
         options={{
           title: s.title,

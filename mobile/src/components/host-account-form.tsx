@@ -55,6 +55,7 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
 
   return (
     <QScreen
+      sheet={mode === 'upgrade'}
       title={isNew ? en.hostAccount.newTitle : en.hostAccount.loginTitle}
       subtitle={isNew ? en.hostAccount.newSubtitle : en.hostAccount.loginSubtitle}
       keepVisible={submitRef}

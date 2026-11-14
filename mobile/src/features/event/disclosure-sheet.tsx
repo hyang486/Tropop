@@ -164,7 +164,7 @@ function usePresentRetry(want: boolean) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1, backgroundColor: colors.sheet },
   body: { paddingHorizontal: 24, paddingTop: 32, gap: 14 },
   title: { fontSize: 28, lineHeight: 36 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 28 },

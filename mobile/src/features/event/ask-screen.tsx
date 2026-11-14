@@ -117,6 +117,7 @@ export function AskScreen() {
   const lastIndex = turns.length - 1;
   return (
     <QScreen
+      sheet
       title={s.title}
       subtitle={s.intro}
       revealRef={revealRef}
@@ -249,7 +250,8 @@ const styles = StyleSheet.create({
   turn: { gap: 8 },
   bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
-  bot: { alignSelf: 'flex-start', backgroundColor: colors.field },
+  // UX2-48: Ask is a pageSheet, so Qrewing's bubble is sheetField, the card on the sheet ground.
+  bot: { alignSelf: 'flex-start', backgroundColor: colors.sheetField },
   text: { fontSize: 16, color: colors.label },
   thinking: { fontSize: 14, color: colors.ink2 },
 });

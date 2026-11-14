@@ -134,7 +134,7 @@ export default function Invite() {
 
   if (!room) {
     return (
-      <QScreen title={error ? en.invite.heading : undefined}>
+      <QScreen sheet title={error ? en.invite.heading : undefined}>
         {header}
         {error ? <Hint tone="error">{error}</Hint> : <ActivityIndicator style={styles.loading} />}
       </QScreen>
@@ -149,6 +149,7 @@ export default function Invite() {
   // button under Copy code, with its confirmation.
   return (
     <QScreen
+      sheet
       title={en.invite.heading}
       subtitle={room.name}
       actions={
