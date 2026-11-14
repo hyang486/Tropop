@@ -745,6 +745,7 @@ export const en = {
     guest: 'Guest',
     host: 'Host',
     becomeHost: 'Become a host',
+    guestHostRow: 'Create an account to host rooms',
     signOut: 'Log out',
     guestSignOutWarning:
       'Guests cannot log back in. Logging out leaves this guest profile behind for good.',

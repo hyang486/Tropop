@@ -98,7 +98,12 @@ export default function Profile() {
 
       <View style={styles.rows}>
         <QRowCard icon="globe" title={en.profile.language} value={en.profile.languageValue} />
-        <QRowCard icon="sparkles" title={en.planPreview.profileLink} onPress={() => router.push('/plan-preview')} />
+        {/* UX2-29: a guest can't create rooms, so no host-only Plus pitch; the row leads to a host account instead. */}
+        {isGuest ? (
+          <QRowCard icon="person.badge.plus" title={en.profile.guestHostRow} onPress={() => router.push('/upgrade')} />
+        ) : (
+          <QRowCard icon="sparkles" title={en.planPreview.profileLink} onPress={() => router.push('/plan-preview')} />
+        )}
         <QRowCard
           icon="rectangle.portrait.and.arrow.right"
           title={en.profile.signOut}
