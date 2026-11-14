@@ -657,10 +657,13 @@ function RoomMap({
               onPress={toggleActivity}
               style={({ pressed }) => [styles.switchRow, styles.cardRow, pressed && styles.pressed]}
             >
-              <Text style={styles.switchLabel}>{active ? en.map.endActivity : en.map.startActivity}</Text>
+              {/* UX2-65: End activity ends sharing for everyone: red, no chevron (its confirm screen stays). */}
+              <Text style={[styles.switchLabel, active && { color: colors.errorText }]}>
+                {active ? en.map.endActivity : en.map.startActivity}
+              </Text>
               {busy === 'activity' ? (
                 <ActivityIndicator />
-              ) : (
+              ) : active ? null : (
                 <SymbolView name="chevron.right" size={14} weight="semibold" tintColor={colors.secondaryLabel} />
               )}
             </Pressable>
