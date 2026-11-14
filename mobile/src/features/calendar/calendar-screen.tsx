@@ -52,6 +52,7 @@ import {
   shiftMonth,
 } from './calendar-plan';
 import { useCalendar, usePlusPreview } from './calendar-store';
+import { addTapAction, plusIntroHref } from './plus-intro';
 
 const t = en.calendar;
 const ART = require('../../../assets/images/icon.png');
@@ -149,12 +150,12 @@ function CalendarMonth({ uid }: { uid: string }) {
         title={t.title}
         background={palette.paper}
         floating={
-          // "Add with Qrewing" is Plus only (tiers FINAL); Free sees no button and makes no server call.
-          plus !== true ? undefined : (
+          // "Add with Qrewing" is Plus only (tiers FINAL). Free taps open the Plus intro with no server call.
+          addTapAction(plus) === null ? undefined : (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.ask}
-            onPress={() => setAsking(true)}
+            onPress={() => (addTapAction(plus) === 'ask' ? setAsking(true) : router.push(plusIntroHref('calendar')))}
             style={[styles.fab, { bottom: Math.max(insets.bottom, 12) + 12, right: insets.right + 16 }]}
           >
             <Image source={ART} style={styles.fabArt} contentFit="cover" accessibilityIgnoresInvertColors />
@@ -285,7 +286,7 @@ function CalendarMonth({ uid }: { uid: string }) {
         icon={upsell?.emoji}
         onSeePlus={() => {
           setUpsell(null);
-          router.push('/plan-preview');
+          router.push(plusIntroHref('diary'));
         }}
         onClose={() => setUpsell(null)}
       />
@@ -334,7 +335,7 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
       // 402 plan_limit: the server plan is not Plus (0032), so this goes to the Calendar Plus gate, as the diary does.
       if (code === 'plan_limit') {
         close();
-        router.push('/plan-preview');
+        router.push(plusIntroHref('calendar'));
         return;
       }
       setError(code === 'unclear' ? t.askErrors.unclear : code === 'rate_limited' ? t.askErrors.rate_limited : t.askErrors.other);

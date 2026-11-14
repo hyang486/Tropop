@@ -22,3 +22,14 @@ export function plusBenefits(from: PlusFrom): { key: PlusBenefit; focus: boolean
   const focus = FOCUS[from];
   return [focus, ...PLUS_BENEFITS.filter((k) => k !== focus)].map((key) => ({ key, focus: key === focus }));
 }
+
+/**
+ * Calendar bottom-right Qrewing tap: Plus opens the ask sheet; Free goes straight to the Plus intro with no
+ * server call and no error (human rule: a Free user never hits a dead or locked Qrewing button). Hidden while
+ * the plan is unread (null), so a Plus member is never sent to the intro by a slow read.
+ */
+export function addTapAction(plus: boolean | null): 'ask' | 'intro' | null {
+  return plus === null ? null : plus ? 'ask' : 'intro';
+}
+
+export const plusIntroHref = (from: PlusFrom) => `/plan-preview?from=${from}` as const;

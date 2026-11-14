@@ -38,3 +38,10 @@ test('screen reads from, uses the Qrew scaffold and the ink switch', () => {
   assert.match(s, /<InkSwitch/);
   assert.doesNotMatch(s, /from 'react-native';[\s\S]*\bSwitch\b,/);
 });
+
+test('Add with Qrewing tap: Plus asks, Free goes to the intro, unread shows no button', () => {
+  assert.equal(p.addTapAction(true), 'ask');
+  assert.equal(p.addTapAction(false), 'intro');
+  assert.equal(p.addTapAction(null), null);
+  assert.equal(p.plusIntroHref('calendar'), '/plan-preview?from=calendar');
+});
