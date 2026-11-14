@@ -43,8 +43,13 @@ export default function Welcome() {
       }
     >
       {badLink ? (
-        <View style={styles.note} accessible accessibilityRole="alert">
-          <SymbolView name="exclamationmark.circle" size={17} tintColor={colors.label} style={styles.noteIcon} />
+        <View
+          style={styles.note}
+          accessible
+          accessibilityRole="alert"
+          accessibilityLabel={`${en.welcome.invalidLinkTitle} ${en.welcome.invalidLinkBody}`}
+        >
+          <SymbolView name="exclamationmark.circle" size={22} tintColor={colors.label} style={styles.noteIcon} />
           <View style={styles.noteText}>
             <Text style={styles.noteTitle}>{en.welcome.invalidLinkTitle}</Text>
             <Text style={styles.noteBody}>{en.welcome.invalidLinkBody}</Text>
@@ -106,7 +111,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.field,
   },
-  noteIcon: { marginTop: 1 },
+  // expo-symbols aspect-fits an 18 pt medium-scale image (with padding) into the frame: a 22 pt frame draws a
+  // ~17 pt circle. -1 centers it on the first 15 pt text line.
+  noteIcon: { marginTop: -1 },
   noteText: { flex: 1, gap: 2 },
   noteTitle: { fontSize: 15, fontWeight: '600', color: colors.label },
   noteBody: { fontSize: 15, color: colors.ink2 },
