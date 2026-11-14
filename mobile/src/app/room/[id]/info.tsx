@@ -181,6 +181,8 @@ export default function RoomInfoScreen() {
     <QScreen
       title={room.name}
       subtitle={en.room.infoSubtitle(isHost)}
+      // UX2-57: content scrolls under the host footer; the hairline gives it an edge (as Create room's bar).
+      actionsDivider={isHost}
       actions={
         <>
           {isHost ? (

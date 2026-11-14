@@ -68,9 +68,11 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
   if (!isHost && !q.aiEnabled) return null;
   const aiOk = q.me?.aiOk ?? false;
 
+  // UX2-53: the host's switch row already says "Qrewing AI", so no header for the host. Members have no switch
+  // row, so the header still names their rows (as does the offline state above).
   return (
     <View style={styles.section}>
-      <QLabel>{s.section}</QLabel>
+      {isHost ? null : <QLabel>{s.section}</QLabel>}
       {isHost ? (
         <>
           <QCard row>

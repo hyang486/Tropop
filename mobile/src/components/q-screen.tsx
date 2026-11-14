@@ -54,6 +54,7 @@ export function QScreen({
   subtitle,
   children,
   actions,
+  actionsDivider = false,
   bottom,
   bottomAlign = 'end',
   refreshControl,
@@ -94,6 +95,8 @@ export function QScreen({
   background?: string;
   /** UX2-48: the screen is a pageSheet: `sheet` ground (dark #1C1C1E) and `sheetField` cards and fields. */
   sheet?: boolean;
+  /** UX2-57: a 0.5 pt top separator on the pinned actions (as Create room's bar) where content scrolls under them. */
+  actionsDivider?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   // Pad the top by the header overlap ourselves instead of contentInsetAdjustmentBehavior "automatic": that
@@ -170,7 +173,7 @@ export function QScreen({
             ]}
           />
         ) : null}
-        {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }, ground ? { backgroundColor: ground } : null]}>{actions}</View> : null}
+        {actions ? <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }, ground ? { backgroundColor: ground } : null, actionsDivider && styles.actionsDivider]}>{actions}</View> : null}
       </View>
     </View>
     </OnSheet>
@@ -394,4 +397,5 @@ const styles = StyleSheet.create({
   link: { alignSelf: 'center', paddingVertical: 8 },
   linkText: { fontSize: 15, color: colors.label },
   actions: { paddingHorizontal: qSpacing.side, paddingTop: 12, gap: qSpacing.gap, backgroundColor: colors.background },
+  actionsDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
 });
