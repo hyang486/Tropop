@@ -463,13 +463,13 @@ function ChatRoom({
           <QrewingFab ask={ask} />
           </View>
 
-          {/* UX P1-1 / UX2-02: before entry info only Send is gated. The entry card takes the text field's place; the
+          {/* UX P1-1 / UX2-02 / UX2-74 (a): before entry info only Send is gated. The entry card takes the text field's place; the
               "+" and its panel (Emergency, Arrived, Photos, Map) stay, since Emergency must never sit behind a form. */}
           <View style={[styles.composer, { paddingBottom: plusOpen ? 8 : Math.max(insets.bottom, 8) }]}>
             {/* Spec 11 A11: "+" left of the field (KakaoTalk); it turns into a cross while the grid is open. */}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={plusOpen ? en.chat.moreClose : en.chat.more}
+              accessibilityLabel={plusOpen ? en.chat.moreClose : qrewing.gates.entry ? en.chat.moreGated : en.chat.more}
               accessibilityState={{ expanded: plusOpen }}
               onPress={togglePlus}
               hitSlop={6}

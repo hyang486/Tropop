@@ -389,6 +389,8 @@ export const en = {
     // Spec 11 A11: the "+" panel left of the composer.
     more: 'More',
     moreClose: 'Close',
+    // UX2-74: before the intro is saved the "+" is the way to status, arrival and Emergency.
+    moreGated: 'More: status, arrival, Emergency',
     arrivedTile: 'Arrived',
     statusTile: 'Set status',
     // Spec 11 A13: the host's important message pinned on top.

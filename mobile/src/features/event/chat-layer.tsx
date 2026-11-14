@@ -167,12 +167,14 @@ export function EntryGate({ roomId }: { roomId: string }) {
   const router = useRouter();
   return (
     <View style={styles.gate}>
-      <Text style={styles.gateTitle} numberOfLines={1}>
+      <Text style={styles.gateTitle} numberOfLines={1} ellipsizeMode="tail">
         {en.qrewing.entry.chatPrompt}
       </Text>
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id: roomId, gate: '1' } })}
+        // 32 pt pill inside the 44 pt field; the touch target stays 44 pt.
+        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
         style={({ pressed }) => [styles.gateButton, pressed && { opacity: 0.6 }]}
       >
         <Text style={styles.gateButtonText} maxFontSizeMultiplier={1.4}>
@@ -207,8 +209,21 @@ const styles = StyleSheet.create({
   hiddenRow: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
   hiddenText: { fontSize: 13, color: colors.ink2 },
   hiddenLink: { color: colors.label, textDecorationLine: 'underline' },
-  gate: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // UX2-74 (ux, option a): field-shaped like the message field, 12 pt after the "+" (composer gap 8 + 4).
+  gate: {
+    flex: 1,
+    minHeight: 44,
+    marginLeft: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 16,
+    paddingRight: 6,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    backgroundColor: colors.field,
+  },
   gateTitle: { flex: 1, fontSize: 15, color: colors.ink2 },
-  gateButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, justifyContent: 'center', backgroundColor: colors.tint },
+  gateButton: { minHeight: 32, paddingHorizontal: 14, borderRadius: 16, justifyContent: 'center', backgroundColor: colors.tint },
   gateButtonText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
 });
