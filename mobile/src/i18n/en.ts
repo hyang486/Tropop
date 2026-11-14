@@ -594,6 +594,7 @@ export const en = {
     shareMineHint: 'Only while the app is open. Nobody can turn this on for you.',
     permissionDenied: 'Location access is off for Qrew. Turn it on in Settings to share.',
     openSettings: 'Open Settings',
+    preciseOff: 'Precise location is off. Pace and arrival may be wrong.',
     reporter: {
       off: '',
       starting: 'Finding your position…',

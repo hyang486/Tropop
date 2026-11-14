@@ -225,6 +225,12 @@ export async function hasForegroundPermission() {
   return granted;
 }
 
+/** UX2-21: When In Use is granted but iOS Precise Location is off (approximate fixes only). */
+export async function hasReducedAccuracy() {
+  const permission = await Location.getForegroundPermissionsAsync();
+  return permission.granted && permission.ios?.accuracy === 'reduced';
+}
+
 /**
  * The device's own position for centering the map (M6). Never prompts: null without permission.
  * Uses the cached fix when there is one, otherwise one balanced-accuracy fix.

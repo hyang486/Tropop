@@ -22,6 +22,7 @@ import { errorMessage } from '@/lib/errors';
 import {
   getMyPosition,
   hasForegroundPermission,
+  hasReducedAccuracy,
   locateMe,
   type Presence,
   requestForegroundPermission,
@@ -183,14 +184,22 @@ function RoomMap({
   // M5: the permission is read again whenever the app returns to the foreground (e.g. from Settings).
   const [granted, setGranted] = useState<boolean | null>(null);
   const [askDenied, setAskDenied] = useState(false);
+  // UX2-21: Precise Location off feeds coarse dots to pace and arrival, so the map says so.
+  const [reduced, setReduced] = useState(false);
   useEffect(() => {
     let live = true;
-    const check = () =>
+    const check = () => {
       hasForegroundPermission()
         .then((ok) => {
           if (live) setGranted(ok);
         })
         .catch(() => {});
+      hasReducedAccuracy()
+        .then((r) => {
+          if (live) setReduced(r);
+        })
+        .catch(() => {});
+    };
     check();
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active') check();
@@ -496,6 +505,14 @@ function RoomMap({
         onOpenLocation={(_sender, coordinates) => focusOn(coordinates)}
       />
 
+      {reduced && granted !== false ? (
+        <View style={styles.preciseBar}>
+          <Text style={styles.preciseText}>{en.map.preciseOff}</Text>
+          <Pressable accessibilityRole="button" onPress={() => Linking.openSettings()} hitSlop={8} style={styles.preciseLink}>
+            <Text style={styles.preciseLinkText}>{en.map.openSettings}</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View
         style={styles.mapWrap}
         accessibilityLabel={pinsSpoken ? `${en.map.title}: ${pinsSpoken}` : undefined}
@@ -798,6 +815,10 @@ const styles = StyleSheet.create({
   cardRow: { minHeight: 52, gap: 12 },
   pressed: { opacity: 0.6 },
   link: { fontSize: 17, color: colors.tint },
+  preciseBar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12 },
+  preciseText: { flexShrink: 1, fontSize: 13, lineHeight: 18, color: colors.ink2 },
+  preciseLink: { minHeight: 44, justifyContent: 'center' },
+  preciseLinkText: { fontSize: 13, lineHeight: 18, color: colors.tint },
   presence: {
     backgroundColor: colors.field,
     borderRadius: 12,
