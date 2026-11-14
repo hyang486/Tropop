@@ -424,8 +424,9 @@ export default function CreateRoom() {
               <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
             </Pressable>
           </View>
-          {atMax && plus !== null ? (
-            <Text style={styles.atMax}>{en.createRoom.capacityAtMax(capacityMax(plus), plus)}</Text>
+          {/* UX2-54: Plus at 30 shows only the hint ("Plus rooms hold up to 30."), no right-aligned at-max line. */}
+          {atMax && plus === false ? (
+            <Text style={styles.atMax}>{en.createRoom.capacityAtMax(capacityMax(false), false)}</Text>
           ) : null}
           <Hint>{capacityHint(plus)}</Hint>
 

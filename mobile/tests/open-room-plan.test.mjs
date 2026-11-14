@@ -166,3 +166,10 @@ test('capacity option B: the at-max line names the plan', async () => {
   assert.equal(en.createRoom.capacityAtMax(6, false), '6 · Free max');
   assert.equal(en.createRoom.capacityAtMax(30, true), '30 · Plus max');
 });
+
+test('UX2-54: Create room shows the at-max line only for Free; Plus keeps only the hint', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/app/create-room.tsx', import.meta.url), 'utf8');
+  assert.match(src, /atMax && plus === false \? \(/);
+  assert.doesNotMatch(src, /capacityAtMax\(capacityMax\(plus\), plus\)/);
+});
