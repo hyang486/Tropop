@@ -70,7 +70,8 @@ test('UX2-130: the room screen never prompts; the card sits in the newest cell',
   assert.doesNotMatch(room, /syncExpiryReminders\(\[room\], false\)/);
   assert.match(room, /useReminderCard\(room, remainingMs, activity\.emergencies\.length > 0\)/);
   assert.match(room, /index === 0 && reminderCard\.shown/);
-  assert.equal((room.match(/\{card\}/g) ?? []).length, 2);
+  // UX3-B04: day and collapsed-run rows render the card too (4 row types).
+  assert.equal((room.match(/\{card\}/g) ?? []).length, 4);
   assert.match(room, /extraData=\{reminderCard\.shown \|\| reminderCard\.busy\}/);
 });
 
