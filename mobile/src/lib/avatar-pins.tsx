@@ -14,15 +14,13 @@ const STALE = '#8E8E93';
 const EMERGENCY_RED = '#FF3B30';
 /** The icon frame expo-maps draws, in points. */
 const FRAME = 50;
-/** Pixels per point of the baked PNG. */
-const SCALE = 3;
 
 function PinFace({ face }: { face: AvatarFace }) {
   const c = FRAME / 2;
   const ink = face.stale ? STALE : INK;
-  const filled = face.kind === 'me';
+  const filled = face.kind === 'me' || face.kind === 'my-cluster';
   const inner = AVATAR_PIN_RADIUS - 2;
-  const fontSize = face.kind === 'cluster' ? 13 : 15;
+  const fontSize = face.kind === 'cluster' || face.kind === 'my-cluster' ? 13 : 15;
   return (
     <>
       {face.emergency ? (
@@ -73,7 +71,8 @@ function Bake({ face, onDone }: { face: AvatarFace; onDone: (key: string, ref: I
             .then((ref) => live && onDone(key, ref))
             .catch(() => live && onDone(key, null));
         },
-        { width: FRAME * SCALE, height: FRAME * SCALE },
+        // No size: RNSVG draws the view at its own bounds (drawRect ignores the given rect), so a larger size
+        // only adds empty canvas (qa: pins at a third of their size). The renderer uses the screen scale.
       );
     });
     return () => {

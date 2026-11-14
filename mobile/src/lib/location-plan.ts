@@ -1116,8 +1116,9 @@ export function planLocate(permission: { granted: boolean; canAskAgain: boolean 
 export const CLUSTER_METERS = 30;
 
 export type AvatarFace = {
-  /** 'me': ink-filled; 'other': white with an ink initial; 'cluster': white with "+N". */
-  kind: 'me' | 'other' | 'cluster';
+  /** 'me': ink-filled; 'other': white with an ink initial; 'cluster': white with "+N"; 'my-cluster': a "+N"
+   * that includes you, ink-filled so you can still find yourself. */
+  kind: 'me' | 'other' | 'cluster' | 'my-cluster';
   text: string;
   stale: boolean;
   emergency: boolean;
@@ -1144,8 +1145,9 @@ export function avatarFaceKey(face: AvatarFace): string {
 type AvatarSource = { id: string; userId: string; name: string; coordinates: LatLng; title: string; stale: boolean; text: string };
 
 /**
- * UX P0-3: the map's avatar pins, in pin order. Your own pin and pins in Emergency are never clustered (you
- * always see yourself, and the red ring must stay visible). Other pins join the first open cluster whose first
+ * UX P0-3: the map's avatar pins, in pin order. Pins in Emergency are never clustered (the red ring must stay
+ * visible). You cluster like anyone else (qa: you and a member 20 m apart overlapped); a cluster with you in it
+ * is ink-filled. Pins join the first open cluster whose first
  * pin is within `meters`; a cluster of one is a plain pin. A cluster is stale only when all its members are.
  * `pins` are planPins output (any icon is ignored: the mockup shows initials only).
  */
@@ -1183,7 +1185,7 @@ export function planAvatarPins<T>(
   const out: (AvatarPin | AvatarSource[])[] = [];
   const open: AvatarSource[][] = [];
   for (const s of sources) {
-    if (s.userId === myUserId || emergencyPinIds.has(s.id)) {
+    if (emergencyPinIds.has(s.id)) {
       out.push(single(s));
       continue;
     }
@@ -1200,7 +1202,7 @@ export function planAvatarPins<T>(
     if (!Array.isArray(entry)) return entry;
     if (entry.length === 1) return single(entry[0]);
     const face: AvatarFace = {
-      kind: 'cluster',
+      kind: entry.some((s) => s.userId === myUserId) ? 'my-cluster' : 'cluster',
       text: `+${entry.length}`,
       stale: entry.every((s) => s.stale),
       emergency: false,

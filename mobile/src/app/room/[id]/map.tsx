@@ -47,15 +47,11 @@ import {
   MAX_CAMERA_ZOOM,
   parseRoute,
   type PinInput,
-  planLabels,
   planAvatarPins,
   planPins,
   ROOM_MAP_SIZE,
   ROUTE_LINE_WIDTH,
   stalePinId,
-  type Viewport,
-  viewportFromCamera,
-  viewportFromRegion,
   type ViewSize,
 } from '@/lib/location-plan';
 import { useRoomEvents } from '@/lib/room-channel';
@@ -219,31 +215,16 @@ function RoomMap({
   const ask = useQrewingAskButton(room.id);
   // The room map's view after its last camera move: the editor opens on the same view.
   const lastView = useRef<Camera | null>(null);
-  // P2: what the map showed when its camera last stopped (expo-maps reports a move only at its end), used to
-  // group the member labels on screen. Null until the first move ends.
-  const [viewport, setViewport] = useState<Viewport | null>(null);
   function onCameraMove(event: CameraMoveEvent) {
     const { latitude, longitude } = event.coordinates;
     if (latitude == null || longitude == null) return;
     lastView.current = { coordinates: { latitude, longitude }, zoom: event.zoom };
-    const next = viewportFromRegion(event, mapSize);
-    // Only a real change re-renders (an equal event must not loop through a new pin layout).
-    setViewport((prev) =>
-      next &&
-      (!prev ||
-        prev.scale !== next.scale ||
-        prev.bearing !== next.bearing ||
-        prev.center.latitude !== next.center.latitude ||
-        prev.center.longitude !== next.center.longitude)
-        ? next
-        : prev,
-    );
   }
 
   // UX P0-3: every member is a 34 pt avatar pin (you ink-filled, others white with an ink initial); people within
-  // 30 m of each other are one "+N" pin, never you or a person in Emergency. Only a person in Emergency gets a
-  // red ring and a "<name> · help" label (one text annotation per group of close labels, planLabels). Tapping
-  // a pin shows its names in a callout pill above it; tapping the map hides it. Stale pins are grey.
+  // 30 m of each other are one "+N" pin (ink-filled when it includes you), never a person in Emergency. Only a
+  // person in Emergency gets a red ring and a "<name> · help" label right under the pin. Tapping a pin shows its
+  // names in a callout pill above it; tapping the map hides it. Stale pins are grey.
   const pinInputs: PinInput[] = presence.rows.map((row) => ({
     userId: row.user_id,
     coordinates: { latitude: row.lat, longitude: row.lng },
@@ -426,23 +407,24 @@ function RoomMap({
     });
   }
 
-  // P2: grouped on the last camera the map stopped at; before the first camera event, on the camera it was
-  // given (or will be given by Recenter), so the first frame already groups.
-  const givenCamera = initialCamera ?? camera;
-  const labelView = viewport ?? (givenCamera ? viewportFromCamera(givenCamera, mapSize) : null);
-  // G4 (#5): pills keep off the drawn route when a clear spot exists.
-  const labels = planLabels(labelInputs, labelView, mapSize, shownRoute);
-  // Emergency labels only: red text on the white pill (red stays the one Emergency signal).
+  // Emergency labels only: red text on a white pill directly under the pin (red stays the one Emergency
+  // signal). qa (P0-3): the grouped label layout placed it ~60 pt off the 34 pt pin.
   const annotations = [
     ...pinAnnotations,
-    ...labels.map((label) => ({
-      id: `${label.id}:emergency`,
-      coordinates: label.coordinates,
-      text: label.text,
-      anchor: label.anchor,
-      backgroundColor: LABEL_BACKGROUND,
-      textColor: EMERGENCY_RED,
-    })),
+    ...avatarPins.flatMap((pin) =>
+      pin.face.emergency
+        ? [
+            {
+              id: `${pin.id}:emergency`,
+              coordinates: pin.coordinates,
+              text: en.map.emergencyPin(pin.names[0]),
+              anchor: avatarPillAnchor(1, 'below'),
+              backgroundColor: LABEL_BACKGROUND,
+              textColor: EMERGENCY_RED,
+            },
+          ]
+        : [],
+    ),
     ...(selected
       ? [
           {

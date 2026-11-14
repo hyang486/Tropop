@@ -88,15 +88,25 @@ test('planAvatarPins: a person in Emergency inside a cluster stays their own pin
   assert.equal(pins.filter((p) => p.face.emergency).length, 1);
 });
 
-test('planAvatarPins: a stale person in Emergency keeps the ring; you never join a cluster', () => {
+test('planAvatarPins: a stale person in Emergency keeps the ring and stays out of your cluster', () => {
   const pins = plan(
     [person('me', 'You', BASE), person('sora', 'Sora', north(3), { updatedAt: OLD }), person('jun', 'Jun', north(6))],
     { emergency: ['sora'] },
   );
-  assert.equal(pins.length, 3);
-  assert.equal(pins[0].face.kind, 'me');
+  assert.equal(pins.length, 2);
+  assert.deepEqual(pins[0].face, { kind: 'my-cluster', text: '+2', stale: false, emergency: false });
+  assert.deepEqual(pins[0].names, ['You', 'Jun']);
   assert.deepEqual(pins[1].face, { kind: 'other', text: 'S', stale: true, emergency: true });
   assert.equal(pins[1].members[0], stalePinId('sora'));
+});
+
+test('planAvatarPins: you and a member 20 m apart are one ink-filled "+2" (qa P0-3), apart you are "me"', () => {
+  const near = plan([person('me', 'Mina', BASE), person('jun', 'Jun', north(20))]);
+  assert.equal(near.length, 1);
+  assert.equal(near[0].face.kind, 'my-cluster');
+  assert.equal(near[0].face.text, '+2');
+  const far = plan([person('me', 'Mina', BASE), person('jun', 'Jun', north(40))]);
+  assert.deepEqual(far.map((p) => p.face.kind), ['me', 'other']);
 });
 
 test('planAvatarPins: a cluster is stale only when all its members are', () => {
