@@ -148,7 +148,9 @@ test('V4 Map: full-bleed map under a transparent header with a glass title pill,
   assert.match(map, /headerTitle: \(\) => \(\s*<MapGlass style=\{styles\.titlePill\}>/);
   // The map ends at the sheet's top edge so the Apple Maps logo and Legal link stay visible.
   assert.match(map, /style=\{\[styles\.mapFill, \{ bottom: sheetHeight \}\]\}/);
-  assert.match(map, /sheet: \{[^}]*borderTopLeftRadius: 30, borderTopRightRadius: 30/);
+  assert.match(map, /root: \{ flex: 1, backgroundColor: colors\.lift \}/);
+  assert.match(map, /mapFill: \{[^}]*borderBottomLeftRadius: 16, borderBottomRightRadius: 16[^}]*overflow: 'hidden'/);
+  assert.doesNotMatch(map, /sheet: \{[^}]*borderTop/);
   assert.match(map, /grabber: \{[^}]*width: 36, height: 5[^}]*colors\.wash2/);
   assert.match(map, /circle: \{ width: 44, height: 44, borderRadius: 22/);
   assert.match(map, /circles: \{ position: 'absolute', right: 16, gap: 12 \}/);

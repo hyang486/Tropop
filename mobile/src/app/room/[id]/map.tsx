@@ -539,7 +539,6 @@ function RoomMap({
   const insets = useSafeAreaInsets();
   // V4: a fixed lift sheet (about 45% of the screen) that scrolls inside; the map fills the screen behind it.
   const sheetHeight = Math.round(windowHeight * 0.45);
-  const lift = useLift();
   // Emergency member pinned first in the Sharing now list (the sort is stable).
   const sharingRows = [...presence.rows].sort((a, b) => Number(emergencyPinIds.has(b.user_id)) - Number(emergencyPinIds.has(a.user_id)));
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission'; // UX2-32: 'refused' is a normal event (ink2)
@@ -654,7 +653,7 @@ function RoomMap({
         </Pressable>
       </View>
 
-      <View style={[styles.sheet, lift, { height: sheetHeight }]}>
+      <View style={[styles.sheet, { height: sheetHeight }]}>
         <View style={styles.sheetClip}>
           <View style={styles.grabber} accessible={false} />
           <ScrollView
@@ -907,7 +906,8 @@ function PresenceRow({
 const MAP_OVERLAY_MAX_SCALE = 1.3;
 const styles = StyleSheet.create({
   edgeFade: { position: 'absolute', top: 0, left: 0, right: 0 },
-  root: { flex: 1, backgroundColor: colors.background },
+  // V4 (ux): lift behind the map's rounded bottom corners, so paper never shows there.
+  root: { flex: 1, backgroundColor: colors.lift },
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 16 },
   loading: { marginTop: 48 },
@@ -917,16 +917,16 @@ const styles = StyleSheet.create({
   topOverlay: { position: 'absolute', left: 16, right: 16, gap: 8 },
   circles: { position: 'absolute', right: 16, gap: 12 },
   circle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  // V4: a lift sheet, top radius 30; the shadow lives on the outer view, the clip on the inner one.
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderCurve: 'continuous', backgroundColor: colors.lift },
-  sheetClip: { flex: 1, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderCurve: 'continuous', overflow: 'hidden' },
+  // V4 (ux): the sheet is flush with the map's rounded bottom: square top corners, no shadow or hairline.
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.lift },
+  sheetClip: { flex: 1, overflow: 'hidden' },
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, marginTop: 8, marginBottom: 4, backgroundColor: colors.wash2 },
   sheetContent: { paddingHorizontal: 16, paddingTop: 8, gap: 16 },
   sheetHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   sheetCount: { fontSize: 15, color: colors.ink2, fontVariant: ['tabular-nums'] },
   rowLine: { height: 1, marginLeft: 40, backgroundColor: colors.wash },
   map: { flex: 1 },
-  mapFill: { position: 'absolute', top: 0, left: 0, right: 0 },
+  mapFill: { position: 'absolute', top: 0, left: 0, right: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, borderCurve: 'continuous', overflow: 'hidden' },
   // Top left: MapKit's own controls (compass, pitch toggle, user location button) stack in the top right
   // corner, and expo-maps 58 cannot move them. The scale bar (top left) is off by default. Pen and the
   // route length sit in one row inside the top overlay band (ROOM_MAP_PADDING.top keeps the fit clear of it).
