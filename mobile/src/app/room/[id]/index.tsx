@@ -45,6 +45,7 @@ import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
 import { endsDay } from '@/lib/chat-plan';
 import { canSendDraft, composerAutoFocus, composerReducer, initialComposer } from '@/lib/composer';
 import { errorMessage } from '@/lib/errors';
+import { disclosureHeld } from '@/lib/emergency-plan';
 import { presentServerReminder, syncExpiryReminders } from '@/lib/expiry-reminders';
 import { clearRoomCache, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
@@ -218,7 +219,18 @@ function ChatRoom({
   // C14: the read-only Free answer sheet only on a confirmed Free plan.
   const plan = usePlanState(userId);
   const [answerCard, setAnswerCard] = useState<string | null>(null);
-  const showDisclosure = (qrewing.gates.disclosure && !disclosureClosed) || askConsent;
+  // UX2-110: the automatic disclosure sheet never covers an open (or unknown) Emergency; a tap on Ask still opens it.
+  const showDisclosure =
+    (qrewing.gates.disclosure &&
+      !disclosureClosed &&
+      !disclosureHeld({
+        loading: activity.loading,
+        error: activity.error,
+        count: activity.emergencies.length,
+        stale: activity.stale,
+        slow: activity.slow,
+      })) ||
+    askConsent;
   const isEvent = room.type === 'event';
   const smallTalk = useSmallTalk({
     roomId: room.id,

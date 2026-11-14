@@ -106,6 +106,14 @@ export function emergencyAreaMode(o: {
   return o.count > 0 ? 'list' : 'none';
 }
 
+/**
+ * UX2-110: the Qrewing AI disclosure sheet waits while any Emergency is open or the area is failed (or not read
+ * yet, so it can't cover one that is about to show). It shows once the Emergency ends, or on the next open.
+ */
+export function disclosureHeld(o: Parameters<typeof emergencyAreaMode>[0]): boolean {
+  return o.loading || emergencyAreaMode(o) === 'list' || emergencyAreaMode(o) === 'failed';
+}
+
 /** UX2-30: in chat, three or more Emergencies fold into one "N Emergencies · Show" line until it is opened. */
 export const EMERGENCY_FOLD_AT = 3;
 export function emergenciesFolded(o: { place: 'chat' | 'other'; count: number; shown: boolean }): boolean {
