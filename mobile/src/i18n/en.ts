@@ -632,6 +632,8 @@ export const en = {
     stale: (age: string) => `Location stale · ${age}`,
     stalePin: 'stale',
     emergencyPin: (name: string) => `${name} · help`,
+    /** UX2-41 sweep: a pin for VoiceOver, "Mina, 2 min ago". */
+    pinSpoken: (name: string, age: string | null) => (age ? `${name}, ${age} ago` : name),
     updated: (age: string) => `Updated ${age}`,
     // UX P1-9: each person's place relative to me; only a stale position shows its age.
     withYou: 'with you',

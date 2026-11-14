@@ -56,6 +56,7 @@ import {
   stalePinId,
   type ViewSize,
 } from '@/lib/location-plan';
+import { sharedAge } from '@/lib/media-plan';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { mapStartCamera } from '@/lib/map-start';
@@ -267,8 +268,19 @@ function RoomMap({
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const selected = avatarPins.find((pin) => pin.id === selectedPin) ?? null;
   // VoiceOver: expo-maps annotations take no accessibility label, so the map reads out its pins as one label.
+  // Each member reads "<Name>, <time> ago" from their last position update.
+  const updatedAt = new Map(pinInputs.map((input) => [input.userId, input.updatedAt]));
+  const spokenMember = (memberId: string, name: string) => {
+    const at = updatedAt.get(memberId.replace(/:stale$/, ''));
+    const age = at ? sharedAge(at, now) : null;
+    return en.map.pinSpoken(name, age ? en.media.age(age.n, age.unit) : null);
+  };
   const pinsSpoken = avatarPins
-    .map((pin) => (pin.face.emergency ? en.map.emergencyPin(pin.names[0]) : pin.names.join(', ')))
+    .map((pin) =>
+      pin.face.emergency
+        ? spokenMember(pin.members[0], en.map.emergencyPin(pin.names[0]))
+        : pin.members.map((id, i) => spokenMember(id, pin.names[i] ?? '')).join(', '),
+    )
     .join('; ');
 
   // M6: with no route or positions yet, the map starts on the user's own position (no prompt).
