@@ -1,28 +1,30 @@
 /**
- * Qrewing Calendar (Plus preview, human FINAL 2026-11-13): a hand-drawn month with my rooms (hosted or joined;
- * past, current, future) as highlighter strokes and my own events. Phone-only data. "+" adds an event, the
- * Qrewing button adds one from a sentence, and a past room's emoji opens its diary card.
+ * Qrewing Calendar (human FINAL 2026-11-13; tiers FINAL 2026-11-13 PM): a hand-drawn month with my rooms (hosted
+ * or joined; past, current, future) as highlighter strokes and my own events. Phone-only data. Free and Plus: the
+ * month, "+" to add, and a tap on my event's bar opens its editor. A room's bar or icon opens its diary card on Plus
+ * and the Plus upsell on Free. "+N" lists that day's items. Plus only: the Qrewing button adds an event from a
+ * sentence. All interaction is on the grid (no day list).
  */
 import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Fragment, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  DayItemsSheet,
   DiaryCard,
   HighlighterStroke,
-  InkIcon,
-  PencilDivider,
   highlighterFor,
+  PlusUpsellCard,
   primarySegments,
   SketchyMonthGrid,
   useCalendarColors,
 } from '@/components/calendar';
 import { HAND_FONTS } from '@/components/hand-title';
-import { QCard, QScreen } from '@/components/q-screen';
+import { QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
 import { calendarAdd } from '@/features/event/qrewing-api';
@@ -34,10 +36,12 @@ import { useNow } from '@/lib/use-now';
 import { calendarGate, calendarItems, parseCalendarAdd, type RoomSnapshot } from './calendar-data';
 import { dayTitle, diaryText, monthTitle, rangeLabel, spokenJoin, weekdayLabels } from './calendar-format';
 import {
+  barAction,
   type CalItem,
   cellOf,
   type DateKey,
   isPastRoom,
+  itemAction,
   itemsOnDay,
   keyOf,
   layoutMonth,
@@ -57,27 +61,15 @@ const STROKE_H = 14;
 const LANE_PITCH = STROKE_H + 2;
 
 export function CalendarScreen() {
-  const router = useRouter();
   const uid = useAuth().session?.user.id;
-  const gate = calendarGate(usePlusPreview(uid), !!uid);
-  if (gate === 'loading') return <ActivityIndicator style={styles.loading} />;
-  if (gate === 'upsell') {
-    return (
-      <QScreen title={t.title}>
-        <QCard>
-          <Text style={styles.upsellTitle} accessibilityRole="header">
-            {t.upsellTitle}
-          </Text>
-          <Hint>{t.upsellBody}</Hint>
-        </QCard>
-        <Button title={t.upsellCta} onPress={() => router.push('/plan-preview')} />
-      </QScreen>
-    );
-  }
+  // Signed out: the root auth redirect takes over; nothing to show here.
+  if (calendarGate(!!uid) === 'signedOut') return <ActivityIndicator style={styles.loading} />;
   return <CalendarMonth uid={uid!} />;
 }
 
 function CalendarMonth({ uid }: { uid: string }) {
+  // Plus preview flag: null while unread (room taps wait), then Free or Plus.
+  const plus = usePlusPreview(uid);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const palette = useCalendarColors();
@@ -90,8 +82,9 @@ function CalendarMonth({ uid }: { uid: string }) {
   const today = localDateKey(now);
   const [month, setMonth] = useState(() => ({ year: +today.slice(0, 4), month0: +today.slice(5, 7) - 1 }));
   const [width, setWidth] = useState(0);
-  const [selected, setSelected] = useState<DateKey | null>(null);
   const [diary, setDiary] = useState<RoomSnapshot | null>(null);
+  const [upsell, setUpsell] = useState<RoomSnapshot | null>(null);
+  const [sheetDay, setSheetDay] = useState<DateKey | null>(null);
   const [asking, setAsking] = useState(false);
 
   const grid = useMemo(() => monthGrid(month.year, month.month0), [month]);
@@ -105,31 +98,32 @@ function CalendarMonth({ uid }: { uid: string }) {
   const cellW = width / 7;
   const thisYear = +today.slice(0, 4);
 
+  // A current or future room has no diary yet (Plus).
+  function diaryLines(room: RoomSnapshot): string[] {
+    return isPastRoom(room, now) ? diaryText(room.diary, t.diaryNone) : [t.diaryLater];
+  }
+
   function roomOf(item: CalItem): RoomSnapshot | null {
     return item.kind === 'room' && doc ? (doc.rooms[item.id.slice('room:'.length)] ?? null) : null;
   }
 
-  function isPast(item: CalItem): boolean {
-    const room = roomOf(item);
-    return !!room && isPastRoom(room, now);
-  }
-
+  // Tiers FINAL: room → diary (Plus) or upsell (Free, never the diary text); my event → editor.
   function openItem(item: CalItem) {
+    setSheetDay(null);
+    const action = itemAction(item.kind, plus);
+    if (action === 'edit') return router.push({ pathname: '/calendar-event', params: { id: item.id.slice('event:'.length) } });
     const room = roomOf(item);
-    if (room && isPastRoom(room, now)) return setDiary(room);
-    if (item.kind === 'event') return router.push({ pathname: '/calendar-event', params: { id: item.id.slice('event:'.length) } });
-    setSelected(item.start < keyOf(grid.year, grid.month0, 1) ? keyOf(grid.year, grid.month0, 1) : item.start);
+    if (!room || !action) return;
+    if (action === 'diary') setDiary(room);
+    else setUpsell(room);
   }
 
   function itemLabel(item: CalItem): string {
-    return t.itemLabel(item.title, rangeLabel(item.start, item.end, thisYear), isPast(item));
+    return t.barLabel(item.title, rangeLabel(item.start, item.end, thisYear), barAction(item.kind, plus));
   }
 
-  const go = (by: number) => {
-    setMonth((m) => shiftMonth(m.year, m.month0, by));
-    setSelected(null);
-  };
-  const dayItems = selected ? itemsOnDay(items, selected) : [];
+  const go = (by: number) => setMonth((m) => shiftMonth(m.year, m.month0, by));
+  const sheetItems = sheetDay ? itemsOnDay(items, sheetDay) : [];
 
   return (
     <>
@@ -155,6 +149,8 @@ function CalendarMonth({ uid }: { uid: string }) {
         title={t.title}
         background={palette.paper}
         floating={
+          // "Add with Qrewing" is Plus only (tiers FINAL); Free sees no button and makes no server call.
+          plus !== true ? undefined : (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.ask}
@@ -164,6 +160,7 @@ function CalendarMonth({ uid }: { uid: string }) {
             <Image source={ART} style={styles.fabArt} contentFit="cover" accessibilityIgnoresInvertColors />
             <View style={styles.fabRing} pointerEvents="none" />
           </Pressable>
+          )
         }
       >
         <View style={styles.nav}>
@@ -195,20 +192,33 @@ function CalendarMonth({ uid }: { uid: string }) {
                 const day = i + 1;
                 const key = keyOf(grid.year, grid.month0, day);
                 const { row, col } = cellOf(grid, day);
-                const on = itemsOnDay(items, key);
                 const more = overflow.get(day) ?? 0;
+                // Day cells are not tap targets (tiers FINAL): the bars and "+N" are. VoiceOver reads the bars.
                 return (
-                  <Pressable
+                  <View
                     key={key}
-                    accessibilityRole="button"
-                    accessibilityLabel={t.dayLabel(dayTitle(key), on.map((x) => x.title), key === today)}
-                    accessibilityState={{ selected: selected === key }}
-                    onPress={() => setSelected(key)}
+                    pointerEvents="box-none"
                     style={[styles.cell, { left: col * cellW, top: row * CELL_H, width: cellW, height: CELL_H }]}
                   >
-                    <Text style={[styles.dayNum, { color: palette.ink }, handNum, key === today && styles.today]}>{day}</Text>
-                    {more > 0 ? <Text style={[styles.more, { color: palette.ink }, handNum]}>{t.more(more)}</Text> : null}
-                  </Pressable>
+                    <Text
+                      style={[styles.dayNum, { color: palette.ink }, handNum, key === today && styles.today]}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no"
+                    >
+                      {day}
+                    </Text>
+                    {more > 0 ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t.moreLabel(more, dayTitle(key))}
+                        onPress={() => setSheetDay(key)}
+                        hitSlop={10}
+                        style={styles.more}
+                      >
+                        <Text style={[styles.moreText, { color: palette.ink }, handNum]}>{t.more(more)}</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 );
               })}
               {shown.map((s) => {
@@ -243,39 +253,6 @@ function CalendarMonth({ uid }: { uid: string }) {
           ) : null}
         </View>
 
-        {selected ? (
-          <View style={styles.dayList}>
-            <Text style={[styles.dayHead, hand(dayTitle(selected))]} accessibilityRole="header">
-              {dayTitle(selected)}
-            </Text>
-            <PencilDivider seed={`day:${selected}`} />
-            {dayItems.length === 0 ? <Hint>{t.nothing}</Hint> : null}
-            {dayItems.map((item, i) => (
-              <Fragment key={item.id}>
-                {i > 0 ? <PencilDivider seed={item.id} /> : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={itemLabel(item)}
-                  onPress={() => openItem(item)}
-                  style={styles.dayRow}
-                >
-                  <InkIcon emoji={item.emoji} size={24} />
-                  <View style={styles.flex}>
-                    <Text style={[styles.dayTitle, hand(item.title)]} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.daySub}>
-                      {`${item.kind === 'room' ? t.roomTag : t.eventTag} · ${rangeLabel(item.start, item.end, thisYear)}`}
-                    </Text>
-                  </View>
-                  {item.kind === 'event' || isPast(item) ? (
-                    <SymbolView name="chevron.right" size={14} tintColor={colors.secondaryLabel} />
-                  ) : null}
-                </Pressable>
-              </Fragment>
-            ))}
-          </View>
-        ) : null}
       </QScreen>
 
       <Modal visible={!!diary} transparent animationType="fade" onRequestClose={() => setDiary(null)}>
@@ -294,12 +271,35 @@ function CalendarMonth({ uid }: { uid: string }) {
               title={diary.name}
               icon={diary.emoji}
               dateLine={rangeLabel(diary.start, diary.end, thisYear)}
-              lines={diaryText(diary.diary, t.diaryNone)}
-              accessibilityLabel={spokenJoin([diary.name, rangeLabel(diary.start, diary.end, thisYear), ...diaryText(diary.diary, t.diaryNone)])}
+              lines={diaryLines(diary)}
+              accessibilityLabel={spokenJoin([diary.name, rangeLabel(diary.start, diary.end, thisYear), ...diaryLines(diary)])}
             />
           ) : null}
         </View>
       </Modal>
+
+      <PlusUpsellCard
+        visible={!!upsell}
+        roomName={upsell?.name ?? ''}
+        rangeLabel={upsell ? rangeLabel(upsell.start, upsell.end, thisYear) : ''}
+        icon={upsell?.emoji}
+        onSeePlus={() => {
+          setUpsell(null);
+          router.push('/plan-preview');
+        }}
+        onClose={() => setUpsell(null)}
+      />
+
+      <DayItemsSheet
+        visible={!!sheetDay}
+        dateLabel={sheetDay ? dayTitle(sheetDay) : ''}
+        items={sheetItems.map((i) => ({ key: i.id, title: i.title, icon: i.emoji, kind: i.kind, a11yLabel: itemLabel(i) }))}
+        onPick={(key) => {
+          const item = byId.get(key);
+          if (item) openItem(item);
+        }}
+        onClose={() => setSheetDay(null)}
+      />
 
       <AskSheet visible={asking} onClose={() => setAsking(false)} today={today} />
     </>
@@ -377,8 +377,6 @@ const FAB = 56;
 
 const styles = StyleSheet.create({
   loading: { marginTop: 80 },
-  flex: { flex: 1 },
-  upsellTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
   headerIcon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -389,12 +387,8 @@ const styles = StyleSheet.create({
   cell: { position: 'absolute', paddingTop: 2, paddingHorizontal: 4 },
   dayNum: { fontSize: 16, lineHeight: 18 },
   today: { textDecorationLine: 'underline' },
-  more: { position: 'absolute', right: 4, top: 2, fontSize: 13, lineHeight: 16 },
-  dayHead: { fontSize: 20, color: colors.label },
-  dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  dayList: { gap: 8, paddingHorizontal: 4 },
-  dayTitle: { fontSize: 19, color: colors.label },
-  daySub: { fontSize: 13, color: colors.secondaryLabel },
+  more: { position: 'absolute', right: 2, top: 0, minWidth: 24, alignItems: 'flex-end', paddingHorizontal: 2 },
+  moreText: { fontSize: 13, lineHeight: 18 },
   fab: { position: 'absolute', width: FAB, height: FAB, borderRadius: FAB / 2 },
   fabArt: { width: '100%', height: '100%', borderRadius: FAB / 2 },
   fabRing: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: FAB / 2, borderWidth: 1.5, borderColor: colors.label },

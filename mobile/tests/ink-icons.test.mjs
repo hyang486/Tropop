@@ -49,7 +49,7 @@ test('VoiceOver labels are words, never emoji', () => {
 test('call sites draw the icon, not the emoji text', () => {
   const screen = src('features/calendar/calendar-screen.tsx');
   const editor = src('features/calendar/event-editor.tsx');
-  assert.match(screen, /<InkIcon emoji=\{item\.emoji\}/);
+  // Tiers FINAL: the day list (the screen's own InkIcon call) is gone; "+N" rows draw icons in DayItemsSheet.
   assert.doesNotMatch(screen, /\{item\.emoji\}<\/Text>/);
   assert.match(editor, /accessibilityLabel=\{inkIconLabel\(e\)\}/);
   assert.doesNotMatch(editor, /<Text[^>]*>\{e\}<\/Text>/);
@@ -58,9 +58,7 @@ test('call sites draw the icon, not the emoji text', () => {
   assert.doesNotMatch(stroke, /\{emoji\}\s*<\/Text>/);
 });
 
-test('the day list is pencil-ruled, not a card', () => {
+test('tiers FINAL: the day list is removed; interaction lives on the grid', () => {
   const screen = src('features/calendar/calendar-screen.tsx');
-  const list = screen.slice(screen.indexOf('style={styles.dayList}'), screen.indexOf('</QScreen>', screen.indexOf('style={styles.dayList}')));
-  assert.match(list, /<PencilDivider seed=/);
-  assert.doesNotMatch(list, /QCard/);
+  assert.doesNotMatch(screen, /styles\.dayList/);
 });

@@ -93,3 +93,19 @@ test('itemsOnDay and isDateKey', () => {
   assert.equal(p.isDateKey('2026-02-30'), false);
   assert.equal(p.isDateKey('2026-02-28'), true);
 });
+
+test('itemAction: rooms open the diary on Plus and the upsell on Free; events always edit; unread Plus waits', () => {
+  assert.equal(p.itemAction('room', true), 'diary');
+  assert.equal(p.itemAction('room', false), 'upsell');
+  assert.equal(p.itemAction('room', null), null);
+  assert.equal(p.itemAction('event', true), 'edit');
+  assert.equal(p.itemAction('event', false), 'edit');
+  assert.equal(p.itemAction('event', null), 'edit');
+});
+
+test('barAction: VoiceOver says open diary on Plus, Plus feature on Free, edit event for my events', () => {
+  assert.equal(p.barAction('room', true), 'diary');
+  assert.equal(p.barAction('room', false), 'plus');
+  assert.equal(p.barAction('room', null), 'plus');
+  assert.equal(p.barAction('event', false), 'edit');
+});
