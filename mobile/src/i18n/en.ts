@@ -860,8 +860,12 @@ export const en = {
     ask: 'Add with Qrewing',
     more: (n: number) => `+${n}`,
     // Calendar tiers (human FINAL 2026-11-13 PM).
-    barLabel: (title: string, range: string, action: 'diary' | 'plus' | 'edit') =>
-      `${title}, ${range}, ${action === 'diary' ? 'open diary' : action === 'plus' ? 'Plus feature' : 'edit event'}`,
+    barLabel: (title: string, range: string, action: 'diary' | 'plus' | 'edit' | 'none') =>
+      action === 'none'
+        ? `${title}, ${range}`
+        : `${title}, ${range}, ${action === 'diary' ? 'open diary' : action === 'plus' ? 'Plus feature' : 'edit event'}`,
+    // UX2-39: a month with nothing on it.
+    emptyMonth: 'Rooms you join show up here.',
     moreLabel: (n: number, day: string) => `${n} more on ${day}`,
     diaryLater: 'Your diary appears after this room ends.',
     upsellCardTitle: 'The Qrewing diary is a Plus feature',

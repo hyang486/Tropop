@@ -106,7 +106,7 @@ test('itemAction: rooms open the diary on Plus and the upsell on Free; events al
 test('barAction: VoiceOver says open diary on Plus, Plus feature on Free, edit event for my events', () => {
   assert.equal(p.barAction('room', true), 'diary');
   assert.equal(p.barAction('room', false), 'plus');
-  assert.equal(p.barAction('room', null), 'plus');
+  assert.equal(p.barAction('room', null), 'none'); // UX2-39: no action named while the plan loads
   assert.equal(p.barAction('event', false), 'edit');
 });
 

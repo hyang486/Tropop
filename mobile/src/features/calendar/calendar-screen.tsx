@@ -249,7 +249,7 @@ function CalendarMonth({ uid }: { uid: string }) {
             </>
           ) : null}
         </View>
-
+        {doc && shown.length === 0 ? <Hint>{t.emptyMonth}</Hint> : null}
       </QScreen>
 
       <Modal visible={!!diary} transparent animationType="fade" onRequestClose={() => setDiary(null)}>
@@ -264,7 +264,8 @@ function CalendarMonth({ uid }: { uid: string }) {
           />
           {diary ? (
             <DiaryCard
-              width={Math.min(360, width + 24 || 340)}
+              // UX2-40: never wider than the content area (343 pt on a 375 pt phone).
+              width={Math.min(360, width || 340)}
               title={diary.name}
               icon={diary.emoji}
               dateLine={rangeLabel(diary.start, diary.end, thisYear)}

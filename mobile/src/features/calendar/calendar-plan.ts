@@ -238,8 +238,12 @@ export function itemAction(kind: CalItem['kind'], plus: boolean | null): ItemAct
   return plus ? 'diary' : 'upsell';
 }
 
-/** The VoiceOver action word for a bar: what a tap does, with Free rooms named as a Plus feature. */
-export function barAction(kind: CalItem['kind'], plus: boolean | null): 'diary' | 'plus' | 'edit' {
+/**
+ * The VoiceOver action word for a bar: what a tap does, with Free rooms named as a Plus feature. UX2-39: while the
+ * plan loads ('none') a room bar names no action, since the tap does nothing yet.
+ */
+export function barAction(kind: CalItem['kind'], plus: boolean | null): 'diary' | 'plus' | 'edit' | 'none' {
   if (kind === 'event') return 'edit';
+  if (plus === null) return 'none';
   return plus ? 'diary' : 'plus';
 }
