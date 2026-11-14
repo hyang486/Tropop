@@ -1,6 +1,7 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Linking } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, Linking } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
 import { QScreen } from '@/components/q-screen';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
 import { useAuth } from '@/lib/auth';
-import { pickPhotosAndVideos } from '@/lib/media';
+import { pickPhotosAndVideos, takePhoto } from '@/lib/media';
 import { confirmOriginalsNotice } from '@/lib/originals-notice';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, type Room } from '@/lib/rooms';
@@ -39,6 +40,20 @@ export default function CameraOffScreen() {
     if (event.table === 'rooms' || event.table === 'room_members') readRoom();
   });
   const ended = useRoomOver(room === 'unknown' ? null : room);
+
+  // UX2-18 (P): back from Settings with camera access on, continue to the camera (no prompt: already granted).
+  const closed = room === null || ended.over;
+  useEffect(() => {
+    if (closed) return;
+    const sub = AppState.addEventListener('change', async (next) => {
+      if (next !== 'active') return;
+      const perm = await ImagePicker.getCameraPermissionsAsync().catch(() => null);
+      if (!perm?.granted) return;
+      const result = await addToRoom(id, session?.user.id, takePhoto);
+      if (result !== 'camera-denied' && router.canGoBack()) router.back();
+    });
+    return () => sub.remove();
+  }, [closed, id, session?.user.id, router]);
 
   async function chooseFromLibrary() {
     setBusy(true);
