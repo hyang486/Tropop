@@ -12,13 +12,12 @@ import { useAuth } from '@/lib/auth';
  */
 export function HomeHeaderButton() {
   const router = useRouter();
-  // UX2-143: signed out, `/` lands on Welcome, so the label is plain "Back" (en.ts is in developer-event's lane;
-  // reuse the existing 'Back' string).
+  // UX2-143: signed out, `/` lands on Welcome, so the label is plain "Back" (en.room.back).
   const signedIn = !!useAuth().session;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={signedIn ? en.room.backToRooms : en.qrewing.people.back}
+      accessibilityLabel={signedIn ? en.room.backToRooms : en.room.back}
       hitSlop={8}
       onPress={() => router.replace('/')}
       style={styles.hit}
