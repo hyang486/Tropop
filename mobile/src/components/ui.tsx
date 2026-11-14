@@ -34,6 +34,7 @@ export const palette = {
     card: '#F6F6F2',
     cardStrong: '#EAEAE5',
     dangerCard: '#FDECEC',
+    errorText: '#D70015',
     sheet: '#FFFFFF',
     scrim: 'rgba(0,0,0,0.25)',
     grabber: 'rgba(94,94,88,0.4)',
@@ -45,6 +46,7 @@ export const palette = {
     card: '#1C1C1E',
     cardStrong: '#2C2C2E',
     dangerCard: '#3A1A1A',
+    errorText: '#FF6961',
     sheet: '#1C1C1E',
     scrim: 'rgba(0,0,0,0.5)',
     grabber: 'rgba(168,168,162,0.4)',
@@ -76,6 +78,9 @@ export const colors = {
   /** Text and icons on a `tint` background (paper, so it inverts with the ink). */
   onTint: themed('paper'),
   danger: PlatformColor('systemRed'),
+  // UX2 a11y: fixable error text only (systemRed text is 3.1–3.6:1 in light mode). Emergency fills and destructive
+  // buttons keep danger.
+  errorText: themed('errorText'),
   warning: PlatformColor('systemOrange'),
   /** UX2-45: custom bottom sheets. Cards, rows and bubbles inside a sheet use `fieldStrong`, not `field`. */
   sheet: themed('sheet'),
@@ -204,7 +209,7 @@ export function Hint({ children, tone = 'normal' }: { children: ReactNode; tone?
   return (
     <Text
       selectable
-      style={[styles.hint, tone === 'error' && { color: colors.danger }]}
+      style={[styles.hint, tone === 'error' && { color: colors.errorText }]}
       accessibilityLiveRegion={tone === 'error' ? 'polite' : 'none'}
     >
       {children}
