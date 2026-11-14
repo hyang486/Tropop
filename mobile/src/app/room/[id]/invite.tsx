@@ -20,7 +20,8 @@ import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { useRoomEvents } from '@/lib/room-channel';
-import { getRoom, inviteUrl, rotateInvite, type Room } from '@/lib/rooms';
+import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { countMembers, getRoom, inviteUrl, rotateInvite, type Room } from '@/lib/rooms';
 import { useRoomOver } from '@/lib/use-room-over';
 
 export default function Invite() {
@@ -31,6 +32,9 @@ export default function Invite() {
   const [error, setError] = useState<string | null>(null);
   // G-U6-1: the room read came back empty (it ended or expired): Room ended, not a bare error line.
   const [gone, setGone] = useState(false);
+  // UX2-15: people in the room now; null until read (a failed count shows nothing).
+  const [count, setCount] = useState<number | null>(null);
+  const plus = usePlusPreview(session?.user.id);
 
   const readRoom = useCallback(
     (isActive: () => boolean = () => true) =>
@@ -40,7 +44,10 @@ export default function Invite() {
           setGone(r === null);
           if (r) setRoom(r);
         })
-        .catch((e) => isActive() && setError(errorMessage(e))),
+        .catch((e) => isActive() && setError(errorMessage(e)))
+        .then(() => countMembers(id))
+        .then((n) => isActive() && setCount(n))
+        .catch(() => {}),
     [id],
   );
 
@@ -133,6 +140,7 @@ export default function Invite() {
     );
   }
 
+  const isHost = room.host_id === session?.user.id;
   const url = inviteUrl(room.invite_token);
 
   // Qrew unit 5 (Q 02.04): title and room name, the QR on a pale card, the code, then Share invite and Copy code
@@ -154,7 +162,7 @@ export default function Invite() {
             onPress={() => void copyCode(room.code)}
           />
           {/* UX2-07 (pattern H): only the host can reissue the invite; guests never see it. */}
-          {room.host_id === session?.user.id ? <QLink title={en.invite.reissue} onPress={reissue} /> : null}
+          {isHost ? <QLink title={en.invite.reissue} onPress={reissue} /> : null}
           {error ? <Hint tone="error">{error}</Hint> : null}
         </>
       }
@@ -172,6 +180,19 @@ export default function Invite() {
         <Text style={styles.codeLabel}>{en.invite.inviteCode}</Text>
       </View>
       <Text style={styles.hint}>{en.invite.hint}</Text>
+      {count !== null && count >= room.max_members ? (
+        <>
+          <Text style={styles.hint}>{en.invite.full}</Text>
+          {/* A Free host can raise the limit with Plus (from=capacity); a Plus host is already at the top. */}
+          {isHost && plus === false ? (
+            <Button
+              title={en.planPreview.seePlus}
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/plan-preview', params: { from: 'capacity' } })}
+            />
+          ) : null}
+        </>
+      ) : null}
     </QScreen>
   );
 }

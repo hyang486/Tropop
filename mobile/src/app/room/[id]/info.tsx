@@ -170,6 +170,7 @@ export default function RoomInfoScreen() {
   // Q 03.03 "12 people · 8 arrived · View participants": arrivals across the whole room (any activity), current members only, each once.
   const arrivedCount = arrived === null ? null : arrivedMemberCount(members.map((m) => m.user_id), arrived);
   const peopleSub = [
+    members.length >= room.max_members ? en.room.full(members.length, room.max_members) : null,
     arrivedCount === null ? null : en.room.arrived(arrivedCount),
     showMembers ? en.room.hideParticipants : en.room.viewParticipants,
   ]

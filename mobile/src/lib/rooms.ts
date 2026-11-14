@@ -121,6 +121,16 @@ export async function listArrivedIds(roomId: string): Promise<string[]> {
   return data.map((r) => r.user_id);
 }
 
+/** How many people are in the room now (UX2-15: Invite says when the room is full). */
+export async function countMembers(roomId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('room_members')
+    .select('user_id', { count: 'exact', head: true })
+    .eq('room_id', roomId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function listMembers(roomId: string): Promise<RoomMember[]> {
   const { data: members, error } = await supabase
     .from('room_members')

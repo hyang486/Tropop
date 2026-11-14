@@ -217,6 +217,8 @@ export const en = {
     infoSubtitle: (isHost: boolean) => (isHost ? 'Room info · Host' : 'Room info'),
     people: (n: number) => (n === 1 ? '1 person' : `${n} people`),
     arrived: (n: number) => `${n} arrived`,
+    // UX2-15: the people row once the room is at its member limit (ink2).
+    full: (n: number, max: number) => `${n} of ${max} · Full`,
     viewParticipants: 'View participants',
     hideParticipants: 'Hide participants',
     statusOptions: 'Status options',
@@ -677,6 +679,8 @@ export const en = {
     title: 'Invite',
     done: 'Done',
     hint: 'Scan with the Qrew app, or enter the code.',
+    // UX2-15: under the QR when the room is at its member limit.
+    full: "This room is full. New people can't join.",
     code: 'Code',
     share: 'Share invite',
     copyCode: 'Copy code',
