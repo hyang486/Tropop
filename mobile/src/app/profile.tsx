@@ -72,8 +72,7 @@ export default function Profile() {
   return (
     <QScreen
       title={en.profile.title}
-      // UX3-A07: no "Host account"; the email sits in the Account row below (ux, until A16 moves it up here).
-      subtitle={isGuest ? en.profile.guestAccount : undefined}
+      // UX3-A07: no subtitle; the Account row below says the email or "Guest on this phone" (once, not twice).
     >
       <ProfileRetry />
       <QRowCard

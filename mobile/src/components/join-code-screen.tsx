@@ -8,6 +8,7 @@ import { Button, colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { isValidCode, openInvite } from '@/lib/invite';
+import { haptics } from '@/lib/haptics';
 import { codeErrorText, SHAKE_STEPS } from '@/lib/join-code';
 import { previewRoom, RoomError } from '@/lib/rooms';
 
@@ -35,7 +36,7 @@ export function JoinCodeScreen() {
   function wrongCode(text: string, isWrong: boolean) {
     setError(text);
     if (!isWrong) return;
-    errorHaptic();
+    haptics.error();
     if (reduceMotion !== false) return;
     shake.setValue(0);
     Animated.sequence(
@@ -128,12 +129,6 @@ export function JoinCodeScreen() {
     </QScreen>
   );
 }
-
-/**
- * UX3-A10: the one Error haptic call site. developer's lib/haptics (ux3-haptics, cef8ee7) adds expo-haptics;
- * when it is merged this becomes `haptics.error()` (import { haptics } from '@/lib/haptics').
- */
-function errorHaptic() {}
 
 const styles = StyleSheet.create({
   boxesWrap: { marginVertical: 8 },

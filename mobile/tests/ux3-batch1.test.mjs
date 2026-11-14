@@ -27,7 +27,7 @@ test('UX3-A07: account wording is only Log in and Create account', () => {
   assert.match(en, /upgradeSubtitle: 'Keep your rooms and start hosting your own.'/);
   assert.match(en, /guestAccount: 'Guest on this phone'/);
   assert.match(src('components/host-account-form.tsx'), /mode === 'upgrade' \? en\.hostAccount\.upgradeSubtitle/);
-  assert.match(src("app/profile.tsx"), /subtitle=\{isGuest \? en\.profile\.guestAccount : undefined\}/);
+  assert.doesNotMatch(src("app/profile.tsx"), /subtitle=\{isGuest \? en\.profile\.guestAccount : undefined\}/);
 });
 
 test('UX3-A05: labels sit above the fields on Log in, Create account, Guest and Create room', () => {
@@ -48,7 +48,8 @@ test('UX3-A10: the code goes on after the 5th digit; a wrong code shakes, buzzes
   const j = src('components/join-code-screen.tsx');
   assert.match(j, /next\.length === CODE_LENGTH && next !== code\) void submit\(next\)/);
   assert.doesNotMatch(j, /en\.join\.submit|qrNote|QCard|InkArt/);
-  assert.equal(j.match(/errorHaptic\(\)/g)?.length, 2, 'one definition, one call');
+  assert.equal(j.match(/haptics\.error\(\)/g)?.length, 1, 'one Error haptic call site');
+  assert.doesNotMatch(j, /errorHaptic/);
   assert.match(j, /if \(reduceMotion !== false\) return;/);
   assert.match(j, /e\.kind === 'invalid'/);
   assert.match(j, /error: \{ fontSize: 15, color: colors\.errorText \}/);
@@ -95,4 +96,10 @@ test('UX3-A02: Rooms has no subtitle, a 48 pt Join/Create pair over a list, and 
   assert.match(h, /groupBySection\(rows, \(r\) => roomSection\(r\.room, r\.entry\.kind === 'grace', now\)\)/);
   assert.match(src('components/ui.tsx'), /compact && \{ minHeight: 48 \}/);
   assert.match(src('i18n/en.ts'), /sections: \{ now: 'Happening now', upcoming: 'Coming up', ending: 'Ending soon' \}/);
+});
+
+test('UX3-A07 (ux P2): Profile has no header subtitle, so a guest reads "Guest on this phone" once', () => {
+  const p = src('app/profile.tsx');
+  assert.match(p, /<QScreen\s+title=\{en\.profile\.title\}\s+\/\/[^\n]*\n\s*>/);
+  assert.doesNotMatch(p, /subtitle=\{isGuest \? en\.profile\.guestAccount/);
 });
