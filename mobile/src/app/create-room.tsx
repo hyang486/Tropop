@@ -707,8 +707,7 @@ export default function CreateRoom() {
 }
 
 const outline = {
-  borderWidth: StyleSheet.hairlineWidth * 2,
-  borderColor: colors.separator,
+  backgroundColor: colors.wash,
   borderRadius: 12,
   borderCurve: 'continuous',
 } as const;
@@ -773,7 +772,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   iconChip: { ...outline, width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
-  iconChipOn: { borderColor: colors.label, borderWidth: 2 },
+  iconChipOn: { backgroundColor: colors.wash2 },
   when: { ...outline, paddingHorizontal: 14, paddingVertical: 12, gap: 2 },
   whenRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 40 },
   whenLabel: { width: 44, fontSize: 16, color: colors.label },

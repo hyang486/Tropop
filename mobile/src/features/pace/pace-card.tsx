@@ -335,7 +335,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
             onPress={() => choose(o.mode)}
             // UX2-35: 40 pt visual, 44 pt target.
             hitSlop={{ top: 2, bottom: 2 }}
-            style={[styles.segment, i > 0 && styles.segmentDivider, mode === o.mode && styles.segmentOn]}
+            style={[styles.segment, mode === o.mode && styles.segmentOn]}
           >
             <Text style={[styles.segmentText, mode === o.mode && styles.segmentTextOn]} numberOfLines={1}>
               {o.label}
@@ -408,8 +408,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.separator,
+    backgroundColor: colors.wash,
     borderRadius: 12,
     borderCurve: 'continuous',
     paddingHorizontal: 16,
@@ -424,8 +423,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.m,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.separator,
+    backgroundColor: colors.wash,
     borderRadius: 12,
     borderCurve: 'continuous',
     paddingHorizontal: space.l,
@@ -456,21 +454,18 @@ const styles = StyleSheet.create({
   targetNow: { fontSize: 17, color: colors.label, fontVariant: ['tabular-nums'] },
   segments: {
     flexDirection: 'row',
-    borderWidth: 1.5,
-    borderColor: colors.tint,
+    backgroundColor: colors.wash,
     borderRadius: radius.pill,
     overflow: 'hidden',
   },
   segment: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  segmentDivider: { borderLeftWidth: 1.5, borderLeftColor: colors.tint },
   segmentOn: { backgroundColor: colors.tint },
   segmentText: { fontSize: 15, color: colors.label },
   segmentTextOn: { color: colors.onTint, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
     minWidth: 88,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.separator,
+    backgroundColor: colors.wash,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,

@@ -200,7 +200,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
             accessibilityLabel={inkIconLabel(e)}
             accessibilityState={{ selected: inkIconKey(e) === picked }}
             onPress={() => setEmoji(e)}
-            style={[styles.emoji, inkIconKey(e) === picked && { borderColor: colors.tint, backgroundColor: colors.field }]}
+            style={[styles.emoji, inkIconKey(e) === picked && { backgroundColor: colors.wash2 }]}
           >
             <InkIcon emoji={e} size={26} />
           </Pressable>
@@ -255,7 +255,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
 });
