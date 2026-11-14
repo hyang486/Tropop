@@ -5,7 +5,6 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, V
 import { HandTitle } from '@/components/hand-title';
 import { InkArt } from '@/components/ink-art';
 import { Button, colors, Hint } from '@/components/ui';
-import { QREWING_FAB_CLEARANCE } from '@/features/event/qrewing-fab';
 import { en } from '@/i18n/en';
 import { clearMatchRun, type FaceData, lastMatchRun, loadFaceData, runFaceMatch } from '@/lib/face';
 import {
@@ -177,7 +176,7 @@ export function PhotosOfMe({
             <InkArt art="reference" width={180} />
           </View>
         </ScrollView>
-        <View style={[styles.introAction, !readOnly && { paddingRight: QREWING_FAB_CLEARANCE }]}>
+        <View style={styles.introAction}>
           {readOnly ? <Hint>{en.qrewing.grace.notSetUp}</Hint> : <Button title={en.face.setUp} onPress={openSetup} />}
         </View>
       </View>

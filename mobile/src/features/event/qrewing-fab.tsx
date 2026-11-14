@@ -1,5 +1,5 @@
-// Floating "Ask Qrewing" button (spec 10.1): bottom right of the in-room screens, only when the room has Qrewing AI on
-// and the probe answers ok. Before the asker agrees to Qrewing AI here, a tap shows the existing consent sheet.
+// Ask Qrewing (spec 10.1, UX P0-2): a floating button in chat, a header icon on map, info and photos; only when the
+// room has Qrewing AI on and the probe answers ok. Before the asker agrees to Qrewing AI here, a tap shows consent.
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -35,13 +35,12 @@ export function useQrewingAsk(roomId: string) {
 }
 
 /**
- * Mount it only on a live room (never in grace or on Room ended), as the last child of the screen's content area
- * that ends above its bottom controls (composer, Save, map buttons), so it never covers them. `bottom` adds more
- * clearance; `safeArea` adds the home-indicator inset (only for an area that reaches the bottom of the screen).
+ * The Ask Qrewing tap with its consent step, for a floating button or a header icon. `open` pushes the ask
+ * screen, or shows the consent sheet first; render `sheet` once in the screen body. Use it only on a live room
+ * (never in grace or on Room ended).
  */
-export function QrewingFab({ roomId, bottom = 0, safeArea = false }: { roomId: string; bottom?: number; safeArea?: boolean }) {
+export function useQrewingAskButton(roomId: string) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { available, agreed, reload } = useQrewingAsk(roomId);
   const [consent, setConsent] = useState(false);
   // Set when the consent sheet saved an answer: the ask screen opens once the reload shows I agreed.
@@ -53,34 +52,62 @@ export function QrewingFab({ roomId, bottom = 0, safeArea = false }: { roomId: s
     router.push({ pathname: '/room/[id]/ask', params: { id: roomId } });
   }, [agreed, roomId, router]);
 
+  const open = () => (agreed ? router.push({ pathname: '/room/[id]/ask', params: { id: roomId } }) : setConsent(true));
+  const sheet = available ? (
+    <DisclosureSheet
+      roomId={roomId}
+      visible={consent}
+      onDone={() => {
+        setConsent(false);
+        openAfterConsent.current = true;
+        reload();
+      }}
+      onClose={() => setConsent(false)}
+    />
+  ) : null;
+  return { available, open, sheet };
+}
+
+/**
+ * UX P0-2: the floating Q, only in chat (calendar has its own). Mount it as the last child of the area that ends
+ * at the top of the composer: 12 pt above it, 16 pt from the trailing edge. The list under it pads its bottom by
+ * QREWING_FAB_CLEARANCE (composer + 64 pt in all). Other room screens use QrewingHeaderButton instead.
+ */
+export function QrewingFab({ roomId }: { roomId: string }) {
+  const insets = useSafeAreaInsets();
+  const { available, open, sheet } = useQrewingAskButton(roomId);
   if (!available) return null;
   return (
     <>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={s.fabLabel}
-        onPress={() => (agreed ? router.push({ pathname: '/room/[id]/ask', params: { id: roomId } }) : setConsent(true))}
+        onPress={open}
         hitSlop={6}
-        style={({ pressed }) => [
-          styles.fab,
-          { bottom: bottom + (safeArea ? Math.max(insets.bottom, 12) : 0) + QREWING_FAB_MARGIN, right: insets.right + 16 },
-          pressed && styles.pressed,
-        ]}
+        style={({ pressed }) => [styles.fab, { bottom: QREWING_FAB_MARGIN, right: insets.right + 16 }, pressed && styles.pressed]}
       >
         <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
         <View style={styles.ring} pointerEvents="none" />
       </Pressable>
-      <DisclosureSheet
-        roomId={roomId}
-        visible={consent}
-        onDone={() => {
-          setConsent(false);
-          openAfterConsent.current = true;
-          reload();
-        }}
-        onClose={() => setConsent(false)}
-      />
+      {sheet}
     </>
+  );
+}
+
+/** UX P0-2: Ask Qrewing as a 44 pt header icon (the Qrewing mark at 22 pt) on map, info and photos. */
+export function QrewingHeaderButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={s.fabLabel}
+      onPress={onPress}
+      style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}
+    >
+      <View style={styles.mark}>
+        <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
+        <View style={[styles.ring, styles.markRing]} pointerEvents="none" />
+      </View>
+    </Pressable>
   );
 }
 
@@ -93,6 +120,9 @@ const styles = StyleSheet.create({
   },
   // A thin ink ring, so the cream art stays visible on the cream screen (themed, no hard-coded shadow color).
   ring: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: QREWING_FAB_SIZE / 2, borderWidth: 1.5, borderColor: colors.label },
-  art: { width: '100%', height: '100%', borderRadius: QREWING_FAB_SIZE / 2 },
+  art: { width: '100%', height: '100%', borderRadius: 999 },
+  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  mark: { width: 22, height: 22 },
+  markRing: { borderRadius: 11, borderWidth: 1 },
   pressed: { opacity: 0.7 },
 });
