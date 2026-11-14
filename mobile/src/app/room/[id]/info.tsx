@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { EmergencyOpenNote } from '@/components/emergency-open-note';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RoomEnded } from '@/components/room-ended';
@@ -15,8 +16,10 @@ import { QLink, QScreen } from '@/components/q-screen';
 import { QRowCard } from '@/components/q-row-card';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { useRoomActivity } from '@/lib/activity';
 import { useAuth } from '@/lib/auth';
 import { endsDay } from '@/lib/chat-plan';
+import { endEmergencyNote } from '@/lib/emergency-plan';
 import { errorMessage } from '@/lib/errors';
 import { clearRoomCache } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
@@ -50,6 +53,8 @@ export default function RoomInfoScreen() {
   const [showMembers, setShowMembers] = useState(false);
   const [editingStatus, setEditingStatus] = useState(false);
   const now = useNow(30_000);
+  // UX2-114: read-only use of the activity hook for the Leave note (my own open Emergency only).
+  const activity = useRoomActivity(id, userId, 0);
 
   const load = useCallback(async () => {
     try {
@@ -161,6 +166,11 @@ export default function RoomInfoScreen() {
     ]);
   }
 
+  // The host's End room link opens End confirm, which has its own note; guests get the Leave note here.
+  const leaveNote = isHost
+    ? null
+    : endEmergencyNote({ kind: 'leave', emergencies: activity.emergencies, userId, names: null, copy: en.emergencyOpen });
+
   const expiresMs = new Date(room.expires_at).getTime();
   const endsLine = en.room.endsOn(
     endsDay(expiresMs, now),
@@ -185,6 +195,7 @@ export default function RoomInfoScreen() {
       actionsDivider
       actions={
         <>
+          {leaveNote ? <EmergencyOpenNote text={leaveNote} /> : null}
           {isHost ? (
             <Button
               title={editingStatus ? en.room.doneEditingStatus : en.room.editStatusOptions}

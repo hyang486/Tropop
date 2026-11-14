@@ -1,8 +1,9 @@
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { EmergencyOpenNote } from '@/components/emergency-open-note';
 import { useInk } from '@/components/hand-title';
 import { QCard, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
@@ -13,14 +14,16 @@ import { useQrewingRoom } from '@/features/event/qrewing-api';
 import { endCopyHasRecap } from '@/features/event/qrewing-plan';
 import { recapAfterEnd } from '@/features/recap/recap-store';
 import { en } from '@/i18n/en';
+import { useRoomActivity } from '@/lib/activity';
 import { useAuth } from '@/lib/auth';
 import { endsDay } from '@/lib/chat-plan';
+import { endEmergencyNote } from '@/lib/emergency-plan';
 import { endGate, runOnce, type RunState } from '@/lib/end-plan';
 import { errorMessage } from '@/lib/errors';
 import { cancelExpiryReminder } from '@/lib/expiry-reminders';
 import { setActivityState } from '@/lib/location';
 import { clearRoomCache } from '@/lib/media';
-import { endRoom, getRoom, type Room } from '@/lib/rooms';
+import { endRoom, getRoom, listMembers, type Room } from '@/lib/rooms';
 import { useNow } from '@/lib/use-now';
 
 type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; room: Room | null };
@@ -67,6 +70,21 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
   // the recap wording, review R6). No id: no read, recap wording.
   const qrewing = useQrewingRoom(id ?? '');
   const recapOn = endCopyHasRecap(qrewing);
+  // UX2-114: read-only use of the activity hook; the red line names one open Emergency or counts several.
+  const activity = useRoomActivity(id ?? '', userId, 0);
+  const [names, setNames] = useState<Map<string, string> | null>(null);
+  const openCount = activity.emergencies.length;
+  useEffect(() => {
+    if (!id || openCount !== 1) return;
+    let live = true;
+    listMembers(id)
+      .then((members) => live && setNames(new Map(members.map((m) => [m.user_id, m.display_name]))))
+      .catch(() => live && setNames(new Map()));
+    return () => {
+      live = false;
+    };
+  }, [id, openCount]);
+  const emergencyNote = endEmergencyNote({ kind, emergencies: activity.emergencies, userId, names, copy: en.emergencyOpen });
   const ev = en.endRoom;
   const copy =
     kind === 'activity'
@@ -188,6 +206,7 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
       }
       actions={
         <>
+          {emergencyNote ? <EmergencyOpenNote text={emergencyNote} /> : null}
           {error ? <Hint tone="error">{error}</Hint> : null}
           {/* UX2-72: the destructive confirm is red-filled; Keep stays outlined. */}
           <Button title={copy.confirm} variant="destructiveFill" accessibilityHint={copy.confirmHint} busy={running} onPress={confirm} />
