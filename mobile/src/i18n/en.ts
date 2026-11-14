@@ -1049,7 +1049,7 @@ export const en = {
       tooLong: (field: string, max: number) => `${field} can be up to ${max} characters.`,
       linkInvalid: 'Each link must start with https:// and be up to 200 characters.',
       tooManyLinks: 'Add up to 3 links.',
-      requiredMark: 'required',
+      requiredMark: 'Required',
       answerRequired: (prompt: string) => `Answer “${prompt}” to continue.`,
       linkPlaceholderN: (n: number) => `https://… (link ${n})`,
       noQuestions: 'No intro needed here',

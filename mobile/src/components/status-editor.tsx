@@ -242,5 +242,5 @@ const styles = StyleSheet.create({
   label: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 12 },
   fixedLabel: { flex: 1, fontSize: 17, color: colors.danger, fontWeight: '600', paddingVertical: 12 },
   fixedTag: { fontSize: 14, color: colors.ink2 },
-  remove: { fontSize: 26, lineHeight: 28, color: colors.danger, paddingHorizontal: 6 },
+  remove: { fontSize: 26, lineHeight: 28, color: colors.ink2, paddingHorizontal: 6 },
 });

@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   fieldError: { fontSize: 13, color: colors.danger },
   // Matches QLabel (q-screen.tsx), which only takes a plain string.
   label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
-  star: { color: colors.danger },
+  star: { color: colors.label },
   headerHit: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
   headerSave: { fontSize: 17, fontWeight: '600', color: colors.tint, paddingHorizontal: 8 },
   headerSaveBusy: { opacity: 0.4 },
