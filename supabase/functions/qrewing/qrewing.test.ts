@@ -1708,7 +1708,7 @@ test('ask needs a human: card goes to the named member who spoke, else the host;
 });
 
 test('calendar_add is Plus-only (0032): Free or no plan row → 402 plan_limit before any count or model call', async () => {
-  for (const plans of [{}, { [HOST]: 'free' as const }]) {
+  for (const plans of [{}, { [HOST]: 'free' }] as Record<string, 'free' | 'plus'>[]) {
     const w = world({ plans });
     const { m, calls } = model(() => ({ text: '{}' }));
     const st = store(w);
