@@ -57,7 +57,7 @@ export function AnswerSheet({
             {card ? <AnsweredCard card={card} answerer={answerer(card.answererId)} /> : null}
             <Text style={styles.note}>{s.askMoreIsPlus}</Text>
             <Button
-              title={en.planPreview.seePlus}
+              title={s.seePlus}
               variant="secondary"
               accessibilityHint={en.qrewing.ask.seePlusHint}
               onPress={() => {

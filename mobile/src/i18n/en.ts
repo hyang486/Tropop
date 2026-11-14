@@ -899,6 +899,8 @@ export const en = {
     answerBy: (name: string, time: string) => `${name} · ${time}`,
     yourQuestion: 'Your question',
     askMoreIsPlus: 'Asking Qrewing more is part of Qrew Plus.',
+    // A button: no chevron (› is only for text links).
+    seePlus: 'See Plus',
     done: 'Done',
     noAnswer: (name: string) => `${name} has not answered yet. Ask in the room chat instead?`,
     askInChat: 'Ask in chat',

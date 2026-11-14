@@ -72,7 +72,8 @@ test('UX2-04b: a person\'s answer to my question is readable on Free', () => {
   const sheet = src('features/questions/answer-sheet.tsx');
   assert.match(sheet, /<HandTitle>\{s\.yourQuestion\}<\/HandTitle>/);
   assert.match(sheet, /<AnsweredCard card=\{card\}/);
-  assert.match(sheet, /title=\{en\.planPreview\.seePlus\}\s*variant="secondary"/);
+  assert.match(sheet, /title=\{s\.seePlus\}\s*variant="secondary"/);
+  assert.match(src('i18n/en.ts'), /    seePlus: 'See Plus',\n/);
   assert.match(sheet, /<Button title=\{s\.done\} onPress=\{onClose\} \/>/);
   assert.doesNotMatch(sheet, /Composer|tone="error"|colors\.danger/);
   // Reading is a plain RLS select (asker or answerer, room open), not the plan-gated qrewing function.
