@@ -44,7 +44,7 @@ test('bar labels name the action: open diary, Plus feature, edit event', () => {
 });
 
 test('Plus intro: Calendar stays free; Qrewing diary and Add with Qrewing are Plus benefits', () => {
-  assert.match(en, /calendarFree: 'Qrewing Calendar itself stays free\.'/);
-  assert.match(en, /diary: \{ title: 'Qrewing diary',/);
+  assert.match(en, /alwaysFree: \[[^\]]*your own calendar events/);
+  assert.match(en, /diary: \{ title: 'Your Qrewing diary',/);
   assert.match(en, /add: \{ title: 'Add with Qrewing',/);
 });
