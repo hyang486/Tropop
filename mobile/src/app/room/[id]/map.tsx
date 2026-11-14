@@ -11,7 +11,7 @@ import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
-import { QrewingFab } from '@/features/event/qrewing-fab';
+import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { PaceCard } from '@/features/pace/pace-card';
 import { PaceLayer } from '@/features/pace/pace-layer';
 import { en } from '@/i18n/en';
@@ -118,12 +118,27 @@ export default function RoomMapScreen() {
 
   // G-U6-1: the room's end time passing while Map is open (the host's End arrives as a rooms notice above).
   const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+  const noHeaderQ = <Stack.Screen options={{ headerRight: () => null }} />;
 
   if (state.status === 'loading') return <ActivityIndicator style={styles.loading} />;
   // Q 06.04: the row is gone, so no closed-at time is known.
-  if (state.status === 'gone') return <RoomEnded />;
+  if (state.status === 'gone') {
+    return (
+      <>
+        {noHeaderQ}
+        <RoomEnded />
+      </>
+    );
+  }
   // No stale map, pins or sharing controls once the room is over.
-  if (state.status === 'ready' && ended.over) return <RoomEnded room={state.room} nowMs={ended.nowMs} />;
+  if (state.status === 'ready' && ended.over) {
+    return (
+      <>
+        {noHeaderQ}
+        <RoomEnded room={state.room} nowMs={ended.nowMs} />
+      </>
+    );
+  }
   if (state.status === 'error') {
     return (
       <View style={styles.center}>
@@ -199,8 +214,8 @@ function RoomMap({
 
   // F5-5b: the map's real size once it is laid out (the fit and the label grouping measure against it).
   const [mapSize, setMapSize] = useState<ViewSize>(ROOM_MAP_SIZE);
-  // Height of the bottom map buttons (Show my location / Recenter); the Ask Qrewing button floats above them.
-  const [overlayHeight, setOverlayHeight] = useState(34);
+  // UX P0-2: Ask Qrewing is a header icon on the map, not a floating button over it.
+  const ask = useQrewingAskButton(room.id);
   // The room map's view after its last camera move: the editor opens on the same view.
   const lastView = useRef<Camera | null>(null);
   // P2: what the map showed when its camera last stopped (expo-maps reports a move only at its end), used to
@@ -447,7 +462,14 @@ function RoomMap({
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
       >
-      <Stack.Screen options={{ title: en.map.title, headerTitle: '' }} />
+      <Stack.Screen
+        options={{
+          title: en.map.title,
+          headerTitle: '',
+          headerRight: () => (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null),
+        }}
+      />
+      {ask.sheet}
       {/* Qrew unit 4 (Q 04.02, 08.03): handwritten title and the room name; no art on the map. */}
       <View style={styles.head}>
         <HandTitle>{en.map.title}</HandTitle>
@@ -493,7 +515,6 @@ function RoomMap({
               accessibilityState={{ busy: locate === 'busy' }}
               onPress={showMyLocation}
               style={[styles.overlayButton, styles.showMine]}
-              onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}
             >
               <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
             </Pressable>
@@ -525,9 +546,6 @@ function RoomMap({
             ) : null}
           </View>
         ) : null}
-        {/* qa: on the map, above Recenter, so the floating Q never covers the status text below the map. UI audit
-            item 1: the offset follows the bottom buttons' measured height (Dynamic Type), with a full margin gap. */}
-        <QrewingFab roomId={room.id} bottom={OVERLAY_BOTTOM + overlayHeight} />
       </View>
       {locate === 'denied' ? <Hint tone="error">{en.map.locateDenied}</Hint> : null}
       {locate === 'settings' ? (

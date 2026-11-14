@@ -10,6 +10,7 @@ import { Button, colors, Hint } from '@/components/ui';
 
 import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
+import { QrewingHeaderButton, useQrewingAskButton } from './qrewing-fab';
 import { peopleEmpty } from './people-empty';
 import { type MatchResult, type QrewingError, requestMatches, useEntryQuestions, useQrewingRoom } from './qrewing-api';
 import { matchStep } from './qrewing-plan';
@@ -53,6 +54,8 @@ async function load(roomId: string, last: MatchResult | null, isRetry: boolean):
  */
 export function PeopleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  // UX P0-2: Ask Qrewing as a header icon (only when the room has Qrewing AI on and the probe answers ok).
+  const ask = useQrewingAskButton(id);
   const router = useRouter();
   const q = useQrewingRoom(id);
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -130,7 +133,14 @@ export function PeopleScreen() {
       }
     >
       {/* Spec 11 A15: the handwritten title sits up in the header instead of under it. */}
-      <Stack.Screen options={{ title: s.title, headerTitle: () => <HandTitle style={styles.headerTitle}>{s.title}</HandTitle> }} />
+      <Stack.Screen
+        options={{
+          title: s.title,
+          headerTitle: () => <HandTitle style={styles.headerTitle}>{s.title}</HandTitle>,
+          headerRight: () => (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null),
+        }}
+      />
+      {ask.sheet}
       {state.status === 'loading' ? (
         <View style={styles.center}>
           <ActivityIndicator />

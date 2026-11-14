@@ -22,7 +22,7 @@ import { PhotosOfMe } from '@/components/photos-of-me';
 import { qSpacing } from '@/components/q-screen';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
-import { QREWING_FAB_CLEARANCE, QrewingFab } from '@/features/event/qrewing-fab';
+import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { Button, colors, Hint, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
@@ -123,6 +123,8 @@ export default function GalleryScreen() {
   // Spec 7.3: in the host's early-end grace window the gallery stays open read-only (view and download).
   const grace = useGrace(room);
   const can = screenActions('gallery', grace.grace ? 'grace' : 'open');
+  // UX P0-2: Ask Qrewing is a header icon next to Add, not a floating button over the grid; not in grace.
+  const ask = useQrewingAskButton(id);
 
   const run = useCallback(
     async (pick: typeof takePhoto) => {
@@ -201,7 +203,7 @@ export default function GalleryScreen() {
       </View>
     ) : null;
   const scroll = (children: ReactNode) => (
-    <ScrollView contentInsetAdjustmentBehavior="never" contentContainerStyle={{ paddingBottom: can.upload ? QREWING_FAB_CLEARANCE : 0 }}>
+    <ScrollView contentInsetAdjustmentBehavior="never">
       {notices}
       {children}
     </ScrollView>
@@ -215,12 +217,16 @@ export default function GalleryScreen() {
           headerTitle: '',
           headerRight: () =>
             can.upload ? (
-            <Pressable onPress={() => setSheetOpen(true)} accessibilityRole="button" accessibilityLabel={en.media.add} hitSlop={8}>
-              <SymbolView name="plus" size={22} tintColor={colors.tint} />
-            </Pressable>
+              <View style={styles.headerButtons}>
+                {ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null}
+                <Pressable onPress={() => setSheetOpen(true)} accessibilityRole="button" accessibilityLabel={en.media.add} hitSlop={8}>
+                  <SymbolView name="plus" size={22} tintColor={colors.tint} />
+                </Pressable>
+              </View>
             ) : null,
         }}
       />
+      {can.upload ? ask.sheet : null}
       {/* Q 05.02 head: handwritten title, gray room name, filter pills. */}
       <View style={styles.head}>
         <HandTitle style={styles.title}>{en.media.title}</HandTitle>
@@ -271,7 +277,6 @@ export default function GalleryScreen() {
               onRefreshMedia={media.reload}
               header={notices}
               readOnly={!can.upload}
-              bottomInset={can.upload ? QREWING_FAB_CLEARANCE : 0}
             />
           )
         ) : media.loading ? (
@@ -290,7 +295,7 @@ export default function GalleryScreen() {
             numColumns={COLUMNS}
             style={styles.grid}
             columnWrapperStyle={{ gap: GAP }}
-            contentContainerStyle={{ gap: GAP, paddingBottom: can.upload ? QREWING_FAB_CLEARANCE : 0 }}
+            contentContainerStyle={{ gap: GAP }}
             onRefresh={media.reload}
             refreshing={false}
             ListHeaderComponent={notices ?? undefined}
@@ -303,8 +308,6 @@ export default function GalleryScreen() {
             renderItem={({ item }) => <Tile media={item} size={tile} token={token} />}
           />
         )}
-        {/* Spec 10.1: Ask Qrewing over the grid, above the pinned footer; not in grace (read-only). */}
-        {can.upload ? <QrewingFab roomId={id} /> : null}
       </View>
 
       <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
@@ -435,6 +438,7 @@ function UploadRow({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
+  headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   head: { paddingHorizontal: qSpacing.side, paddingTop: 4, paddingBottom: 10, gap: 4 },
   title: { fontSize: 30, lineHeight: 38 },
   subtitle: { fontSize: 15, color: colors.secondaryLabel },

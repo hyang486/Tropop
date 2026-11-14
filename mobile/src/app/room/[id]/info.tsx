@@ -1,4 +1,4 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
@@ -8,7 +8,7 @@ import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RoomEnded } from '@/components/room-ended';
 import { purgeAskHistory } from '@/features/event/ask-store';
 import { noteSiriRoomClosed } from '@/features/event/siri-mirror';
-import { QrewingFab } from '@/features/event/qrewing-fab';
+import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { StatusEditor } from '@/components/status-editor';
 import { QrewingInfoSection } from '@/features/event/info-section';
 import { QLink, QScreen } from '@/components/q-screen';
@@ -40,6 +40,8 @@ type State =
  */
 export default function RoomInfoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  // UX P0-2: Ask Qrewing is a header icon here, not a floating button over the rows.
+  const ask = useQrewingAskButton(id);
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -99,12 +101,23 @@ export default function RoomInfoScreen() {
     );
   }
 
+  const noHeaderQ = <Stack.Screen options={{ headerRight: () => null }} />;
   if (state.status === 'gone') {
-    return <RoomEnded />;
+    return (
+      <>
+        {noHeaderQ}
+        <RoomEnded />
+      </>
+    );
   }
   // No stale member list, status editing or Leave/End once the room is over.
   if (state.status === 'ready' && ended.over) {
-    return <RoomEnded room={state.room} nowMs={ended.nowMs ?? now} />;
+    return (
+      <>
+        {noHeaderQ}
+        <RoomEnded room={state.room} nowMs={ended.nowMs ?? now} />
+      </>
+    );
   }
 
   if (state.status === 'error') {
@@ -167,7 +180,6 @@ export default function RoomInfoScreen() {
     <QScreen
       title={room.name}
       subtitle={en.room.infoSubtitle(isHost)}
-      floating={<QrewingFab roomId={room.id} />}
       actions={
         <>
           {isHost ? (
@@ -185,6 +197,8 @@ export default function RoomInfoScreen() {
         </>
       }
     >
+      <Stack.Screen options={{ headerRight: () => (ask.available ? <QrewingHeaderButton onPress={ask.open} /> : null) }} />
+      {ask.sheet}
       <RoomEmergencyBanner roomId={room.id} />
       <QRowCard
         icon="person.2"
