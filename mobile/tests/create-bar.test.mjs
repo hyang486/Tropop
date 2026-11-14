@@ -18,7 +18,7 @@ test('at least 12 pt of padding between the hairline and the Create button', () 
 test('QScreen actions padding still matches the values the bar cancels', () => {
   const src = readFileSync(new URL('../src/components/q-screen.tsx', import.meta.url), 'utf8');
   assert.match(src, /actions: \{ paddingHorizontal: qSpacing\.side, paddingTop: 12,/);
-  assert.match(src, /qSpacing = \{ side: 24,/);
+  assert.match(src, /qSpacing = \{ side: 20,/);
 });
 
 test('create-room wraps its actions in the bar with the theme separator', () => {

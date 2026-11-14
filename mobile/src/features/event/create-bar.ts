@@ -3,7 +3,7 @@
  * The bar gets a full-width hairline at the scroll boundary and a non-tappable gap above the button. QScreen's
  * actions container already pads by these values (q-screen.tsx `actions`); the test checks they still match.
  */
-export const QSCREEN_ACTIONS = { paddingTop: 12, side: 24 } as const;
+export const QSCREEN_ACTIONS = { paddingTop: 12, side: 20 } as const;
 
 /** Space between the hairline (scroll boundary) and the first thing in the bar; nothing in it is tappable. */
 export const CREATE_BAR_GAP = 16;

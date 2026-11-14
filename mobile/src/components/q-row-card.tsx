@@ -22,6 +22,7 @@ export function QRowCard({
   accessibilityHint,
   expanded,
   action,
+  grouped,
 }: {
   /** SF Symbol name for the leading icon. */
   icon?: string;
@@ -41,6 +42,8 @@ export function QRowCard({
   expanded?: boolean;
   /** UX2-62: a row that does something here (Log out) rather than opening a screen: no chevron. */
   action?: boolean;
+  /** V1: a row inside a Card (no fill, no radius; the Card draws the surface and the dividers). */
+  grouped?: boolean;
 }) {
   const ink = useInk();
   const body = (
@@ -73,7 +76,7 @@ export function QRowCard({
   );
   if (!onPress) {
     return (
-      <View style={styles.card} accessible accessibilityLabel={accessibilityLabel}>
+      <View style={[styles.card, grouped && styles.grouped]} accessible accessibilityLabel={accessibilityLabel}>
         {body}
       </View>
     );
@@ -86,7 +89,7 @@ export function QRowCard({
       accessibilityState={{ busy: !!busy, disabled: !!busy, expanded }}
       disabled={busy}
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.6 }]}
+      style={({ pressed }) => [styles.card, grouped && styles.grouped, pressed && { opacity: 0.6 }]}
     >
       {body}
     </Pressable>
@@ -98,13 +101,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: colors.field,
+    // V1: standalone is a wash fill with no border.
+    backgroundColor: colors.wash,
     borderRadius: 12,
     borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 14,
     minHeight: 56,
   },
+  grouped: { backgroundColor: 'transparent', borderRadius: 0 },
   icon: { width: 28, height: 28 },
   text: { flex: 1, gap: 2 },
   title: { fontSize: 17, color: colors.label },

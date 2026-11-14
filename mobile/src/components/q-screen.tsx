@@ -501,7 +501,7 @@ export function QLink({
   );
 }
 
-export const qSpacing = { side: 24, gap: 12 } as const;
+export const qSpacing = { side: 20, gap: 12 } as const;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },

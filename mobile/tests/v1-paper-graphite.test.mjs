@@ -67,3 +67,13 @@ test('V1 HandTitle: 40/44 screen titles capped at 1.2, pencil underline on the t
   // Plus stays as it is (human, FINAL).
   assert.doesNotMatch(src('app/plan-preview.tsx'), /titleUnderline|HandTitle screen/);
 });
+
+test('V1 QRowCard: standalone wash fill with no border; grouped drops its own fill and radius inside a Card', () => {
+  const row = readFileSync(new URL('../src/components/q-row-card.tsx', import.meta.url), 'utf8');
+  assert.match(row, /backgroundColor: colors\.wash,/);
+  assert.doesNotMatch(row, /borderWidth|backgroundColor: colors\.field/);
+  assert.match(row, /grouped\?: boolean;/);
+  assert.match(row, /grouped: \{ backgroundColor: 'transparent', borderRadius: 0 \}/);
+  assert.match(row, /<View style=\{\[styles\.card, grouped && styles\.grouped\]\} accessible/);
+  assert.match(row, /\[styles\.card, grouped && styles\.grouped, pressed && \{ opacity: 0\.6 \}\]/);
+});
