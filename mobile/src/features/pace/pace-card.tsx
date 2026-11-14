@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useReduceMotion } from '@/components/enter-view';
 import { HandTitle } from '@/components/hand-title';
 import { QLink, qSpacing } from '@/components/q-screen';
 import { Button, colors, Hint, radius, size, space, textRole } from '@/components/ui';
@@ -94,7 +95,7 @@ function StatsRow({ km, moving, pace, spoken }: { km: string; moving: string; pa
     <View style={styles.statsRow} accessible accessibilityLabel={spoken}>
       {cells.map((c) => (
         <View key={c.label} style={styles.statCell}>
-          <Text style={textRole.stat} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+          <Text style={textRole.stat} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
             {c.value}
           </Text>
           <Text style={textRole.caption} numberOfLines={1}>
@@ -123,6 +124,7 @@ function TargetRow({
 }) {
   const [editing, setEditing] = useState(false);
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion(); // Reduce Motion: the sheet fades in instead of sliding.
   const fill = targetBarFill(current, goal);
   return (
     <>
@@ -151,7 +153,7 @@ function TargetRow({
           <Text style={styles.editText}>{t.editTarget}</Text>
         </Pressable>
       </View>
-      <Modal visible={editing} transparent animationType="slide" onRequestClose={() => setEditing(false)}>
+      <Modal visible={editing} transparent animationType={reduceMotion ? 'fade' : 'slide'} onRequestClose={() => setEditing(false)}>
         {/* The pace and time fields sit in the sheet, so it rises with the keyboard. */}
         <KeyboardAvoidingView behavior="padding" style={styles.sheetRoot}>
           <Pressable

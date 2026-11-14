@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useReduceMotion } from '@/components/enter-view';
 import { HandTitle } from '@/components/hand-title';
 import { qSpacing } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
@@ -32,6 +33,7 @@ export function AnswerSheet({
   onSeePlus: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion(); // Reduce Motion: the sheet fades in instead of sliding.
   const { cards } = useRoomCards(roomId);
   const card = cardId ? cards.find((c) => c.id === cardId && c.status === 'answered') : undefined;
   const plusAfter = useRef(false);
@@ -40,7 +42,7 @@ export function AnswerSheet({
     <Modal
       visible={!!card}
       transparent
-      animationType="slide"
+      animationType={reduceMotion ? 'fade' : 'slide'}
       onRequestClose={onClose}
       onDismiss={() => {
         if (!plusAfter.current) return;
