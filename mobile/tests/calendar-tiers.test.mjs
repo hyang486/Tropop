@@ -38,8 +38,8 @@ test('bar labels name the action: open diary, Plus feature, edit event', () => {
   assert.match(screen, /t\.barLabel\(item\.title, rangeLabel\(item\.start, item\.end, thisYear\), barAction\(item\.kind, plus\)\)/);
 });
 
-test('Plan preview table: Calendar on both, Qrewing diary and Add with Qrewing on Plus', () => {
-  assert.match(en, /\{ label: 'Calendar', free: 'Included', plus: 'Included' \}/);
-  assert.match(en, /\{ label: 'Qrewing diary', free: 'Not included', plus: 'Included' \}/);
-  assert.match(en, /\{ label: 'Add with Qrewing', free: 'Not included', plus: 'Included' \}/);
+test('Plus intro: Calendar stays free; Qrewing diary and Add with Qrewing are Plus benefits', () => {
+  assert.match(en, /calendarFree: 'Qrewing Calendar itself stays free\.'/);
+  assert.match(en, /diary: \{ title: 'Qrewing diary',/);
+  assert.match(en, /add: \{ title: 'Add with Qrewing',/);
 });

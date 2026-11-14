@@ -83,7 +83,7 @@ function RootNavigator() {
         <Stack.Screen name="profile-edit" options={{ title: en.profile.editProfile, headerTitle: '' }} />
         {/* Modal screens (upgrade, room/[id]/invite): keep MODAL_ROUTES in lib/root-link.ts in sync (P-3). */}
         <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, headerTitle: '', presentation: 'modal' }} />
-        <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title }} />
+        <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title, headerTitle: '' }} />
         <Stack.Screen name="calendar" options={{ title: en.calendar.title, headerTitle: '' }} />
         <Stack.Screen name="calendar-event" options={{ title: en.calendar.newEvent, headerTitle: '' }} />
         <Stack.Screen name="create-room" options={{ title: en.createRoom.title, headerTitle: '' }} />
