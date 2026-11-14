@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
   bar: { ...createBarLayout, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   deletes: { fontSize: 13, color: colors.ink2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  presets: { flexDirection: 'row', flexWrap: 'nowrap', gap: 8 },
+  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     backgroundColor: colors.field,
     borderRadius: radius.pill,

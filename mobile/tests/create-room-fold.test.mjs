@@ -45,9 +45,9 @@ test('Spec 11 A2/A3/A6: Class label, ink switches in outlined rows, no Plus prev
   assert.ok(en.qrewing.create.aiHint.length <= 56, 'AI hint fits one line at 402 pt');
 });
 
-test('Spec 11 A5: End presets sit on one line: 3 hours, 1 day, 2 days, More', async () => {
+test('Spec 11 A5 + UX2-25: End presets 3 hours, 1 day, 2 days, More; the row wraps (gap 8) as a 375 pt guard', async () => {
   const { en } = await import('../src/i18n/en.ts');
-  assert.match(src, /presets: \{ flexDirection: 'row', flexWrap: 'nowrap'/);
+  assert.match(src, /presets: \{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 \}/);
   assert.deepEqual([3, 24, 48].map(en.createRoom.presetLabel), ['3 hours', '1 day', '2 days']);
   assert.equal(en.createRoom.presetLabel(120), '5 days');
 });
