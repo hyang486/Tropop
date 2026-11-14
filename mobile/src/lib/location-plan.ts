@@ -1107,3 +1107,132 @@ export function planLocate(permission: { granted: boolean; canAskAgain: boolean 
   if (permission.granted) return 'locate';
   return permission.canAskAgain ? 'ask' : 'settings';
 }
+
+// UX P0-3: avatar pins (Find My style). Each person is a 34 pt circle with a 2 pt white outline: you ink-filled,
+// others white with an ink initial. People within CLUSTER_METERS of each other become one "+N" pin. Only a
+// person in Emergency gets a 3 pt systemRed ring and a label. Names show in a callout when a pin is tapped.
+
+/** People within this distance of a cluster's first pin join that cluster. */
+export const CLUSTER_METERS = 30;
+
+export type AvatarFace = {
+  /** 'me': ink-filled; 'other': white with an ink initial; 'cluster': white with "+N". */
+  kind: 'me' | 'other' | 'cluster';
+  text: string;
+  stale: boolean;
+  emergency: boolean;
+};
+
+export type AvatarPin = {
+  /** Changes with the face, so the map draws a new annotation instead of keeping the old icon. */
+  id: string;
+  coordinates: LatLng;
+  face: AvatarFace;
+  faceKey: string;
+  /** Pin ids (planPins ids) in this pin, first one first. */
+  members: string[];
+  /** The callout lines: each member's title ("Mina · 10.1 km/h"). */
+  titles: string[];
+  /** Each member's name ("You" for you), for the Emergency label and VoiceOver. */
+  names: string[];
+};
+
+export function avatarFaceKey(face: AvatarFace): string {
+  return `${face.kind}|${face.text}|${face.stale ? 1 : 0}|${face.emergency ? 1 : 0}`;
+}
+
+type AvatarSource = { id: string; userId: string; name: string; coordinates: LatLng; title: string; stale: boolean; text: string };
+
+/**
+ * UX P0-3: the map's avatar pins, in pin order. Your own pin and pins in Emergency are never clustered (you
+ * always see yourself, and the red ring must stay visible). Other pins join the first open cluster whose first
+ * pin is within `meters`; a cluster of one is a plain pin. A cluster is stale only when all its members are.
+ * `pins` are planPins output (any icon is ignored: the mockup shows initials only).
+ */
+export function planAvatarPins<T>(
+  pins: PinPlan<T>[],
+  inputs: PinInput[],
+  myUserId: string | undefined,
+  emergencyPinIds: ReadonlySet<string>,
+  meters = CLUSTER_METERS,
+): AvatarPin[] {
+  const byUser = new Map(inputs.map((input) => [input.userId, input]));
+  const sources: AvatarSource[] = pins.map((pin) => {
+    const userId = pin.kind === 'stale' ? pin.id.replace(/:stale$/, '') : pin.id;
+    const input = byUser.get(userId);
+    return {
+      id: pin.id,
+      userId,
+      name: input?.label ?? '',
+      coordinates: pin.coordinates,
+      title: pin.title,
+      stale: pin.kind === 'stale',
+      text: initials(input?.initialsOf || input?.label || '').slice(0, 1),
+    };
+  });
+  const single = (s: AvatarSource): AvatarPin => {
+    const face: AvatarFace = {
+      kind: s.userId === myUserId ? 'me' : 'other',
+      text: s.text,
+      stale: s.stale,
+      emergency: emergencyPinIds.has(s.id),
+    };
+    const faceKey = avatarFaceKey(face);
+    return { id: `${s.id}#${faceKey}`, coordinates: s.coordinates, face, faceKey, members: [s.id], titles: [s.title], names: [s.name] };
+  };
+  const out: (AvatarPin | AvatarSource[])[] = [];
+  const open: AvatarSource[][] = [];
+  for (const s of sources) {
+    if (s.userId === myUserId || emergencyPinIds.has(s.id)) {
+      out.push(single(s));
+      continue;
+    }
+    const group = open.find((g) => distanceMeters(g[0].coordinates, s.coordinates) <= meters);
+    if (group) {
+      group.push(s);
+      continue;
+    }
+    const fresh = [s];
+    open.push(fresh);
+    out.push(fresh);
+  }
+  return out.map((entry) => {
+    if (!Array.isArray(entry)) return entry;
+    if (entry.length === 1) return single(entry[0]);
+    const face: AvatarFace = {
+      kind: 'cluster',
+      text: `+${entry.length}`,
+      stale: entry.every((s) => s.stale),
+      emergency: false,
+    };
+    const faceKey = avatarFaceKey(face);
+    const n = entry.length;
+    return {
+      id: `${entry.map((s) => s.id).join(',')}#${faceKey}`,
+      coordinates: {
+        latitude: entry.reduce((sum, s) => sum + s.coordinates.latitude, 0) / n,
+        longitude: entry.reduce((sum, s) => sum + s.coordinates.longitude, 0) / n,
+      },
+      face,
+      faceKey,
+      members: entry.map((s) => s.id),
+      titles: entry.map((s) => s.title),
+      names: entry.map((s) => s.name),
+    };
+  });
+}
+
+/** The avatar circle's radius with its white outline (34 pt across), drawn centered in the 50 pt icon frame. */
+export const AVATAR_PIN_RADIUS = 17;
+/** The Emergency ring's width outside the outline. */
+export const AVATAR_RING_WIDTH = 3;
+
+/**
+ * UX P0-3: the anchor of a text pill with `lines` lines placed above or below an avatar pin's center, clear of
+ * the pin (and of its Emergency ring) by LABEL_GAP. The anchor resolves against the pill's own size.
+ */
+export function avatarPillAnchor(lines: number, where: 'above' | 'below'): Anchor {
+  const height = Math.max(1, lines) * LABEL_LINE_HEIGHT + 2 * LABEL_TEXT_PADDING;
+  const clear = AVATAR_PIN_RADIUS + AVATAR_RING_WIDTH + LABEL_GAP;
+  return where === 'above' ? { x: 0.5, y: 1 + clear / height } : { x: 0.5, y: -clear / height };
+}

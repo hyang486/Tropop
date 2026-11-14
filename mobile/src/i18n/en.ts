@@ -550,6 +550,7 @@ export const en = {
     you: 'You',
     stale: (age: string) => `Location stale · ${age}`,
     stalePin: 'stale',
+    emergencyPin: (name: string) => `${name} · help`,
     updated: (age: string) => `Updated ${age}`,
     route: 'Route',
     /** #10: the route length label, e.g. "Route 5.2 km". */

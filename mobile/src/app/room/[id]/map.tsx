@@ -32,20 +32,23 @@ import {
   useMyShare,
   useSharingState,
 } from '@/lib/location';
+import { useAvatarPinIcons } from '@/lib/avatar-pins';
 import {
+  avatarPillAnchor,
   type Camera,
   fitRoomCamera,
   formatAge,
   formatRouteKm,
   formatSpeedKmh,
   isStale,
-  labelPins,
+  type LabelPin,
   memberStatusLabels,
   type LatLng,
   MAX_CAMERA_ZOOM,
   parseRoute,
   type PinInput,
   planLabels,
+  planAvatarPins,
   planPins,
   ROOM_MAP_SIZE,
   ROUTE_LINE_WIDTH,
@@ -54,9 +57,7 @@ import {
   viewportFromCamera,
   viewportFromRegion,
   type ViewSize,
-  wantedIconPaths,
 } from '@/lib/location-plan';
-import { useMarkerIcons } from '@/lib/marker-icons';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
 import { editorStartCamera } from '@/lib/route-editor-plan';
@@ -69,7 +70,6 @@ type State =
   | { status: 'error'; message: string }
   | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
 
-const STALE_TINT = '#8E8E93';
 const ROUTE_COLOR = '#007AFF';
 // P2: the member label pill. Fixed light colors (not the app theme) so it reads the same on light and dark maps.
 const LABEL_BACKGROUND = '#FFFFFF';
@@ -79,7 +79,8 @@ const LABEL_STALE_TEXT = '#6C6C70';
 const OVERLAY_BOTTOM = 8;
 // #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
 const EMERGENCY_RED = '#FF3B30';
-const EMERGENCY_TEXT = '#FFFFFF';
+/** UX P0-3: pins never show a photo (the mockup shows initials). */
+const NO_ICONS: ReadonlyMap<string, null> = new Map<string, null>();
 
 export default function RoomMapScreen() {
   // focus: an Emergency sender to center on (Q 04.04 "Open last shared location" from chat, Photos or Info).
@@ -239,13 +240,10 @@ function RoomMap({
     );
   }
 
-  // M1: a fresh member with a profile photo is an annotation with the photo as its icon (square: expo-maps
-  // draws the icon as a plain 50 pt image and cannot round it). No photo, still loading or a failed load:
-  // an initials marker. Stale: a grey clock marker with no speed (C4), photo or not. Only current members
-  // (`avatars` comes from listMembers) get a photo. P2: the pins have no title (MapKit hid one of two close
-  // titles); the name · speed labels are text annotations, one pill per group of pins that are close on
-  // screen, under the group's lowest pin (planLabels). expo-maps' SwiftUI Map has no tap callout, and pins
-  // and labels have no tap action.
+  // UX P0-3: every member is a 34 pt avatar pin (you ink-filled, others white with an ink initial); people within
+  // 30 m of each other are one "+N" pin, never you or a person in Emergency. Only a person in Emergency gets a
+  // red ring and a "<name> · help" label (one text annotation per group of close labels, planLabels). Tapping
+  // a pin shows its names in a callout pill above it; tapping the map hides it. Stale pins are grey.
   const pinInputs: PinInput[] = presence.rows.map((row) => ({
     userId: row.user_id,
     coordinates: { latitude: row.lat, longitude: row.lng },
@@ -253,24 +251,30 @@ function RoomMap({
     speedMps: row.speed_mps,
     label: displayName(row, userId, names),
     initialsOf: names.get(row.user_id) ?? '',
-    avatarPath: avatars.get(row.user_id) ?? null,
+    avatarPath: null,
     status: statusOf.get(row.user_id) ?? null,
   }));
-  const icons = useMarkerIcons(wantedIconPaths(pinInputs, now), session?.access_token);
-  const pins = planPins(pinInputs, now, icons, en.map.stalePin);
-  const labelInputs = labelPins(pins);
-  const markers = pins.flatMap((pin) =>
-    pin.kind === 'photo'
-      ? []
-      : [
-          {
-            id: pin.id,
-            coordinates: pin.coordinates,
-            ...(pin.kind === 'stale' ? { systemImage: 'clock', tintColor: STALE_TINT } : { monogram: pin.monogram }),
-            ...(emergencyPinIds.has(pin.id) ? { tintColor: EMERGENCY_RED } : {}),
-          },
-        ],
+  const pins = planPins(pinInputs, now, NO_ICONS, en.map.stalePin);
+  const avatarPins = planAvatarPins(pins, pinInputs, userId, emergencyPinIds);
+  const pinIcons = useAvatarPinIcons(avatarPins.map((pin) => pin.face));
+  const labelInputs: LabelPin[] = avatarPins.flatMap((pin) =>
+    pin.face.emergency
+      ? [{ id: pin.id, coordinates: pin.coordinates, shape: 'photo' as const, text: en.map.emergencyPin(pin.names[0]), stale: false }]
+      : [],
   );
+  const pinAnnotations = avatarPins.map((pin) => {
+    const icon = pinIcons.icons.get(pin.faceKey);
+    // Until its icon is baked (or if baking failed), a pin is a plain white pill with its initial.
+    return icon
+      ? { id: pin.id, coordinates: pin.coordinates, icon }
+      : { id: pin.id, coordinates: pin.coordinates, text: pin.face.text, backgroundColor: LABEL_BACKGROUND, textColor: LABEL_TEXT };
+  });
+  const [selectedPin, setSelectedPin] = useState<string | null>(null);
+  const selected = avatarPins.find((pin) => pin.id === selectedPin) ?? null;
+  // VoiceOver: expo-maps annotations take no accessibility label, so the map reads out its pins as one label.
+  const pinsSpoken = avatarPins
+    .map((pin) => (pin.face.emergency ? en.map.emergencyPin(pin.names[0]) : pin.names.join(', ')))
+    .join('; ');
 
   // M6: with no route or positions yet, the map starts on the user's own position (no prompt).
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
@@ -428,23 +432,29 @@ function RoomMap({
   const labelView = viewport ?? (givenCamera ? viewportFromCamera(givenCamera, mapSize) : null);
   // G4 (#5): pills keep off the drawn route when a clear spot exists.
   const labels = planLabels(labelInputs, labelView, mapSize, shownRoute);
-  const photoPins = pins.flatMap((pin) =>
-    pin.kind === 'photo' ? [{ id: pin.id, coordinates: pin.coordinates, icon: pin.icon }] : [],
-  );
+  // Emergency labels only: red text on the white pill (red stays the one Emergency signal).
   const annotations = [
-    ...photoPins,
-    ...labels.map((label) => {
-      const emergency = label.members.some((m) => emergencyPinIds.has(m));
-      return {
-        // A new id when the color changes, so the native annotation is redrawn rather than kept as it was.
-        id: emergency ? `${label.id}:emergency` : label.id,
-        coordinates: label.coordinates,
-        text: label.text,
-        anchor: label.anchor,
-        backgroundColor: emergency ? EMERGENCY_RED : LABEL_BACKGROUND,
-        textColor: emergency ? EMERGENCY_TEXT : label.stale ? LABEL_STALE_TEXT : LABEL_TEXT,
-      };
-    }),
+    ...pinAnnotations,
+    ...labels.map((label) => ({
+      id: `${label.id}:emergency`,
+      coordinates: label.coordinates,
+      text: label.text,
+      anchor: label.anchor,
+      backgroundColor: LABEL_BACKGROUND,
+      textColor: EMERGENCY_RED,
+    })),
+    ...(selected
+      ? [
+          {
+            id: `callout:${selected.id}`,
+            coordinates: selected.coordinates,
+            text: selected.titles.join('\n'),
+            anchor: avatarPillAnchor(selected.titles.length, 'above'),
+            backgroundColor: LABEL_BACKGROUND,
+            textColor: selected.face.stale ? LABEL_STALE_TEXT : LABEL_TEXT,
+          },
+        ]
+      : []),
   ];
 
   // Own position on the map only when the permission is already granted and Share or Show my location is on.
@@ -488,6 +498,7 @@ function RoomMap({
 
       <View
         style={styles.mapWrap}
+        accessibilityLabel={pinsSpoken ? `${en.map.title}: ${pinsSpoken}` : undefined}
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
           if (width > 0 && height > 0 && (width !== mapSize.width || height !== mapSize.height)) {
@@ -499,7 +510,6 @@ function RoomMap({
           ref={mapRef}
           style={styles.map}
           cameraPosition={initialCamera ?? undefined}
-          markers={markers}
           annotations={annotations}
           polylines={
             shownRoute.length > 1
@@ -508,7 +518,14 @@ function RoomMap({
           }
           properties={{ isMyLocationEnabled: showsMyLocation }}
           onCameraMove={onCameraMove}
+          onAnnotationClick={(event) => {
+            const id = event.id ?? '';
+            if (id.startsWith('callout:')) setSelectedPin(null);
+            else if (avatarPins.some((pin) => pin.id === id)) setSelectedPin((current) => (current === id ? null : id));
+          }}
+          onMapClick={() => setSelectedPin(null)}
         />
+        {pinIcons.baker}
         <Pressable
               accessibilityRole="button"
               accessibilityLabel={en.map.showMine}
@@ -656,8 +673,8 @@ function RoomMap({
           startCamera={editor.start}
           saving={busy === 'route'}
           showsMyLocation={showsMyLocation}
-          memberMarkers={markers}
-          memberPhotos={photoPins}
+          memberMarkers={[]}
+          memberPhotos={pinAnnotations}
           onCancel={() => setEditor(null)}
           onSave={saveEdited}
         />
