@@ -45,6 +45,7 @@ export function EventEditor() {
   if (target.kind === 'missing') {
     return (
       <QScreen
+        sheet
         title={t.editEvent}
         actions={
           <Button
@@ -116,6 +117,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
 
   return (
     <QScreen
+      sheet
       title={editing ? t.editEvent : t.newEvent}
       subtitle={params.ask === '1' ? t.askConfirm : undefined}
       actions={

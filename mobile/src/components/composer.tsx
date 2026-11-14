@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
 
+import { useOnSheet } from '@/components/q-screen';
 import { colors, size } from '@/components/ui';
 
 /**
@@ -27,8 +28,10 @@ export function Composer({
   busy?: boolean;
 }) {
   const showCircle = busy || value.trim().length > 0;
+  // UX2-48: on a pageSheet (Ask) the field is sheetField, or it would vanish into the dark sheet.
+  const onSheet = useOnSheet();
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, onSheet && styles.fieldOnSheet]}>
       <TextInput
         {...rest}
         style={styles.input}
@@ -62,6 +65,7 @@ export function Composer({
 }
 
 const styles = StyleSheet.create({
+  fieldOnSheet: { backgroundColor: colors.sheetField },
   field: {
     flexDirection: 'row',
     alignItems: 'flex-end',

@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   fabArt: { width: '100%', height: '100%', borderRadius: FAB / 2 },
   fabRing: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: FAB / 2, borderWidth: 1.5, borderColor: colors.label },
   scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', padding: 16 },
-  sheet: { flex: 1, padding: 24, gap: 12, backgroundColor: colors.background },
+  sheet: { flex: 1, padding: 24, gap: 12, backgroundColor: colors.sheet },
   sheetHead: { flexDirection: 'row', alignItems: 'center' },
   sheetTitle: { flex: 1, fontSize: titleSize.sheet, lineHeight: 30 },
   askField: {

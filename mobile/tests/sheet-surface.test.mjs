@@ -53,3 +53,12 @@ test('UX2-48: pageSheets use the sheet ground with sheetField cards and bubbles'
   assert.match(src('features/event/ask-screen.tsx'), /bot: \{[^}]*backgroundColor: colors\.sheetField/);
   assert.match(src('features/questions/relayed-cards.tsx'), /bot: \{[^}]*backgroundColor: colors\.sheetField/);
 });
+
+test('UX2-48 follow-up (C20): Ask composer, calendar sheets and the event editor use the sheet surfaces', () => {
+  const c = src('components/composer.tsx');
+  assert.match(c, /fieldOnSheet: \{ backgroundColor: colors\.sheetField \}/);
+  assert.match(c, /styles\.field, onSheet && styles\.fieldOnSheet/);
+  assert.match(src('components/calendar/day-items-sheet.tsx'), /styles\.sheet, \{ backgroundColor: colors\.sheet \}/);
+  assert.match(src('features/calendar/calendar-screen.tsx'), /sheet: \{ flex: 1, padding: 24, gap: 12, backgroundColor: colors\.sheet \}/);
+  assert.equal((src('features/calendar/event-editor.tsx').match(/<QScreen\s+sheet\b/g) ?? []).length, 2);
+});
