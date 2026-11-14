@@ -1,9 +1,21 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
+  AppState,
+  Linking,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
+import { InkArt } from '@/components/ink-art';
 import { QLabel, QLink, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
@@ -47,6 +59,8 @@ export default function FaceScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [details, setDetails] = useState(false);
+  // UX2-17 (P): camera access is off; the camera-off screen's art and copy, with Open Settings.
+  const [cameraOff, setCameraOff] = useState(false);
   // FG-L1: focus and pull loads can overlap; only the newest one is applied.
   const [runLatest] = useState(createLatestLoader);
 
@@ -105,9 +119,24 @@ export default function FaceScreen() {
       if (uri) setPicked(uri);
     } catch (e) {
       const text = errorMessage(e);
-      setMessage(text === en.face.cameraDenied || source === 'library' ? text : en.face.cameraUnavailable);
+      if (source === 'camera' && text === en.face.cameraDenied) {
+        setCameraOff(true);
+        return;
+      }
+      setMessage(source === 'library' ? text : en.face.cameraUnavailable);
     }
   }
+
+  // UX2-17: back from Settings, try the camera again; still off shows this screen again.
+  useEffect(() => {
+    if (!cameraOff) return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') return;
+      setCameraOff(false);
+      pick('camera');
+    });
+    return () => sub.remove();
+  }, [cameraOff]);
 
   async function save() {
     if (!picked) {
@@ -225,6 +254,33 @@ export default function FaceScreen() {
         </View>
         {busy ? <ActivityIndicator /> : null}
         {message ? <Hint tone="error">{message}</Hint> : null}
+      </QScreen>
+    );
+  }
+
+  if (cameraOff) {
+    return (
+      <QScreen
+        title={en.cameraOff.title}
+        subtitle={en.cameraOff.body}
+        bottomAlign="center"
+        bottom={<InkArt art="camera" width={220} />}
+        actions={
+          <>
+            <Button title={en.cameraOff.openSettings} onPress={() => Linking.openSettings()} />
+            <Button
+              title={en.cameraOff.chooseLibrary}
+              variant="secondary"
+              onPress={() => {
+                setCameraOff(false);
+                pick('library');
+              }}
+            />
+            <QLink title={en.face.cancel} onPress={() => setCameraOff(false)} />
+          </>
+        }
+      >
+        <Stack.Screen options={{ headerTitle: '', headerRight: () => null }} />
       </QScreen>
     );
   }
