@@ -147,6 +147,6 @@ const styles = StyleSheet.create({
   photoActions: { flex: 1, gap: 8 },
   pickLabel: { fontSize: 13, color: colors.ink2 },
   pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  pick: { padding: 3, borderRadius: 30, borderWidth: 2, borderColor: 'transparent' },
-  pickSelected: { borderColor: colors.tint },
+  pick: { padding: 3, borderRadius: 30 },
+  pickSelected: { backgroundColor: colors.wash2 },
 });

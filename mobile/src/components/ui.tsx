@@ -1,7 +1,8 @@
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
-import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Children, isValidElement, type ReactElement, type ReactNode, useEffect, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   DynamicColorIOS,
   Platform,
@@ -294,6 +295,21 @@ export function Hint({ children, tone = 'normal' }: { children: ReactNode; tone?
   );
 }
 
+/** iOS Reduce Transparency: glass surfaces fall back to a lift fill (spec Accessibility). */
+export function useReduceTransparency() {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    let live = true;
+    AccessibilityInfo.isReduceTransparencyEnabled().then((v) => live && setOn(v), () => {});
+    const sub = AccessibilityInfo.addEventListener('reduceTransparencyChanged', setOn);
+    return () => {
+      live = false;
+      sub.remove();
+    };
+  }, []);
+  return on;
+}
+
 /**
  * UX §3 GlassIconButton: a 44 pt round icon button (Liquid Glass on iOS 26, a card circle elsewhere), e.g. a
  * sheet's close (P2-4). `label` is the VoiceOver name, since the button shows only the symbol.
@@ -307,7 +323,8 @@ export function GlassIconButton({
   label: string;
   onPress: () => void;
 }) {
-  const glass = Platform.OS === 'ios' && isLiquidGlassAvailable();
+  const reduceTransparency = useReduceTransparency();
+  const glass = Platform.OS === 'ios' && isLiquidGlassAvailable() && !reduceTransparency;
   const icon = <SymbolView name={symbol} size={17} weight="semibold" tintColor={colors.label} />;
   return (
     <Pressable
@@ -399,6 +416,6 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: 17, fontWeight: '600' },
   hint: { fontSize: 15, color: colors.ink2 },
   glassButton: { width: size.hit, height: size.hit, borderRadius: size.hit / 2, alignItems: 'center', justifyContent: 'center' },
-  glassFallback: { backgroundColor: colors.field },
+  glassFallback: { backgroundColor: colors.lift },
   glassFill: { width: size.hit, height: size.hit, borderRadius: size.hit / 2, alignItems: 'center', justifyContent: 'center' },
 });

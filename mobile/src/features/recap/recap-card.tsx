@@ -217,8 +217,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
-    borderWidth: 1.5,
-    borderColor: colors.label,
+    backgroundColor: colors.wash,
   },
   retryText: { fontSize: 15, fontWeight: '600', color: colors.label },
 });

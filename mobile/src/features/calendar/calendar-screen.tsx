@@ -442,8 +442,7 @@ const styles = StyleSheet.create({
   sheetTitle: { flex: 1, fontSize: titleSize.sheet, lineHeight: 30 },
   askField: {
     minHeight: 96,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.separator,
+    backgroundColor: colors.wash,
     borderRadius: 12,
     padding: 14,
     fontSize: 17,

@@ -33,7 +33,7 @@ test('UX2-82: the recap card shows pattern E on a failed read instead of swallow
   assert.doesNotMatch(card, /\.catch\(\(\) => \{\}\)/);
   assert.match(card, /setFailed\(\{ roomId, offline: errorKind\(e\) === 'offline' \}\)/);
   assert.match(card, /failed\.offline \? s\.loadOffline : s\.loadFailed/);
-  assert.match(card, /retry: \{[^}]*minHeight: 36,[^}]*borderColor: colors\.label/);
+  assert.match(card, /retry: \{[^}]*minHeight: 36,[^}]*backgroundColor: colors\.wash/);
   assert.match(card, /hitSlop=\{4\}/);
   assert.match(card, /accessibilityState=\{\{ disabled: retrying, busy: retrying \}\}/);
 });
