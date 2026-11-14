@@ -879,6 +879,14 @@ export const en = {
     },
     disclosure: {
       title: 'Qrewing AI is on in this room',
+      // UX P1-7: three short lines; the full text sits behind `more`.
+      summary: [
+        'Qrewing reads chat and entry info to flag key messages and write the recap.',
+        'Host and @everyone messages are flagged without AI.',
+        'Everything is deleted when the room ends.',
+      ],
+      more: 'How Qrewing uses your messages ›',
+      less: 'Hide details',
       body: [
         'In this room, your messages and entry info are sent to Anthropic’s Claude to flag important messages, suggest people to meet and write a recap.',
         'Host messages and messages with @everyone, @all or @here are highlighted by simple rules in Qrew, without AI. Only other messages, and only from members who agreed, are sent to the AI.',

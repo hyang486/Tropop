@@ -1,6 +1,7 @@
 import { useIsFocused, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type SFSymbol, SymbolView } from 'expo-symbols';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
@@ -10,6 +11,7 @@ import { setQrewingMember } from './qrewing-api';
 import { en } from '@/i18n/en';
 
 const s = en.qrewing.disclosure;
+const SUMMARY_ICONS: SFSymbol[] = ['sparkles', 'megaphone', 'trash'];
 
 /**
  * Qrewing AI disclosure (spec 3.2), shown on a member's first open of an AI room. Both answers create the
@@ -34,6 +36,7 @@ export function DisclosureSheet({
   const present = usePresentRetry(visible && settled);
   const [busy, setBusy] = useState<'agree' | 'later' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [details, setDetails] = useState(false);
 
   async function answer(agree: boolean) {
     setBusy(agree ? 'agree' : 'later');
@@ -59,11 +62,28 @@ export function DisclosureSheet({
       <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <ScrollView contentContainerStyle={styles.body}>
           <HandTitle style={styles.title}>{s.title}</HandTitle>
-          {s.body.map((line) => (
-            <Text key={line} style={styles.line}>
-              {line}
-            </Text>
+          {s.summary.map((line, i) => (
+            <View key={line} style={styles.row}>
+              <SymbolView name={SUMMARY_ICONS[i]} size={22} tintColor={colors.label} />
+              <Text style={styles.rowText}>{line}</Text>
+            </View>
           ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: details }}
+            onPress={() => setDetails((d) => !d)}
+            hitSlop={8}
+            style={styles.more}
+          >
+            <Text style={styles.moreText}>{details ? s.less : s.more}</Text>
+          </Pressable>
+          {details
+            ? s.body.map((line) => (
+                <Text key={line} style={styles.line}>
+                  {line}
+                </Text>
+              ))
+            : null}
         </ScrollView>
         <View style={styles.actions}>
           {error ? <Hint tone="error">{error}</Hint> : null}
@@ -144,6 +164,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   body: { paddingHorizontal: 24, paddingTop: 32, gap: 14 },
   title: { fontSize: 28, lineHeight: 36 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 28 },
+  rowText: { flex: 1, fontSize: 16, lineHeight: 22, color: colors.label },
+  more: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  moreText: { fontSize: 16, fontWeight: '600', color: colors.tint },
   line: { fontSize: 16, lineHeight: 23, color: colors.label },
   actions: { paddingHorizontal: 24, gap: 10 },
 });
