@@ -27,6 +27,9 @@ test('defaultEmoji: one per room type, a pin for anything else', () => {
   assert.equal(data.defaultEmoji('general'), '💬');
   assert.equal(data.defaultEmoji('unknown'), '📌');
   assert.equal(data.defaultEmoji(''), '📌');
+  assert.equal(data.defaultEmoji('constructor'), '📌');
+  assert.equal(data.defaultEmoji('__proto__'), '📌');
+  assert.equal(data.defaultEmoji('toString'), '📌');
 });
 
 test('cleanDiary: drops non-strings and blank lines, trims, keeps the first DIARY_LINES, 90 chars each', () => {

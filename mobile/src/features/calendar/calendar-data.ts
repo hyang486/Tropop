@@ -33,7 +33,8 @@ export const emptyDoc = (): CalendarDoc => ({ version: 1, rooms: {}, events: [] 
 
 /** Emoji before the AI picks one (recap), by room type. */
 export function defaultEmoji(type: string): string {
-  return ({ sports: '🏃', event: '🎉', waiting: '⏳', general: '💬' } as Record<string, string>)[type] ?? '📌';
+  const byType: Record<string, string> = { sports: '🏃', event: '🎉', waiting: '⏳', general: '💬' };
+  return Object.hasOwn(byType, type) ? byType[type] : '📌'; // own keys only: 'constructor' etc. fall back
 }
 
 const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
