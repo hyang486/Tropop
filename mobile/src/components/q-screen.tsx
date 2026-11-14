@@ -87,7 +87,7 @@ export function QScreen({
    * pinned actions, so it never covers them. Screens that do not pass it keep the old tree.
    */
   floating?: ReactNode;
-  /** Opt-in (Qrewing Calendar paper): the screen and pinned-actions ground; default is the app background. */
+  /** Opt-in screen and pinned-actions ground; default is the app background (calendar notebook paper stays on the grid only, UX P2-6). */
   background?: string;
 }) {
   const insets = useSafeAreaInsets();

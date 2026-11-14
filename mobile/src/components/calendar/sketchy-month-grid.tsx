@@ -34,7 +34,7 @@ export function SketchyMonthGrid({
   return (
     <View pointerEvents="none" style={{ width, height }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width={width + PAD * 2} height={height + PAD * 2} style={styles.svg}>
-        {paper ? <Rect x={PAD} y={PAD} width={width} height={height} rx={10} fill={colors.paper} /> : null}
+        {paper ? <Rect x={PAD} y={PAD} width={width} height={height} rx={10} fill={colors.notebook} /> : null}
         {passes.map((p, i) => (
           <Path key={i} d={p.d} stroke={colors.pencil} strokeOpacity={p.opacity} strokeWidth={p.width} strokeLinecap="round" fill="none" />
         ))}

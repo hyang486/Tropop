@@ -38,7 +38,7 @@ export function DayItemsSheet({
   const hand = (text: string) => (loaded ? { fontFamily: handFontFor(text) } : null);
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <View style={[styles.sheet, { backgroundColor: palette.paper }]}>
+      <View style={[styles.sheet, { backgroundColor: colors.background }]}>
         <View style={styles.head}>
           <View style={styles.flex}>
             <Text style={[styles.date, { color: palette.ink }, hand(dateLabel)]} accessibilityRole="header">

@@ -22,18 +22,16 @@ test('(c) superseded by tiers FINAL 2026-11-13 PM: there is no day list under th
   assert.doesNotMatch(screen, /styles\.(dayList|dayHead|dayTitle|daySub|dayRow)\b/);
 });
 
-test('(d/e) both screens sit on the calendar paper token, header included, no hard-coded color', () => {
-  for (const [name, src, paper] of [
-    ['calendar', screen, 'palette.paper'],
-    ['editor', editor, 'paper'],
+test('(d/e) UX P2-6: the screens sit on the app paper; the calendar notebook color stays on the grid only', () => {
+  for (const [name, src] of [
+    ['calendar', screen],
+    ['editor', editor],
   ]) {
-    for (const key of ['headerStyle', 'contentStyle']) assert.match(src, new RegExp(`${key}: \\{ backgroundColor: ${paper} \\}`), `${name} ${key}`);
-    assert.match(src, new RegExp(`background=\\{${paper}\\}`), `${name} QScreen`);
+    assert.doesNotMatch(src, /headerStyle|contentStyle|background=\{/, `${name}: no screen-wide paper override`);
     assert.doesNotMatch(src, /#FBF|#1D1B17/i, name);
   }
-  assert.match(editor, /const paper = useCalendarColors\(\)\.paper;/);
-  const q = read('components/q-screen.tsx');
-  assert.match(q, /styles\.root, \{ paddingBottom: keyboardPad \}, background \? \{ backgroundColor: background \} : null/);
+  assert.match(screen, /grid\.rows \* CELL_H, backgroundColor: palette\.notebook \}/, 'the grid keeps the notebook paper');
+  assert.doesNotMatch(editor, /useCalendarColors/);
 });
 
 test('(f) the Starts/Ends row labels use the hand font; the title field and Save stay system', () => {

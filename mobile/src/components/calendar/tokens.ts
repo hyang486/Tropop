@@ -9,14 +9,14 @@ export const CAL_COLORS = {
   light: {
     ink: '#2B2A27',
     pencil: '#3D3B37',
-    paper: '#FBF7EE',
+    notebook: '#FBF7EE',
     highlighters: ['#FFE14D', '#FF9EC4', '#8FE39A', '#8FD3FF', '#FFB870', '#C7A8FF'],
     highlighterOpacity: 0.55,
   },
   dark: {
     ink: '#E4DED2',
     pencil: '#BDB7AB',
-    paper: '#1D1B17',
+    notebook: '#1D1B17',
     highlighters: ['#E8C93A', '#E07FA8', '#6CC27A', '#6BB6E6', '#E39A55', '#A98BE6'],
     highlighterOpacity: 0.5,
   },

@@ -38,7 +38,7 @@ export function PlusUpsellCard({
       {/* The close scrim is a sibling behind the card so VoiceOver reads the card, not only "Close". */}
       <View style={styles.scrim} accessibilityViewIsModal onAccessibilityEscape={onClose}>
         <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={t.upsellClose} onPress={onClose} />
-        <View style={[styles.card, { backgroundColor: palette.paper, borderColor: palette.pencil }]}>
+        <View style={[styles.card, { backgroundColor: palette.notebook, borderColor: palette.pencil }]}>
           <View style={styles.roomRow} accessible accessibilityLabel={`${roomName}, ${rangeLabel}`}>
             {icon ? <InkIcon emoji={icon} size={26} /> : null}
             <View style={styles.flex}>

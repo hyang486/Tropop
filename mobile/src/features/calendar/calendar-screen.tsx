@@ -130,10 +130,7 @@ function CalendarMonth({ uid }: { uid: string }) {
     <>
       <Stack.Screen
         options={{
-          // The calendar paper (light and dark, calendar tokens) behind the whole screen, header included.
-          headerStyle: { backgroundColor: palette.paper },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: palette.paper },
           headerRight: () => (
             <Pressable
               accessibilityRole="button"
@@ -148,7 +145,6 @@ function CalendarMonth({ uid }: { uid: string }) {
       />
       <QScreen
         title={t.title}
-        background={palette.paper}
         floating={
           // "Add with Qrewing" is Plus only (tiers FINAL). Free taps open the Plus intro with no server call.
           addTapAction(plus) === null ? undefined : (
@@ -183,7 +179,7 @@ function CalendarMonth({ uid }: { uid: string }) {
           ))}
         </View>
         <View
-          style={[styles.grid, { height: grid.rows * CELL_H, backgroundColor: palette.paper }]}
+          style={[styles.grid, { height: grid.rows * CELL_H, backgroundColor: palette.notebook }]}
           onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         >
           {width > 0 ? (

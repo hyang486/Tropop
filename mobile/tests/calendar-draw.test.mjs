@@ -201,7 +201,7 @@ const hexes = (block) => [...block.matchAll(/'#([0-9A-Fa-f]{6})'/g)].map((m) => 
 const tokens = readFileSync(new URL('../src/components/calendar/tokens.ts', import.meta.url), 'utf8');
 function theme(name) {
   const block = tokens.slice(tokens.indexOf(`${name}: {`), tokens.indexOf('},', tokens.indexOf(`${name}: {`)));
-  const paper = /paper: '#([0-9A-Fa-f]{6})'/.exec(block)[1];
+  const paper = /notebook: '#([0-9A-Fa-f]{6})'/.exec(block)[1];
   const hl = hexes(/highlighters: \[([^\]]*)\]/.exec(block)[1]);
   const opacity = +/highlighterOpacity: ([\d.]+)/.exec(block)[1];
   const ink = /ink: '#([0-9A-Fa-f]{6})'/.exec(block)[1];

@@ -9,7 +9,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { InkIcon, inkIconKey, inkIconLabel, useCalendarColors } from '@/components/calendar';
+import { InkIcon, inkIconKey, inkIconLabel } from '@/components/calendar';
 import { HAND_FONTS } from '@/components/hand-title';
 import { QField, QLabel, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, radius } from '@/components/ui';
@@ -34,7 +34,6 @@ export function EventEditor() {
   const params = useLocalSearchParams<{ id?: string; title?: string; start?: string; end?: string; emoji?: string; ask?: string }>();
   const uid = useAuth().session?.user.id;
   const doc = useCalendar(uid);
-  const paper = useCalendarColors().paper;
   const existing = params.id ? doc?.events.find((e) => e.id === params.id) : undefined;
   const today = localDateKey(useNow(60_000));
   const [title, setTitle] = useState(existing?.title ?? params.title ?? '');
@@ -78,7 +77,6 @@ export function EventEditor() {
   return (
     <QScreen
       title={editing ? t.editEvent : t.newEvent}
-      background={paper}
       subtitle={params.ask === '1' ? t.askConfirm : undefined}
       actions={
         <>
@@ -92,9 +90,7 @@ export function EventEditor() {
         options={{
           title: editing ? t.editEvent : t.newEvent,
           headerTitle: '',
-          headerStyle: { backgroundColor: paper },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: paper },
         }}
       />
       <QField

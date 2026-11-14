@@ -49,7 +49,7 @@ export function RuledDiaryPaper({
   return (
     <View
       onLayout={(e) => setHeight(Math.round(e.nativeEvent.layout.height))}
-      style={[styles.paper, { width, minHeight, backgroundColor: colors.paper }, style]}
+      style={[styles.paper, { width, minHeight, backgroundColor: colors.notebook }, style]}
     >
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         {passes.map((p, i) => (
