@@ -628,6 +628,9 @@ export const en = {
     seenByCount: (n: number) => `Seen by ${n}`,
     emergencyLine: (name: string) => `${name} · Emergency`,
     emergencyLineMine: 'You · Emergency',
+    // V4 Map capsule: "**Sora** needs help · 2 on the way" (the name is bold, so it is a separate run).
+    capsuleNeedsHelp: ' needs help',
+    capsuleMine: 'You need help',
     // Emergency "On my way" (ux spec 2026-11-14; server 0040 posts the "<name> is on the way" chat line itself).
     onMyWay: 'On my way',
     cantCome: "Can't come",
