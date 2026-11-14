@@ -8,6 +8,7 @@ import { QCaption, QScreen } from '@/components/q-screen';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { formatDeletedAt } from '@/lib/create-defaults';
+import { isOfflineError } from '@/features/event/qrewing-plan';
 import { errorMessage } from '@/lib/errors';
 import { placeTimeOf } from '@/lib/place-time';
 import {
@@ -27,6 +28,10 @@ export default function Preview() {
   const [preview, setPreview] = useState<RoomPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // UX2-13 (pattern E): the preview read never reached the server. `retrying`: Try again is busy until it answers.
+  const [offline, setOffline] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [loadTick, setLoadTick] = useState(0);
   // UX2-14 (pattern D): Join failed because the room is full or the invite is no longer valid. Retrying can't fix
   // it, so the screen switches to "Invite unavailable" with the reason instead of a red line under Join.
   const [joinDeadEnd, setJoinDeadEnd] = useState<string | null>(null);
@@ -40,12 +45,24 @@ export default function Preview() {
     // No invite given: show the invalid-invite copy without recording a failed attempt.
     const request = !token && !code ? Promise.reject(new Error(en.rooms.errors.invalid)) : previewRoom(target);
     request
-      .then((p) => active && setPreview(p))
-      .catch((e) => active && setError(errorMessage(e)));
+      .then((p) => {
+        if (!active) return;
+        setOffline(false);
+        setPreview(p);
+      })
+      .catch((e) => {
+        if (!active) return;
+        if (isOfflineError(e)) setOffline(true);
+        else {
+          setOffline(false);
+          setError(errorMessage(e));
+        }
+      })
+      .finally(() => active && setRetrying(false));
     return () => {
       active = false;
     };
-  }, [code, token]);
+  }, [code, token, loadTick]);
 
   function openRoom(id: string) {
     router.dismissTo('/');
@@ -59,7 +76,7 @@ export default function Preview() {
       openRoom(await joinRoom(invite));
     } catch (e) {
       if (e instanceof RoomError && (e.kind === 'full' || e.kind === 'invalid')) setJoinDeadEnd(e.message);
-      else setError(errorMessage(e));
+      else setError(isOfflineError(e) ? en.errors.offline : errorMessage(e));
       setBusy(false);
     }
   }
@@ -71,6 +88,26 @@ export default function Preview() {
   // Qrew Q 07.03: an invite that can't be previewed (invalid, ended, rotated, full, throttled) gets its own
   // screen: "Invite unavailable", the same cause message as before, the paper art, then Enter a room code /
   // Back to rooms. While loading, only a spinner.
+  if (!preview && offline && !ended.over) {
+    return (
+      <QScreen
+        actions={
+          <>
+            <Hint tone="error">{en.errors.offline}</Hint>
+            <Button
+              title={en.errors.tryAgain}
+              busy={retrying}
+              onPress={() => {
+                setRetrying(true);
+                setLoadTick((n) => n + 1);
+              }}
+            />
+          </>
+        }
+      />
+    );
+  }
+
   if (!preview || ended.over || joinDeadEnd) {
     if (!unavailable) {
       return (

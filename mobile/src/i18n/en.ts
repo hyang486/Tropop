@@ -890,6 +890,9 @@ export const en = {
   },
   errors: {
     generic: 'Something went wrong. Try again.',
+    // Audit-2 rule E: the request never reached the server.
+    offline: "You're offline. Try again when you're back.",
+    tryAgain: 'Try again',
     emailPasswordRequired: 'Enter an email and password.',
     nameEmpty: 'Name cannot be empty.',
     notSignedIn: 'You are signed out. Sign in and try again.',
