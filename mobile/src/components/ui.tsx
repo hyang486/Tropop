@@ -1,3 +1,5 @@
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { type SFSymbol, SymbolView } from 'expo-symbols';
 import type { ReactElement, ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -167,6 +169,39 @@ export function Hint({ children, tone = 'normal' }: { children: ReactNode; tone?
   );
 }
 
+/**
+ * UX §3 GlassIconButton: a 44 pt round icon button (Liquid Glass on iOS 26, a card circle elsewhere), e.g. a
+ * sheet's close (P2-4). `label` is the VoiceOver name, since the button shows only the symbol.
+ */
+export function GlassIconButton({
+  symbol,
+  label,
+  onPress,
+}: {
+  symbol: SFSymbol;
+  label: string;
+  onPress: () => void;
+}) {
+  const glass = Platform.OS === 'ios' && isLiquidGlassAvailable();
+  const icon = <SymbolView name={symbol} size={17} weight="semibold" tintColor={colors.label} />;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.glassButton, !glass && styles.glassFallback, pressed && { opacity: 0.6 }]}
+    >
+      {glass ? (
+        <GlassView isInteractive style={styles.glassFill}>
+          {icon}
+        </GlassView>
+      ) : (
+        icon
+      )}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 16 },
   fieldWrap: { gap: 6 },
@@ -191,4 +226,7 @@ const styles = StyleSheet.create({
   // Q 01.04: regular-weight label ("Join the room").
   buttonText: { fontSize: 17, fontWeight: '400' },
   hint: { fontSize: 15, color: colors.ink2 },
+  glassButton: { width: size.hit, height: size.hit, borderRadius: size.hit / 2, alignItems: 'center', justifyContent: 'center' },
+  glassFallback: { backgroundColor: colors.field },
+  glassFill: { width: size.hit, height: size.hit, borderRadius: size.hit / 2, alignItems: 'center', justifyContent: 'center' },
 });

@@ -23,9 +23,9 @@ import {
   SketchyMonthGrid,
   useCalendarColors,
 } from '@/components/calendar';
-import { HAND_FONTS } from '@/components/hand-title';
+import { HAND_FONTS, HandTitle } from '@/components/hand-title';
 import { QScreen } from '@/components/q-screen';
-import { Button, colors, Hint } from '@/components/ui';
+import { Button, colors, GlassIconButton, Hint, titleSize } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
 import { calendarAdd } from '@/features/event/qrewing-api';
 import { en } from '@/i18n/en';
@@ -351,12 +351,8 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={close}>
       <View style={styles.sheet}>
         <View style={styles.sheetHead}>
-          <Text style={styles.sheetTitle} accessibilityRole="header">
-            {t.askTitle}
-          </Text>
-          <Pressable accessibilityRole="button" onPress={close} style={styles.headerIcon}>
-            <Text style={styles.cancel}>{t.cancel}</Text>
-          </Pressable>
+          <HandTitle style={styles.sheetTitle}>{t.askTitle}</HandTitle>
+          <GlassIconButton symbol="xmark" label={t.cancel} onPress={close} />
         </View>
         <TextInput
           value={text}
@@ -402,8 +398,7 @@ const styles = StyleSheet.create({
   scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', padding: 16 },
   sheet: { flex: 1, padding: 24, gap: 12, backgroundColor: colors.background },
   sheetHead: { flexDirection: 'row', alignItems: 'center' },
-  sheetTitle: { flex: 1, fontSize: 20, fontWeight: '600', color: colors.label },
-  cancel: { fontSize: 17, color: colors.tint },
+  sheetTitle: { flex: 1, fontSize: titleSize.sheet, lineHeight: 30 },
   askField: {
     minHeight: 96,
     borderWidth: StyleSheet.hairlineWidth * 2,
