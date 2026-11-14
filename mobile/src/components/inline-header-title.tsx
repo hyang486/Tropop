@@ -7,6 +7,13 @@ import { HandTitle } from '@/components/hand-title';
 
 /** Fade time for the inline title (UX2-59). */
 const FADE_MS = 180;
+/** UX2-59 C28: the large-title block fades out over the last 24 pt before its bottom reaches the header's bottom. */
+const BLOCK_FADE_PT = 24;
+
+/** The large-title block's opacity at scroll `y`: 1 until 24 pt before its bottom meets the header, 0 from there on. */
+export function titleBlockOpacity(blockBottom: number, y: number, overlap: number) {
+  return Math.min(1, Math.max(0, (blockBottom - (y + overlap)) / BLOCK_FADE_PT));
+}
 
 /**
  * UX2-59: once the large handwritten title scrolls under the header, the same title fades in centered between the
@@ -15,7 +22,8 @@ const FADE_MS = 180;
  * (in scroll content coordinates), optionally `onTitleTextLayout` on a view around the large title alone (inside
  * the block), and call `onScrollY` with the content offset. `overlap` is the header bottom. UX2-59 C25: with the
  * title measure, the trigger is the title's own bottom, so a subtitle under it never holds the inline title back;
- * without it (Map), the block's bottom.
+ * without it (Map), the block's bottom. C28: `blockOpacity` fades the whole block (title + subtitle) from the same
+ * scroll value, so no clipped subtitle shows under the header; it follows the finger, so Reduce Motion keeps it.
  */
 export function useInlineHeaderTitle(title: string | null, overlap: number) {
   const navigation = useNavigation();
@@ -24,15 +32,20 @@ export function useInlineHeaderTitle(title: string | null, overlap: number) {
   const textBottom = useRef<number | null>(null);
   const lastY = useRef(0);
   const [shown, setShown] = useState(false);
+  const [blockOpacity] = useState(() => new Animated.Value(1));
+  const on = title != null;
 
   const update = useCallback(
     (y: number) => {
       lastY.current = y;
       const bottom = blockY.current == null ? null : blockY.current + (textBottom.current ?? blockH.current);
       setShown(bottom != null && y + overlap >= bottom);
+      // Off (a sheet, no header): the block stays put, since no inline title replaces it.
+      blockOpacity.setValue(on && blockY.current != null ? titleBlockOpacity(blockY.current + blockH.current, y, overlap) : 1);
     },
-    [overlap],
+    [overlap, on, blockOpacity],
   );
+  useEffect(() => update(lastY.current), [update]);
   const onTitleLayout = useCallback(
     (e: LayoutChangeEvent) => {
       blockY.current = e.nativeEvent.layout.y;
@@ -54,7 +67,7 @@ export function useInlineHeaderTitle(title: string | null, overlap: number) {
     navigation.setOptions({ headerTitle: () => <InlineTitle text={title} shown={shown} /> });
   }, [navigation, title, shown]);
 
-  return { onTitleLayout, onTitleTextLayout, onScrollY: update };
+  return { onTitleLayout, onTitleTextLayout, onScrollY: update, blockOpacity };
 }
 
 function InlineTitle({ text, shown }: { text: string; shown: boolean }) {

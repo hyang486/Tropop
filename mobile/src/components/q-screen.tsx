@@ -14,6 +14,7 @@ import {
   useState,
 } from 'react';
 import {
+  Animated,
   Dimensions,
   Keyboard,
   type KeyboardEvent,
@@ -155,12 +156,12 @@ export function QScreen({
           keyboardDismissMode="interactive"
         >
           {title ? (
-            <View style={styles.head} onLayout={inline.onTitleLayout}>
+            <Animated.View style={[styles.head, { opacity: inline.blockOpacity }]} onLayout={inline.onTitleLayout}>
               <View onLayout={inline.onTitleTextLayout}>
                 <HandTitle>{title}</HandTitle>
               </View>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-            </View>
+            </Animated.View>
           ) : null}
           {children}
           {bottom ? (

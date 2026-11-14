@@ -21,7 +21,8 @@ test('UX2-59: the inline title is Patrick Hand 20, one line, set as the native h
 test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to the header bottom', () => {
   const q = src('components/q-screen.tsx');
   assert.match(q, /useInlineHeaderTitle\(title && \(inlineTitle \?\? !sheet\) && overlap > 0 \? title : null, overlap\)/);
-  assert.match(q, /<View style=\{styles\.head\} onLayout=\{inline\.onTitleLayout\}>\s*<View onLayout=\{inline\.onTitleTextLayout\}>\s*<HandTitle>\{title\}<\/HandTitle>\s*<\/View>\s*\{subtitle \?/);
+  // C28: the whole block (title + subtitle) carries the scroll-driven fade.
+  assert.match(q, /<Animated\.View style=\{\[styles\.head, \{ opacity: inline\.blockOpacity \}\]\} onLayout=\{inline\.onTitleLayout\}>\s*<View onLayout=\{inline\.onTitleTextLayout\}>\s*<HandTitle>\{title\}<\/HandTitle>\s*<\/View>\s*\{subtitle \? <Text style=\{styles\.subtitle\}>\{subtitle\}<\/Text> : null\}\s*<\/Animated\.View>/);
   assert.match(q, /inline\.onScrollY\(e\.nativeEvent\.contentOffset\.y\)/);
   assert.match(q, /height: overlap \+ 16, backgroundImage: `linear-gradient\(\$\{paper\} 0%, \$\{paper\} \$\{edgeSolid\(overlap\)\}%/);
   const ed = src('features/calendar/event-editor.tsx');
@@ -34,5 +35,22 @@ test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to
   assert.match(map, /useInlineHeaderTitle\(en\.map\.title, useHeaderHeight\(\)\)/);
   // Map passed ux C25 as is: no title measure, so it keeps the block's bottom.
   assert.match(map, /<View style=\{styles\.head\} onLayout=\{inlineTitle\.onTitleLayout\}>/);
-  assert.doesNotMatch(map, /onTitleTextLayout/);
+  assert.doesNotMatch(map, /onTitleTextLayout|blockOpacity/);
+});
+
+test('UX2-59 C28: the title block fades 1 → 0 over the 24 pt before its bottom meets the header, from the scroll value', () => {
+  const h = src('components/inline-header-title.tsx');
+  const m = h.match(/export function titleBlockOpacity\(blockBottom: number, y: number, overlap: number\) \{\n  return (.+);\n\}/);
+  assert.ok(m, 'titleBlockOpacity');
+  assert.match(h, /const BLOCK_FADE_PT = 24;/);
+  const f = new Function('blockBottom', 'y', 'overlap', 'BLOCK_FADE_PT', `return ${m[1]};`);
+  const at = (y) => f(200, y, 100, 24); // block bottom 200 in content, header bottom 100
+  assert.equal(at(0), 1);
+  assert.equal(at(76), 1); // 24 pt before: still solid
+  assert.equal(at(88), 0.5);
+  assert.equal(at(100), 0); // the subtitle's bottom reaches the header's bottom
+  assert.equal(at(300), 0);
+  assert.equal(at(-50), 1); // pull-to-refresh overscroll
+  // Same update as the inline-title trigger; off (sheet, no header) keeps the block solid. No Reduce Motion branch.
+  assert.match(h, /setShown\(bottom != null && y \+ overlap >= bottom\);\n[^\n]*\n\s*blockOpacity\.setValue\(on && blockY\.current != null \? titleBlockOpacity\(blockY\.current \+ blockH\.current, y, overlap\) : 1\)/);
 });
