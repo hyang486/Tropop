@@ -224,8 +224,9 @@ export function EmergencyAlerts({
                   {title}
                 </Text>
                 <View style={styles.barMetaRow}>
-                  {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} /> : null}
-                  <Text style={styles.barMeta} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                  {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} style={styles.barMetaIcon} /> : null}
+                  {/* UX2-77: up to 2 lines ("2:32 AM · No one saw it…" no longer cut); the pill stays centered (bar). */}
+                  <Text style={styles.barMeta} numberOfLines={2} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                     {meta}
                   </Text>
                 </View>
@@ -380,7 +381,9 @@ const styles = StyleSheet.create({
   ringSmall: { width: 24, height: 24, borderRadius: 12 },
   barText: { flex: 1, gap: 1 },
   barTitle: { fontSize: 16, fontWeight: '600', color: colors.label },
-  barMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  barMetaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
+  // On the first line's center (13 pt text, ~16 pt line).
+  barMetaIcon: { marginTop: 3 },
   barMeta: { flexShrink: 1, fontSize: 13, color: colors.label },
   pill: {
     flexShrink: 0,
