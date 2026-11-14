@@ -43,7 +43,7 @@ import { QuestionEditor, questionProblemText } from '@/features/event/question-e
 import { setEntryQuestions, setQrewingRoom } from '@/features/event/qrewing-api';
 import { QField, QLabel, QLink, QScreen } from '@/components/q-screen';
 import { useAuth } from '@/lib/auth';
-import { Button, colors, Hint, radius } from '@/components/ui';
+import { Button, colors, Hint, radius, size } from '@/components/ui';
 import { StatusChips } from '@/features/event/status-chips';
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
@@ -95,7 +95,8 @@ export default function CreateRoom() {
   const [capacity, setCapacity] = useState<Capacity>('none');
   // "No limit" sits past the plan max, so + is off only there and − only at 2 (dimmed, or they look tappable).
   const { atMin, atMax } = capacityEnds(capacity);
-  // qa: 27 taps from No limit to 3. Holding +/− repeats, and tapping the number types it (clamped to 2 … plan max).
+  // qa: 27 taps from No limit to 3. Holding +/− repeats, and the number is an inline field (UX P1-10, was an alert),
+  // clamped to 2 … plan max on done. While typing it holds the raw text; a non-number reverts.
   const repeat = useRef<ReturnType<typeof setInterval> | null>(null);
   function stopRepeat() {
     if (repeat.current) clearInterval(repeat.current);
@@ -106,18 +107,12 @@ export default function CreateRoom() {
     repeat.current = setInterval(() => setCapacity((c) => stepCapacity(c, delta, plus)), 120);
   }
   useEffect(() => stopRepeat, []);
-  function typeCapacity() {
-    Alert.prompt(
-      en.createRoom.capacityLabel,
-      plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree,
-      (text) => {
-        const n = typedCapacity(text, plus);
-        if (n !== null) setCapacity(n);
-      },
-      'plain-text',
-      capacity === 'none' ? '' : String(capacity),
-      'number-pad',
-    );
+  const [capacityDraft, setCapacityDraft] = useState<string | null>(null);
+  function commitCapacity() {
+    if (capacityDraft === null) return;
+    const n = typedCapacity(capacityDraft, plus);
+    if (n !== null) setCapacity(n);
+    setCapacityDraft(null);
   }
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [pickedIcon, setPickedIcon] = useState<string | null>(null);
@@ -361,7 +356,7 @@ export default function CreateRoom() {
               accessibilityLabel={en.createRoom.fewerPeople}
               disabled={atMin}
               accessibilityState={{ disabled: atMin }}
-              style={atMin && styles.stepOff}
+              style={[styles.step, atMin && styles.stepOff]}
               onPress={() => setCapacity(stepCapacity(capacity, -1, plus))}
               onLongPress={() => startRepeat(-1)}
               delayLongPress={300}
@@ -370,27 +365,27 @@ export default function CreateRoom() {
             >
               <SymbolView name="minus.circle" size={26} tintColor={colors.label} />
             </Pressable>
-            <Text
+            {/* "No limit" shows as the field's value; focusing selects it so a typed number replaces it. */}
+            <TextInput
               style={styles.capacity}
-              accessibilityRole="adjustable"
+              value={capacityDraft ?? (capacity === 'none' ? en.createRoom.noLimit : String(capacity))}
+              onChangeText={setCapacityDraft}
+              onFocus={() => setCapacityDraft(capacity === 'none' ? '' : String(capacity))}
+              onBlur={commitCapacity}
+              onSubmitEditing={commitCapacity}
+              keyboardType="number-pad"
+              returnKeyType="done"
+              maxLength={capacityDraft === null ? undefined : 2}
+              selectTextOnFocus
               accessibilityLabel={en.createRoom.capacityLabel}
-              accessibilityValue={{ text: capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity) }}
-              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }, { name: 'activate' }]}
-              onPress={typeCapacity}
-              onAccessibilityAction={(e) =>
-                e.nativeEvent.actionName === 'activate'
-                  ? typeCapacity()
-                  : setCapacity(stepCapacity(capacity, e.nativeEvent.actionName === 'increment' ? 1 : -1, plus))
-              }
-            >
-              {capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity)}
-            </Text>
+              accessibilityHint={plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={en.createRoom.morePeople}
               disabled={atMax}
               accessibilityState={{ disabled: atMax }}
-              style={atMax && styles.stepOff}
+              style={[styles.step, atMax && styles.stepOff]}
               onPress={() => setCapacity(stepCapacity(capacity, 1, plus))}
               onLongPress={() => startRepeat(1)}
               delayLongPress={300}
@@ -638,7 +633,19 @@ const styles = StyleSheet.create({
   cardNote: { fontSize: 12, color: colors.ink2 },
   pinArea: { fontSize: 14, color: colors.label },
   stepOff: { opacity: 0.3 },
-  capacity: { minWidth: 84, textAlign: 'center', fontSize: 16, color: colors.label, fontVariant: ['tabular-nums'] },
+  step: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
+  // 64 pt per the audit, widened only while it reads "No limit".
+  capacity: {
+    minWidth: 64,
+    minHeight: size.hit,
+    paddingHorizontal: 6,
+    textAlign: 'center',
+    fontSize: 17,
+    color: colors.label,
+    backgroundColor: colors.field,
+    borderRadius: 10,
+    fontVariant: ['tabular-nums'],
+  },
   iconChip: { ...outline, width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
   iconChipOn: { borderColor: colors.label, borderWidth: 2 },
   when: { ...outline, paddingHorizontal: 14, paddingVertical: 12, gap: 2 },

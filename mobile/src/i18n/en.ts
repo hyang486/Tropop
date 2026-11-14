@@ -116,8 +116,8 @@ export const en = {
     fewerPeople: 'Fewer people',
     morePeople: 'More people',
     capacityCount: (n: number) => `${n} people`,
-    capacityHintFree: 'Free rooms hold up to 6 people. Plus rooms hold up to 30.',
-    capacityHintPlus: 'Rooms hold up to 30 people.',
+    capacityHintFree: 'Free rooms hold up to 6. Plus up to 30.',
+    capacityHintPlus: 'Plus rooms hold up to 30.',
     // Spec 11 D: public rooms in Open chat.
     visibilityLabel: 'Who can join',
     private: 'Private',
