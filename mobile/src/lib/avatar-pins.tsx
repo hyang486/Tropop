@@ -1,7 +1,7 @@
 import { Image, type ImageRef } from 'expo-image';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { AVATAR_PIN_RADIUS, AVATAR_RING_WIDTH, avatarFaceKey, type AvatarFace } from './location-plan';
 
@@ -22,6 +22,9 @@ const BAKE_RETRY_MS = 250;
 const RIM = 3;
 const BADGE_R = 9;
 const BADGE_RIM = 2;
+/** ux: the lift pin's shadow is a radial gradient (r 24, +1 down); 'hairline' is ux's fallback if gradients drop in the bake. */
+const PIN_SHADOW: 'gradient' | 'hairline' = 'gradient';
+const SHADOW_R = 24;
 
 /**
  * V4 pins: a 40 pt disc with a 3 pt white rim. You (and a "+N" with you in it) = ink disc, paper initial; others
@@ -38,14 +41,27 @@ function PinFace({ face }: { face: AvatarFace }) {
   const fontSize = face.kind === 'cluster' || face.kind === 'my-cluster' ? 13 : 15;
   // The badge sits on the rim toward the bottom right, its white rim touching the 50 pt frame's edges.
   const b = FRAME - BADGE_R - BADGE_RIM;
+  // Others' pins and others' "+N" are lift discs; only they get the shadow (ink and danger pins need none).
+  const lift = !filled && !face.emergency;
   return (
     <>
       {face.emergency ? <Circle cx={c} cy={c} r={r + AVATAR_RING_WIDTH} fill={EMERGENCY_RED} fillOpacity={0.2} /> : null}
-      {/* 0 2 6 rgba(0,0,0,0.18), drawn as three soft rings (an SVG blur doesn't survive the PNG bake). */}
-      <Circle cx={c} cy={c + 2} r={r + 2.5} fill="#000000" fillOpacity={0.04} />
-      <Circle cx={c} cy={c + 2} r={r + 1.25} fill="#000000" fillOpacity={0.06} />
-      <Circle cx={c} cy={c + 2} r={r} fill="#000000" fillOpacity={0.08} />
+      {lift && PIN_SHADOW === 'gradient' ? (
+        // ux: a radial falloff baked under the disc (an SVG blur doesn't survive the PNG bake; rings read as outlines).
+        <>
+          <Defs>
+            <RadialGradient id="pinShadow" cx={c} cy={c + 1} r={SHADOW_R} gradientUnits="userSpaceOnUse">
+              <Stop offset={r / SHADOW_R} stopColor="#000000" stopOpacity={0.18} />
+              <Stop offset={1} stopColor="#000000" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={c} cy={c + 1} r={SHADOW_R} fill="url(#pinShadow)" />
+        </>
+      ) : null}
       <Circle cx={c} cy={c} r={r} fill={PAPER} />
+      {lift && PIN_SHADOW === 'hairline' ? (
+        <Circle cx={c} cy={c} r={r + 0.25} fill="none" stroke="#000000" strokeOpacity={0.12} strokeWidth={0.5} />
+      ) : null}
       <Circle cx={c} cy={c} r={r - RIM} fill={disc} />
       <SvgText x={c} y={c + fontSize * 0.36} textAnchor="middle" fontSize={fontSize} fontWeight="700" fill={initial}>
         {face.text}
