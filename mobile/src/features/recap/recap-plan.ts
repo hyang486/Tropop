@@ -141,6 +141,8 @@ export async function askDiaryOnce(
     wants: () => Promise<boolean>;
     request: () => Promise<{ state?: string; emoji?: unknown; diary?: unknown } | { error: unknown }>;
     save: (recap: { emoji: unknown; diary: unknown }) => Promise<unknown>;
+    /** 402 plan_limit: the server says Free (0032 R2), so the local Plus copy is stale. */
+    planLimit?: () => void;
   },
   inFlight: Set<string>,
 ): Promise<void> {
@@ -149,6 +151,7 @@ export async function askDiaryOnce(
   try {
     if (!(await deps.wants())) return;
     const res = await deps.request();
+    if ('error' in res && res.error === 'plan_limit') deps.planLimit?.();
     if ('error' in res || res.state !== 'done' || !res.emoji) return;
     await deps.save({ emoji: res.emoji, diary: res.diary });
   } catch {
@@ -156,6 +159,21 @@ export async function askDiaryOnce(
   } finally {
     inFlight.delete(roomId);
   }
+}
+
+/**
+ * The recap call with the diary when the calendar wants one. A 402 plan_limit (0032 R2: diary is Plus only, and the
+ * local Plus copy was stale) must not cost the member the recap: report it and ask again without the diary.
+ */
+export async function recapWithDiary<R extends object>(
+  diary: boolean,
+  request: (diary: boolean) => Promise<R | { error: unknown }>,
+  planLimit: () => void,
+): Promise<{ res: R | { error: unknown }; diary: boolean }> {
+  const res = await request(diary);
+  if (!diary || !('error' in res) || res.error !== 'plan_limit') return { res, diary };
+  planLimit();
+  return { res: await request(false), diary: false };
 }
 
 /** Resolves with the promise's value, or `fallback` after `ms`. Never rejects. */

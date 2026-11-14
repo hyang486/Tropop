@@ -77,3 +77,45 @@ test('every recap save path reaches the diary follow-up (save() calls it unless 
   const fetch = src.slice(src.indexOf('export async function fetchAndSaveRecap'), src.indexOf('export async function readAndSaveRecap'));
   assert.match(fetch, /diaryAsked: diary/);
 });
+
+// 0032 R2: qrewing recap with diary:true answers 402 plan_limit for Free. A stale local Plus copy must not cost
+// the recap, and the local plan is read again from the server.
+test('diary ask gets plan_limit: reports it, saves nothing', async () => {
+  let limited = 0;
+  const { calls, d } = deps({ request: async () => ({ error: 'plan_limit' }), planLimit: () => limited++ });
+  await askDiaryOnce('r1', d, new Set());
+  assert.equal(limited, 1);
+  assert.deepEqual(calls.saved, []);
+});
+
+test('recap with diary gets plan_limit: asks again without the diary and reports it', async () => {
+  const { recapWithDiary } = await import('../src/features/recap/recap-plan.ts');
+  const asked = [];
+  let limited = 0;
+  const out = await recapWithDiary(
+    true,
+    async (diary) => (asked.push(diary), diary ? { error: 'plan_limit' } : { state: 'done', title: 'T' }),
+    () => limited++,
+  );
+  assert.deepEqual(asked, [true, false]);
+  assert.equal(limited, 1);
+  assert.deepEqual(out, { res: { state: 'done', title: 'T' }, diary: false });
+});
+
+test('recap: other errors and no-diary calls are not retried', async () => {
+  const { recapWithDiary } = await import('../src/features/recap/recap-plan.ts');
+  for (const [diary, first] of [[true, { error: 'ai_failed' }], [false, { error: 'plan_limit' }], [true, { state: 'done' }]]) {
+    let n = 0;
+    let limited = 0;
+    const out = await recapWithDiary(diary, async () => (n++, first), () => limited++);
+    assert.equal(n, 1);
+    assert.equal(limited, 0);
+    assert.deepEqual(out, { res: first, diary });
+  }
+});
+
+test('store wires plan_limit to refreshPlus on both diary paths', () => {
+  const s = readFileSync(new URL('../src/features/recap/recap-store.ts', import.meta.url), 'utf8');
+  assert.match(s, /planLimit: \(\) => refreshPlus\(userId\)/);
+  assert.match(s, /recapWithDiary\([\s\S]*?\(\) => refreshPlus\(userId\),\s*\)/);
+});
