@@ -822,6 +822,9 @@ export const en = {
   planPreview: {
     // C14: a Plus gate never guesses Free; offline with no cached plan it says so (shared by every Plus gate).
     offline: "Can't check your plan offline. Try again when you're back.",
+    // UX2-88: Calendar and the pace card, with a Try again button.
+    offlineRetry: "Can't check your plan offline.",
+    tryAgain: 'Try again',
     /** capacity B item 4: the link from a personal Plus feature to the Plus intro. */
     seePlus: 'See Plus',
     // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).

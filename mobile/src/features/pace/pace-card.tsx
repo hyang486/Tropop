@@ -8,6 +8,7 @@ import { HandTitle } from '@/components/hand-title';
 import { QLink, qSpacing } from '@/components/q-screen';
 import { Button, colors, Hint, radius, size, space, textRole } from '@/components/ui';
 import { usePlanState } from '@/features/calendar/calendar-store';
+import { PlanOfflineLine } from '@/features/calendar/plan-offline-line';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { useSharingState } from '@/lib/location';
@@ -66,7 +67,7 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
     return (
       <View style={styles.group}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <Hint>{en.planPreview.offline}</Hint>
+        <PlanOfflineLine uid={userId} />
       </View>
     );
   }

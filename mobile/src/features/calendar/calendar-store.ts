@@ -144,8 +144,8 @@ async function writeCachedPlus(uid: string, on: boolean) {
 }
 
 /** Server plan first (user_plans, 0032); the local key is its cache and the fallback when 0032 is missing or offline. */
-async function loadPlus(uid: string): Promise<boolean> {
-  if (plus.has(uid)) return plus.get(uid)!;
+async function loadPlus(uid: string, force = false): Promise<boolean> {
+  if (!force && plus.has(uid)) return plus.get(uid)!;
   const cached = await readCachedPlus(uid);
   let on = cached ?? false;
   let server: boolean | null = null;
@@ -156,7 +156,7 @@ async function loadPlus(uid: string): Promise<boolean> {
     on = server;
     void writeCachedPlus(uid, on);
   }
-  if (!plus.has(uid)) {
+  if (force || !plus.has(uid)) {
     plus.set(uid, on);
     if (server === null && cached === null) plusUnknown.add(uid);
     else plusUnknown.delete(uid);
@@ -213,6 +213,13 @@ export function usePlanState(uid: string | null | undefined): PlanState {
     if (!plus.has(uid)) void loadPlus(uid).then(emit);
   }, [uid]);
   return useSyncExternalStore(subscribe, () => (uid ? planState(plus.get(uid), !plusUnknown.has(uid)) : 'loading'));
+}
+
+/** UX2-88: read an unknown ('offline') plan again; the state stays 'offline' until a read works. */
+export async function rereadPlan(uid: string): Promise<void> {
+  if (!plusUnknown.has(uid)) return;
+  await loadPlus(uid, true);
+  emit();
 }
 
 /** The Plus preview flag (null while loading). */

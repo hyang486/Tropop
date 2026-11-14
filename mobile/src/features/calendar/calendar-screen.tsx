@@ -53,6 +53,7 @@ import {
   shiftMonth,
 } from './calendar-plan';
 import { useCalendar, usePlanState } from './calendar-store';
+import { PlanOfflineLine } from './plan-offline-line';
 import { addTapAction, plusIntroHref } from './plus-intro';
 
 const t = en.calendar;
@@ -175,6 +176,7 @@ function CalendarMonth({ uid }: { uid: string }) {
             <SymbolView name="chevron.right" size={20} tintColor={colors.label} />
           </Pressable>
         </View>
+        {plan === 'offline' ? <PlanOfflineLine uid={uid} /> : null}
         <View style={styles.weekdays} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           {weekdays.map((w, i) => (
             <Text key={i} style={[styles.weekday, { color: palette.ink }, hand(w)]}>
@@ -254,7 +256,6 @@ function CalendarMonth({ uid }: { uid: string }) {
           ) : null}
         </View>
         {doc && shown.length === 0 ? <Hint>{t.emptyMonth}</Hint> : null}
-        {plan === 'offline' ? <Hint>{en.planPreview.offline}</Hint> : null}
       </QScreen>
 
       <Modal visible={!!diary} transparent animationType={diaryInstant ? 'none' : 'fade'} onRequestClose={() => setDiary(null)}>

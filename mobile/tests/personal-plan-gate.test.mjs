@@ -18,7 +18,7 @@ test('402 plan_limit survives as its own Ask error and is the only plan-limit si
 test('pace maker: Plus on the caller plan only; Free shows the Plus link, the runner never starts', () => {
   const layer = src('features/pace/pace-layer.tsx');
   assert.match(layer, /export function paceAllowed\(plus: boolean \| null\): boolean \{\s*return plus === true;/);
-  assert.match(layer, /const plus = usePlusPreview\(userId\);\s*const running = .*&& paceAllowed\(plus\);/);
+  assert.match(layer, /const plus = plan === 'plus' \? true : plan === 'free' \? false : null;\s*const running = .*&& paceAllowed\(plus\);/); // UX2-119
   const card = src('features/pace/pace-card.tsx');
   assert.match(card, /const plan = usePlanState\(userId\);/);
   assert.match(card, /if \(plan === 'free'\) \{/);

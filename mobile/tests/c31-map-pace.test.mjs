@@ -53,3 +53,16 @@ test('UX2-120/121: pace switch and target save revert on a failed write; Saved o
   assert.equal(en.pace.switchSaveFailed, 'Couldn’t save. Try again.');
   assert.equal(en.pace.targetSaveFailed, 'Couldn’t save your target.');
 });
+
+test('UX2-88/119: plan unknown offline has Try again, re-reads on focus and foreground; pace layer uses the plan state', () => {
+  assert.equal(en.planPreview.offlineRetry, "Can't check your plan offline.");
+  const line = src('features/calendar/plan-offline-line.tsx');
+  assert.match(line, /useFocusEffect/);
+  assert.match(line, /next === 'active'\) void retry\(\)/);
+  assert.match(line, /busy=\{busy\}/);
+  assert.match(src('features/calendar/calendar-store.ts'), /export async function rereadPlan/);
+  const cal = src('features/calendar/calendar-screen.tsx');
+  assert.ok(cal.indexOf('<PlanOfflineLine') > cal.indexOf('t.nextMonth'), 'line sits under the month nav');
+  assert.match(src('features/pace/pace-card.tsx'), /<PlanOfflineLine uid=\{userId\} \/>/);
+  assert.match(src('features/pace/pace-layer.tsx'), /const plan = usePlanState\(userId\);/);
+});

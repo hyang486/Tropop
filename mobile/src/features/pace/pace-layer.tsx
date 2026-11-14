@@ -6,7 +6,7 @@ import { confirmEmergency, isEmergencyActiveNotice, StatusPicker } from '@/compo
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
-import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { usePlanState } from '@/features/calendar/calendar-store';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { useLivePresence, useMyShare } from '@/lib/location';
@@ -60,7 +60,9 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
   const settings = usePaceSettings(room.id);
   const my = useMyShare(room.id, userId);
   const focused = useIsFocused();
-  const plus = usePlusPreview(userId);
+  // UX2-119: the same plan state as the card; unknown (offline) or loading = off.
+  const plan = usePlanState(userId);
+  const plus = plan === 'plus' ? true : plan === 'free' ? false : null;
   const running = room.activity_state === 'active' && settings.on && my.share && paceAllowed(plus);
   const live = running && focused;
   const key = runKey(room.id, room.activity_seq);
