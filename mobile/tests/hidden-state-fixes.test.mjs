@@ -66,3 +66,8 @@ test('fix 7: a failed background reload in the viewer keeps the open item and it
   const viewer = read('app/room/[id]/media/[mediaId].tsx');
   assert.match(viewer, /setState\(\(s\) => \(s\.status === 'ready' \? s : \{ status: 'error', message: errorMessage\(e\) \}\)\)/);
 });
+
+test('fix 8: a file found too large at upload time is a dead end, so the row offers no Retry', () => {
+  const media = read('lib/media.ts');
+  assert.match(media, /if \(size > MAX_MEDIA_BYTES\) throw deadEndError\('file', en\.media\.tooLarge\(/);
+});

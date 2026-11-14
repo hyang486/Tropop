@@ -293,7 +293,8 @@ export async function runJob(job: UploadJob, onProgress: (fraction: number) => v
   if (!file.exists) throw deadEndError('file', en.errors.fileGone);
   const size = Number(file.size ?? 0);
   if (size <= 0) throw deadEndError('file', en.media.emptyFile);
-  if (size > MAX_MEDIA_BYTES) throw appError(en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
+  // Sweep fix 8: a retry cannot make the file smaller, so the row is a dead end (Remove only).
+  if (size > MAX_MEDIA_BYTES) throw deadEndError('file', en.media.tooLarge(formatBytes(MAX_MEDIA_BYTES), formatBytes(size)));
 
   let rowCreated = job.rowCreated;
   let previewPath = job.previewPath;
