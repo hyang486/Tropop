@@ -199,6 +199,7 @@ export default function Rooms() {
                 <>
                   <Text style={styles.rowSubtitle}>
                     {en.rooms.types[room.type as keyof typeof en.rooms.types] ?? room.type} ·{' '}
+                    {isPublic(room) ? `${en.createRoom.public} · ` : ''}
                     {en.home.endsIn(formatRemaining(new Date(room.expires_at).getTime() - now))}
                   </Text>
                   {/* Place and time (0026), when set: one extra line; rooms without them look as before. */}
@@ -230,6 +231,11 @@ function sortEndedLast(rooms: RoomWithCount[], now: number) {
 /** A public room's chosen icon (0031; not in the generated types yet), else the default for its type. */
 function roomIcon(room: Room): string {
   return (room as Room & { public_icon?: string | null }).public_icon ?? defaultRoomIcon(room.type);
+}
+
+/** UX2-58: a public room (0031 visibility; not in the generated types yet) says so in its Your rooms meta. */
+function isPublic(room: Room): boolean {
+  return (room as Room & { visibility?: string | null }).visibility === 'public';
 }
 
 function initialOf(name: string | null | undefined): string {

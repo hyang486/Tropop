@@ -108,10 +108,13 @@ export function OpenChatSection({
   }
 
   if (!OPEN_ROOMS_LIVE) return null;
+  // UX2-58: the section (label included) hides while it has no rows, unless it has a load error to show.
+  const showError = error !== null && !roomsOffline;
+  if (!showError && !rooms?.length) return null;
   return (
     <View style={styles.section}>
       <QLabel>{en.openChat.section}</QLabel>
-      {error && !roomsOffline ? (
+      {showError ? (
         <>
           <Hint tone="error">{error}</Hint>
           <Button
@@ -125,7 +128,6 @@ export function OpenChatSection({
           />
         </>
       ) : null}
-      {rooms && rooms.length === 0 ? <Hint>{en.openChat.empty}</Hint> : null}
       {rooms?.map((room) => (
         <Pressable
           key={room.room_id}

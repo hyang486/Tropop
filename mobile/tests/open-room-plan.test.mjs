@@ -144,13 +144,13 @@ test('UX P1-6: row time is the start when known, else the end; today/tomorrow in
   assert.equal(p.openRowWhen({ starts_at: null, expires_at: at(16, 9) }, now).day, null);
 });
 
-test('UX P1-6: full rooms leave the Open chat list unless you are already in them', () => {
+test('UX P1-6 + UX2-58: Open chat lists only rooms you have not joined and that are not full', () => {
   const rows = [
     { room_id: 'a', member_count: 3, max_members: 6, already_member: false },
     { room_id: 'b', member_count: 6, max_members: 6, already_member: false },
     { room_id: 'c', member_count: 6, max_members: 6, already_member: true },
   ];
-  assert.deepEqual(p.joinableOpenRooms(rows).map((r) => r.room_id), ['a', 'c']);
+  assert.deepEqual(p.joinableOpenRooms(rows).map((r) => r.room_id), ['a']);
 });
 
 test('capacity option B: + steps below the max; at 6 a Free host goes to Plus; Plus at 30 and unread plan are off', () => {

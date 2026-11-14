@@ -117,11 +117,11 @@ export function openRowWhen(room: { starts_at?: string | null; expires_at: strin
   return { kind, at, day };
 }
 
-/** UX P1-6: a full room leaves the list (unless you are in it); the list shows only rooms you can still join. */
+/** UX P1-6 + UX2-58: Open chat lists only rooms you can still join; a joined room shows once, in Your rooms. */
 export function joinableOpenRooms<T extends { member_count: number; max_members: number; already_member: boolean }>(
   rows: readonly T[],
 ): T[] {
-  return rows.filter((r) => r.already_member || r.member_count < r.max_members);
+  return rows.filter((r) => !r.already_member && r.member_count < r.max_members);
 }
 
 export type Visibility = 'private' | 'public';

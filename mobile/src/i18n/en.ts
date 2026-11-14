@@ -154,7 +154,6 @@ export const en = {
   // Spec 11 D: the Open chat section on Rooms.
   openChat: {
     section: 'Open chat',
-    empty: 'No open rooms nearby. Check back later.',
     today: 'today',
     tomorrow: 'tomorrow',
     until: (when: string) => `until ${when}`,
