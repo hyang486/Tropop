@@ -15,3 +15,12 @@ test('the Arrived tile fills only after I have arrived, and says so to VoiceOver
 test('Arrived is one-way: no action once I have arrived', () => {
   assert.match(src, /onPress: activity\.loading \|\| activity\.myArrivedAt \? undefined :/);
 });
+
+test('UX2-51: the Set status tile collapses the panel as its picker opens; the picker outlives the grid', () => {
+  // The tile opens the picker and collapses the panel in one tap.
+  assert.match(src, /setPicking\(true\);\s*onDone\(\);/);
+  // Collapsed, the panel renders only the picker, so Cancel/Done land on a collapsed composer with "+".
+  assert.match(src, /if \(!open\) return picker;/);
+  const screen = readFileSync(new URL('../src/app/room/[id]/index.tsx', import.meta.url), 'utf8');
+  assert.match(screen, /\{userId \? \(\s*<PlusPanel\s+open=\{plusOpen\}/);
+});

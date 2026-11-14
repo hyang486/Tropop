@@ -497,8 +497,9 @@ function ChatRoom({
               </View>
             )}
           </View>
-          {plusOpen && userId ? (
+          {userId ? (
             <PlusPanel
+              open={plusOpen}
               activity={activity}
               userId={userId}
               tiles={plusTiles}

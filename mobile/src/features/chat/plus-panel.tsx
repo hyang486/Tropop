@@ -32,12 +32,15 @@ function timeOf(iso: string) {
  * `tiles` are navigation tiles from the screen (Photos, Map, Question cards); Arrived and Set status live here.
  */
 export function PlusPanel({
+  open,
   activity,
   userId,
   tiles,
   onDone,
   bottomInset,
 }: {
+  /** UX2-51: the panel stays mounted while collapsed so the status picker it opened outlives the grid. */
+  open: boolean;
   activity: ReturnType<typeof useRoomActivity>;
   userId: string;
   tiles: PlusTile[];
@@ -107,9 +110,30 @@ export function PlusPanel({
       danger: myStatus?.is_emergency,
       on: !!myStatus && !myStatus.is_emergency,
       busy: busy === 'status',
-      onPress: activity.loading ? undefined : () => setPicking(true),
+      // UX2-51: like every tile, collapse the panel as the picker opens; Cancel/Done land on a collapsed composer.
+      onPress: activity.loading
+        ? undefined
+        : () => {
+            setPicking(true);
+            onDone();
+          },
     },
   ];
+
+  const picker = (
+    <StatusPicker
+      visible={picking}
+      statuses={activity.statuses}
+      currentId={userStatusId}
+      onPick={pick}
+      onEmergency={emergency}
+      onClear={clear}
+      onClose={() => setPicking(false)}
+      failed={!!activity.error}
+      onRetry={activity.reload}
+    />
+  );
+  if (!open) return picker;
 
   return (
     <View style={[styles.panel, { paddingBottom: Math.max(bottomInset, 12) }]}>
@@ -118,17 +142,7 @@ export function PlusPanel({
           <Tile key={t.key} tile={t} />
         ))}
       </View>
-      <StatusPicker
-        visible={picking}
-        statuses={activity.statuses}
-        currentId={userStatusId}
-        onPick={pick}
-        onEmergency={emergency}
-        onClear={clear}
-        onClose={() => setPicking(false)}
-        failed={!!activity.error}
-        onRetry={activity.reload}
-      />
+      {picker}
     </View>
   );
 }
