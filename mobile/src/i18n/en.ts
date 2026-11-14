@@ -390,6 +390,8 @@ export const en = {
     // #8: the uploader's line; `body` is the stored "shared 3 photos".
     shared: (who: string, body: string) => `${who} ${body}`,
     sharedFallback: 'shared a photo or file',
+    // UX3-B01: the header title block opens Room info.
+    headerHint: 'Opens room info',
     openPhotosHint: 'Opens Photos',
     // UX P1-2: one short grey line each; a tappable line ends in " ›".
     emergencySet: (name: string) => `${name} set Emergency`,

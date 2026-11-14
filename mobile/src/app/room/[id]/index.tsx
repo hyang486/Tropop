@@ -44,7 +44,8 @@ import { AnswerSheet } from '@/features/questions/answer-sheet';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { type ChatItem, MAX_MESSAGE_LENGTH, useChat } from '@/lib/chat';
-import { endsDay } from '@/lib/chat-plan';
+import { endsDay, headerSubtitle } from '@/lib/chat-plan';
+import { arrivedMemberCount } from '@/lib/info-plan';
 import { canSendDraft, composerAutoFocus, composerReducer, initialComposer } from '@/lib/composer';
 import { errorMessage } from '@/lib/errors';
 import { disclosureHeld } from '@/lib/emergency-plan';
@@ -53,7 +54,7 @@ import { ReminderCard, useReminderCard } from '@/features/event/reminder-card';
 import { clearRoomCache, type Media, useRoomMedia, useRoomUploadSummary } from '@/lib/media';
 import { useRoomEvents } from '@/lib/room-channel';
 import { showEndsSoon } from '@/lib/expiry-plan';
-import { getRoom, listMembers, type Room } from '@/lib/rooms';
+import { getRoom, listArrivedIds, listMembers, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useKeyboardOpen } from '@/lib/use-keyboard-open';
 import { memberName } from '@/lib/member-name';
@@ -214,7 +215,9 @@ function ChatRoom({
   // UX3-B08: shared photos inline. The room's ready media (thumbnails only), matched to each "shared …" line.
   const token = useAuth().session?.access_token;
   const roomMedia = useRoomMedia(room.id, 'all', userId);
-  const lineMedia = useMemo(() => mediaForLines(chat.messages, roomMedia.items), [chat.messages, roomMedia.items]);
+  const lineMedia = useMemo(() => mediaForLines(chat.messages, roomMedia.items, chat.hasMore),
+    [chat.messages, roomMedia.items, chat.hasMore],
+  );
   // Spec 11: one activity read for the Emergency cards, the "+" panel (Arrived, Set status) and the bell.
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const presence = useEmergencyPresence(room.id, activity);
@@ -293,6 +296,23 @@ function ChatRoom({
   );
 
   useChatNoticeProducers({ roomId: room.id, endsSoon, endsLine, activity, userId, names });
+  // UX3-B01: "5 people · 2 here · ends 3:05 PM" under the title. "here" = members who tapped Arrived (any activity,
+  // as in Room info, E2E c). Refetched on focus and when an arrivals row changes.
+  const [arrivedIds, setArrivedIds] = useState<string[]>([]);
+  const loadArrived = useCallback(() => {
+    listArrivedIds(room.id).then(setArrivedIds, () => {});
+  }, [room.id]);
+  useFocusEffect(loadArrived);
+  useRoomEvents(room.id, (event) => {
+    if (event.table === 'arrivals') loadArrived();
+  });
+  const headerLine = headerSubtitle(
+    names.size,
+    arrivedMemberCount([...names.keys()], arrivedIds),
+    endsDay(expiresMs, nowMs),
+    new Date(expiresMs).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    new Date(expiresMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+  );
   // Spec 11 C: question cards (bell notices, read aloud while moving) and the "+" tile count.
   useQuestionCards(room, userId, names);
   const questionsWaiting = cardsToAnswer(useRoomCards(room.id).cards, userId).length;
@@ -401,9 +421,20 @@ function ChatRoom({
         options={{
           title: room.name,
           headerTitle: () => (
-            <HandTitle style={styles.headerTitle} numberOfLines={1}>
-              {room.name}
-            </HandTitle>
+            <Pressable
+              style={styles.headerTitleBlock}
+              onPress={() => go('/room/[id]/info')}
+              accessibilityRole="button"
+              accessibilityLabel={`${room.name}, ${headerLine}`}
+              accessibilityHint={en.chat.headerHint}
+            >
+              <HandTitle style={styles.headerTitle} numberOfLines={1}>
+                {room.name}
+              </HandTitle>
+              <Text style={styles.headerSub} numberOfLines={1}>
+                {headerLine} ›
+              </Text>
+            </Pressable>
           ),
           headerRight: () => (
             <ChatHeaderButtons roomId={room.id} onBell={() => setSheet('notices')} onGear={() => setSheet('settings')} />
@@ -791,6 +822,9 @@ const styles = StyleSheet.create({
   loading: { marginTop: 48 },
   // The nav bar title: smaller than a screen title so a long room name fits beside back, bell and gear.
   headerTitle: { fontSize: 24, lineHeight: 30, maxWidth: 210 },
+  // UX3-B01: the title block is one ≥44 pt button; the second line is 12 pt ink2, tail-truncated.
+  headerTitleBlock: { minHeight: 44, justifyContent: 'center', alignItems: 'center', maxWidth: 210 },
+  headerSub: { fontSize: 12, lineHeight: 15, color: colors.ink2, maxWidth: 210 },
   alerts: { paddingHorizontal: 24 },
   aiNote: { paddingHorizontal: 24, paddingBottom: 6 },
   compactStrip: { paddingHorizontal: 24, paddingVertical: 6, alignItems: 'flex-end' },
