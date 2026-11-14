@@ -26,15 +26,17 @@ export { QREWING_FAB_CLEARANCE, QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './q
  */
 export function useQrewingAsk(roomId: string) {
   const q = useQrewingRoom(roomId);
-  const [probe, setProbe] = useState<AskProbe | null>(null);
+  // Keyed by the switch it was taken under: right after the switch flips, the old answer counts as no answer.
+  const [probe, setProbe] = useState<(AskProbe & { ai: boolean }) | null>(null);
   useEffect(() => {
     let alive = true;
-    probeQrewing(roomId).then((r) => alive && setProbe('error' in r ? { roomId, ok: false } : { roomId, ...r }));
+    const ai = q.aiEnabled;
+    probeQrewing(roomId).then((r) => alive && setProbe('error' in r ? { roomId, ok: false, ai } : { roomId, ...r, ai }));
     return () => {
       alive = false;
     };
   }, [roomId, q.aiEnabled]);
-  const mode = askMode(q.aiEnabled, probe, roomId);
+  const mode = askMode(q.aiEnabled, probe?.ai === q.aiEnabled ? probe : null, roomId);
   return { available: mode !== null, agreed: mode === 'personal' || !!q.me?.aiOk, reload: q.reload };
 }
 
