@@ -3,7 +3,7 @@ import { dynamicTypeSize, labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar';
@@ -26,14 +26,15 @@ import {
 import { InkSwitch } from '@/features/event/ink-switch';
 import {
   type Capacity,
-  capacityMax,
+  capacityEnds,
   defaultRoomIcon,
+  isPlanLimit,
   MAX_AREA,
-  MIN_MEMBERS,
   OPEN_ROOMS_LIVE,
   openRoomProblem,
   ROOM_ICONS,
   stepCapacity,
+  typedCapacity,
   type Visibility,
 } from '@/features/event/open-room-plan';
 import { createOpenAwareRoom } from '@/features/event/open-rooms-api';
@@ -90,9 +91,32 @@ export default function CreateRoom() {
   // Spec 11 B/D: capacity ("No limit" = the plan maximum) and who can join. A public room needs an icon (follows the
   // type until picked) and an area for Open chat.
   const [capacity, setCapacity] = useState<Capacity>('none');
-  // + is off at No limit or the plan max; − is off at 2. Without the dim they looked tappable but did nothing.
-  const atMin = capacity !== 'none' && capacity <= MIN_MEMBERS;
-  const atMax = capacity === 'none' || capacity >= capacityMax(plus);
+  // "No limit" sits past the plan max, so + is off only there and − only at 2 (dimmed, or they look tappable).
+  const { atMin, atMax } = capacityEnds(capacity);
+  // qa: 27 taps from No limit to 3. Holding +/− repeats, and tapping the number types it (clamped to 2 … plan max).
+  const repeat = useRef<ReturnType<typeof setInterval> | null>(null);
+  function stopRepeat() {
+    if (repeat.current) clearInterval(repeat.current);
+    repeat.current = null;
+  }
+  function startRepeat(delta: 1 | -1) {
+    stopRepeat();
+    repeat.current = setInterval(() => setCapacity((c) => stepCapacity(c, delta, plus)), 120);
+  }
+  useEffect(() => stopRepeat, []);
+  function typeCapacity() {
+    Alert.prompt(
+      en.createRoom.capacityLabel,
+      plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree,
+      (text) => {
+        const n = typedCapacity(text, plus);
+        if (n !== null) setCapacity(n);
+      },
+      'plain-text',
+      capacity === 'none' ? '' : String(capacity),
+      'number-pad',
+    );
+  }
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [pickedIcon, setPickedIcon] = useState<string | null>(null);
   const icon = pickedIcon ?? defaultRoomIcon(type);
@@ -283,8 +307,10 @@ export default function CreateRoom() {
       router.push({ pathname: '/room/[id]/invite', params: { id: room.id } });
       if (questionsNote) Alert.alert(questionsNote);
     } catch (e) {
-      fail(errorMessage(e));
       setBusy(false);
+      // 0032 PT402: the Free plan's 6 people / 2 days; the same Plus screen as "More" on Free.
+      if (isPlanLimit(e)) return router.push('/plan-preview');
+      fail(errorMessage(e));
     }
   }
 
@@ -331,6 +357,9 @@ export default function CreateRoom() {
               accessibilityState={{ disabled: atMin }}
               style={atMin && styles.stepOff}
               onPress={() => setCapacity(stepCapacity(capacity, -1, plus))}
+              onLongPress={() => startRepeat(-1)}
+              delayLongPress={300}
+              onPressOut={stopRepeat}
               hitSlop={8}
             >
               <SymbolView name="minus.circle" size={26} tintColor={colors.label} />
@@ -340,9 +369,12 @@ export default function CreateRoom() {
               accessibilityRole="adjustable"
               accessibilityLabel={en.createRoom.capacityLabel}
               accessibilityValue={{ text: capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity) }}
-              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }, { name: 'activate' }]}
+              onPress={typeCapacity}
               onAccessibilityAction={(e) =>
-                setCapacity(stepCapacity(capacity, e.nativeEvent.actionName === 'increment' ? 1 : -1, plus))
+                e.nativeEvent.actionName === 'activate'
+                  ? typeCapacity()
+                  : setCapacity(stepCapacity(capacity, e.nativeEvent.actionName === 'increment' ? 1 : -1, plus))
               }
             >
               {capacity === 'none' ? en.createRoom.noLimit : en.createRoom.capacityCount(capacity)}
@@ -354,13 +386,15 @@ export default function CreateRoom() {
               accessibilityState={{ disabled: atMax }}
               style={atMax && styles.stepOff}
               onPress={() => setCapacity(stepCapacity(capacity, 1, plus))}
+              onLongPress={() => startRepeat(1)}
+              delayLongPress={300}
+              onPressOut={stopRepeat}
               hitSlop={8}
             >
               <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
             </Pressable>
           </View>
           <Hint>{plus ? en.createRoom.capacityHintPlus : en.createRoom.capacityHintFree}</Hint>
-          {capacity !== 'none' ? <QLink title={en.createRoom.noLimit} onPress={() => setCapacity('none')} /> : null}
 
           {/* Spec 11 D: Private (code or QR) or Public (listed in Open chat, joins without a code). */}
           <QLabel>{en.createRoom.visibilityLabel}</QLabel>
