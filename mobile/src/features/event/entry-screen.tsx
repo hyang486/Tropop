@@ -341,7 +341,7 @@ function FieldBlock({
 
 const styles = StyleSheet.create({
   note: { fontSize: 13, color: colors.ink2 },
-  fieldError: { fontSize: 13, color: colors.danger },
+  fieldError: { fontSize: 13, color: colors.errorText },
   // Matches QLabel (q-screen.tsx), which only takes a plain string.
   label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
   star: { color: colors.label },

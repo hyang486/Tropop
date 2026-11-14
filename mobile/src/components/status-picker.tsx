@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   cancel: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
   cancelText: { fontSize: 15, color: colors.ink2 },
   failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  failedText: { flex: 1, fontSize: 15, color: colors.danger },
+  failedText: { flex: 1, fontSize: 15, color: colors.errorText },
   failedButton: {
     minHeight: 36,
     justifyContent: 'center',

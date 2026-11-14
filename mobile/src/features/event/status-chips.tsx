@@ -112,5 +112,5 @@ const styles = StyleSheet.create({
   removeText: { fontSize: 20, lineHeight: 22, color: colors.ink2 },
   add: { paddingRight: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.separator, backgroundColor: 'transparent' },
   input: { minWidth: 120, paddingRight: 14, fontSize: 15, color: colors.label },
-  problem: { fontSize: 13, color: colors.danger },
+  problem: { fontSize: 13, color: colors.errorText },
 });

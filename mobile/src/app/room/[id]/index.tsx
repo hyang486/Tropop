@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
   body: { fontSize: 16, color: colors.label },
   bodyMine: { color: colors.onTint },
   meta: { fontSize: 12, color: colors.ink2 },
-  failedMeta: { color: colors.danger },
+  failedMeta: { color: colors.errorText },
   noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
   notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },
   composer: {

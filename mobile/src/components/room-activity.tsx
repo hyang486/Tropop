@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   lineText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
   lineOpen: { fontSize: 15, fontWeight: '600', color: colors.label },
   failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 12 },
-  failedText: { flex: 1, fontSize: 15, color: colors.danger },
+  failedText: { flex: 1, fontSize: 15, color: colors.errorText },
   failedButton: {
     minHeight: 36,
     justifyContent: 'center',
