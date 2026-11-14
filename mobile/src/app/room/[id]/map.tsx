@@ -210,6 +210,8 @@ function RoomMap({
   // #1: open Emergencies show on Map too (banner above the map, red pin and pill for the sender).
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const emergencyPinIds = new Set(activity.emergencies.flatMap((e) => [e.userId, stalePinId(e.userId)]));
+  // V4: members who answered On my way get a walker badge on their pin.
+  const onWayPinIds = new Set(activity.emergencies.flatMap((e) => e.onWay.flatMap((id) => [id, stalePinId(id)])));
   // #2: each member's current status, on their pill line and in their "Sharing now" row.
   const statusOf = memberStatusLabels(activity.memberStatus, activity.statuses);
   const [busy, setBusy] = useState<string | null>(null);
@@ -293,7 +295,7 @@ function RoomMap({
     status: statusOf.get(row.user_id) ?? null,
   }));
   const pins = planPins(pinInputs, now, NO_ICONS, en.map.stalePin);
-  const avatarPins = planAvatarPins(pins, pinInputs, userId, emergencyPinIds);
+  const avatarPins = planAvatarPins(pins, pinInputs, userId, emergencyPinIds, undefined, onWayPinIds);
   const pinIcons = useAvatarPinIcons(avatarPins.map((pin) => pin.face));
   const labelInputs: LabelPin[] = avatarPins.flatMap((pin) =>
     pin.face.emergency

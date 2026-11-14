@@ -1122,6 +1122,8 @@ export type AvatarFace = {
   text: string;
   stale: boolean;
   emergency: boolean;
+  /** V4: an On my way badge (18 pt ink disc, white walker) on a single pin; only present when true. */
+  onWay?: true;
 };
 
 export type AvatarPin = {
@@ -1139,7 +1141,7 @@ export type AvatarPin = {
 };
 
 export function avatarFaceKey(face: AvatarFace): string {
-  return `${face.kind}|${face.text}|${face.stale ? 1 : 0}|${face.emergency ? 1 : 0}`;
+  return `${face.kind}|${face.text}|${face.stale ? 1 : 0}|${face.emergency ? 1 : 0}${face.onWay ? '|w' : ''}`;
 }
 
 type AvatarSource = { id: string; userId: string; name: string; coordinates: LatLng; title: string; stale: boolean; text: string };
@@ -1157,6 +1159,8 @@ export function planAvatarPins<T>(
   myUserId: string | undefined,
   emergencyPinIds: ReadonlySet<string>,
   meters = CLUSTER_METERS,
+  /** V4: members who answered On my way to an open Emergency (a badge on their own, unclustered pin). */
+  onWayIds: ReadonlySet<string> = new Set(),
 ): AvatarPin[] {
   const byUser = new Map(inputs.map((input) => [input.userId, input]));
   const sources: AvatarSource[] = pins.map((pin) => {
@@ -1178,6 +1182,7 @@ export function planAvatarPins<T>(
       text: s.text,
       stale: s.stale,
       emergency: emergencyPinIds.has(s.id),
+      ...(onWayIds.has(s.id) ? { onWay: true as const } : {}),
     };
     const faceKey = avatarFaceKey(face);
     return { id: `${s.id}#${faceKey}`, coordinates: s.coordinates, face, faceKey, members: [s.id], titles: [s.title], names: [s.name] };
@@ -1185,7 +1190,7 @@ export function planAvatarPins<T>(
   const out: (AvatarPin | AvatarSource[])[] = [];
   const open: AvatarSource[][] = [];
   for (const s of sources) {
-    if (emergencyPinIds.has(s.id)) {
+    if (emergencyPinIds.has(s.id) || onWayIds.has(s.id)) {
       out.push(single(s));
       continue;
     }
@@ -1224,10 +1229,13 @@ export function planAvatarPins<T>(
   });
 }
 
-/** The avatar circle's radius with its white outline (34 pt across), drawn centered in the 50 pt icon frame. */
-export const AVATAR_PIN_RADIUS = 17;
-/** The Emergency ring's width outside the outline. */
-export const AVATAR_RING_WIDTH = 3;
+/**
+ * V4: the pin disc's radius with its 3 pt white rim (40 pt across), centered in expo-maps' fixed 50 pt icon frame
+ * (AppleMapsViewiOS18.swift draws every annotation image at 50 x 50, so the spec's 64 pt frame cannot be used).
+ */
+export const AVATAR_PIN_RADIUS = 20;
+/** V4: the Emergency halo outside the rim (danger at 20%); 5 pt, the room left in the 50 pt frame. */
+export const AVATAR_RING_WIDTH = 5;
 
 /**
  * UX P0-3: the anchor of a text pill with `lines` lines placed above or below an avatar pin's center, clear of
