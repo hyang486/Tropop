@@ -583,7 +583,10 @@ export const en = {
   pace: {
     title: 'Pace maker',
     switchHint: 'Qrewing coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
-    needsSharing: 'Turn on Share my location to use the pace maker.',
+    // UX2-95: matches the switch label (map.shareMine).
+    needsSharing: 'Turn on Share my live location to use the pace maker.',
+    // UX2-125: cues run only while Map is in front (background cues are a held product question).
+    mapOnly: 'Cues play while Map is open.',
     // capacity B item 4: the pace maker follows your own plan, also in a Free host's room.
     plusOnly: 'Pace maker is part of Qrew Plus.',
     needsActivity: 'Cues start when the host starts the activity.',
@@ -601,11 +604,21 @@ export const en = {
     perKm: 'per km',
     save: 'Save target',
     saved: 'Target saved.',
+    // UX2-120/121
+    switchSaveFailed: 'Couldn’t save. Try again.',
+    targetSaveFailed: 'Couldn’t save your target.',
+    tryAgain: 'Try again',
     invalidPace: 'Enter a pace like 5:30.',
     invalidTime: 'Enter a distance in km and a time like 50:00 or 1:45:00.',
     noTarget: 'No target yet. Run once, or set a target pace.',
     // C14 sweep 7: no position yet, or location is off.
     findingLocation: 'Finding your location…',
+    // UX2-122: a build without speech.
+    noVoice: 'Voice cues aren’t available, so cues will vibrate.',
+    // UX2-123: the history save failed twice.
+    runNotSaved: 'Couldn’t save this run.',
+    // UX2-118
+    waitingConnection: 'Pace maker is waiting for a connection.',
     stillFinding: 'Still looking for GPS. Moving outside can help.',
     locationOff: 'Location is off for Qrew.',
     openSettings: 'Open Settings',
@@ -676,6 +689,23 @@ export const en = {
     },
     members: 'Sharing now',
     nobody: 'Nobody is sharing yet.',
+    // UX2-85: before the first read that worked, and after a failed read with nobody on screen.
+    presenceLoading: 'Checking who’s sharing…',
+    presenceFailed: 'Couldn’t load who’s sharing.',
+    tryAgain: 'Try again',
+    // UX2-117: a refetch failed while rows were already on screen.
+    presenceStale: 'Couldn’t refresh. Showing the last update.',
+    // UX2-87: under the Share switch, for sharing and the pace maker.
+    locationOffShare: 'Location is off for Qrew. Turn it on to share and use the pace maker.',
+    // UX2-91
+    actionFailedTitle: 'Didn’t go through',
+    // UX2-89
+    removeRoute: 'Remove route',
+    removeRouteTitle: 'Remove the route?',
+    removeRouteBody: 'Members won’t see it on the map.',
+    remove: 'Remove',
+    // UX2-86
+    shareUnknown: 'Couldn’t check your sharing.',
     you: 'You',
     stale: (age: string) => `Last seen ${age}`,
     stalePin: 'stale',
@@ -827,6 +857,9 @@ export const en = {
   planPreview: {
     // C14: a Plus gate never guesses Free; offline with no cached plan it says so (shared by every Plus gate).
     offline: "Can't check your plan offline. Try again when you're back.",
+    // UX2-88: Calendar and the pace card, with a Try again button.
+    offlineRetry: "Can't check your plan offline.",
+    tryAgain: 'Try again',
     /** capacity B item 4: the link from a personal Plus feature to the Plus intro. */
     seePlus: 'See Plus',
     // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).
@@ -898,6 +931,10 @@ export const en = {
     nextMonth: 'Next month',
     add: 'Add event',
     ask: 'Add with Qrewing',
+    // UX2-124
+    loading: 'Loading calendar',
+    loadFailed: 'Couldn’t load your calendar.',
+    tryAgain: 'Try again',
     more: (n: number) => `+${n}`,
     // Calendar tiers (human FINAL 2026-11-13 PM).
     barLabel: (title: string, range: string, action: 'diary' | 'plus' | 'edit' | 'none') =>
@@ -950,6 +987,8 @@ export const en = {
     askErrors: {
       unclear: "Qrewing couldn't tell the date. Try with a day, like \"next Friday\".",
       rate_limited: 'Too many requests. Try again in a little while.',
+      // UX2-94
+      network: "You're offline. Try again when you're back.",
       other: "Qrewing couldn't add that right now. You can add it yourself with Add event (+).",
     },
   },

@@ -1,12 +1,12 @@
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { confirmEmergency, isEmergencyActiveNotice, StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
-import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { usePlanState } from '@/features/calendar/calendar-store';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { useLivePresence, useMyShare } from '@/lib/location';
@@ -15,7 +15,8 @@ import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
-import { breakRun, checkStationary, closeStationaryPrompt, feedFix, flushRun, runKey } from './engine';
+import { setPaceWaiting } from './connection';
+import { breakRun, checkStationary, closeStationaryPrompt, feedFix, flushRun, retryFailedSaves, runKey } from './engine';
 import { runStopped, targetSecPerKm, usualPace } from './pace-core';
 import { reloadHistory, usePaceSettings } from './settings';
 import { onCue, stopSpeech } from './voice';
@@ -45,13 +46,35 @@ export function PaceLayer({ roomId }: { roomId: string }) {
   const [room, setRoom] = useState<Room | null>(null);
   const load = useCallback(() => {
     getRoom(roomId)
-      .then((r) => setRoom(r))
-      .catch(() => {});
+      .then((r) => {
+        setPaceWaiting(roomId, false);
+        setRoom(r);
+      })
+      .catch(() => setPaceWaiting(roomId, true));
   }, [roomId]);
   useEffect(load, [load]);
-  useRoomEvents(roomId, (event) => {
-    if (event.table === 'rooms') load();
-  });
+  // UX2-118: retry on foreground and on reconnect.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        load();
+        retryFailedSaves();
+      }
+    });
+    return () => {
+      sub.remove();
+      setPaceWaiting(roomId, false);
+    };
+  }, [load, roomId]);
+  useRoomEvents(
+    roomId,
+    (event) => {
+      if (event.table === 'rooms') load();
+    },
+    (status) => {
+      if (status === 'SUBSCRIBED') load();
+    },
+  );
   if (!room || !userId || !paceApplies(room)) return null;
   return <PaceRunner room={room} userId={userId} />;
 }
@@ -60,7 +83,9 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
   const settings = usePaceSettings(room.id);
   const my = useMyShare(room.id, userId);
   const focused = useIsFocused();
-  const plus = usePlusPreview(userId);
+  // UX2-119: the same plan state as the card; unknown (offline) or loading = off.
+  const plan = usePlanState(userId);
+  const plus = plan === 'plus' ? true : plan === 'free' ? false : null;
   const running = room.activity_state === 'active' && settings.on && my.share && paceAllowed(plus);
   const live = running && focused;
   const key = runKey(room.id, room.activity_seq);

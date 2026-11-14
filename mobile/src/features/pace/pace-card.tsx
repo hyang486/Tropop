@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReduceMotion } from '@/components/enter-view';
@@ -8,13 +8,16 @@ import { HandTitle } from '@/components/hand-title';
 import { QLink, qSpacing } from '@/components/q-screen';
 import { Button, colors, Hint, radius, size, space, textRole } from '@/components/ui';
 import { usePlanState } from '@/features/calendar/calendar-store';
+import { PlanOfflineLine } from '@/features/calendar/plan-offline-line';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { useSharingState } from '@/lib/location';
 import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 import type { Room } from '@/lib/rooms';
 
-import { runKey, usePaceRun } from './engine';
+import { usePaceWaiting } from './connection';
+import { runKey, usePaceRun, useRunUnsaved } from './engine';
+import { canSpeak } from './voice';
 import { FIX_WAIT_MS, locationHint } from './location-hint';
 import {
   formatDuration,
@@ -44,12 +47,17 @@ const t = en.pace;
 export function PaceCard({ room, share, userId }: { room: Room; share: boolean; userId: string | undefined }) {
   const settings = usePaceSettings(room.id);
   const run = usePaceRun(runKey(room.id, room.activity_seq));
+  const unsaved = useRunUnsaved(runKey(room.id, room.activity_seq));
   const plan = usePlanState(userId);
   const sharing = useSharingState(room.id);
   const router = useRouter();
   const hasFix = !!run?.tracker.lastFix;
   const waiting = settings.on && share && plan === 'plus' && !hasFix;
   const late = useWaitedLong(waiting);
+  // UX2-120: the switch reverted after a failed save.
+  const [switchFailed, setSwitchFailed] = useState(false);
+  // UX2-118: the layer could not read the room.
+  const offline = usePaceWaiting(room.id);
   if (!paceApplies(room)) return null;
   // capacity B item 4: the caller's own plan, not the host's. C14: the gate shows only for a confirmed Free plan;
   // while the plan loads the card keeps its title row empty, and offline with no known plan it says so.
@@ -64,7 +72,7 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
     return (
       <View style={styles.group}>
         <Text style={styles.switchLabel}>{t.title}</Text>
-        <Hint>{en.planPreview.offline}</Hint>
+        <PlanOfflineLine uid={userId} />
       </View>
     );
   }
@@ -100,24 +108,27 @@ export function PaceCard({ room, share, userId }: { room: Room; share: boolean; 
         <InkSwitch
           value={settings.on && share && paceAllowed(plus)}
           disabled={!share || !paceAllowed(plus)}
-          onValueChange={(on) => setOn(room.id, on)}
+          onValueChange={(on) => {
+            setSwitchFailed(false);
+            setOn(room.id, on).catch(() => setSwitchFailed(true));
+          }}
           accessibilityLabel={t.title}
         />
       </View>
+      {switchFailed ? <Hint tone="error">{t.switchSaveFailed}</Hint> : null}
       <Hint>{share ? t.switchHint : t.needsSharing}</Hint>
-      {hint === 'denied' ? (
-        <>
-          <Hint tone="error">{t.locationOff}</Hint>
-          <Button title={t.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
-        </>
-      ) : null}
       {settings.on && share && paceAllowed(plus) ? (
         <>
+          <Hint>{t.mapOnly}</Hint>
+          {!canSpeak ? <Hint>{t.noVoice}</Hint> : null}
           {!active ? <Hint>{t.needsActivity}</Hint> : null}
-          {hint === 'finding' || hint === 'still' ? (
+          {offline && !hasFix ? (
+            <Hint>{t.waitingConnection}</Hint>
+          ) : hint === 'finding' || hint === 'still' ? (
             <Hint>{hint === 'still' ? t.stillFinding : t.findingLocation}</Hint>
           ) : null}
           {stats ? <StatsRow {...stats} /> : null}
+          {unsaved ? <Hint tone="error">{t.runNotSaved}</Hint> : null}
           <TargetRow target={settings.target} usual={usual} goal={goal} current={run?.recent ?? null} />
           {goal == null ? <Hint>{t.noTarget}</Hint> : null}
         </>
@@ -244,30 +255,44 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
   const [km, setKm] = useState(target.kind === 'time' ? String(target.distanceM / 1000) : '');
   const [time, setTime] = useState(target.kind === 'time' ? formatDuration(target.timeS) : '');
   const [{ error, saved }, setStatus] = useState<TargetFormStatus>({ error: null, saved: false });
+  // UX2-121: the target whose write failed, for Try again.
+  const [failed, setFailed] = useState<PaceTarget | null>(null);
   const status = (e: TargetFormEvent) => setStatus((s) => targetFormStatus(s, e));
   const edit = (set: (v: string) => void) => (v: string) => {
     set(v);
     status({ type: 'edit' });
   };
 
+  // UX2-121: "Saved" only after the write worked.
+  async function write(next: PaceTarget, showSaved: boolean) {
+    setFailed(null);
+    try {
+      await saveTarget(next);
+      if (showSaved) status({ type: 'saved' });
+    } catch {
+      setFailed(next);
+      status({ type: 'invalid', error: t.targetSaveFailed });
+    }
+  }
+
   function choose(next: Mode) {
     setMode(next);
+    setFailed(null);
     status({ type: 'choose' });
-    if (next === 'usual') saveTarget({ kind: 'usual' });
+    if (next === 'usual') void write({ kind: 'usual' }, false);
   }
 
   function save() {
     if (mode === 'pace') {
       const secPerKm = parsePace(pace);
       if (secPerKm == null) return status({ type: 'invalid', error: t.invalidPace });
-      saveTarget({ kind: 'pace', secPerKm });
+      void write({ kind: 'pace', secPerKm }, true);
     } else if (mode === 'time') {
       const distanceM = parseKm(km);
       const timeS = parseDuration(time);
       if (distanceM == null || timeS == null) return status({ type: 'invalid', error: t.invalidTime });
-      saveTarget({ kind: 'time', distanceM, timeS });
+      void write({ kind: 'time', distanceM, timeS }, true);
     }
-    status({ type: 'saved' });
   }
 
   // Short segment labels on one line; VoiceOver keeps the full names.
@@ -366,6 +391,9 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
         <Hint>{mode === 'pace' ? t.paceEmpty : t.timeEmpty}</Hint>
       ) : null}
       {error ? <Hint tone="error">{error}</Hint> : null}
+      {failed ? (
+        <Button title={t.tryAgain} variant="secondary" onPress={() => void write(failed, failed.kind !== 'usual')} />
+      ) : null}
       {saved && !error ? <Hint>{t.saved}</Hint> : null}
     </View>
   );

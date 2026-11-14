@@ -52,7 +52,8 @@ import {
   overflowByDay,
   shiftMonth,
 } from './calendar-plan';
-import { useCalendar, usePlanState } from './calendar-store';
+import { reloadCalendar, useCalendar, useCalendarFailed, usePlanState } from './calendar-store';
+import { PlanOfflineLine } from './plan-offline-line';
 import { addTapAction, plusIntroHref } from './plus-intro';
 
 const t = en.calendar;
@@ -81,6 +82,8 @@ function CalendarMonth({ uid }: { uid: string }) {
   const hand = (text: string) => (handLoaded ? { fontFamily: handFontFor(text) } : null);
   const handNum = handLoaded ? { fontFamily: HAND_FONT_LATIN } : null;
   const doc = useCalendar(uid);
+  const docFailed = useCalendarFailed(uid);
+  const [docRetrying, setDocRetrying] = useState(false);
   const now = useNow(60_000);
   const today = localDateKey(now);
   const [month, setMonth] = useState(() => ({ year: +today.slice(0, 4), month0: +today.slice(5, 7) - 1 }));
@@ -175,6 +178,7 @@ function CalendarMonth({ uid }: { uid: string }) {
             <SymbolView name="chevron.right" size={20} tintColor={colors.label} />
           </Pressable>
         </View>
+        {plan === 'offline' ? <PlanOfflineLine uid={uid} /> : null}
         <View style={styles.weekdays} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           {weekdays.map((w, i) => (
             <Text key={i} style={[styles.weekday, { color: palette.ink }, hand(w)]}>
@@ -254,7 +258,22 @@ function CalendarMonth({ uid }: { uid: string }) {
           ) : null}
         </View>
         {doc && shown.length === 0 ? <Hint>{t.emptyMonth}</Hint> : null}
-        {plan === 'offline' ? <Hint>{en.planPreview.offline}</Hint> : null}
+        {/* UX2-124: loading and a failed read of the calendar on this phone. */}
+        {!doc && !docFailed ? <ActivityIndicator style={styles.docLoading} accessibilityLabel={t.loading} /> : null}
+        {!doc && docFailed ? (
+          <>
+            <Hint tone="error">{t.loadFailed}</Hint>
+            <Button
+              title={t.tryAgain}
+              variant="secondary"
+              busy={docRetrying}
+              onPress={() => {
+                setDocRetrying(true);
+                void reloadCalendar(uid).finally(() => setDocRetrying(false));
+              }}
+            />
+          </>
+        ) : null}
       </QScreen>
 
       <Modal visible={!!diary} transparent animationType={diaryInstant ? 'none' : 'fade'} onRequestClose={() => setDiary(null)}>
@@ -349,7 +368,15 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
         router.push(plusIntroHref('calendar'));
         return;
       }
-      setError(code === 'unclear' ? t.askErrors.unclear : code === 'rate_limited' ? t.askErrors.rate_limited : t.askErrors.other);
+      setError(
+        code === 'unclear'
+          ? t.askErrors.unclear
+          : code === 'rate_limited'
+            ? t.askErrors.rate_limited
+            : code === 'network'
+              ? t.askErrors.network
+              : t.askErrors.other,
+      );
       setTries((n) => n + 1);
       return;
     }
@@ -406,7 +433,8 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', width: FAB, height: FAB, borderRadius: FAB / 2 },
   fabArt: { width: '100%', height: '100%', borderRadius: FAB / 2 },
   fabRing: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: FAB / 2, borderWidth: 1.5, borderColor: colors.label },
-  scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', padding: 16 },
+  docLoading: { alignSelf: 'center', paddingVertical: 16 },
+  scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.scrim, padding: 16 }, // UX2-115
   sheet: { flex: 1, padding: 24, gap: 12, backgroundColor: colors.sheet },
   sheetHead: { flexDirection: 'row', alignItems: 'center' },
   sheetTitle: { flex: 1, fontSize: titleSize.sheet, lineHeight: 30 },

@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
@@ -11,6 +11,7 @@ import { useInlineHeaderTitle } from '@/components/inline-header-title';
 import { EmergencyAlerts } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
+import { edgeSolid, QLink } from '@/components/q-screen';
 import { Button, colors, Hint, palette, radius, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
@@ -53,6 +54,7 @@ import {
   type PinInput,
   planAvatarPins,
   planPins,
+  presenceView,
   ROOM_MAP_SIZE,
   ROUTE_LINE_WIDTH,
   stalePinId,
@@ -246,6 +248,7 @@ function RoomMap({
   const permissionDenied = granted === false && (askDenied || sharingState === 'no-permission');
 
   const presence = useLivePresence(room.id, active);
+  const presenceState = presenceView({ loaded: presence.loaded, error: presence.error, count: presence.rows.length });
   const savedRoute = useMemo(() => parseRoute(room.route), [room.route]);
   // R1-C: the host edits the route in a full-screen editor (a Modal outside the stack, with its own map).
   // Holds where the editor's map opens, captured when it opens; null when not editing.
@@ -421,7 +424,11 @@ function RoomMap({
       await action();
       if (refresh) reload();
     } catch (e) {
-      Alert.alert(errorMessage(e));
+      // UX2-91: a title, the reason, and Try again that reruns the same action.
+      Alert.alert(en.map.actionFailedTitle, errorMessage(e), [
+        { text: en.map.cancel, style: 'cancel' },
+        { text: en.map.tryAgain, onPress: () => void run(key, action, refresh) },
+      ]);
     } finally {
       setBusy(null);
     }
@@ -517,7 +524,11 @@ function RoomMap({
 
   const reporterText = en.map.reporter[sharingState];
   // UX2-59: "Map" moves into the nav bar once the large title scrolls under the header.
-  const inlineTitle = useInlineHeaderTitle(en.map.title, useHeaderHeight());
+  const headerHeight = useHeaderHeight();
+  const inlineTitle = useInlineHeaderTitle(en.map.title, headerHeight);
+  // UX2-93: QScreen's top edge fade, since Map has its own ScrollView.
+  const [scrolled, setScrolled] = useState(false);
+  const paper = usePalette().paper;
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission'; // UX2-32: 'refused' is a normal event (ink2)
 
   return (
@@ -527,7 +538,11 @@ function RoomMap({
         style={styles.screen}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
-        onScroll={(e) => inlineTitle.onScrollY(e.nativeEvent.contentOffset.y)}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          inlineTitle.onScrollY(y);
+          setScrolled(y > 1);
+        }}
         scrollEventThrottle={16}
       >
       <Stack.Screen
@@ -538,12 +553,12 @@ function RoomMap({
       />
       {ask.sheet}
       {/* Qrew unit 4 (Q 04.02, 08.03): handwritten title and the room name; no art on the map. */}
-      <View style={styles.head} onLayout={inlineTitle.onTitleLayout}>
+      <Animated.View style={[styles.head, { opacity: inlineTitle.blockOpacity }]} onLayout={inlineTitle.onTitleLayout}>
         <HandTitle>{en.map.title}</HandTitle>
         <Text style={styles.roomName} numberOfLines={2}>
           {room.name}
         </Text>
-      </View>
+      </Animated.View>
       <EmergencyAlerts
         roomId={room.id}
         activity={activity}
@@ -631,10 +646,10 @@ function RoomMap({
           </View>
         ) : null}
       </View>
-      {locate === 'denied' ? <Hint tone="error">{en.map.locateDenied}</Hint> : null}
-      {locate === 'settings' ? (
+      {/* UX2-87 (pattern P): an ink2 line and Open Settings, not red. */}
+      {locate === 'denied' || locate === 'settings' ? (
         <>
-          <Hint tone="error">{en.map.locateDeniedSettings}</Hint>
+          <Hint>{en.pace.locationOff}</Hint>
           <Button title={en.map.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
         </>
       ) : null}
@@ -684,20 +699,32 @@ function RoomMap({
         {!allowed ? (isHost ? null : <Hint>{en.map.notAllowed}</Hint>) : !active ? <Hint>{en.map.activityIdleHint}</Hint> : null}
         {allowed ? (
           <>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{en.map.shareMine}</Text>
-              <InkSwitch
-                value={my.share}
-                disabled={busy === 'share'}
-                onValueChange={toggleShare}
-                accessibilityLabel={en.map.shareMine}
-              />
-            </View>
-            <Hint>{en.map.shareMineHint}</Hint>
+            {my.unknown ? (
+              <>
+                {/* UX2-86 (C15): my share is unknown, so no switch that might lie. */}
+                <Hint tone="error">{en.map.shareUnknown}</Hint>
+                <Button title={en.map.tryAgain} variant="secondary" onPress={() => void my.reload()} />
+                <QLink title={en.map.stopSharing} onPress={() => toggleShare(false)} />
+              </>
+            ) : (
+              <>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>{en.map.shareMine}</Text>
+                  <InkSwitch
+                    value={my.share}
+                    disabled={busy === 'share'}
+                    onValueChange={toggleShare}
+                    accessibilityLabel={en.map.shareMine}
+                  />
+                </View>
+                <Hint>{en.map.shareMineHint}</Hint>
+              </>
+            )}
             {permissionDenied ? (
               <>
-                <Hint tone="error">{en.map.permissionDenied}</Hint>
-                <Button title={en.map.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
+                {/* UX2-87: one block for sharing and the pace maker (the pace card has none of its own). */}
+                <Hint>{en.map.locationOffShare}</Hint>
+                <Button title={en.map.openSettings} onPress={() => Linking.openSettings()} />
               </>
             ) : reporterText ? (
               <Hint tone={reporterIsError ? 'error' : 'normal'}>{reporterText}</Hint>
@@ -711,7 +738,14 @@ function RoomMap({
       {active ? (
         <View style={styles.group}>
           <Text style={styles.status}>{en.map.members}</Text>
-          {presence.rows.length === 0 ? <Hint>{en.map.nobody}</Hint> : null}
+          {presenceState === 'loading' ? <Hint>{en.map.presenceLoading}</Hint> : null}
+          {presenceState === 'empty' ? <Hint>{en.map.nobody}</Hint> : null}
+          {presenceState === 'error' ? <Hint tone="error">{en.map.presenceFailed}</Hint> : null}
+          {/* UX2-117: rows already shown stay; one ink2 line says they may be old. */}
+          {presenceState === 'rows' && presence.error ? <Hint>{en.map.presenceStale}</Hint> : null}
+          {presence.error ? (
+            <Button title={en.map.tryAgain} variant="secondary" onPress={() => void presence.reload()} />
+          ) : null}
           {presence.rows.map((row) => (
             <PresenceRow
               gap={
@@ -732,12 +766,6 @@ function RoomMap({
         </View>
       ) : null}
 
-      {/* UX2-23: no empty Route heading; the host edits from the map's Pen chip only. */}
-      {savedRoute.length > 0 ? (
-        <View style={styles.group}>
-          <Text style={styles.status}>{en.map.route}</Text>
-        </View>
-      ) : null}
       {editor ? (
         <RouteEditor
           roomName={room.name}
@@ -752,6 +780,15 @@ function RoomMap({
         />
       ) : null}
       </ScrollView>
+      {scrolled && headerHeight > 0 ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.edgeFade,
+            { height: headerHeight + 16, backgroundImage: `linear-gradient(${paper} 0%, ${paper} ${edgeSolid(headerHeight)}%, ${paper}00 100%)` },
+          ]}
+        />
+      ) : null}
       <PaceLayer roomId={room.id} />
     </View>
   );
@@ -820,6 +857,7 @@ function PresenceRow({
 // "Recenter" never overlap (qa, largest Dynamic Type). The screen text around the map still scales fully.
 const MAP_OVERLAY_MAX_SCALE = 1.3;
 const styles = StyleSheet.create({
+  edgeFade: { position: 'absolute', top: 0, left: 0, right: 0 },
   root: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 16 },
