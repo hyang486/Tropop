@@ -280,6 +280,14 @@ export const en = {
     introMeta: 'Optional · One reference photo',
     // Qrew unit 5 (Q 06.02): the review screen. The consent points above stay in full on it (not Q's short text).
     reviewTitle: 'Review your reference',
+    // UX P2-2: before a photo is picked; two short lines, the full consent points behind `details`.
+    addTitle: 'Add a photo of you',
+    consentShort: [
+      'Your photo is used only in this room to find photos of you. It is never shown in the gallery.',
+      'It is deleted when you stop, leave, or the room ends.',
+    ],
+    details: 'Details ›',
+    hideDetails: 'Hide details',
     reviewSubtitle: 'Check that your face is clearly visible.',
     pickPhoto: 'Choose a photo',
     chooseAnother: 'Choose another',

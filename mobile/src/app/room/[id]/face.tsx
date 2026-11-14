@@ -46,6 +46,7 @@ export default function FaceScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [details, setDetails] = useState(false);
   // FG-L1: focus and pull loads can overlap; only the newest one is applied.
   const [runLatest] = useState(createLatestLoader);
 
@@ -228,11 +229,11 @@ export default function FaceScreen() {
     );
   }
 
-  // Q 06.02: review before saving. All five consent points stay in full here, above the pinned "Agree and save"
-  // (the body scrolls); nothing is uploaded before Agree.
+  // Q 06.02: review before saving. UX P2-2: two short lines; all five consent points (incl. Rekognition) open
+  // under "Details ›" above the pinned "Agree and save"; nothing is uploaded before Agree.
   return (
     <QScreen
-      title={en.face.reviewTitle}
+      title={picked ? en.face.reviewTitle : en.face.addTitle}
       subtitle={en.face.reviewSubtitle}
       refreshControl={refreshControl}
       actions={
@@ -264,11 +265,27 @@ export default function FaceScreen() {
         {en.face.consentTitle}
       </Text>
       <View style={styles.points}>
-        {en.face.consentPoints.map((p) => (
+        {en.face.consentShort.map((p) => (
           <Text key={p} style={styles.point}>
-            • {p}
+            {p}
           </Text>
         ))}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: details }}
+          onPress={() => setDetails((d) => !d)}
+          hitSlop={8}
+          style={styles.detailsLink}
+        >
+          <Text style={styles.detailsText}>{details ? en.face.hideDetails : en.face.details}</Text>
+        </Pressable>
+        {details
+          ? en.face.consentPoints.map((p) => (
+              <Text key={p} style={styles.point}>
+                • {p}
+              </Text>
+            ))
+          : null}
       </View>
     </QScreen>
   );
@@ -291,4 +308,6 @@ const styles = StyleSheet.create({
   consentTitle: { fontSize: 17, fontWeight: '600', color: colors.label, marginTop: 4 },
   points: { gap: 8 },
   point: { fontSize: 15, lineHeight: 21, color: colors.label },
+  detailsLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  detailsText: { fontSize: 15, fontWeight: '600', color: colors.tint },
 });
