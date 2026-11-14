@@ -725,6 +725,8 @@ function PresenceRow({
   const age = formatAge(row.updated_at, now);
   const stale = isStale(row.updated_at, now);
   const speed = stale ? null : formatSpeedKmh(row.speed_mps);
+  // qa: my row has no gap and often no speed; no empty second line then (the name centers on the avatar).
+  const meta = stale ? en.map.stale(age) : gap ? gapLabel(gap) : speed;
   return (
     <View style={styles.presence}>
       <Avatar path={avatarPath} name={initialOf || name} size={28} />
@@ -733,9 +735,7 @@ function PresenceRow({
           {name}
           {status ? <Text style={[styles.presenceStatus, emergency && styles.emergencyText]}>{` · ${status}`}</Text> : null}
         </Text>
-        <Text style={[styles.presenceMeta, stale && styles.staleText]}>
-          {stale ? en.map.stale(age) : gap ? gapLabel(gap) : speed}
-        </Text>
+        {meta ? <Text style={[styles.presenceMeta, stale && styles.staleText]}>{meta}</Text> : null}
       </View>
     </View>
   );
