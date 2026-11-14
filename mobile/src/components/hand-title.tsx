@@ -23,13 +23,23 @@ export function useInk() {
  * is not shown twice). Body text stays in the system sans. Until the fonts load, the system font is used.
  * Long names wrap; Dynamic Type scales it (capped so a large setting still fits two lines on a phone).
  */
-export function HandTitle({ children, style }: { children: string; style?: StyleProp<TextStyle> }) {
+export function HandTitle({
+  children,
+  style,
+  numberOfLines,
+}: {
+  children: string;
+  style?: StyleProp<TextStyle>;
+  /** Spec 11 A8: one line when the title sits in the nav bar. */
+  numberOfLines?: number;
+}) {
   const [loaded] = useFonts(HAND_FONTS);
   const ink = useInk();
   return (
     <Text
       accessibilityRole="header"
       maxFontSizeMultiplier={1.6}
+      numberOfLines={numberOfLines}
       style={[styles.title, { color: ink }, loaded ? { fontFamily: handFontFor(children) } : styles.fallback, style]}
     >
       {children}

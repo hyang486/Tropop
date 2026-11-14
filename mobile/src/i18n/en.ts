@@ -295,6 +295,25 @@ export const en = {
     shared: (who: string, body: string) => `${who} ${body}`,
     sharedFallback: 'shared a photo or file',
     openPhotosHint: 'Opens Photos',
+    // Spec 11 A9: the header bell.
+    notices: 'Notices',
+    noticesA11y: (unread: number) => (unread > 0 ? `Notices, ${unread} new` : 'Notices'),
+    noNotices: 'Nothing new. Room notices show up here.',
+    emergencyNotice: (name: string) => `${name} needs help`,
+    // Spec 11 A12: the header gear.
+    settings: 'Room settings',
+    // Spec 11 A11: the "+" panel left of the composer.
+    more: 'More',
+    moreClose: 'Close',
+    arrivedTile: 'Arrived',
+    statusTile: 'Set status',
+    // Spec 11 A13: the host's important message pinned on top.
+    pinnedExpand: 'Show the whole notice',
+    pinnedCollapse: 'Fold the notice',
+    pinnedOpen: 'Show in chat',
+    pinnedDismiss: 'Hide the notice',
+    // Spec 11 A14: the tag next to the host's name.
+    hostTag: 'Host',
   },
   media: {
     title: 'Photos & files',
