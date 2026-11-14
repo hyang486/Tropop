@@ -346,6 +346,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
       {mode === 'pace' ? (
         <View style={styles.inputRow}>
           <TextInput
+            selectionColor={colors.label}
             value={pace}
             onChangeText={(v) => {
               paceTouched.current = true;
@@ -364,6 +365,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
       {mode === 'time' ? (
         <View style={styles.inputRow}>
           <TextInput
+            selectionColor={colors.label}
             value={km}
             onChangeText={edit(setKm)}
             placeholder={t.distancePlaceholder}
@@ -373,6 +375,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
             style={styles.input}
           />
           <TextInput
+            selectionColor={colors.label}
             value={time}
             onChangeText={edit(setTime)}
             placeholder={t.timePlaceholder}

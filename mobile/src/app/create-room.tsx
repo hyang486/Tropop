@@ -404,6 +404,7 @@ export default function CreateRoom() {
               <SymbolView name="minus.circle" size={26} tintColor={colors.label} />
             </Pressable>
             <TextInput
+              selectionColor={colors.label}
               style={styles.capacity}
               value={capacityDraft ?? String(capacityValue(capacity, plus))}
               onChangeText={setCapacityDraft}
@@ -486,6 +487,7 @@ export default function CreateRoom() {
               </View>
               <View style={styles.row}>
                 <TextInput
+                  selectionColor={colors.label}
                   placeholder={en.createRoom.areaPlaceholder}
                   placeholderTextColor={colors.secondaryLabel}
                   accessibilityLabel={en.createRoom.areaPlaceholder}
@@ -547,6 +549,7 @@ export default function CreateRoom() {
       <View style={styles.row}>
         <InkIcon emoji="📍" size={22} />
         <TextInput
+          selectionColor={colors.label}
           placeholder={en.createRoom.placeLabel}
           placeholderTextColor={colors.secondaryLabel}
           accessibilityLabel={en.createRoom.placeLabel}

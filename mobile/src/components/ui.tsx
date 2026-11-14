@@ -153,6 +153,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
+        selectionColor={colors.label}
         placeholderTextColor={colors.secondaryLabel}
         style={styles.field}
         accessibilityLabel={label}

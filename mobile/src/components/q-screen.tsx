@@ -417,6 +417,7 @@ export function QCard({ children, row }: { children: ReactNode; row?: boolean })
 export function QField({ label, style, ...props }: ComponentProps<typeof TextInput> & { label: string }) {
   return (
     <TextInput
+      selectionColor={colors.label}
       placeholder={label}
       placeholderTextColor={colors.secondaryLabel}
       accessibilityLabel={label}

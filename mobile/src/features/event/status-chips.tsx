@@ -56,6 +56,7 @@ export function StatusChips({ labels, onChange }: { labels: string[]; onChange: 
         ))}
         {draft !== null ? (
           <TextInput
+            selectionColor={colors.label}
             autoFocus
             value={draft}
             onChangeText={(t) => {

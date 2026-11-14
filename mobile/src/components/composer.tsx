@@ -33,6 +33,7 @@ export function Composer({
   return (
     <View style={[styles.field, onSheet && styles.fieldOnSheet]}>
       <TextInput
+        selectionColor={colors.label}
         {...rest}
         style={styles.input}
         value={value}
