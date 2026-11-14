@@ -471,7 +471,7 @@ function RoomMap({
   const showsMyLocation = granted === true && (my.share || showingMine);
 
   const reporterText = en.map.reporter[sharingState];
-  const reporterIsError = sharingState === 'error' || sharingState === 'no-permission' || sharingState === 'refused';
+  const reporterIsError = sharingState === 'error' || sharingState === 'no-permission'; // UX2-32: 'refused' is a normal event (ink2)
 
   return (
     // Qrewing pace maker: its cue banner and stationary sheet sit over the scroll view (PaceLayer).

@@ -244,7 +244,7 @@ export function PhotosOfMe({
           <View style={styles.header}>
           <View style={styles.headerText}>
             {view === 'checking' ? <Hint>{en.face.checking(counts.pending)}</Hint> : null}
-            {counts.failed > 0 ? <Hint tone="error">{en.face.failed(counts.failed)}</Hint> : null}
+            {counts.failed > 0 ? <Hint>{en.face.failed(counts.failed)}</Hint> : null}
           </View>
             {manage}
           </View>

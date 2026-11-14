@@ -262,7 +262,7 @@ export function RouteEditor({
               </Text>
             </Pressable>
           </View>
-          <Text style={[styles.hint, note !== 'none' && styles.hintError]}>{hint}</Text>
+          <Text style={[styles.hint, (note === 'truncated' || note === 'tooFar') && styles.hintError]}>{hint}</Text>
         </View>
 
         <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
