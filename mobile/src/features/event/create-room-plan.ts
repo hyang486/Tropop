@@ -57,6 +57,14 @@ export function aiSwitchAction(plus: boolean | null, next: boolean): 'toggle' | 
   return plus === null ? null : 'upgrade';
 }
 
+/**
+ * UX3-A12 / D2: the AI switch value. The host's own choice wins; until then it is on for a Plus host and off for Free
+ * or while the plan is still loading. `firstPlus` is the first resolved plan, so a later offline blip doesn't flip it.
+ */
+export function aiEnabledValue(picked: boolean | null, firstPlus: boolean | null): boolean {
+  return picked ?? firstPlus === true;
+}
+
 /** What tapping "More" does: Plus opens the 3–7 day choices, Free opens the upgrade screen, loading does nothing. */
 export function moreAction(plus: boolean | null): 'choices' | 'upgrade' | null {
   if (plus === null) return null;
