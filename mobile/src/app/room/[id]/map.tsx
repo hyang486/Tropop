@@ -574,7 +574,9 @@ function RoomMap({
           {room.name}
         </Text>
       </Animated.View>
+      {/* V4: the Emergency line is the redwash capsule; content padding (16) keeps it 16 pt from the sides. */}
       <EmergencyAlerts
+        place="map"
         roomId={room.id}
         activity={activity}
         userId={userId}
