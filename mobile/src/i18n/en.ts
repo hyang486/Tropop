@@ -302,6 +302,9 @@ export const en = {
     cameraUnavailable: 'The camera is not available on this device. Choose a photo from your library instead.',
     saving: 'Saving your reference…',
     referenceTitle: 'Your reference photo',
+    // UX2-81: the enrolled photo failed to load.
+    referenceFailed: "Couldn't load your face photo.",
+    tryAgain: 'Try again',
     referenceHint: 'Only you can see this. It is used only in this room.',
     // UX2-68: the row under the reference photo.
     matchCount: (n: number) => (n === 1 ? '1 photo of you in this room' : `${n} photos of you in this room`),
@@ -491,6 +494,8 @@ export const en = {
     share: 'Share',
     sharedByAge: (name: string, age: string) => `Shared by ${name} · ${age}`,
     /** A11y sweep: a grid tile for VoiceOver, "Photo by Mina, 2 min". */
+    /** UX2-80: a grid tile whose preview failed to load. */
+    previewUnavailable: (label: string) => `${label}, preview unavailable`,
     tileSpoken: (kind: string, name: string, age: string | null) =>
       `${kind === 'video' ? 'Video' : kind === 'file' ? 'File' : 'Photo'} by ${name}${age ? `, ${age}` : ''}`,
     savedTitle: 'Original saved',
@@ -515,8 +520,22 @@ export const en = {
     // UX2-05 (pattern E): the Emergency read failed; never shown as "no Emergency".
     readFailed: "Can't check for Emergencies. Try again.",
     readRetry: 'Try again',
+    // C39 (UX2-126): the Emergency bar's location line before a presence read worked.
+    checkingLocation: 'Checking location…',
+    checkingLocationSpoken: 'Checking location.',
+    locationFailed: "Couldn't check location",
+    locationFailedSpoken: "Couldn't check location.",
+    locationRetry: 'Try again',
+    locationRetryHint: 'Double-tap to try again.',
+    // UX2-107: the room channel is down (the last known Emergencies stay listed below), and a slow first read.
+    offlineStale: "You're offline. Emergencies may not be up to date.",
+    checking: 'Checking for Emergencies…',
+    checkingSpoken: 'Checking for Emergencies.',
     // UX2-05b: the status picker when the status list failed to load.
     statusesFailed: "Couldn't load statuses.",
+    // UX2-108: the picker while the first status read runs (spoken without the ellipsis).
+    statusesLoading: 'Loading statuses…',
+    statusesLoadingSpoken: 'Loading statuses.',
     emergencyTile: 'Emergency',
     emergencyTileA11y: 'Emergency, alerts everyone in the room',
     emergencyNotSent: 'Emergency not sent',
@@ -531,6 +550,9 @@ export const en = {
     waitingSeen: 'Waiting for someone to see it.',
     lastLocation: (age: string) => `Last location shared · ${age}`,
     noLocation: 'No location shared',
+    // C37 (UX2-126): the location line on the expanded Emergency bar.
+    openLastLocationAge: (age: string) => `Open last location · ${age}`,
+    yourLastLocation: (age: string) => `Your last location · ${age}`,
     openLastLocation: 'Open last shared location',
     imOkNow: "I'm OK now",
     inEmergencyCaption: "You're in Emergency. Other statuses come back after you're OK.",
@@ -543,6 +565,8 @@ export const en = {
       'Everyone in this room gets an in-app alert. This does not contact emergency services or turn on location sharing.',
     sendEmergency: 'Send Emergency',
     emergencyFrom: (name: string) => `${name} needs help`,
+    /** UX2-79: the member list is not known yet or failed to load. */
+    emergencyFromUnknown: 'Emergency from someone in this room',
     myEmergency: 'Your Emergency is active',
     seenBy: (n: number, total: number) => `Seen by ${n} of ${total}`,
     /** #12: who has seen it, then the count ("Seen by Mina, Joon · 2 of 3"). */
@@ -551,8 +575,9 @@ export const en = {
     acknowledge: 'I see it',
     acknowledged: 'You saw this',
     // UX P0-1: the pinned bar and its collapsed 44 pt line.
-    seenCount: (n: number, total: number) => `${n} of ${total} saw it`,
-    noneSeen: 'No one saw it yet',
+    // UX2-126: the seen part on someone else's Emergency at 0; "Seen by n" while the member names are unknown.
+    noOneSeen: 'No one has seen it yet.',
+    seenByCount: (n: number) => `Seen by ${n}`,
     emergencyLine: (name: string) => `${name} · Emergency`,
     emergencyLineMine: 'You · Emergency',
     openEmergency: 'Open',
@@ -568,7 +593,10 @@ export const en = {
   pace: {
     title: 'Pace maker',
     switchHint: 'Qrewing coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
-    needsSharing: 'Turn on Share my location to use the pace maker.',
+    // UX2-95: matches the switch label (map.shareMine).
+    needsSharing: 'Turn on Share my live location to use the pace maker.',
+    // UX2-125: cues run only while Map is in front (background cues are a held product question).
+    mapOnly: 'Cues play while Map is open.',
     // capacity B item 4: the pace maker follows your own plan, also in a Free host's room.
     plusOnly: 'Pace maker is part of Qrew Plus.',
     needsActivity: 'Cues start when the host starts the activity.',
@@ -586,11 +614,21 @@ export const en = {
     perKm: 'per km',
     save: 'Save target',
     saved: 'Target saved.',
+    // UX2-120/121
+    switchSaveFailed: 'Couldn’t save. Try again.',
+    targetSaveFailed: 'Couldn’t save your target.',
+    tryAgain: 'Try again',
     invalidPace: 'Enter a pace like 5:30.',
     invalidTime: 'Enter a distance in km and a time like 50:00 or 1:45:00.',
     noTarget: 'No target yet. Run once, or set a target pace.',
     // C14 sweep 7: no position yet, or location is off.
     findingLocation: 'Finding your location…',
+    // UX2-122: a build without speech.
+    noVoice: 'Voice cues aren’t available, so cues will vibrate.',
+    // UX2-123: the history save failed twice.
+    runNotSaved: 'Couldn’t save this run.',
+    // UX2-118
+    waitingConnection: 'Pace maker is waiting for a connection.',
     stillFinding: 'Still looking for GPS. Moving outside can help.',
     locationOff: 'Location is off for Qrew.',
     openSettings: 'Open Settings',
@@ -661,6 +699,23 @@ export const en = {
     },
     members: 'Sharing now',
     nobody: 'Nobody is sharing yet.',
+    // UX2-85: before the first read that worked, and after a failed read with nobody on screen.
+    presenceLoading: 'Checking who’s sharing…',
+    presenceFailed: 'Couldn’t load who’s sharing.',
+    tryAgain: 'Try again',
+    // UX2-117: a refetch failed while rows were already on screen.
+    presenceStale: 'Couldn’t refresh. Showing the last update.',
+    // UX2-87: under the Share switch, for sharing and the pace maker.
+    locationOffShare: 'Location is off for Qrew. Turn it on to share and use the pace maker.',
+    // UX2-91
+    actionFailedTitle: 'Didn’t go through',
+    // UX2-89
+    removeRoute: 'Remove route',
+    removeRouteTitle: 'Remove the route?',
+    removeRouteBody: 'Members won’t see it on the map.',
+    remove: 'Remove',
+    // UX2-86
+    shareUnknown: 'Couldn’t check your sharing.',
     you: 'You',
     stale: (age: string) => `Last seen ${age}`,
     stalePin: 'stale',
@@ -739,6 +794,21 @@ export const en = {
     keep: 'Keep room open',
     notHost: 'Only the host can end the room.',
   },
+  // UX2-114: the red line above End room, End activity and Leave while an Emergency is still open.
+  emergencyOpen: {
+    endRoomOne: (name: string) => `${name}'s Emergency is still open. Ending the room removes it for everyone.`,
+    endActivityOne: (name: string) =>
+      `${name}'s Emergency is still open. Ending the activity stops live location for everyone.`,
+    many: (n: number) => `${n} Emergencies are still open.`,
+    // ux C36: one open Emergency before (or without) the names: no layout jump when the name swaps in.
+    endRoomNameless: 'An Emergency is still open. Ending the room removes it for everyone.',
+    endActivityNameless: 'An Emergency is still open. Ending the activity stops live location for everyone.',
+    leaveMine: "Your Emergency is still on. Tap I'm OK now first.",
+    checkFailed: "Couldn't check for open Emergencies.",
+    checking: 'Checking for Emergencies…',
+    tryAgain: 'Try again',
+    tryingAgain: 'Trying again',
+  },
   invite: {
     title: 'Invite',
     done: 'Done',
@@ -812,6 +882,9 @@ export const en = {
   planPreview: {
     // C14: a Plus gate never guesses Free; offline with no cached plan it says so (shared by every Plus gate).
     offline: "Can't check your plan offline. Try again when you're back.",
+    // UX2-88: Calendar and the pace card, with a Try again button.
+    offlineRetry: "Can't check your plan offline.",
+    tryAgain: 'Try again',
     /** capacity B item 4: the link from a personal Plus feature to the Plus intro. */
     seePlus: 'See Plus',
     // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).
@@ -883,6 +956,10 @@ export const en = {
     nextMonth: 'Next month',
     add: 'Add event',
     ask: 'Add with Qrewing',
+    // UX2-124
+    loading: 'Loading calendar',
+    loadFailed: 'Couldn’t load your calendar.',
+    tryAgain: 'Try again',
     more: (n: number) => `+${n}`,
     // Calendar tiers (human FINAL 2026-11-13 PM).
     barLabel: (title: string, range: string, action: 'diary' | 'plus' | 'edit' | 'none') =>
@@ -935,6 +1012,8 @@ export const en = {
     askErrors: {
       unclear: "Qrewing couldn't tell the date. Try with a day, like \"next Friday\".",
       rate_limited: 'Too many requests. Try again in a little while.',
+      // UX2-94
+      network: "You're offline. Try again when you're back.",
       other: "Qrewing couldn't add that right now. You can add it yourself with Add event (+).",
     },
   },
@@ -994,6 +1073,11 @@ export const en = {
     answerBy: (name: string, time: string) => `${name} · ${time}`,
     yourQuestion: 'Your question',
     askMoreIsPlus: 'Asking Qrewing more is part of Qrew Plus.',
+    // UX2-109: the answer sheet before the card is in the cache (spoken without the ellipsis).
+    answerLoading: 'Loading the answer…',
+    answerLoadingSpoken: 'Loading the answer.',
+    answerFailed: "Couldn't load the answer.",
+    answerGone: 'This question is gone.',
     done: 'Done',
     noAnswer: (name: string) => `${name} has not answered yet. Ask in the room chat instead?`,
     askInChat: 'Ask in chat',
@@ -1052,6 +1136,8 @@ export const en = {
       agree: 'Agree',
       notNow: 'Not now',
       failed: 'Could not save your choice. Try again.',
+      // UX2-112: Agree saved, but the read after it failed (or still shows no consent).
+      turnOnFailed: "Couldn't turn on Qrewing AI. Try again.",
     },
     ask: {
       fabLabel: 'Ask Qrewing',
@@ -1161,6 +1247,9 @@ export const en = {
       none: 'No recap was saved for this room.',
       pending: 'Qrewing is still writing the recap.',
       offline: 'Could not get the recap. Check your connection.',
+      // UX2-82: the card's read failed.
+      loadFailed: "Couldn't load the recap.",
+      loadOffline: "You're offline. Try again when you're back.",
       retry: 'Try again',
       you: 'You in this room',
       messages: (n: number) => (n === 1 ? '1 message sent' : `${n} messages sent`),

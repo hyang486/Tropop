@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -53,6 +53,7 @@ export function StatusPicker({
   onClear,
   onClose,
   failed = false,
+  loading = false,
   onRetry,
   title = en.activity.chooseStatus,
   cancelLabel = en.room.cancel,
@@ -75,6 +76,8 @@ export function StatusPicker({
   onClose: () => void;
   /** The last status read failed (tiles may come from the cache). */
   failed?: boolean;
+  /** UX2-108: the first status read is still running; Emergency works anyway, the rest show a loading line. */
+  loading?: boolean;
   onRetry?: () => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
@@ -124,6 +127,7 @@ export function StatusPicker({
                 disabled={plan.inEmergency}
                 onPress={onEmergency}
               />
+              {loading && plan.others.length === 0 ? <LoadingLine /> : null}
               {plan.others.map((s) => (
                 <Tile
                   key={s.id}
@@ -149,6 +153,18 @@ export function StatusPicker({
         </View>
       </View>
     </Modal>
+  );
+}
+
+/** UX2-108: shown under Emergency while the first status read runs. */
+function LoadingLine() {
+  return (
+    <View style={styles.loading} accessible accessibilityLabel={en.activity.statusesLoadingSpoken}>
+      <ActivityIndicator size="small" color={colors.ink2} />
+      <Text style={styles.loadingText} maxFontSizeMultiplier={1.4}>
+        {en.activity.statusesLoading}
+      </Text>
+    </View>
   );
 }
 
@@ -278,6 +294,8 @@ const styles = StyleSheet.create({
   okCaption: { fontSize: 15, color: colors.ink2 },
   cancel: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
   cancelText: { fontSize: 15, color: colors.ink2 },
+  loading: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, width: '100%' },
+  loadingText: { fontSize: 15, color: colors.ink2 },
   failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   failedText: { flex: 1, fontSize: 15, color: colors.errorText },
   failedButton: {

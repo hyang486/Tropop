@@ -307,6 +307,8 @@ async function fetchMyShare(roomId: string, userId: string) {
  */
 export function useMyShare(roomId: string, userId: string | undefined) {
   const [share, setShare] = useState(false);
+  // UX2-86: the last read failed, so my share is unknown (Map hides the switch).
+  const [unknown, setUnknown] = useState(false);
   const seq = useRef(0);
 
   const reload = useCallback(async () => {
@@ -319,7 +321,9 @@ export function useMyShare(roomId: string, userId: string | undefined) {
     } catch {
       server = null;
     }
-    if (server === null || mine !== seq.current) return;
+    if (mine !== seq.current) return;
+    setUnknown(server === null);
+    if (server === null) return;
     const decision = reconcileShare({
       server,
       consented: sharing.rooms.has(roomId),
@@ -374,7 +378,11 @@ export function useMyShare(roomId: string, userId: string | undefined) {
     return () => sub.remove();
   }, [reload]);
 
-  return { share, setShareLocal: setShare, reload };
+  const setShareLocal = useCallback((next: boolean) => {
+    setShare(next);
+    setUnknown(false);
+  }, []);
+  return { share, unknown, setShareLocal, reload };
 }
 
 // Reporting -------------------------------------------------------------------
@@ -581,14 +589,21 @@ const EMPTY_PRESENCE: Presence[] = [];
 
 export function useLivePresence(roomId: string, enabled: boolean) {
   const [rows, setRows] = useState<Presence[]>([]);
+  // UX2-85: a read that worked (so "nobody" is true) and the last read's failure, for Map's states.
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seq = useRef(0);
 
   const reload = useCallback(async () => {
     if (!enabled) return;
     const mine = ++seq.current;
-    const { data, error } = await supabase.from('live_presence').select('*').eq('room_id', roomId);
-    if (!error && mine === seq.current) setRows(data ?? []);
+    const { data, error: failed } = await supabase.from('live_presence').select('*').eq('room_id', roomId);
+    if (mine !== seq.current) return;
+    setError(!!failed);
+    if (failed) return;
+    setRows(data ?? []);
+    setLoaded(true);
   }, [roomId, enabled]);
 
   const schedule = useCallback(() => {
@@ -611,6 +626,8 @@ export function useLivePresence(roomId: string, enabled: boolean) {
   );
 
   useEffect(() => {
+    // reload sets state only after its awaited read, never synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active') reload();
@@ -623,5 +640,5 @@ export function useLivePresence(roomId: string, enabled: boolean) {
   }, [reload]);
 
   // Rows fetched while enabled are never shown once viewing is off.
-  return { rows: enabled ? rows : EMPTY_PRESENCE, reload };
+  return { rows: enabled ? rows : EMPTY_PRESENCE, loaded, error, reload };
 }

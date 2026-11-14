@@ -17,6 +17,47 @@ export function seenSummary(
 }
 
 /**
+ * UX2-126: the seen part of an Emergency, the same on every surface. The count comes from `ackedBy`, so it is
+ * known even while `names` is null (UX2-79 follow-up); only the names and the total wait for the members read.
+ */
+export function seenPart(o: {
+  mine: boolean;
+  ackedBy: ReadonlySet<string>;
+  names: ReadonlyMap<string, string> | null;
+  /** `en.activity` (passed in so this file stays free of app imports). */
+  copy: {
+    waitingSeen: string;
+    noOneSeen: string;
+    seenByCount: (n: number) => string;
+    seenByNames: (who: string[], n: number, total: number) => string;
+  };
+}): { visible: string; spoken: string } {
+  const zero = (text: string) => ({ visible: text, spoken: text });
+  if (o.names === null) {
+    const n = o.ackedBy.size;
+    if (n === 0) return zero(o.mine ? o.copy.waitingSeen : o.copy.noOneSeen);
+    return zero(o.copy.seenByCount(n));
+  }
+  const { who, seen } = seenSummary(o.ackedBy, o.names);
+  if (seen === 0) return zero(o.mine ? o.copy.waitingSeen : o.copy.noOneSeen);
+  const text = o.copy.seenByNames(who, seen, Math.max(0, o.names.size - 1));
+  return { visible: text, spoken: spokenSeparators(text) };
+}
+
+/**
+ * UX2-79: who sent an Emergency. `names` is null while the member list is not known yet or its read failed, so a
+ * current member never reads as "Former member"; "former" only when the read worked and the id is missing.
+ */
+export function emergencySender(
+  names: ReadonlyMap<string, string> | null,
+  userId: string,
+): { kind: 'unknown' } | { kind: 'former' } | { kind: 'name'; name: string } {
+  if (names === null) return { kind: 'unknown' };
+  const name = names.get(userId);
+  return name === undefined ? { kind: 'former' } : { kind: 'name', name };
+}
+
+/**
  * One vibration per Emergency for the whole app, however many screens show its banner (the chat screen stays
  * mounted under Map and Photos). The first load of each screen only records what is already open, so opening
  * a screen never re-announces an Emergency.
@@ -50,10 +91,45 @@ export function createAnnouncer() {
  * UX2-05: what the pinned Emergency area shows. A failed read is 'failed' (pattern E with "Try again"), never an empty
  * area, because nothing pinned would read as "no Emergency" when we do not know. Earlier Emergencies stay listed below.
  */
-export function emergencyAreaMode(o: { loading: boolean; error: unknown; count: number }): 'none' | 'failed' | 'list' {
-  if (o.loading) return 'none';
+export function emergencyAreaMode(o: {
+  loading: boolean;
+  error: unknown;
+  count: number;
+  /** UX2-107: the room channel has been down for over 5 s, so the list may be out of date. */
+  stale?: boolean;
+  /** UX2-107: the first read has taken over 3 s. */
+  slow?: boolean;
+}): 'none' | 'checking' | 'failed' | 'list' {
+  if (o.stale) return 'failed';
+  if (o.loading) return o.slow ? 'checking' : 'none';
   if (o.error != null) return 'failed';
   return o.count > 0 ? 'list' : 'none';
+}
+
+/**
+ * C39 (UX2-126): what the Emergency bar's location line shows. A found row wins even after a later failed read;
+ * "No location shared" only after a read that worked; unknown is blank for the first 1 s, then "Checking location…".
+ */
+export function locationLineState(o: {
+  shared: boolean;
+  loaded: boolean;
+  error: boolean;
+  late: boolean;
+}): 'shared' | 'none' | 'failed' | 'checking' | 'blank' {
+  if (o.shared) return 'shared';
+  if (o.error) return 'failed';
+  if (o.loaded) return 'none';
+  return o.late ? 'checking' : 'blank';
+}
+
+/**
+ * UX2-110: the Qrewing AI disclosure sheet waits while any Emergency is open or the area is failed (or not read
+ * yet, so it can't cover one that is about to show). It shows once the Emergency ends, or on the next open.
+ * ux guard: if the first read took over 3 s (`slow`, which stays set for the visit), skip it for this visit so it
+ * never pops up late.
+ */
+export function disclosureHeld(o: Parameters<typeof emergencyAreaMode>[0]): boolean {
+  return o.loading || !!o.slow || emergencyAreaMode(o) === 'list' || emergencyAreaMode(o) === 'failed';
 }
 
 /** UX2-30: in chat, three or more Emergencies fold into one "N Emergencies · Show" line until it is opened. */
@@ -111,4 +187,53 @@ export function spokenSentence(parts: string[]): string {
 /** UX2-77c: VoiceOver reads "·" inconsistently, so spoken labels use ", " in its place. Visible text keeps "·". */
 export function spokenSeparators(text: string): string {
   return text.replace(/\s*·\s*/g, ', ');
+}
+
+/**
+ * UX2-114: the red line above End room / End activity / Leave while an Emergency is open, or null for none.
+ * End: one open Emergency is named ("Mina's Emergency is still open. …"), two or more give the count. The name
+ * line is nameless until the member names load (or when they fail / lack this member, ux C36). Leave: only my own
+ * open Emergency matters.
+ */
+export function endEmergencyNote(o: {
+  kind: 'room' | 'activity' | 'leave';
+  emergencies: readonly { userId: string }[];
+  userId: string | undefined;
+  names: ReadonlyMap<string, string> | null;
+  copy: {
+    endRoomOne: (name: string) => string;
+    endActivityOne: (name: string) => string;
+    many: (n: number) => string;
+    endRoomNameless: string;
+    endActivityNameless: string;
+    leaveMine: string;
+  };
+}): string | null {
+  const { kind, emergencies, userId, names, copy } = o;
+  if (kind === 'leave') return userId && emergencies.some((e) => e.userId === userId) ? copy.leaveMine : null;
+  if (emergencies.length === 0) return null;
+  if (emergencies.length > 1) return copy.many(emergencies.length);
+  const name = names?.get(emergencies[0].userId);
+  if (!name) return kind === 'room' ? copy.endRoomNameless : copy.endActivityNameless;
+  return kind === 'room' ? copy.endRoomOne(name) : copy.endActivityOne(name);
+}
+
+/**
+ * UX2-114 (ux C36 b): the line shown when no Emergency note is: 'failed' when the activity read failed, 'checking'
+ * when it has taken over 3 s (slow), else null. A note known from an earlier read wins over both.
+ */
+export function emergencyCheckLine(o: {
+  loading: boolean;
+  error: unknown;
+  slow: boolean;
+  hasNote: boolean;
+}): 'failed' | 'checking' | null {
+  if (o.hasNote) return null;
+  if (o.error) return 'failed';
+  return o.loading && o.slow ? 'checking' : null;
+}
+
+/** VoiceOver: a trailing "…" is read as a full stop. */
+export function spokenEllipsis(text: string): string {
+  return text.replace(/\s*…$/, '.');
 }

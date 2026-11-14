@@ -21,6 +21,9 @@ const KNOWN: readonly QrewingError[] = [
  * Maps a failed `qrewing` call to a contract error. `status` 0 means the request never got an HTTP answer.
  * A known `error` code in the body wins; otherwise the status decides (spec section 2, common order).
  */
+/** While the room read or the probe failed offline, both are tried again this often (no model call). */
+export const QREWING_OFFLINE_RETRY_MS = 30_000;
+
 export function classifyQrewingError(status: number, bodyError?: unknown): QrewingError {
   if (typeof bodyError === 'string' && (KNOWN as readonly string[]).includes(bodyError)) return bodyError as QrewingError;
   if (status === 0) return 'network';

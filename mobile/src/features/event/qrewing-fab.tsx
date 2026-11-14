@@ -4,7 +4,7 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EnterView } from '@/components/enter-view';
@@ -15,6 +15,8 @@ import { en } from '@/i18n/en';
 import { type AskProbe, askMode } from './ask-plan';
 import { DisclosureSheet } from './disclosure-sheet';
 import { probeQrewing, useQrewingRoom } from './qrewing-api';
+import { QREWING_OFFLINE_RETRY_MS } from './qrewing-plan';
+import type { QrewingError } from './types';
 import { QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './qrewing-fab-size';
 
 const s = en.qrewing.ask;
@@ -28,17 +30,40 @@ export { QREWING_FAB_CLEARANCE, QREWING_FAB_MARGIN, QREWING_FAB_SIZE } from './q
 export function useQrewingAsk(roomId: string) {
   const q = useQrewingRoom(roomId);
   // Keyed by the switch it was taken under: right after the switch flips, the old answer counts as no answer.
-  const [probe, setProbe] = useState<(AskProbe & { ai: boolean }) | null>(null);
+  const [probe, setProbe] = useState<(AskProbe & { ai: boolean; error?: QrewingError }) | null>(null);
+  const [probeTick, setProbeTick] = useState(0);
   useEffect(() => {
     let alive = true;
     const ai = q.aiEnabled;
-    probeQrewing(roomId).then((r) => alive && setProbe('error' in r ? { roomId, ok: false, ai } : { roomId, ...r, ai }));
+    probeQrewing(roomId).then(
+      (r) => alive && setProbe('error' in r ? { roomId, ok: false, ai, error: r.error } : { roomId, ...r, ai }),
+    );
     return () => {
       alive = false;
     };
-  }, [roomId, q.aiEnabled]);
+  }, [roomId, q.aiEnabled, probeTick]);
+  // UX2-111: after an offline probe the button would stay hidden; probe again on foreground and every 30 s, as
+  // useQrewingChat does. No visible change until a probe answers ok.
+  const offline = probe?.roomId === roomId && probe?.error === 'network';
+  useEffect(() => {
+    if (!offline) return;
+    const t = setInterval(() => setProbeTick((n) => n + 1), QREWING_OFFLINE_RETRY_MS);
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') setProbeTick((n) => n + 1);
+    });
+    return () => {
+      clearInterval(t);
+      sub.remove();
+    };
+  }, [offline]);
   const mode = askMode(q.aiEnabled, probe?.ai === q.aiEnabled ? probe : null, roomId);
-  return { available: mode !== null, mode, agreed: mode === 'personal' || !!q.me?.aiOk, reload: q.reload };
+  return {
+    available: mode !== null,
+    mode,
+    agreed: mode === 'personal' || !!q.me?.aiOk,
+    reload: q.reload,
+    readDone: q.readDone,
+  };
 }
 
 /**
@@ -48,34 +73,51 @@ export function useQrewingAsk(roomId: string) {
  */
 export function useQrewingAskButton(roomId: string) {
   const router = useRouter();
-  const { available, mode, agreed, reload } = useQrewingAsk(roomId);
+  const { available, mode, agreed, reload, readDone } = useQrewingAsk(roomId);
   const [consent, setConsent] = useState(false);
   // Set when the consent sheet saved an answer: the ask screen opens once the reload shows I agreed.
   const openAfterConsent = useRef(false);
+  // UX2-112: the seq of the read started after Agree saved. The sheet stays open (Agree busy) until that read (or a
+  // newer one) ends; if it failed or still shows no consent, the sheet says so and Agree is the retry.
+  const [confirmFrom, setConfirmFrom] = useState<number | null>(null);
+  const done = confirmFrom !== null && readDone >= confirmFrom;
+  const confirmFailed = done && !agreed;
 
   useEffect(() => {
-    if (!openAfterConsent.current || !agreed) return;
+    if (!openAfterConsent.current || !agreed || !done) return;
     openAfterConsent.current = false;
     router.push({ pathname: '/room/[id]/ask', params: { id: roomId } });
-  }, [agreed, roomId, router]);
+  }, [agreed, done, roomId, router]);
 
   // A Free asker in an AI-on room goes straight to the Plus intro (Ask is Plus on the caller's own plan).
-  const open = () =>
-    mode === 'plus'
-      ? router.push(plusIntroHref('ask'))
-      : agreed
-        ? router.push({ pathname: '/room/[id]/ask', params: { id: roomId } })
-        : setConsent(true);
+  const open = () => {
+    setConfirmFrom(null);
+    setConsent(false);
+    if (mode === 'plus') router.push(plusIntroHref('ask'));
+    else if (agreed) router.push({ pathname: '/room/[id]/ask', params: { id: roomId } });
+    else setConsent(true);
+  };
   const sheet = mode === 'room' ? (
     <DisclosureSheet
       roomId={roomId}
-      visible={consent}
-      onDone={() => {
-        setConsent(false);
+      visible={consent && !(done && agreed)}
+      confirming={confirmFrom !== null && !done}
+      confirmFailed={confirmFailed}
+      onDone={(agree) => {
+        if (!agree) {
+          setConsent(false);
+          reload();
+          return;
+        }
         openAfterConsent.current = true;
-        reload();
+        // onDone runs after the save resolved, so this read starts after it.
+        setConfirmFrom(reload());
       }}
-      onClose={() => setConsent(false)}
+      onClose={() => {
+        setConsent(false);
+        setConfirmFrom(null);
+        openAfterConsent.current = false;
+      }}
     />
   ) : null;
   return { available, open, sheet };

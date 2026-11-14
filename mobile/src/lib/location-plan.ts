@@ -1243,3 +1243,13 @@ export function avatarPillAnchor(lines: number, where: 'above' | 'below'): Ancho
 export function watchRetryDelayMs(attempt: number): number {
   return Math.min(2000 * 2 ** Math.max(0, attempt), 60_000);
 }
+
+/**
+ * UX2-85: what Map's "Sharing now" shows. Rows on screen stay through a later failed refetch; with none, a failed
+ * read is an error (not "Nobody is sharing yet."), and the empty copy needs a read that worked.
+ */
+export function presenceView(s: { loaded: boolean; error: boolean; count: number }): 'loading' | 'error' | 'empty' | 'rows' {
+  if (s.count > 0) return 'rows';
+  if (s.error) return 'error';
+  return s.loaded ? 'empty' : 'loading';
+}

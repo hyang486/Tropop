@@ -64,6 +64,38 @@ function subscribe(l: () => void) {
 
 export const runKey = (roomId: string, activitySeq: number) => `${roomId}:${activitySeq}`;
 
+// UX2-123: a failed history save is retried once (next fix or foreground); if that fails too, the run is unsaved
+// until a later save works, and the card says so.
+const saveFailed = new Set<string>();
+const unsaved = new Set<string>();
+function persist(key: string, run: PaceRun) {
+  saveSession(summarize(run.tracker))
+    .then(() => {
+      saveFailed.delete(key);
+      if (unsaved.delete(key)) emit();
+    })
+    .catch(() => {
+      if (!saveFailed.delete(key)) {
+        saveFailed.add(key);
+        return;
+      }
+      unsaved.add(key);
+      emit();
+    });
+}
+
+/** UX2-123: the one retry of failed saves, on foreground. */
+export function retryFailedSaves() {
+  for (const key of [...saveFailed]) {
+    const run = runs.get(key);
+    if (run) persist(key, run);
+  }
+}
+
+export function useRunUnsaved(key: string | null): boolean {
+  return useSyncExternalStore(subscribe, () => (key ? unsaved.has(key) : false));
+}
+
 export function usePaceRun(key: string | null): PaceRun | null {
   return useSyncExternalStore(subscribe, () => (key ? (runs.get(key) ?? null) : null));
 }
@@ -105,7 +137,7 @@ export function flushRun(key: string) {
   const run = runs.get(key);
   if (!run || !run.tracker.lastFix) return;
   put({ ...run, lastSavedAtMs: Date.now() });
-  saveSession(summarize(run.tracker)).catch(() => {});
+  persist(key, run);
 }
 
 /** The Qrewing bot's `me` for this room's running activity (spec 10.4); null when none is running or unmeasured. */
@@ -194,7 +226,7 @@ export function feedFixes(key: string, batch: PaceFix[], ctx: FeedContext) {
   const save = ctx.nowMs - run.lastSavedAtMs >= SAVE_EVERY_MS;
   if (save) run = { ...run, lastSavedAtMs: ctx.nowMs };
   put(run);
-  if (save) saveSession(summarize(run.tracker)).catch(() => {});
+  if (save || saveFailed.has(key)) persist(key, run);
   if (text && chosen.cue) speak(text, spokenCue(chosen.cue));
 }
 

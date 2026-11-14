@@ -19,6 +19,8 @@ export type PlusTile = {
   on?: boolean;
   badge?: number;
   busy?: boolean;
+  /** UX2-108: disabled for now (still loading); 40% so it looks it. */
+  dimmed?: boolean;
   onPress?: () => void;
 };
 
@@ -105,6 +107,7 @@ export function PlusPanel({
       detail: activity.myArrivedAt ? timeOf(activity.myArrivedAt) : undefined,
       on: !!activity.myArrivedAt,
       busy: busy === 'arrive',
+      dimmed: activity.loading && !activity.myArrivedAt,
       // Arrived is one-way per activity, as on the old pill.
       onPress: activity.loading || activity.myArrivedAt ? undefined : () => run('arrive', activity.arrive),
     },
@@ -117,12 +120,11 @@ export function PlusPanel({
       on: !!myStatus && !myStatus.is_emergency,
       busy: busy === 'status',
       // UX2-51: like every tile, collapse the panel as the picker opens; Cancel/Done land on a collapsed composer.
-      onPress: activity.loading
-        ? undefined
-        : () => {
-            setPicking(true);
-            onDone();
-          },
+      // UX2-108: always enabled; while loading the picker offers Emergency and says the rest are loading.
+      onPress: () => {
+        setPicking(true);
+        onDone();
+      },
     },
   ];
 
@@ -140,6 +142,7 @@ export function PlusPanel({
       }}
       notice={notice}
       failed={!!activity.error}
+      loading={activity.loading}
       onRetry={activity.reload}
     />
   );
@@ -167,7 +170,7 @@ function Tile({ tile }: { tile: PlusTile }) {
       accessibilityState={{ disabled: !tile.onPress, busy: tile.busy, selected: tile.on }}
       disabled={!tile.onPress || tile.busy}
       onPress={tile.onPress}
-      style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.tile, pressed && styles.pressed, tile.dimmed && styles.dimmed]}
     >
       <View style={[styles.circle, tile.on && styles.circleOn, tile.danger && styles.circleDanger]}>
         {tile.busy ? <ActivityIndicator color={tint} /> : <SymbolView name={tile.symbol} size={24} tintColor={tint} />}
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
   // Four per row, as in KakaoTalk's "+" grid.
   tile: { width: '25%', alignItems: 'center', gap: 6 },
   pressed: { opacity: 0.5 },
+  dimmed: { opacity: 0.4 },
   circle: {
     width: 56,
     height: 56,

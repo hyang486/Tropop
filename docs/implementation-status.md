@@ -8,6 +8,14 @@ Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.
 - UX2-128: `RemindersOffNote` sits under Room info's Ends card. It reads `getPermissionsAsync()` (no prompt) on mount and whenever the app becomes active. Only when the status is denied does it show an ink2 line and Open Settings (`Linking.openSettings`, 44 pt).
 - Verified: `npm test` 860/860, tsc 0, lint 0. Not verified: simulator (no device run).
 
+## 2026-11-14: UX2-114 Emergency-open note, branch ux2-114-emergency-end-note (local, from 188b89f, not pushed)
+
+- End room / End activity (`components/end-confirm.tsx`) and the guest footer in Room info (`app/room/[id]/info.tsx`) read open Emergencies through `useRoomActivity` (read-only) and show `EmergencyOpenNote` (red triangle 13 pt, errorText 15 pt) above the buttons. Copy: `en.emergencyOpen`; logic: `endEmergencyNote()` in `lib/emergency-plan.ts`. Buttons unchanged (UX2-72).
+- The host's End room link opens End confirm, so the Leave note is guest-only. The Leave confirm itself is still the system Alert (no text line inside it).
+- ux C36 follow-up: one open Emergency shows the nameless line at once and swaps in the name on load (a failed or missing name keeps the nameless line). If the activity read fails: red "Couldn't check for open Emergencies." + Try again (44 pt). If it is slow (> 3 s): ink2 "Checking for Emergencies…" + spinner. End/Leave stay enabled. The guest Leave Alert message is the "Your Emergency is still on…" line while mine is on.
+- Try again shows a spinner and reads "Trying again" (busy, disabled) from the press until the reload settles.
+- Verified: `npm test` 864/864, tsc 0, lint 0. Not verified: simulator (no device run).
+
 ## 2026-11-14: hidden-state sweep (pace, calendar), branch audit2-hidden-states (local, rebased on 0c486a3)
 
 Sweep 8 (target 'Saved' clears on edit), sweep 1 + C14 (event editor waits for the doc, gone event, save/delete

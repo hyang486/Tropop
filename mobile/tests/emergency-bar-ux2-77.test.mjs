@@ -8,7 +8,7 @@ const src = readFileSync(new URL('../src/components/room-activity.tsx', import.m
 test('UX2-77: Emergency bar subtitle wraps to 2 lines; the pill stays centered on the bar', () => {
   assert.match(src, /<Text style=\{styles\.barMeta\} numberOfLines=\{2\}/);
   assert.match(src, /bar: \{\s*flexDirection: 'row',\s*alignItems: 'center',/);
-  assert.match(src, /barMetaRow: \{ flexDirection: 'row', alignItems: 'flex-start', gap: 4 \}/);
+  assert.doesNotMatch(src, /barMetaRow/); // C37: the location icon moved to its own line.
 });
 
 test('UX2-77b: spokenSentence drops each trailing period and joins the parts with ". "', async () => {
@@ -33,7 +33,10 @@ test('UX2-77c: spokenSeparators turns " · " into ", " for VoiceOver only', asyn
 });
 
 test('UX2-77c: the bar label passes the seen part through spokenSeparators; the visible meta keeps "·"', () => {
-  assert.match(src, /spokenSeparators\(en\.activity\.seenByNames\(who, seen, recipients\)\)/);
+  // UX2-126: the seen part now comes from seenPart (lib/emergency-plan.ts); the bar reads its `spoken` form.
+  const plan = readFileSync(new URL('../src/lib/emergency-plan.ts', import.meta.url), 'utf8');
+  assert.match(plan, /spoken: spokenSeparators\(text\)/);
+  assert.match(src, /seenText\.spoken/);
   const copy = readFileSync(new URL('../src/i18n/en.ts', import.meta.url), 'utf8');
   assert.match(copy, /`Seen by \$\{who\.join\(', '\)\} · \$\{n\} of \$\{total\}`/);
 });

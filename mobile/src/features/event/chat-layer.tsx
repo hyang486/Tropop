@@ -11,13 +11,11 @@ import { getEntryProfile } from './entry-api';
 import { InkSwitch } from './ink-switch';
 import { chatGates } from './event-plan';
 import { probeQrewing, setQrewingMember, useQrewingRoom } from './qrewing-api';
-import { allowedQrewingCalls } from './qrewing-plan';
+import { allowedQrewingCalls, QREWING_OFFLINE_RETRY_MS } from './qrewing-plan';
 import type { QrewingError } from './types';
 import { en } from '@/i18n/en';
 import type { ImportantBanner as Banner } from './use-small-talk';
 
-/** While the room read or the probe failed offline, both are tried again this often (no model call). */
-const OFFLINE_RETRY_MS = 30_000;
 
 /**
  * The room's Qrewing state for the chat screen. `available` is false until the probe answers ok, so a
@@ -56,7 +54,7 @@ export function useQrewingChat(roomId: string, roomType: string, userId: string 
     const t = setInterval(() => {
       if (readFailed) reload();
       else setProbeTick((n) => n + 1);
-    }, OFFLINE_RETRY_MS);
+    }, QREWING_OFFLINE_RETRY_MS);
     return () => clearInterval(t);
   }, [readFailed, probeOffline, reload]);
 

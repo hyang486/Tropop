@@ -1,6 +1,8 @@
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  AppState,
   Pressable,
   ScrollView,
   type StyleProp,
@@ -19,8 +21,9 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, emergencyBarMode, emergenciesFolded, seenSummary, spokenSentence, spokenSeparators } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, locationLineState, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
+import { errorKind } from '@/lib/error-kind';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
 import { formatAge, type LatLng } from '@/lib/location-plan';
@@ -62,9 +65,13 @@ export function EmergencyAlerts({
   roomId: string;
   activity: ReturnType<typeof useRoomActivity>;
   userId: string | undefined;
-  names: Map<string, string>;
-  /** Live position rows of the room (Q 04.03 "Last location shared · 4 min ago"). */
-  presence: readonly Presence[];
+  /** UX2-79: null while the member list is not known yet or failed to load. */
+  names: Map<string, string> | null;
+  /**
+   * Live position rows of the room (Q 04.03 "Last location shared · 4 min ago"), or the whole useLivePresence
+   * result so the location line can tell "not loaded" and "failed" from "none" (C39). Bare rows count as loaded.
+   */
+  presence: readonly Presence[] | PresenceState;
   /** Map moves its own camera; elsewhere the link opens Map centered on the sender. */
   onOpenLocation?: (userId: string, coordinates: LatLng) => void;
 }) {
@@ -84,7 +91,28 @@ export function EmergencyAlerts({
     });
   // UX2-30: the folded "N Emergencies" line was opened with Show.
   const [shownAll, setShownAll] = useState(false);
-  const lastSeen = useMemo(() => new Map(presence.map((p) => [p.user_id, p])), [presence]);
+  const pres: PresenceState = isPresenceRows(presence) ? { rows: presence, loaded: true, error: false } : presence;
+  const rows = pres.rows;
+  const lastSeen = useMemo(() => new Map(rows.map((p) => [p.user_id, p])), [rows]);
+  // C39: the line stays blank for the first 1 s of an unknown read (no flicker on fast reads), then says Checking.
+  const presenceWaiting = activity.emergencies.length > 0 && !pres.loaded && !pres.error;
+  const [presenceLate, setPresenceLate] = useState(false);
+  useEffect(() => {
+    if (!presenceWaiting) return;
+    const t = setTimeout(() => setPresenceLate(true), 1000);
+    return () => clearTimeout(t);
+  }, [presenceWaiting]);
+  const [presenceRetrying, setPresenceRetrying] = useState(false);
+  const presenceReload = pres.reload;
+  async function retryPresence() {
+    if (!presenceReload || presenceRetrying) return;
+    setPresenceRetrying(true);
+    try {
+      await presenceReload();
+    } finally {
+      setPresenceRetrying(false);
+    }
+  }
   const seeded = useRef(false);
   useEffect(() => {
     if (activity.loading) return;
@@ -109,13 +137,17 @@ export function EmergencyAlerts({
     }
   }
 
-  const area = emergencyAreaMode({ loading: activity.loading, error: activity.error, count: activity.emergencies.length });
+  const area = emergencyAreaMode({
+    loading: activity.loading,
+    error: activity.error,
+    count: activity.emergencies.length,
+    stale: activity.stale,
+    slow: activity.slow,
+  });
   if (!userId || area === 'none') return null;
+  if (area === 'checking') return <CheckingRow />;
 
   const folded = emergenciesFolded({ place, count: activity.emergencies.length, shown: shownAll });
-
-  // Recipients are the current members other than the sender.
-  const recipients = Math.max(0, names.size - 1);
 
   function openLocation(senderId: string, coordinates: LatLng) {
     if (onOpenLocation) onOpenLocation(senderId, coordinates);
@@ -135,7 +167,12 @@ export function EmergencyAlerts({
         if (h > windowHeight * EMERGENCY_MAX_HEIGHT_SHARE) scrollRef.current?.flashScrollIndicators();
       }}
     >
-      {area === 'failed' ? <ReadFailedRow onRetry={activity.reload} /> : null}
+      {area === 'failed' ? (
+        <ReadFailedRow
+          offline={activity.stale || errorKind(activity.error) === 'offline'}
+          onRetry={activity.reload}
+        />
+      ) : null}
       {folded ? (
         <EnterView>
           <Pressable
@@ -160,13 +197,17 @@ export function EmergencyAlerts({
       ) : null}
       {(folded ? [] : activity.emergencies).map((e) => {
         const mine = e.userId === userId;
-        const { who, seen } = seenSummary(e.ackedBy, names);
+        const seenText = seenPart({ mine, ackedBy: e.ackedBy, names, copy: en.activity });
         const iAcked = e.ackedBy.has(userId);
         const location = emergencyLocation(lastSeen.get(e.userId));
-        const name = names.get(e.userId) ?? en.chat.formerMember;
-        const title = mine ? en.activity.helpRequested : en.activity.emergencyFrom(name);
-        const seenText = seen === 0 ? en.activity.noneSeen : en.activity.seenCount(seen, recipients);
-        const meta = `${timeOf(e.createdAt)} · ${seenText}`;
+        const sender = emergencySender(names, e.userId);
+        const name = sender.kind === 'name' ? sender.name : en.chat.formerMember;
+        const title = mine
+          ? en.activity.helpRequested
+          : sender.kind === 'unknown'
+            ? en.activity.emergencyFromUnknown
+            : en.activity.emergencyFrom(name);
+        const meta = `${timeOf(e.createdAt)} · ${seenText.visible}`;
         const mode = emergencyBarMode({ place, mine, acked: iAcked, expanded: expanded.has(e.id) });
         const collapsible = emergencyBarMode({ place, mine, acked: iAcked, expanded: false }) === 'line';
 
@@ -185,7 +226,11 @@ export function EmergencyAlerts({
                   <SymbolView name="exclamationmark.triangle" size={12} tintColor={colors.danger} />
                 </View>
                 <Text style={styles.lineText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-                  {mine ? en.activity.emergencyLineMine : en.activity.emergencyLine(name)}
+                  {mine
+                    ? en.activity.emergencyLineMine
+                    : sender.kind === 'unknown'
+                      ? en.activity.emergencyFromUnknown
+                      : en.activity.emergencyLine(name)}
                 </Text>
                 <Text style={styles.lineOpen} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                   {en.activity.openEmergency}
@@ -199,12 +244,25 @@ export function EmergencyAlerts({
         // Q 04.03 / UX P0-1: pinned bar with the requester, time and seen count, and one action. Who saw it
         // and the location age are read out; the text opens the last shared location when there is one.
         const canOpenLocation = !mine && location.kind === 'shared';
+        const lineState = locationLineState({
+          shared: location.kind === 'shared',
+          loaded: pres.loaded,
+          error: pres.error,
+          late: presenceLate,
+        });
         const spoken = spokenSentence([
           title,
           timeOf(e.createdAt),
-          seen === 0 ? en.activity.waitingSeen : spokenSeparators(en.activity.seenByNames(who, seen, recipients)),
-          location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
+          seenText.spoken,
+          location.kind === 'shared'
+            ? en.activity.lastLocation(formatAge(location.updatedAt, now))
+            : lineState === 'none'
+              ? en.activity.noLocation
+              : lineState === 'failed'
+                ? en.activity.locationFailedSpoken
+                : en.activity.checkingLocationSpoken,
         ]);
+        const canRetry = lineState === 'failed' && !!presenceReload;
         return (
           <EnterView key={e.id}>
             <View style={styles.bar} accessibilityRole="alert">
@@ -213,22 +271,55 @@ export function EmergencyAlerts({
               </View>
               <Pressable
                 style={styles.barText}
-                disabled={!canOpenLocation}
-                onPress={canOpenLocation ? () => openLocation(e.userId, location.coordinates) : undefined}
-                accessibilityRole={canOpenLocation ? 'button' : 'text'}
+                disabled={!canOpenLocation && !canRetry}
+                onPress={
+                  canOpenLocation
+                    ? () => openLocation(e.userId, location.coordinates)
+                    : lineState === 'failed' ? () => retryPresence() : undefined
+                }
+                accessibilityRole={canOpenLocation || canRetry ? 'button' : 'text'}
                 accessibilityLabel={spoken}
                 accessibilityHint={
-                  canOpenLocation ? en.activity.locationHint(formatAge(location.updatedAt, now)) : undefined
+                  canOpenLocation
+                    ? en.activity.locationHint(formatAge(location.updatedAt, now))
+                    : canRetry
+                      ? en.activity.locationRetryHint
+                      : undefined
                 }
+                accessibilityState={{ busy: lineState === 'failed' && presenceRetrying }}
               >
                 <Text style={styles.barTitle} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                   {title}
                 </Text>
-                <View style={styles.barMetaRow}>
-                  {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} style={styles.barMetaIcon} /> : null}
-                  {/* UX2-77: up to 2 lines ("2:32 AM · No one saw it…" no longer cut); the pill stays centered (bar). */}
-                  <Text style={styles.barMeta} numberOfLines={2} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-                    {meta}
+                {/* UX2-77: up to 2 lines ("2:32 AM · No one saw it…" no longer cut); the pill stays centered (bar). */}
+                <Text style={styles.barMeta} numberOfLines={2} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                  {meta}
+                </Text>
+                {/* C37 (UX2-126): the location line, so "no location" is told apart from "not loaded". */}
+                {/* C39: busy while the presence retry runs, dimmed so the line keeps its height. */}
+                <View style={[styles.barLocationRow, presenceRetrying && lineState === 'failed' && { opacity: 0.5 }]}>
+                  {canOpenLocation ? <SymbolView name="location.fill" size={11} tintColor={colors.label} /> : null}
+                  <Text
+                    style={[styles.barLocation, canOpenLocation && styles.barLocationOpen]}
+                    numberOfLines={1}
+                    maxFontSizeMultiplier={EMERGENCY_FONT_CAP}
+                  >
+                    {location.kind === 'shared' ? (
+                      mine ? (
+                        en.activity.yourLastLocation(formatAge(location.updatedAt, now))
+                      ) : (
+                        en.activity.openLastLocationAge(formatAge(location.updatedAt, now))
+                      )
+                    ) : lineState === 'none' ? (
+                      en.activity.noLocation
+                    ) : lineState === 'failed' ? (
+                      <>
+                        {`${en.activity.locationFailed} · `}
+                        {canRetry ? <Text style={styles.barLocationOpen}>{en.activity.locationRetry}</Text> : null}
+                      </>
+                    ) : lineState === 'blank'
+                      ? ' '
+                      : en.activity.checkingLocation}
                   </Text>
                 </View>
               </Pressable>
@@ -266,8 +357,19 @@ export function EmergencyAlerts({
 }
 
 /** Live positions only while an Emergency is open (no presence traffic on screens that do not need it). */
-export function useEmergencyPresence(roomId: string, activity: ReturnType<typeof useRoomActivity>) {
-  return useLivePresence(roomId, activity.emergencies.length > 0).rows;
+export function useEmergencyPresence(roomId: string, activity: ReturnType<typeof useRoomActivity>): PresenceState {
+  return useLivePresence(roomId, activity.emergencies.length > 0);
+}
+
+/** C39: the useLivePresence result EmergencyAlerts reads (UX2-85 loaded/error and the reload). */
+export type PresenceState = {
+  rows: readonly Presence[];
+  loaded: boolean;
+  error: boolean;
+  reload?: () => Promise<void>;
+};
+function isPresenceRows(p: readonly Presence[] | PresenceState): p is readonly Presence[] {
+  return Array.isArray(p);
 }
 
 /**
@@ -280,20 +382,49 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
   // activity_seq only scopes the Arrived button, which this banner does not show.
   const activity = useRoomActivity(roomId, userId, 0);
   const presence = useEmergencyPresence(roomId, activity);
-  const [names, setNames] = useState<Map<string, string>>(new Map());
+  // UX2-79: null = not known yet. A failed reload keeps the names already known.
+  const [names, setNames] = useState<Map<string, string> | null>(null);
+  const [failed, setFailed] = useState(false);
   const loadNames = useCallback(() => {
     listMembers(roomId)
-      .then((members) => setNames(new Map(members.map((m) => [m.user_id, m.display_name]))))
-      .catch(() => {});
+      .then((members) => {
+        setNames(new Map(members.map((m) => [m.user_id, m.display_name])));
+        setFailed(false);
+      })
+      .catch(() => setFailed(true));
   }, [roomId]);
   useEffect(() => {
     loadNames();
   }, [loadNames]);
+  // UX2-79: after a failed read, retry once after 5 s and once when the app becomes active.
+  useEffect(() => {
+    if (!failed) return;
+    let retried = false;
+    const retry = () => {
+      if (retried) return;
+      retried = true;
+      loadNames();
+    };
+    const timer = setTimeout(retry, 5000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') retry();
+    });
+    return () => {
+      clearTimeout(timer);
+      sub.remove();
+    };
+  }, [failed, loadNames]);
   useRoomEvents(roomId, (event) => {
     if (event.table === 'room_members') loadNames();
   });
-  if (emergencyAreaMode({ loading: activity.loading, error: activity.error, count: activity.emergencies.length }) === 'none')
-    return null;
+  const area = emergencyAreaMode({
+    loading: activity.loading,
+    error: activity.error,
+    count: activity.emergencies.length,
+    stale: activity.stale,
+    slow: activity.slow,
+  });
+  if (area === 'none') return null;
   return (
     <View style={style}>
       <EmergencyAlerts roomId={roomId} activity={activity} userId={userId} names={names} presence={presence} />
@@ -302,7 +433,19 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
 }
 
 /** UX2-05 (pattern E): red cause line + one ink-outline "Try again" (36 pt inside a 44 pt hit area, busy while it runs). */
-function ReadFailedRow({ onRetry }: { onRetry: () => Promise<void> }) {
+/** UX2-107: a first read that takes over 3 s; neutral, never red, so it does not read as an Emergency. */
+function CheckingRow() {
+  return (
+    <View style={styles.checking} accessible accessibilityLabel={en.activity.checkingSpoken}>
+      <ActivityIndicator size="small" color={colors.ink2} />
+      <Text style={styles.checkingText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+        {en.activity.checking}
+      </Text>
+    </View>
+  );
+}
+
+function ReadFailedRow({ onRetry, offline }: { onRetry: () => Promise<void>; offline: boolean }) {
   const [busy, setBusy] = useState(false);
   async function retry() {
     setBusy(true);
@@ -315,7 +458,7 @@ function ReadFailedRow({ onRetry }: { onRetry: () => Promise<void> }) {
   return (
     <View style={styles.failed} accessibilityLiveRegion="polite">
       <Text style={styles.failedText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-        {en.activity.readFailed}
+        {offline ? en.activity.offlineStale : en.activity.readFailed}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -382,10 +525,10 @@ const styles = StyleSheet.create({
   ringSmall: { width: 24, height: 24, borderRadius: 12 },
   barText: { flex: 1, gap: 1 },
   barTitle: { fontSize: 16, fontWeight: '600', color: colors.label },
-  barMetaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
-  // On the first line's center (13 pt text, ~16 pt line).
-  barMetaIcon: { marginTop: 3 },
   barMeta: { flexShrink: 1, fontSize: 13, color: colors.label },
+  barLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  barLocation: { flexShrink: 1, fontSize: 13, color: colors.ink2 },
+  barLocationOpen: { fontWeight: '600', color: colors.label },
   pill: {
     flexShrink: 0,
     minHeight: 36,
@@ -411,6 +554,8 @@ const styles = StyleSheet.create({
   },
   lineText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
   lineOpen: { fontSize: 15, fontWeight: '600', color: colors.label },
+  checking: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12 },
+  checkingText: { flex: 1, fontSize: 13, color: colors.ink2 },
   failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 12 },
   failedText: { flex: 1, fontSize: 15, color: colors.errorText },
   failedButton: {

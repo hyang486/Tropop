@@ -2,7 +2,7 @@
 // (join_open_room). Renders nothing while OPEN_ROOMS_LIVE is false (migration 0031 not live yet).
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar';
 import { QLabel } from '@/components/q-screen';
@@ -138,7 +138,8 @@ export function OpenChatSection({
           accessibilityState={{ busy: joining === room.room_id }}
           disabled={joining !== null}
           onPress={() => open(room)}
-          style={styles.row}
+          // UX2-113: the other rows go to 50% while one joins.
+          style={[styles.row, joining !== null && joining !== room.room_id && styles.dimmed]}
         >
           <InkIcon emoji={iconEmoji(room.public_icon)} size={28} />
           <View style={styles.text}>
@@ -149,9 +150,13 @@ export function OpenChatSection({
               {`${room.public_location} · ${rowWhen(room, new Date())}`}
             </Text>
           </View>
-          <Text style={styles.count}>
-            {room.already_member ? en.openChat.joined : en.openChat.count(room.member_count, room.max_members)}
-          </Text>
+          {joining === room.room_id ? (
+            <ActivityIndicator size="small" color={colors.ink2} />
+          ) : (
+            <Text style={styles.count}>
+              {room.already_member ? en.openChat.joined : en.openChat.count(room.member_count, room.max_members)}
+            </Text>
+          )}
         </Pressable>
       ))}
     </View>
@@ -176,4 +181,5 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, color: colors.label },
   area: { fontSize: 13, color: colors.ink2 },
   count: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'] },
+  dimmed: { opacity: 0.5 },
 });

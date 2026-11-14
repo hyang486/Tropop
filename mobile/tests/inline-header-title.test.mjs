@@ -32,10 +32,10 @@ test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to
     assert.doesNotMatch(src(p), /headerTitle: ''/, p);
   }
   const map = src('app/room/[id]/map.tsx');
-  assert.match(map, /useInlineHeaderTitle\(en\.map\.title, useHeaderHeight\(\)\)/);
-  // Map passed ux C25 as is: no title measure, so it keeps the block's bottom.
-  assert.match(map, /<View style=\{styles\.head\} onLayout=\{inlineTitle\.onTitleLayout\}>/);
-  assert.doesNotMatch(map, /onTitleTextLayout|blockOpacity/);
+  assert.match(map, /const headerHeight = useHeaderHeight\(\);\s*const inlineTitle = useInlineHeaderTitle\(en\.map\.title, headerHeight\)/);
+  // Map has no title measure, so it keeps the block's bottom; UX2-93 (C31) adds the block fade.
+  assert.match(map, /<Animated\.View style=\{\[styles\.head, \{ opacity: inlineTitle\.blockOpacity \}\]\} onLayout=\{inlineTitle\.onTitleLayout\}>/);
+  assert.doesNotMatch(map, /onTitleTextLayout/);
 });
 
 test('UX2-59 C28: the title block fades 1 → 0 over the 24 pt before its bottom meets the header, from the scroll value', () => {

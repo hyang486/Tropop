@@ -44,12 +44,33 @@ export function reloadHistory() {
   loadHistory().then((history) => update({ history }));
 }
 
+// UX2-120/121: shown at once, reverted if the write fails; the caller shows the error.
+// Per room, the latest toggle; an older failed write never reverts a newer choice.
+const onSeq = new Map<string, number>();
 export async function setOn(roomId: string, on: boolean) {
+  const before = settings.on.get(roomId);
+  const mine = (onSeq.get(roomId) ?? 0) + 1;
+  onSeq.set(roomId, mine);
   update({ on: new Map(settings.on).set(roomId, on) });
-  await setPaceOn(roomId, on);
+  try {
+    await setPaceOn(roomId, on);
+  } catch (e) {
+    if (onSeq.get(roomId) !== mine) return; // superseded: the newer toggle owns the switch and its error
+    const next = new Map(settings.on);
+    if (before === undefined) next.delete(roomId);
+    else next.set(roomId, before);
+    update({ on: next });
+    throw e;
+  }
 }
 
 export async function saveTarget(target: PaceTarget) {
+  const before = settings.target;
   update({ target });
-  await setTarget(target);
+  try {
+    await setTarget(target);
+  } catch (e) {
+    update({ target: before });
+    throw e;
+  }
 }
