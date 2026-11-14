@@ -8,7 +8,7 @@ export const RECAP_MODEL = 'claude-sonnet-5-5';
 export const MATCH_MODEL = 'claude-sonnet-5-5';
 
 /** Bump when a prompt or schema changes, so cached matches are recomputed (it is part of input_hash). */
-export const PROMPT_VERSION = 'qrewing-v1';
+export const PROMPT_VERSION = 'qrewing-v2';
 
 export const TRIAGE_SCHEMA = {
   type: 'object',
@@ -71,6 +71,7 @@ export const TRIAGE_SYSTEM = [
   'Not important: greetings, reactions, thanks, jokes, banter, personal side conversations.',
   'Return one result per target message, using its index. "reason" is a short plain phrase (at most 12 words)',
   'that says why it matters, or why not. Write in the language of the message.',
+  GENDER_RULE,
   DATA_RULE,
 ].join(' ');
 
@@ -110,6 +111,7 @@ export const MATCH_SYSTEM = [
   'Use the person ids exactly as given (p1, p2, ...). score: integer 1 (weak) to 5 (strong).',
   'reason: one sentence addressed to the requesting person, at most 150 characters, naming the concrete overlap.',
   'Return fewer people, or none, when there is no real reason. Write in the language of the entry info.',
+  GENDER_RULE,
   DATA_RULE,
 ].join(' ');
 
@@ -380,7 +382,9 @@ export const DIARY_SYSTEM = [
   'emoji: exactly one emoji for what the room was for (a run → 🏃, coffee → ☕, a concert → 🎵). Nothing else.',
   'diary: 1 to 3 short lines, each at most 80 characters, in English, first person ("I"), past tense, warm and plain,',
   'like a handwritten diary. Use only what the recap shows; do not invent places, numbers or names.',
-  'Name only people the recap names. If <me> is empty, write as "I" without naming the writer.',
+  '<me> is the writer of this diary: refer to them only as "I" (me, my), never by name, even where the recap names',
+  'them; rewrite "Mina ran the demos" as "I ran the demos" when <me> is Mina. Other people may be named only when the',
+  'recap names them. If <me> is empty, the writer is still "I"; then name no one who might be the writer.',
   GENDER_RULE,
   DATA_RULE,
 ].join(' ');

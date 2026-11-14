@@ -60,7 +60,7 @@ import {
   type StoredMatch,
   type TriageRow,
 } from './core.ts';
-import { ASK_SYSTEM, cut, DIARY_SYSTEM, esc, RECAP_REFRESH_SYSTEM, RECAP_SYSTEM, recapRefreshUser, triageUser } from './prompts.ts';
+import { ASK_SYSTEM, cut, DIARY_SYSTEM, esc, MATCH_SYSTEM, RECAP_REFRESH_SYSTEM, RECAP_SYSTEM, recapRefreshUser, TRIAGE_SYSTEM, triageUser } from './prompts.ts';
 
 const NOW = new Date('2026-11-12T20:00:00.000Z');
 const ROOM = '11111111-1111-4111-8111-111111111111';
@@ -1470,8 +1470,8 @@ test('friendlyTime (en) starts with the clock, so "at <time>" never doubles a pr
   assert.equal(friendlyTime('2026-11-13T11:23:00.000Z', 'America/Los_Angeles', now, 'en'), '3:23 AM today');
 });
 
-test('recap, recap refresh, diary and ask prompts forbid guessing gender', () => {
-  for (const [name, sys] of Object.entries({ RECAP_SYSTEM, RECAP_REFRESH_SYSTEM, DIARY_SYSTEM, ASK_SYSTEM })) {
+test('every prompt that writes about people forbids guessing gender (match intros, triage reasons too)', () => {
+  for (const [name, sys] of Object.entries({ RECAP_SYSTEM, RECAP_REFRESH_SYSTEM, DIARY_SYSTEM, ASK_SYSTEM, MATCH_SYSTEM, TRIAGE_SYSTEM })) {
     assert.ok(sys.includes("Never guess anyone's gender"), name);
     assert.ok(sys.includes('they/them') && sys.includes('그녀'), name);
     assert.ok(!/\b(he|she|him|her|his|himself|herself)\b/i.test(sys.replace(/Never guess[^.]*\./, '')), `${name}: gendered word`);
@@ -1542,6 +1542,22 @@ test('recap diary: a caller without AI consent is not named', async () => {
   assert.equal((await run(w, m, HOST, { action: 'recap', roomId: ROOM, diary: true })).status, 200);
   assert.match(calls[0].user, /<me><\/me>/);
   assert.ok(!calls[0].user.includes('<me>Hana'));
+});
+
+test('diary prompt: <me> is the writer, only ever "I", never named, even when the recap names them', () => {
+  assert.ok(DIARY_SYSTEM.includes('<me> is the writer of this diary'));
+  assert.ok(DIARY_SYSTEM.includes('never by name, even where the recap names them'));
+  assert.ok(DIARY_SYSTEM.includes('If <me> is empty'));
+  assert.ok(!DIARY_SYSTEM.includes('Name only people the recap names.'), 'the old rule let the writer be named');
+});
+
+test('recap diary: the recap names the writer (Mina); the call says she is <me> and the prompt forbids naming her', async () => {
+  const w = world({ recap: { ...DONE_RECAP(), summary: 'Hana ran lightning demos at 7:30; Bob kept time.' } });
+  const { m, calls } = model(() => ({ text: DIARY_OUT }));
+  assert.equal((await run(w, m, HOST, { action: 'recap', roomId: ROOM, diary: true })).status, 200);
+  assert.match(calls[0].user, /<me>Hana<\/me>/);
+  assert.match(calls[0].user, /Hana ran lightning demos/);
+  assert.equal(calls[0].system, DIARY_SYSTEM);
 });
 
 test('recap diary: failures give diary null and the room-type emoji, never a non-200', async () => {
