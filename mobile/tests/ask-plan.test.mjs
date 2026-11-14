@@ -103,7 +103,7 @@ test('contract errors map to the four the ask screen names', () => {
   assert.equal(classifyQrewingError(401, 'not_consented'), 'not_consented');
   assert.equal(classifyQrewingError(403), 'not_member');
   assert.equal(classifyQrewingError(403, 'something_else'), 'not_member');
-  for (const e of ['not_consented', 'ask_limit', 'ai_failed', 'network', 'not_member']) assert.equal(plan.askErrorKind(e), e);
+  for (const e of ['not_consented', 'ask_limit', 'rate_limited', 'ai_failed', 'network', 'not_member']) assert.equal(plan.askErrorKind(e), e);
   for (const e of ['ai_off', 'ai_not_configured', 'too_early']) assert.equal(plan.askErrorKind(e), 'ai_failed');
 });
 

@@ -152,11 +152,13 @@ export function parseAskAnswer(data: unknown): { answer: string; usage: { input:
  * or the room ended) is not shown: the screen closes and deletes this room's history.
  */
 // capacity B item 4: plan_limit (402) = the caller is Free; Ask follows the caller's own plan.
-export type AskError = 'not_consented' | 'ask_limit' | 'ai_failed' | 'network' | 'not_member' | 'plan_limit';
+// UX2-10: rate_limited (the per-minute burst limit) gets its own fixable line instead of "could not finish".
+export type AskError = 'not_consented' | 'ask_limit' | 'rate_limited' | 'ai_failed' | 'network' | 'not_member' | 'plan_limit';
 
 export function askErrorKind(error: string): AskError {
   return error === 'not_consented' ||
     error === 'ask_limit' ||
+    error === 'rate_limited' ||
     error === 'network' ||
     error === 'not_member' ||
     error === 'plan_limit'

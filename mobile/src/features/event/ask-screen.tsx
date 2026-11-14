@@ -45,7 +45,9 @@ export function AskScreen() {
   // UX2-04: the ask came back plan_limit (a Free asker): the Plus empty state replaces the chat and the composer.
   const [plusGate, setPlusGate] = useState(false);
   useAnnounce(sending ? s.thinking : null, sending);
-  useAnnounce(error ? en.qrewing.errors[error] : null, error);
+  const errorText =
+    error === 'ask_limit' ? s.limitReached : error === 'rate_limited' ? s.rateLimited : error ? en.qrewing.errors[error] : null;
+  useAnnounce(errorText, error);
   const mounted = useRef(true);
   const lastRef = useRef<ComponentRef<typeof View>>(null);
   const revealRef = useRef<QScreenReveal>(null);
@@ -102,7 +104,8 @@ export function AskScreen() {
     setSending(null);
   }
 
-  const canSend = !!askQuestion(draft) && !sending && loaded;
+  // UX2-10: after the daily cap, Send stays off on this screen (the cap is a rolling day; reopening asks the server again).
+  const canSend = !!askQuestion(draft) && !sending && loaded && error !== 'ask_limit';
   const lastIndex = turns.length - 1;
   return (
     <QScreen
@@ -167,7 +170,7 @@ export function AskScreen() {
           ) : null}
           {error ? (
             <View ref={lastRef} style={styles.turn}>
-              <Hint tone="error">{en.qrewing.errors[error]}</Hint>
+              <Hint tone={error === 'ask_limit' ? undefined : 'error'}>{errorText}</Hint>
               {error === 'not_consented' ? (
                 <Button title={s.reviewConsent} variant="secondary" onPress={() => setConsent(true)} />
               ) : null}
