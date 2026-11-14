@@ -14,3 +14,9 @@ test('fix 1: the map re-reads the room after a host change succeeds, not only on
   assert.match(map, /setEditor\(null\);\n\s+\}, true\);/);
   assert.match(map, /reload=\{load\}/);
 });
+
+test('fix 2: the map catches up on the room after a reconnect and on return to foreground', () => {
+  const map = read('app/room/[id]/map.tsx');
+  assert.match(map, /\(status\) => \{\n\s+if \(status === 'SUBSCRIBED'\) load\(\);/);
+  assert.match(map, /AppState\.addEventListener\('change', \(next\) => \{\n\s+if \(next === 'active'\) load\(\);/);
+});

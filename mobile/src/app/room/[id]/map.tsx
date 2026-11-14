@@ -113,10 +113,23 @@ export default function RoomMapScreen() {
     }, [load]),
   );
 
-  // Location setting, activity state, route and membership all live on rooms / room_members.
-  useRoomEvents(id, (event) => {
-    if (event.table === 'rooms' || event.table === 'room_members') load();
-  });
+  // Location setting, activity state, route and membership all live on rooms / room_members. Sweep fix 2: notices
+  // missed while the socket was down are caught up when the channel rejoins (SUBSCRIBED) and on return to foreground.
+  useRoomEvents(
+    id,
+    (event) => {
+      if (event.table === 'rooms' || event.table === 'room_members') load();
+    },
+    (status) => {
+      if (status === 'SUBSCRIBED') load();
+    },
+  );
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') load();
+    });
+    return () => sub.remove();
+  }, [load]);
 
   // G-U6-1: the room's end time passing while Map is open (the host's End arrives as a rooms notice above).
   const ended = useRoomOver(state.status === 'ready' ? state.room : null);
