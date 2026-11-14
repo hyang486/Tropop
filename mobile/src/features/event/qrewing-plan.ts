@@ -70,6 +70,14 @@ export function invokeFailureKind(error: unknown): 'http' | 'network' | 'server'
 /** Wait before the one re-ask after a 202 pending match answer (backend 68132d6). */
 export const MATCH_RETRY_MS = 10_000;
 
+/**
+ * capacity B item 4: personal Qrewing (Ask, people to meet) follows the caller's own plan. A 402 plan_limit means
+ * the server has the caller as Free, so the local Plus copy is re-read and the screen offers the Plus intro.
+ */
+export function isPlanLimit(error: QrewingError | null | undefined): boolean {
+  return error === 'plan_limit';
+}
+
 export type MatchAnswer = MatchResult | { state: 'pending' } | { error: QrewingError };
 export type MatchStep =
   | { show: 'list'; result: MatchResult; pending: boolean; error: QrewingError | null; retryInMs: number | null }

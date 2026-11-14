@@ -635,7 +635,7 @@ function RoomMap({
         ) : null}
       </View>
 
-      <PaceCard room={room} share={my.share} />
+      <PaceCard room={room} share={my.share} userId={userId} />
 
       {active ? (
         <View style={styles.group}>

@@ -14,10 +14,15 @@ import { en } from '@/i18n/en';
 import { myFirstSharedPoint } from '@/lib/location';
 import { supabase } from '@/lib/supabase';
 
+import { refreshPlus } from '@/features/calendar/calendar-store';
+import { plusIntroHref } from '@/features/calendar/plus-intro';
+import { useAuth } from '@/lib/auth';
+
 import { ASK_FAKE, fakeAskInvoke } from './ask-fake';
 import { type AskError, ASK_LIMITS, askAnchor, askQuestion, type AskTurn } from './ask-plan';
 import { appendAskTurn, loadAskHistory, purgeAskHistory } from './ask-store';
 import { DisclosureSheet } from './disclosure-sheet';
+import { isPlanLimit } from './qrewing-plan';
 import { askQrewing } from './qrewing-api';
 
 const s = en.qrewing.ask;
@@ -25,6 +30,8 @@ const s = en.qrewing.ask;
 export function AskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { session } = useAuth();
+  const userId = session?.user.id;
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState('');
@@ -71,6 +78,11 @@ export function AskScreen() {
         return;
       }
       if (!mounted.current) return;
+      if (isPlanLimit(res.error)) {
+        // capacity B item 4: Free caller → re-read the plan and open the Plus intro on the Ask slide.
+        if (userId) refreshPlus(userId);
+        router.push(plusIntroHref('ask'));
+      }
       setError(res.error);
       // The question is not lost: it goes back into the composer unless something new was typed.
       setDraft((cur) => cur || q);

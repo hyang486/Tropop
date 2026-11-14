@@ -143,10 +143,15 @@ export function parseAskAnswer(data: unknown): { answer: string; usage: { input:
  * Errors the ask screen handles; every other contract error reads as ai_failed there. `not_member` (left, removed,
  * or the room ended) is not shown: the screen closes and deletes this room's history.
  */
-export type AskError = 'not_consented' | 'ask_limit' | 'ai_failed' | 'network' | 'not_member';
+// capacity B item 4: plan_limit (402) = the caller is Free; Ask follows the caller's own plan.
+export type AskError = 'not_consented' | 'ask_limit' | 'ai_failed' | 'network' | 'not_member' | 'plan_limit';
 
 export function askErrorKind(error: string): AskError {
-  return error === 'not_consented' || error === 'ask_limit' || error === 'network' || error === 'not_member'
+  return error === 'not_consented' ||
+    error === 'ask_limit' ||
+    error === 'network' ||
+    error === 'not_member' ||
+    error === 'plan_limit'
     ? error
     : 'ai_failed';
 }

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HandTitle } from '@/components/hand-title';
 import { QLink, qSpacing } from '@/components/q-screen';
 import { Button, colors, Hint, radius, size, space, textRole } from '@/components/ui';
+import { usePlusPreview } from '@/features/calendar/calendar-store';
+import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { InkSwitch } from '@/features/event/ink-switch';
 import type { Room } from '@/lib/rooms';
 
@@ -19,17 +22,29 @@ import {
   targetSecPerKm,
   usualPace,
 } from './pace-core';
-import { paceApplies } from './pace-layer';
+import { paceAllowed, paceApplies } from './pace-layer';
 import { saveTarget, setOn, usePaceSettings } from './settings';
 import { initialPaceSec, TARGET_TICK, targetBarFill, targetFieldsFilled } from './target-form';
 import { en } from '@/i18n/en';
 const t = en.pace;
 
 /** Map screen card (spec 3.4): the Pace maker switch (per room, default off), the target, and my live stats. */
-export function PaceCard({ room, share }: { room: Room; share: boolean }) {
+export function PaceCard({ room, share, userId }: { room: Room; share: boolean; userId: string | undefined }) {
   const settings = usePaceSettings(room.id);
   const run = usePaceRun(runKey(room.id, room.activity_seq));
+  const plus = usePlusPreview(userId);
+  const router = useRouter();
   if (!paceApplies(room)) return null;
+  // capacity B item 4: the caller's own plan, not the host's. Free sees why and a way to Plus; null = still loading.
+  if (plus === false) {
+    return (
+      <View style={styles.group}>
+        <Text style={styles.switchLabel}>{t.title}</Text>
+        <Hint>{t.plusOnly}</Hint>
+        <QLink title={en.planPreview.seePlus} onPress={() => router.push(plusIntroHref('pace'))} />
+      </View>
+    );
+  }
   const active = room.activity_state === 'active';
   const usual = usualPace(settings.history);
   const goal = targetSecPerKm(settings.target, usual);
@@ -48,14 +63,14 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
         <Text style={styles.switchLabel}>{t.title}</Text>
         {/* Spec 11 polish: off and disabled until Share my location is on; the saved choice returns with sharing. */}
         <InkSwitch
-          value={settings.on && share}
-          disabled={!share}
+          value={settings.on && share && paceAllowed(plus)}
+          disabled={!share || !paceAllowed(plus)}
           onValueChange={(on) => setOn(room.id, on)}
           accessibilityLabel={t.title}
         />
       </View>
       <Hint>{share ? t.switchHint : t.needsSharing}</Hint>
-      {settings.on && share ? (
+      {settings.on && share && paceAllowed(plus) ? (
         <>
           {!active ? <Hint>{t.needsActivity}</Hint> : null}
           {stats ? <StatsRow {...stats} /> : null}

@@ -6,6 +6,7 @@ import { StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { type StatusDefinition, useRoomActivity } from '@/lib/activity';
+import { usePlusPreview } from '@/features/calendar/calendar-store';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { useLivePresence, useMyShare } from '@/lib/location';
@@ -26,6 +27,11 @@ const CUE_SHOWN_MS = 12_000;
 /** Pace maker applies to running rooms: type sports with location sharing allowed. */
 export function paceApplies(room: Pick<Room, 'type' | 'location_allowed'>) {
   return room.type === 'sports' && room.location_allowed;
+}
+
+/** capacity B item 4: the pace maker is Plus on the caller's own plan (user_plans). null (still loading) = not yet. */
+export function paceAllowed(plus: boolean | null): boolean {
+  return plus === true;
 }
 
 /**
@@ -54,7 +60,8 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
   const settings = usePaceSettings(room.id);
   const my = useMyShare(room.id, userId);
   const focused = useIsFocused();
-  const running = room.activity_state === 'active' && settings.on && my.share;
+  const plus = usePlusPreview(userId);
+  const running = room.activity_state === 'active' && settings.on && my.share && paceAllowed(plus);
   const live = running && focused;
   const key = runKey(room.id, room.activity_seq);
   // Only while the Map is in front: fixes feed only then, and a hidden tab would refetch every member's row on

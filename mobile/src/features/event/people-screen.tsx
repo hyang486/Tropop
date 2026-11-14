@@ -5,7 +5,8 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmptyState } from '@/components/empty-state';
-import { QCard, QScreen } from '@/components/q-screen';
+import { QCard, QLink, QScreen } from '@/components/q-screen';
+import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { Button, colors, Hint } from '@/components/ui';
 
 import { listEntryProfiles } from './entry-api';
@@ -13,7 +14,7 @@ import { linksByUser } from './event-plan';
 import { QrewingHeaderButton, useQrewingAskButton } from './qrewing-fab';
 import { peopleEmpty } from './people-empty';
 import { type MatchResult, type QrewingError, requestMatches, useEntryQuestions, useQrewingRoom } from './qrewing-api';
-import { matchStep } from './qrewing-plan';
+import { isPlanLimit, matchStep } from './qrewing-plan';
 import { en } from '@/i18n/en';
 import { listMembers } from '@/lib/rooms';
 
@@ -154,7 +155,13 @@ export function PeopleScreen() {
         ) : empty === 'noEntry' ? (
           <EmptyState art="meetup" title={s.noEntryTitle} body={s.noEntry} />
         ) : (
-          <Hint tone="error">{notConsented ? s.notConsented : en.qrewing.errors[state.error]}</Hint>
+          <>
+            <Hint tone="error">{notConsented ? s.notConsented : en.qrewing.errors[state.error]}</Hint>
+            {isPlanLimit(state.error) ? (
+              // capacity B item 4: people to meet (for me) is Plus on the caller's own plan.
+              <QLink title={en.planPreview.seePlus} onPress={() => router.push(plusIntroHref('people'))} />
+            ) : null}
+          </>
         )
       ) : empty === 'noQuestions' ? (
         <EmptyState art="meetup" title={s.noQuestionsTitle} body={s.noQuestions} />

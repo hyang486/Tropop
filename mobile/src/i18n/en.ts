@@ -496,6 +496,8 @@ export const en = {
     title: 'Pace maker',
     switchHint: 'Qrewing coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
     needsSharing: 'Turn on Share my location to use the pace maker.',
+    // capacity B item 4: the pace maker follows your own plan, also in a Free host's room.
+    plusOnly: 'The pace maker is part of Qrew Plus.',
     needsActivity: 'Cues start when the host starts the activity.',
     target: 'Target',
     targetUsual: (pace: string | null) => (pace ? `My usual pace (${pace} per km)` : 'My usual pace (no runs yet)'),
@@ -714,6 +716,8 @@ export const en = {
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
   },
   planPreview: {
+    /** capacity B item 4: the link from a personal Plus feature to the Plus intro. */
+    seePlus: 'See Plus ›',
     // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).
     title: 'Qrew Plus',
     pill: 'Qrew Plus',

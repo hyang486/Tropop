@@ -6,7 +6,8 @@
  * People + at the Free max, capacity option B). The profile link sends
  * no `from`; unknown values count as none, and none shows the diary preview.
  */
-export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity'] as const;
+// capacity B item 4: 'ask' and 'pace' are personal features on the caller's own plan (existing slides, no new one).
+export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity', 'ask', 'pace'] as const;
 export type PlusFrom = (typeof PLUS_FROM)[number];
 
 // Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): calendar AI add, diary, room Qrewing AI, rooms
@@ -30,6 +31,8 @@ const PREVIEW: Record<PlusFrom, PlusPreview> = {
   more: 'trip',
   people: 'trip',
   capacity: 'trip',
+  ask: 'chat',
+  pace: 'trip',
 };
 
 /** The route param (string, array or missing) → a known source, or null (no reason card). */
