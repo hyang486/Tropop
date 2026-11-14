@@ -517,6 +517,10 @@ export const en = {
     // UX2-05 (pattern E): the Emergency read failed; never shown as "no Emergency".
     readFailed: "Can't check for Emergencies. Try again.",
     readRetry: 'Try again',
+    // UX2-107: the room channel is down (the last known Emergencies stay listed below), and a slow first read.
+    offlineStale: "You're offline. Emergencies may not be up to date.",
+    checking: 'Checking for Emergencies…',
+    checkingSpoken: 'Checking for Emergencies.',
     // UX2-05b: the status picker when the status list failed to load.
     statusesFailed: "Couldn't load statuses.",
     emergencyTile: 'Emergency',

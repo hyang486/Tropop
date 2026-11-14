@@ -298,7 +298,8 @@ function ChatRoom({
     ]);
   }
 
-  const offline = !chat.live && !chat.loading ? <Text style={styles.offline}>{en.chat.reconnecting}</Text> : null;
+  // UX2-107: one message, not two; while the Emergency row says "You're offline…", no "Reconnecting…" strip.
+  const offline = !chat.live && !chat.loading && !activity.stale ? <Text style={styles.offline}>{en.chat.reconnecting}</Text> : null;
   const showMute = qrewing.available && isEvent && !qrewing.gates.disclosure && !qrewing.gates.entry;
   const banner = smallTalk.banner;
   const bannerMessage = banner ? chat.messages.find((m) => m.id === banner.messageId) : undefined;

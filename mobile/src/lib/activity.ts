@@ -108,6 +108,12 @@ const statusCache = new Map<string, StatusDefinition[]>();
 export function useRoomActivity(roomId: string, userId: string | undefined, activitySeq: number) {
   const [state, setState] = useState<RoomActivity>(EMPTY);
   const seq = useRef(0);
+  // UX2-107: the room channel has not been SUBSCRIBED for over 5 s (live notices may be missed), and the first
+  // read has taken over 3 s. `rearm` restarts the 5 s wait after a manual read that worked.
+  const [subscribed, setSubscribed] = useState(false);
+  const [stale, setStale] = useState(false);
+  const [rearm, setRearm] = useState(0);
+  const [slow, setSlow] = useState(false);
 
   const reload = useCallback(async () => {
     if (!userId) return;
@@ -115,7 +121,11 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
     try {
       const next = await fetchActivity(roomId, userId, activitySeq);
       statusCache.set(roomId, next.statuses);
-      if (mine === seq.current) setState({ ...next, loading: false });
+      if (mine === seq.current) {
+        setState({ ...next, loading: false });
+        setStale(false);
+        setRearm((n) => n + 1);
+      }
     } catch (error) {
       if (mine === seq.current)
         setState((s) => ({
@@ -134,9 +144,26 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
       if (ACTIVITY_TABLES.has(event.table)) reload();
     },
     (status) => {
-      if (status === 'SUBSCRIBED') reload();
+      if (status === 'SUBSCRIBED') {
+        setSubscribed(true);
+        setStale(false);
+        reload();
+      } else setSubscribed(false);
     },
   );
+
+  useEffect(() => {
+    if (subscribed) return;
+    const timer = setTimeout(() => setStale(true), 5000);
+    return () => clearTimeout(timer);
+  }, [subscribed, rearm]);
+
+  const firstRead = state.loading;
+  useEffect(() => {
+    if (!firstRead) return;
+    const timer = setTimeout(() => setSlow(true), 3000);
+    return () => clearTimeout(timer);
+  }, [firstRead]);
 
   useEffect(() => {
     reload();
@@ -206,5 +233,5 @@ export function useRoomActivity(roomId: string, userId: string | undefined, acti
     [reload],
   );
 
-  return { ...state, reload, arrive, setStatus, setEmergency, clearStatus, acknowledge };
+  return { ...state, stale, slow, reload, arrive, setStatus, setEmergency, clearStatus, acknowledge };
 }

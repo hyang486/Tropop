@@ -1,5 +1,6 @@
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   AppState,
   Pressable,
@@ -22,6 +23,7 @@ import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
 import { createAnnouncer, emergencyAreaMode, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
+import { errorKind } from '@/lib/error-kind';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
 import { formatAge, type LatLng } from '@/lib/location-plan';
@@ -111,8 +113,15 @@ export function EmergencyAlerts({
     }
   }
 
-  const area = emergencyAreaMode({ loading: activity.loading, error: activity.error, count: activity.emergencies.length });
+  const area = emergencyAreaMode({
+    loading: activity.loading,
+    error: activity.error,
+    count: activity.emergencies.length,
+    stale: activity.stale,
+    slow: activity.slow,
+  });
   if (!userId || area === 'none') return null;
+  if (area === 'checking') return <CheckingRow />;
 
   const folded = emergenciesFolded({ place, count: activity.emergencies.length, shown: shownAll });
 
@@ -134,7 +143,12 @@ export function EmergencyAlerts({
         if (h > windowHeight * EMERGENCY_MAX_HEIGHT_SHARE) scrollRef.current?.flashScrollIndicators();
       }}
     >
-      {area === 'failed' ? <ReadFailedRow onRetry={activity.reload} /> : null}
+      {area === 'failed' ? (
+        <ReadFailedRow
+          offline={activity.stale || errorKind(activity.error) === 'offline'}
+          onRetry={activity.reload}
+        />
+      ) : null}
       {folded ? (
         <EnterView>
           <Pressable
@@ -322,8 +336,14 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
   useRoomEvents(roomId, (event) => {
     if (event.table === 'room_members') loadNames();
   });
-  if (emergencyAreaMode({ loading: activity.loading, error: activity.error, count: activity.emergencies.length }) === 'none')
-    return null;
+  const area = emergencyAreaMode({
+    loading: activity.loading,
+    error: activity.error,
+    count: activity.emergencies.length,
+    stale: activity.stale,
+    slow: activity.slow,
+  });
+  if (area === 'none') return null;
   return (
     <View style={style}>
       <EmergencyAlerts roomId={roomId} activity={activity} userId={userId} names={names} presence={presence} />
@@ -332,7 +352,19 @@ export function RoomEmergencyBanner({ roomId, style }: { roomId: string; style?:
 }
 
 /** UX2-05 (pattern E): red cause line + one ink-outline "Try again" (36 pt inside a 44 pt hit area, busy while it runs). */
-function ReadFailedRow({ onRetry }: { onRetry: () => Promise<void> }) {
+/** UX2-107: a first read that takes over 3 s; neutral, never red, so it does not read as an Emergency. */
+function CheckingRow() {
+  return (
+    <View style={styles.checking} accessible accessibilityLabel={en.activity.checkingSpoken}>
+      <ActivityIndicator size="small" color={colors.ink2} />
+      <Text style={styles.checkingText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+        {en.activity.checking}
+      </Text>
+    </View>
+  );
+}
+
+function ReadFailedRow({ onRetry, offline }: { onRetry: () => Promise<void>; offline: boolean }) {
   const [busy, setBusy] = useState(false);
   async function retry() {
     setBusy(true);
@@ -345,7 +377,7 @@ function ReadFailedRow({ onRetry }: { onRetry: () => Promise<void> }) {
   return (
     <View style={styles.failed} accessibilityLiveRegion="polite">
       <Text style={styles.failedText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
-        {en.activity.readFailed}
+        {offline ? en.activity.offlineStale : en.activity.readFailed}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -441,6 +473,8 @@ const styles = StyleSheet.create({
   },
   lineText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
   lineOpen: { fontSize: 15, fontWeight: '600', color: colors.label },
+  checking: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12 },
+  checkingText: { flex: 1, fontSize: 13, color: colors.ink2 },
   failed: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 12 },
   failedText: { flex: 1, fontSize: 15, color: colors.errorText },
   failedButton: {

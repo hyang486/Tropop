@@ -91,8 +91,17 @@ export function createAnnouncer() {
  * UX2-05: what the pinned Emergency area shows. A failed read is 'failed' (pattern E with "Try again"), never an empty
  * area, because nothing pinned would read as "no Emergency" when we do not know. Earlier Emergencies stay listed below.
  */
-export function emergencyAreaMode(o: { loading: boolean; error: unknown; count: number }): 'none' | 'failed' | 'list' {
-  if (o.loading) return 'none';
+export function emergencyAreaMode(o: {
+  loading: boolean;
+  error: unknown;
+  count: number;
+  /** UX2-107: the room channel has been down for over 5 s, so the list may be out of date. */
+  stale?: boolean;
+  /** UX2-107: the first read has taken over 3 s. */
+  slow?: boolean;
+}): 'none' | 'checking' | 'failed' | 'list' {
+  if (o.stale) return 'failed';
+  if (o.loading) return o.slow ? 'checking' : 'none';
   if (o.error != null) return 'failed';
   return o.count > 0 ? 'list' : 'none';
 }
