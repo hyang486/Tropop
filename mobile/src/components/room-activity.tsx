@@ -19,7 +19,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, emergencyBarMode, emergenciesFolded, seenSummary } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, emergencyBarMode, emergenciesFolded, seenSummary, spokenSentence } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
@@ -199,11 +199,12 @@ export function EmergencyAlerts({
         // Q 04.03 / UX P0-1: pinned bar with the requester, time and seen count, and one action. Who saw it
         // and the location age are read out; the text opens the last shared location when there is one.
         const canOpenLocation = !mine && location.kind === 'shared';
-        const spoken = [
+        const spoken = spokenSentence([
           title,
-          `${timeOf(e.createdAt)} · ${seen === 0 ? en.activity.waitingSeen : en.activity.seenByNames(who, seen, recipients)}`,
+          timeOf(e.createdAt),
+          seen === 0 ? en.activity.waitingSeen : en.activity.seenByNames(who, seen, recipients),
           location.kind === 'shared' ? en.activity.lastLocation(formatAge(location.updatedAt, now)) : en.activity.noLocation,
-        ].join('. ');
+        ]);
         return (
           <EnterView key={e.id}>
             <View style={styles.bar} accessibilityRole="alert">

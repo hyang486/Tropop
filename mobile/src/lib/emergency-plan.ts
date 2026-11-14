@@ -101,3 +101,9 @@ export function statusPickerPlan<S extends { id: string; is_emergency: boolean }
   const showClear = !inEmergency && !!o.currentId && o.statuses.some((s) => s.id === o.currentId);
   return { emergency, others, showClear, showError: o.failed, inEmergency };
 }
+
+/** UX2-77b: one VoiceOver sentence from parts. Each part loses its trailing periods, empty parts drop, and the parts join with ". ". */
+export function spokenSentence(parts: string[]): string {
+  const kept = parts.map((p) => p.trim().replace(/\.+$/, '')).filter(Boolean);
+  return kept.length ? `${kept.join('. ')}.` : '';
+}
