@@ -15,11 +15,6 @@ test('diaryText: never blank, at most 3 lines, skips empty or non-string lines',
   assert.deepEqual(f.diaryText(['a', '', 'b', 'c', 'd'], t.diaryNone), ['a', 'b', 'c']);
 });
 
-test('dayLabel: says Today on the current day', () => {
-  assert.equal(t.dayLabel('Friday, November 13', ['Run'], true), 'Today, Friday, November 13: Run');
-  assert.equal(t.dayLabel('Saturday, November 14', [], false), 'Saturday, November 14, nothing planned');
-});
-
 test('ask error names the Add event button, not a bare "+"', () => {
   assert.match(t.askErrors.other, /Add event/);
 });

@@ -18,10 +18,8 @@ test('(b) the picker section is called Icon', () => {
   assert.match(read('i18n/en.ts'), /emojiLabel: 'Icon',/);
 });
 
-test('(c) the day header and row titles use the hand font; the subtitle stays system', () => {
-  assert.match(screen, /styles\.dayHead, hand\(dayTitle\(selected\)\)/);
-  assert.match(screen, /styles\.dayTitle, hand\(item\.title\)/);
-  assert.match(screen, /<Text style=\{styles\.daySub\}>/);
+test('(c) superseded by tiers FINAL 2026-11-13 PM: there is no day list under the calendar', () => {
+  assert.doesNotMatch(screen, /styles\.(dayList|dayHead|dayTitle|daySub|dayRow)\b/);
 });
 
 test('(d/e) both screens sit on the calendar paper token, header included, no hard-coded color', () => {

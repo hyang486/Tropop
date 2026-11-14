@@ -195,9 +195,7 @@ export function parseCalendarAdd(data: unknown): EventInput | null {
   return checkEvent(input) ? null : input;
 }
 
-/** Plus gating (local preview flag): loading while unread, the upsell when off, the calendar when on. */
-export function calendarGate(plus: boolean | null, signedIn: boolean): 'loading' | 'upsell' | 'calendar' {
-  if (!signedIn) return 'upsell';
-  if (plus === null) return 'loading';
-  return plus ? 'calendar' : 'upsell';
+/** Calendar tiers (human FINAL 2026-11-13 PM): Free and Plus both get the calendar; only signing in is required. */
+export function calendarGate(signedIn: boolean): 'signedOut' | 'calendar' {
+  return signedIn ? 'calendar' : 'signedOut';
 }

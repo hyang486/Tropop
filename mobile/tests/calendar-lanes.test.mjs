@@ -74,7 +74,8 @@ test('F2: "+N" sits in the day-number band, above every lane', () => {
   const more = src.match(/\n {2}more: \{([^}]*)\}/)[1];
   assert.doesNotMatch(more, /bottom:/);
   const top = Number(more.match(/top: (\d+)/)[1]);
-  const size = Number(more.match(/fontSize: (\d+)/)[1]);
+  // Tiers FINAL: "+N" is a button (styles.more) around its text (styles.moreText).
+  const size = Number(src.match(/\n {2}moreText: \{([^}]*)\}/)[1].match(/fontSize: (\d+)/)[1]);
   // Text box ≈ 1.3 × font size; it must end before lane 0 starts (DAY_H).
   assert.ok(top + Math.ceil(size * 1.3) <= num('DAY_H'), `+N ends at ${top + size * 1.3}`);
 });

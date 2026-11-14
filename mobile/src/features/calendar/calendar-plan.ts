@@ -216,3 +216,22 @@ export function roomRange(
 export function isPastRoom(room: { end: string }, now: number): boolean {
   return Date.parse(room.end) <= now;
 }
+
+/**
+ * Calendar tiers (human FINAL 2026-11-13 PM): what tapping a bar, icon or "+N" sheet row does. A room opens the
+ * diary card on Plus and the Plus upsell on Free (never the diary text, even one saved earlier); my own event opens
+ * the editor on both. While the Plus flag is unread, a room tap waits (null) instead of guessing the tier.
+ */
+export type ItemAction = 'diary' | 'upsell' | 'edit';
+
+export function itemAction(kind: CalItem['kind'], plus: boolean | null): ItemAction | null {
+  if (kind === 'event') return 'edit';
+  if (plus === null) return null;
+  return plus ? 'diary' : 'upsell';
+}
+
+/** The VoiceOver action word for a bar: what a tap does, with Free rooms named as a Plus feature. */
+export function barAction(kind: CalItem['kind'], plus: boolean | null): 'diary' | 'plus' | 'edit' {
+  if (kind === 'event') return 'edit';
+  return plus ? 'diary' : 'plus';
+}

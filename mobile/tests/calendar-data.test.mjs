@@ -98,11 +98,9 @@ test('applyRecap: a capped diary (null + fallback emoji) never replaces a saved 
   assert.deepEqual(after.rooms.a.diary, ['We ran by the sea.']);
 });
 
-test('calendarGate: Plus preview on shows the calendar; off, unread or signed out shows the upsell or waits', () => {
-  assert.equal(d.calendarGate(true, true), 'calendar');
-  assert.equal(d.calendarGate(false, true), 'upsell');
-  assert.equal(d.calendarGate(null, true), 'loading');
-  assert.equal(d.calendarGate(true, false), 'upsell');
+test('calendarGate: Free and Plus both get the calendar once signed in (tiers FINAL 2026-11-13 PM)', () => {
+  assert.equal(d.calendarGate(true), 'calendar');
+  assert.equal(d.calendarGate(false), 'signedOut');
 });
 
 test('mayWrite: after sign-out a late write for the old user is skipped; before any auth event it passes', () => {
