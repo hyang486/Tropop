@@ -12,7 +12,7 @@
  */
 
 /** Root-stack routes presented as modals (`presentation: 'modal'` in `app/_layout.tsx`). */
-export const MODAL_ROUTES: readonly string[] = ['upgrade', 'room/[id]/invite'];
+export const MODAL_ROUTES: readonly string[] = ['upgrade', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions'];
 
 /** Splits a link into its path after the scheme, without query or hash; null for a foreign URL. */
 function linkPath(path: string): string | null {
@@ -55,6 +55,23 @@ export function joinLinkHref(path: string): string | null {
   return match ? `/join/${match[1]}` : null;
 }
 
+/**
+ * UX2-136: the in-app href for a room link (`moment:///room/<id>`, also a room sub-screen such as
+ * `/room/<id>/map`), or null. With a modal open it is opened from the root like a join link, so the room is a
+ * full-screen push with Back instead of a sheet inside the modal.
+ */
+export function roomLinkHref(path: string): string | null {
+  const rest = linkPath(path);
+  if (rest === null) return null;
+  const match = /^\/*(room\/[^/]+(?:\/[^/]+)*?)\/?$/i.exec(rest);
+  return match ? `/${match[1]}` : null;
+}
+
+/** The href a warm link opens from the root while a modal is open (a join or a room link), or null. */
+export function fromRootHref(path: string): string | null {
+  return joinLinkHref(path) ?? roomLinkHref(path);
+}
+
 type RouteState = { index?: number; routes: readonly { name: string; state?: RouteState }[] };
 
 /**
@@ -72,7 +89,7 @@ export function hasOpenModal(state: RouteState | null | undefined, modalRoutes: 
 
 /**
  * 'reset' = the handler resets to the Rooms root (closing an open modal) and the link is dropped.
- * 'join' = a modal is open: the handler closes it and opens the invite from the root; the link is
+ * 'join' = a modal is open: the handler closes it and opens the invite (or, UX2-136, the room) from the root; the link is
  * dropped. 'pass' = default Expo Router handling (cold start, no modal, other links, signed out).
  */
 export type RootLinkPlan = 'reset' | 'join' | 'pass';
@@ -80,7 +97,7 @@ export type RootLinkPlan = 'reset' | 'join' | 'pass';
 export function rootLinkPlan(path: string, initial: boolean, hasHandler: boolean, modalOpen = false): RootLinkPlan {
   if (initial || !hasHandler) return 'pass';
   if (isRootLink(path) || isSignedOutOnlyLink(path)) return 'reset';
-  if (modalOpen && joinLinkHref(path) !== null) return 'join';
+  if (modalOpen && fromRootHref(path) !== null) return 'join';
   return 'pass';
 }
 
@@ -110,7 +127,7 @@ export function handleRootLink(path: string, initial: boolean): boolean {
     handler.reset(modalOpen);
     return true;
   }
-  const href = plan === 'join' ? joinLinkHref(path) : null;
+  const href = plan === 'join' ? fromRootHref(path) : null;
   if (href === null) return false;
   handler.openFromRoot(href);
   return true;

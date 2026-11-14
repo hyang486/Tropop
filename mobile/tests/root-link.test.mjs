@@ -11,6 +11,7 @@ import {
   isRootLink,
   isSignedOutOnlyLink,
   joinLinkHref,
+  roomLinkHref,
   rootLinkPlan,
   setRootLinkHandler,
 } from '../src/lib/root-link.ts';
@@ -64,7 +65,7 @@ test('non-join links have no join href', () => {
 });
 
 test('hasOpenModal looks at the active root routes only', () => {
-  assert.deepEqual([...MODAL_ROUTES], ['upgrade', 'room/[id]/invite']);
+  assert.deepEqual([...MODAL_ROUTES], ['upgrade', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions']);
   assert.equal(hasOpenModal(undefined), false);
   assert.equal(hasOpenModal({ index: 0, routes: [{ name: 'index' }] }), false);
   assert.equal(hasOpenModal({ index: 2, routes: [{ name: 'index' }, { name: 'room/[id]/index' }, { name: 'room/[id]/info' }] }), false);
@@ -99,8 +100,8 @@ test('plan: root link resets, a join link is taken only with a modal open', () =
   // Cold start and signed out stay on default handling even with a modal.
   assert.equal(rootLinkPlan('moment://join/abc', true, true, true), 'pass');
   assert.equal(rootLinkPlan('moment://join/abc', false, false, true), 'pass');
-  // Other links are never taken.
-  assert.equal(rootLinkPlan('moment:///room/1', false, true, true), 'pass');
+  // Other links (not join, not room) are never taken.
+  assert.equal(rootLinkPlan('moment:///room/1', false, true, true), 'join'); // UX2-136: a room link also opens from the root
   assert.equal(rootLinkPlan('moment://expo-development-client/?url=x', false, true, true), 'pass');
 });
 
@@ -129,11 +130,13 @@ test('modal open: the root link resets through it and a join link opens from the
   setRootLinkHandler(h);
   assert.equal(handleRootLink('moment:///', false), true);
   assert.equal(handleRootLink(`moment://join/${TOKEN}`, false), true);
-  assert.equal(handleRootLink('moment:///room/1', false), false);
+  // UX2-136: a room link opens from the root too (it was pushed inside the modal as a sheet with no Back).
+  assert.equal(handleRootLink('moment:///room/1', false), true);
   assert.equal(handleRootLink(`moment://join/${TOKEN}`, true), false);
   assert.deepEqual(h.calls, [
     ['reset', true],
     ['openFromRoot', `/join/${TOKEN}`],
+    ['openFromRoot', '/room/1'],
   ]);
   setRootLinkHandler(null);
 });
@@ -157,4 +160,23 @@ test('UX2-135: signed in, a warm link to a signed-out-only screen resets to Room
   for (const link of ['/start', '/start/code/x', '/join/abc', '/scan', '/profile', 'https://example.com/start/code']) {
     assert.equal(isSignedOutOnlyLink(link), false, link);
   }
+});
+
+test('UX2-136: room link forms map to their href; with a modal open (any of the four) they open from the root', () => {
+  assert.equal(roomLinkHref('moment:///room/abc'), '/room/abc');
+  assert.equal(roomLinkHref('moment://room/abc/'), '/room/abc');
+  assert.equal(roomLinkHref('/room/abc/map?x=1'), '/room/abc/map');
+  assert.equal(roomLinkHref('moment:///room/abc/media/m1'), '/room/abc/media/m1');
+  for (const p of ['/room', '/room/', '/rooms/abc', '/join/abc', 'https://example.com/room/abc', 'moment:room/abc']) {
+    assert.equal(roomLinkHref(p), null, p);
+  }
+  for (const name of ['upgrade', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions']) {
+    const state = { index: 2, routes: [{ name: 'index' }, { name: 'room/[id]/index' }, { name }] };
+    assert.equal(hasOpenModal(state), true, name);
+  }
+  assert.equal(rootLinkPlan('moment:///room/abc', false, true, true), 'join');
+  // No modal, cold start, or signed out: default handling (a plain push on the root stack already has Back).
+  assert.equal(rootLinkPlan('moment:///room/abc', false, true, false), 'pass');
+  assert.equal(rootLinkPlan('moment:///room/abc', true, true, true), 'pass');
+  assert.equal(rootLinkPlan('moment:///room/abc', false, false, true), 'pass');
 });
