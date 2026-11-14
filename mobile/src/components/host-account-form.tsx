@@ -6,7 +6,6 @@ import { InkArt } from '@/components/ink-art';
 import { QField, QLink, QScreen } from '@/components/q-screen';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { sendPasswordReset } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 
 type Props = {
@@ -36,28 +35,6 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
   // K2: the submit button stays in view with the focused field while typing (QScreen keepVisible).
   const submitRef = useRef<ComponentRef<typeof View>>(null);
   const isNew = mode !== 'sign-in';
-  const [resetting, setResetting] = useState(false);
-
-  // UX2-27: "Forgot password?" sends the Supabase reset email to the typed address.
-  async function forgot() {
-    if (!email.trim()) {
-      setNotice(null);
-      setError(en.hostAccount.forgotNeedsEmail);
-      emailRef.current?.focus();
-      return;
-    }
-    setResetting(true);
-    setError(null);
-    try {
-      await sendPasswordReset(email);
-      setNotice(en.hostAccount.resetSent);
-    } catch (e) {
-      setNotice(null);
-      setError(errorMessage(e));
-    } finally {
-      setResetting(false);
-    }
-  }
 
   async function submit() {
     if (!email.trim() || !password) {
@@ -125,9 +102,6 @@ export function HostAccountForm({ mode, hint, submitTitle, initialName = '', onS
         <Button title={submitTitle} onPress={submit} busy={busy} />
       </View>
       {hint && <Hint>{hint}</Hint>}
-      {mode === 'sign-in' ? (
-        <QLink title={en.hostAccount.forgotPassword} onPress={forgot} disabled={resetting || busy} />
-      ) : null}
       {mode === 'sign-in' ? <QLink title={en.hostAccount.createAccount} onPress={() => router.push('/sign-up')} /> : null}
     </QScreen>
   );

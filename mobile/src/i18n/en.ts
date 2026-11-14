@@ -39,10 +39,6 @@ export const en = {
     newTitle: 'Become a host',
     newSubtitle: 'Create rooms and invite your group.',
     createAccount: 'New here? Create an account',
-    // UX2-27: Supabase sends the reset email; the reply never says whether the address has an account.
-    forgotPassword: 'Forgot password?',
-    forgotNeedsEmail: 'Enter your email address first.',
-    resetSent: 'If an account uses this email, a reset link is on its way.',
   },
   fields: {
     email: 'Email address',
