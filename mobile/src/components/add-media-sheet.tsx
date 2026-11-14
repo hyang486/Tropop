@@ -78,17 +78,17 @@ export function AddMediaSheet({
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.25)' },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: colors.scrim },
   sheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.sheet,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderCurve: 'continuous',
     paddingHorizontal: qSpacing.side,
     paddingTop: 8,
     gap: 4,
   },
-  grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.separator, marginBottom: 12 },
+  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber, marginBottom: 12 },
   title: { marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 56 },
   icon: { width: 28, height: 28 },

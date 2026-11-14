@@ -54,7 +54,7 @@ export function AnswerSheet({
           <View style={styles.grabber} />
           <ScrollView contentContainerStyle={styles.body} bounces={false}>
             <HandTitle>{s.yourQuestion}</HandTitle>
-            {card ? <AnsweredCard card={card} answerer={answerer(card.answererId)} /> : null}
+            {card ? <AnsweredCard card={card} answerer={answerer(card.answererId)} onSheet /> : null}
             <Text style={styles.note}>{s.askMoreIsPlus}</Text>
             <Button
               title={en.planPreview.seePlus}
@@ -75,18 +75,18 @@ export function AnswerSheet({
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.25)' },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: colors.scrim },
   sheet: {
     maxHeight: '85%',
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.sheet,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderCurve: 'continuous',
     paddingHorizontal: qSpacing.side,
     paddingTop: 8,
     gap: 12,
   },
-  grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.separator },
+  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber },
   body: { gap: 12 },
   note: { fontSize: 15, color: colors.ink2 },
 });

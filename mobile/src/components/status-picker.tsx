@@ -193,16 +193,16 @@ function Tile({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 0, flexShrink: 1 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
+  backdrop: { flex: 1, backgroundColor: colors.scrim },
   sheet: {
     maxHeight: '85%',
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.sheet,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderCurve: 'continuous',
     paddingTop: 8,
   },
-  handle: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: colors.separator, marginBottom: 8 },
+  handle: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber, marginBottom: 8 },
   body: { paddingHorizontal: 16, paddingBottom: 8, gap: 16 },
   title: { fontSize: 30, lineHeight: 38 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -210,7 +210,8 @@ const styles = StyleSheet.create({
     // Two columns (Q 03.02): half the row minus half the gap.
     width: '48.6%',
     minHeight: 64,
-    backgroundColor: colors.field,
+    // UX2-45: tiles inside a sheet use cardStrong, so they show on the dark sheet surface.
+    backgroundColor: colors.fieldStrong,
     borderRadius: 12,
     borderCurve: 'continuous',
     padding: 12,

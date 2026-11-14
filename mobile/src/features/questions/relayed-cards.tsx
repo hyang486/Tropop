@@ -83,7 +83,7 @@ export function AnsweredCards({ roomId }: { roomId: string }) {
 }
 
 /** UX2-04b: one answered question: my bubble, then the answer with the answerer's name and time. */
-export function AnsweredCard({ card, answerer }: { card: QuestionCard; answerer: string }) {
+export function AnsweredCard({ card, answerer, onSheet }: { card: QuestionCard; answerer: string; onSheet?: boolean }) {
   const at = card.answeredAt ? new Date(card.answeredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
   const by = at ? s.answerBy(answerer, at) : answerer;
   return (
@@ -93,7 +93,7 @@ export function AnsweredCard({ card, answerer }: { card: QuestionCard; answerer:
           {card.question}
         </Text>
       </View>
-      <View style={[styles.bubble, styles.bot]} accessible accessibilityLabel={`${by}: ${card.answer ?? ''}`}>
+      <View style={[styles.bubble, styles.bot, onSheet && styles.botOnSheet]} accessible accessibilityLabel={`${by}: ${card.answer ?? ''}`}>
         <Text style={styles.by}>{by}</Text>
         <Text style={styles.text} selectable>
           {card.answer}
@@ -152,6 +152,8 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
   bot: { alignSelf: 'flex-start', backgroundColor: colors.field, gap: 2 },
+  // UX2-45: on a sheet the answer bubble is cardStrong (card would match the dark sheet).
+  botOnSheet: { backgroundColor: colors.fieldStrong },
   by: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   text: { fontSize: 16, color: colors.label },
   note: { fontSize: 14, color: colors.ink2 },

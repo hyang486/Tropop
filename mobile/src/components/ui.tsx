@@ -25,8 +25,30 @@ import {
 export const palette = {
   // cardStrong: own chat bubbles (Q 03.01 "On my way!"); dangerCard: the Emergency card and status (Q 03.02, 04.03).
   // ink2 (UX §3): hints, labels and timestamps; 6.4:1 on paper (light). secondaryLabel stays for placeholders only.
-  light: { ink: '#181817', ink2: '#5E5E58', paper: '#FFFFFF', card: '#F6F6F2', cardStrong: '#EAEAE5', dangerCard: '#FDECEC' },
-  dark: { ink: '#EDEDE8', ink2: '#A8A8A2', paper: '#000000', card: '#1C1C1E', cardStrong: '#2C2C2E', dangerCard: '#3A1A1A' },
+  // UX2-45: sheet is the iOS elevated background (dark #1C1C1E lifts a sheet off the #000 screen); scrim behind it;
+  // grabber is ink2 at 40%.
+  light: {
+    ink: '#181817',
+    ink2: '#5E5E58',
+    paper: '#FFFFFF',
+    card: '#F6F6F2',
+    cardStrong: '#EAEAE5',
+    dangerCard: '#FDECEC',
+    sheet: '#FFFFFF',
+    scrim: 'rgba(0,0,0,0.25)',
+    grabber: 'rgba(94,94,88,0.4)',
+  },
+  dark: {
+    ink: '#EDEDE8',
+    ink2: '#A8A8A2',
+    paper: '#000000',
+    card: '#1C1C1E',
+    cardStrong: '#2C2C2E',
+    dangerCard: '#3A1A1A',
+    sheet: '#1C1C1E',
+    scrim: 'rgba(0,0,0,0.5)',
+    grabber: 'rgba(168,168,162,0.4)',
+  },
 } as const;
 
 function themed(key: keyof typeof palette.light) {
@@ -55,7 +77,18 @@ export const colors = {
   onTint: themed('paper'),
   danger: PlatformColor('systemRed'),
   warning: PlatformColor('systemOrange'),
+  /** UX2-45: custom bottom sheets. Cards, rows and bubbles inside a sheet use `fieldStrong`, not `field`. */
+  sheet: themed('sheet'),
+  scrim: themed('scrim'),
+  grabber: themed('grabber'),
 };
+
+/** UX2-45: one look for every custom bottom sheet: scrim, 16 pt top radius on `sheet`, a 36×5 grabber. */
+export const sheetStyle = StyleSheet.create({
+  scrim: { backgroundColor: colors.scrim },
+  surface: { backgroundColor: colors.sheet, borderTopLeftRadius: 16, borderTopRightRadius: 16, borderCurve: 'continuous' },
+  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber },
+});
 
 /** Chips are pills. */
 export const radius = { pill: 999 };
