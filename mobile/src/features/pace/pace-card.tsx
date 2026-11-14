@@ -11,6 +11,7 @@ import { usePlanState } from '@/features/calendar/calendar-store';
 import { plusIntroHref } from '@/features/calendar/plus-intro';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { useSharingState } from '@/lib/location';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 import type { Room } from '@/lib/rooms';
 
 import { runKey, usePaceRun } from './engine';
@@ -176,6 +177,8 @@ function TargetRow({
   current: number | null;
 }) {
   const [editing, setEditing] = useState(false);
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(editing ? () => setEditing(false) : null);
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion(); // Reduce Motion: the sheet fades in instead of sliding.
   const fill = targetBarFill(current, goal);
@@ -206,7 +209,7 @@ function TargetRow({
           <Text style={styles.editText}>{t.editTarget}</Text>
         </Pressable>
       </View>
-      <Modal visible={editing} transparent animationType={reduceMotion ? 'fade' : 'slide'} onRequestClose={() => setEditing(false)}>
+      <Modal visible={editing} transparent animationType={instant ? 'none' : reduceMotion ? 'fade' : 'slide'} onRequestClose={() => setEditing(false)}>
         {/* The pace and time fields sit in the sheet, so it rises with the keyboard. */}
         <KeyboardAvoidingView behavior="padding" style={styles.sheetRoot}>
           <Pressable

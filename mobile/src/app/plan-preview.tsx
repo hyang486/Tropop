@@ -14,6 +14,7 @@ import { type PlusLine, type PlusPreview, plusFrom, plusPitch } from '@/features
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { HAND_FONT_LATIN } from '@/lib/hand-font';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 const t = en.planPreview;
 const s = t.sample;
@@ -204,10 +205,12 @@ function Preview({ kind }: { kind: PlusPreview }) {
 /** "See what's included": the Free vs Plus table, Always free, and the prices note, as a page sheet. */
 function IncludedSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(visible ? onClose : null);
   const say = (v: string | boolean | null) => (typeof v === 'string' ? v : v ? t.included : t.notIncluded);
   const show = (v: string | boolean | null) => (typeof v === 'string' ? v : v ? '✓' : '—');
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType={instant ? 'none' : 'slide'} presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <ScrollView contentContainerStyle={styles.sheetBody}>
           <HandTitle>{t.compareTitle}</HandTitle>

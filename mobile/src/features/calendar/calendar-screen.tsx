@@ -30,6 +30,7 @@ import { useAnnounce } from '@/features/event/announce';
 import { calendarAdd } from '@/features/event/qrewing-api';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 import { HAND_FONT_LATIN, handFontFor } from '@/lib/hand-font';
 import { useNow } from '@/lib/use-now';
 
@@ -85,6 +86,8 @@ function CalendarMonth({ uid }: { uid: string }) {
   const [month, setMonth] = useState(() => ({ year: +today.slice(0, 4), month0: +today.slice(5, 7) - 1 }));
   const [width, setWidth] = useState(0);
   const [diary, setDiary] = useState<RoomSnapshot | null>(null);
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const diaryInstant = useDismissOnLink(diary ? () => setDiary(null) : null);
   const [upsell, setUpsell] = useState<RoomSnapshot | null>(null);
   const [sheetDay, setSheetDay] = useState<DateKey | null>(null);
   const [asking, setAsking] = useState(false);
@@ -254,7 +257,7 @@ function CalendarMonth({ uid }: { uid: string }) {
         {plan === 'offline' ? <Hint>{en.planPreview.offline}</Hint> : null}
       </QScreen>
 
-      <Modal visible={!!diary} transparent animationType="fade" onRequestClose={() => setDiary(null)}>
+      <Modal visible={!!diary} transparent animationType={diaryInstant ? 'none' : 'fade'} onRequestClose={() => setDiary(null)}>
         {/* The close scrim is a sibling behind the card: a Pressable wrapping the card would make VoiceOver read
             only "Close diary" and never the diary itself. */}
         <View style={styles.scrim} accessibilityViewIsModal onAccessibilityEscape={() => setDiary(null)}>
@@ -317,6 +320,8 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
   const [gate] = useState(createRequestGate);
   useAnnounce(error, tries);
   useAnnounce(busy ? t.askBusy : null, busy);
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(visible ? close : null);
 
   function close() {
     gate.cancel();
@@ -354,7 +359,7 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
   }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={close}>
+    <Modal visible={visible} animationType={instant ? 'none' : 'slide'} presentationStyle="formSheet" onRequestClose={close}>
       <View style={styles.sheet}>
         <View style={styles.sheetHead}>
           <HandTitle style={styles.sheetTitle}>{t.askTitle}</HandTitle>

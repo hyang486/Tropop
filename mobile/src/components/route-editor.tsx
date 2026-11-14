@@ -14,6 +14,7 @@ import { type Camera, formatRouteKm, type LatLng, MAX_ROUTE_POINTS, routeLengthM
 import { NO_POIS } from '@/lib/map-pois';
 import { MAX_ROUTE_KM, routeTooLong } from '@/lib/route-editor-plan';
 import { appendStroke, isFlatNorthUp, joinStrokes, type MapRegion, type Point, type Size, strokeToRoute } from '@/lib/route-draw';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 /** R1-A: how long a Pen press waits for its camera move to report back. */
 const PEN_WAIT_MS = 2000;
@@ -56,6 +57,8 @@ export function RouteEditor({
   onSave: (route: LatLng[]) => void;
 }) {
   const insets = useSafeAreaInsets();
+  // UX2-46: cancels at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(onCancel);
   const mapRef = useRef<AppleMaps.MapView>(null);
   // The strokes drawn so far; the saved route is the first one. Undo never takes back the saved route
   // (Clear does that).
@@ -177,7 +180,7 @@ export function RouteEditor({
             : en.map.penOffHint;
 
   return (
-    <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onCancel}>
+    <Modal visible animationType={instant ? 'none' : 'slide'} presentationStyle="fullScreen" onRequestClose={onCancel}>
       {/* A Modal is its own native root: gesture-handler needs a root view inside it. */}
       <GestureHandlerRootView style={styles.root}>
         {/* Qrew unit 4 F2 (Q 04.01): back arrow (= Cancel), handwritten title and room name, the map as a card,

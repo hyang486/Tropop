@@ -5,6 +5,7 @@ import { HAND_FONTS } from '@/components/hand-title';
 import { Button } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { handFontFor } from '@/lib/hand-font';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 import { InkIcon } from './ink-icon';
 import { useCalendarColors } from './tokens';
@@ -32,9 +33,11 @@ export function PlusUpsellCard({
 }) {
   const [loaded] = useFonts(HAND_FONTS);
   const palette = useCalendarColors();
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(visible ? onClose : null);
   const hand = (text: string) => (loaded ? { fontFamily: handFontFor(text) } : null);
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={instant ? 'none' : 'fade'} onRequestClose={onClose}>
       {/* The close scrim is a sibling behind the card so VoiceOver reads the card, not only "Close". */}
       <View style={styles.scrim} accessibilityViewIsModal onAccessibilityEscape={onClose}>
         <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={t.upsellClose} onPress={onClose} />

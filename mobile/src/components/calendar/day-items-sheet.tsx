@@ -7,6 +7,7 @@ import { HAND_FONTS } from '@/components/hand-title';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { handFontFor } from '@/lib/hand-font';
+import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
 
 import { InkIcon } from './ink-icon';
 import { PencilDivider } from './pencil-divider';
@@ -35,9 +36,11 @@ export function DayItemsSheet({
 }) {
   const [loaded] = useFonts(HAND_FONTS);
   const palette = useCalendarColors();
+  // UX2-46: closes at once when a link or notification tap navigates.
+  const instant = useDismissOnLink(visible ? onClose : null);
   const hand = (text: string) => (loaded ? { fontFamily: handFontFor(text) } : null);
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType={instant ? 'none' : 'slide'} presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={[styles.sheet, { backgroundColor: colors.background }]}>
         <View style={styles.head}>
           <View style={styles.flex}>
