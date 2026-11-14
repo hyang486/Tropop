@@ -271,3 +271,37 @@ export function bumpMessages(part: MyPart | null): MyPart | null {
 export function myPartForSave(savedMe: MyPart | null | undefined, openMe: MyPart | null | undefined, fresh: MyPart): MyPart {
   return mergeMyPart(openMe ? mergeMyPart(savedMe, openMe) : savedMe, fresh);
 }
+
+const UNREAD_PART: MyPart = { messages: null, mediaShared: null, photosOfMe: null, arrivedAt: null, pace: null };
+
+/**
+ * UI v2 bug 6 (qa, 2026-11-13): the calendar diary was written at once, but the recap only after the network reads
+ * of my part, so a read that hung or failed (app closed, room deleted) left a diary with "No recap was saved". The
+ * recap is now written first with the part already on this phone, then again with the fresh reads. Never rejects
+ * after the first write.
+ */
+export async function saveRecapInTwoSteps(
+  server: ServerRecap,
+  d: {
+    savedMe: () => Promise<MyPart | null | undefined>;
+    openMe: () => Promise<MyPart | null>;
+    fresh: () => Promise<MyPart>;
+    write: (saved: SavedRecap) => Promise<void>;
+    now?: () => string;
+  },
+): Promise<SavedRecap> {
+  const now = d.now ?? (() => new Date().toISOString());
+  const savedMe = await d.savedMe().catch(() => null);
+  const openMe = await d.openMe().catch(() => null);
+  const first: SavedRecap = { server, me: myPartForSave(savedMe, openMe, UNREAD_PART), savedAt: now() };
+  await d.write(first).catch(() => {});
+  let fresh: MyPart;
+  try {
+    fresh = await d.fresh();
+  } catch {
+    return first;
+  }
+  const saved: SavedRecap = { server, me: myPartForSave(savedMe, openMe, fresh), savedAt: now() };
+  await d.write(saved).catch(() => {});
+  return saved;
+}

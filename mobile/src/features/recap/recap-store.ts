@@ -19,7 +19,7 @@ import {
   EMPTY_MY_PART,
   mergeMyPart,
   myPartAfterRoomCheck,
-  myPartForSave,
+  saveRecapInTwoSteps,
   type MyPart,
   parseMark,
   parseMyPart,
@@ -198,15 +198,13 @@ async function save(
       diaryInFlight,
     );
   }
-  const prev = await loadSavedRecap(roomId);
-  const me = myPartForSave(prev?.me, await loadOpenMyPart(roomId), await readMyPart(roomId, userId));
-  const saved: SavedRecap = { server, me, savedAt: new Date().toISOString() };
-  try {
-    await AsyncStorage.setItem(recapKey(roomId), JSON.stringify(saved));
-  } catch {
-    // Not saved on this device; the Room ended screen then says no recap was saved.
-  }
-  return saved;
+  // Bug 6: written before the network reads of my part, then again with them.
+  return saveRecapInTwoSteps(server, {
+    savedMe: async () => (await loadSavedRecap(roomId))?.me,
+    openMe: () => loadOpenMyPart(roomId),
+    fresh: () => readMyPart(roomId, userId),
+    write: (saved) => AsyncStorage.setItem(recapKey(roomId), JSON.stringify(saved)),
+  });
 }
 
 /**
