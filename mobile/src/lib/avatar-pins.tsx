@@ -1,7 +1,7 @@
 import { Image, type ImageRef } from 'expo-image';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { AVATAR_PIN_RADIUS, AVATAR_RING_WIDTH, avatarFaceKey, type AvatarFace } from './location-plan';
 
@@ -18,45 +18,69 @@ const FRAME = 50;
 const BAKE_ATTEMPTS = 4;
 const BAKE_RETRY_MS = 250;
 
+/** V4: the rim is 3 pt white; the On my way badge is an 18 pt ink disc with a 2 pt white rim. */
+const RIM = 3;
+const BADGE_R = 9;
+const BADGE_RIM = 2;
+/** ux: the lift pin's shadow is a radial gradient (r 24, +1 down); 'hairline' is ux's fallback if gradients drop in the bake. */
+const PIN_SHADOW: 'gradient' | 'hairline' = 'gradient';
+const SHADOW_R = 24;
+
+/**
+ * V4 pins: a 40 pt disc with a 3 pt white rim. You (and a "+N" with you in it) = ink disc, paper initial; others
+ * (and other "+N") = lift (white) disc, ink initial, with a soft 0 2 6 shadow (no outline). Emergency = danger disc
+ * with a 20% danger halo. On my way = an ink badge with a white walker at the disc's bottom right.
+ */
 function PinFace({ face }: { face: AvatarFace }) {
   const c = FRAME / 2;
+  const r = AVATAR_PIN_RADIUS;
   const ink = face.stale ? STALE : INK;
   const filled = face.kind === 'me' || face.kind === 'my-cluster';
-  const inner = AVATAR_PIN_RADIUS - 2;
+  const disc = face.emergency ? EMERGENCY_RED : filled ? ink : PAPER;
+  const initial = face.emergency || filled ? PAPER : ink;
   const fontSize = face.kind === 'cluster' || face.kind === 'my-cluster' ? 13 : 15;
+  // The badge sits on the rim toward the bottom right, its white rim touching the 50 pt frame's edges.
+  const b = FRAME - BADGE_R - BADGE_RIM;
+  // Others' pins and others' "+N" are lift discs; only they get the shadow (ink and danger pins need none).
+  const lift = !filled && !face.emergency;
   return (
     <>
-      {face.emergency ? (
-        <Circle
-          cx={c}
-          cy={c}
-          r={AVATAR_PIN_RADIUS + AVATAR_RING_WIDTH / 2}
-          fill="none"
-          stroke={EMERGENCY_RED}
-          strokeWidth={AVATAR_RING_WIDTH}
-        />
+      {face.emergency ? <Circle cx={c} cy={c} r={r + AVATAR_RING_WIDTH} fill={EMERGENCY_RED} fillOpacity={0.2} /> : null}
+      {lift && PIN_SHADOW === 'gradient' ? (
+        // ux: a radial falloff baked under the disc (an SVG blur doesn't survive the PNG bake; rings read as outlines).
+        <>
+          <Defs>
+            <RadialGradient id="pinShadow" cx={c} cy={c + 1} r={SHADOW_R} gradientUnits="userSpaceOnUse">
+              <Stop offset={r / SHADOW_R} stopColor="#000000" stopOpacity={0.18} />
+              <Stop offset={1} stopColor="#000000" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={c} cy={c + 1} r={SHADOW_R} fill="url(#pinShadow)" />
+        </>
       ) : null}
-      {/* A soft shadow so the white outline still has an edge on a light map. */}
-      <Circle cx={c} cy={c + 0.75} r={AVATAR_PIN_RADIUS} fill="#000000" fillOpacity={0.2} />
-      <Circle cx={c} cy={c} r={AVATAR_PIN_RADIUS} fill={PAPER} />
-      <Circle
-        cx={c}
-        cy={c}
-        r={filled ? inner : inner - 0.75}
-        fill={filled ? ink : PAPER}
-        stroke={filled ? 'none' : ink}
-        strokeWidth={filled ? 0 : 1.5}
-      />
-      <SvgText
-        x={c}
-        y={c + fontSize * 0.36}
-        textAnchor="middle"
-        fontSize={fontSize}
-        fontWeight="700"
-        fill={filled ? PAPER : ink}
-      >
+      <Circle cx={c} cy={c} r={r} fill={PAPER} />
+      {lift && PIN_SHADOW === 'hairline' ? (
+        <Circle cx={c} cy={c} r={r + 0.25} fill="none" stroke="#000000" strokeOpacity={0.12} strokeWidth={0.5} />
+      ) : null}
+      <Circle cx={c} cy={c} r={r - RIM} fill={disc} />
+      <SvgText x={c} y={c + fontSize * 0.36} textAnchor="middle" fontSize={fontSize} fontWeight="700" fill={initial}>
         {face.text}
       </SvgText>
+      {face.onWay ? (
+        <G>
+          <Circle cx={b} cy={b} r={BADGE_R + BADGE_RIM} fill={PAPER} />
+          <Circle cx={b} cy={b} r={BADGE_R} fill={INK} />
+          {/* An 11 pt walker: head, body, a forward arm and a striding pair of legs. */}
+          <Circle cx={b + 0.6} cy={b - 3.6} r={1.4} fill={PAPER} />
+          <Path
+            d={`M${b + 0.2} ${b - 1.8} L${b - 0.6} ${b + 1.6} M${b - 0.6} ${b + 1.6} L${b - 2.6} ${b + 4.6} M${b - 0.6} ${b + 1.6} L${b + 1.8} ${b + 4.6} M${b - 0.1} ${b - 0.6} L${b + 2.4} ${b + 0.6} M${b - 0.1} ${b - 0.6} L${b - 2.4} ${b + 0.4}`}
+            stroke={PAPER}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            fill="none"
+          />
+        </G>
+      ) : null}
     </>
   );
 }

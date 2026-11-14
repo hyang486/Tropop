@@ -142,13 +142,33 @@ test('UX2-124: calendar shows a spinner while loading and Try again after a fail
   assert.match(cal, /reloadCalendar\(uid\)/);
 });
 
-test('UX2-93: Map fades its large title block and draws the QScreen top edge fade once scrolled', () => {
+test('V4 Map: full-bleed map under a transparent header with a glass title pill, a fixed lift sheet and glass circles', () => {
   const map = src('app/room/[id]/map.tsx');
-  assert.match(map, /<Animated\.View style=\{\[styles\.head, \{ opacity: inlineTitle\.blockOpacity \}\]\}/);
-  assert.match(map, /setScrolled\(y > 1\)/);
-  assert.match(map, /scrolled && headerHeight > 0 \?/);
-  assert.match(map, /edgeSolid\(headerHeight\)/);
-  assert.match(map, /<\/ScrollView>\s*\{scrolled[\s\S]*<PaceLayer/);
+  assert.match(map, /headerTransparent: true/);
+  assert.match(map, /headerTitle: \(\) => \(\s*<MapGlass style=\{styles\.titlePill\}>/);
+  // The map ends at the sheet's top edge so the Apple Maps logo and Legal link stay visible.
+  assert.match(map, /style=\{\[styles\.mapFill, \{ bottom: sheetHeight \}\]\}/);
+  assert.match(map, /root: \{ flex: 1, backgroundColor: colors\.lift \}/);
+  assert.match(map, /mapFill: \{[^}]*borderBottomLeftRadius: 16, borderBottomRightRadius: 16[^}]*overflow: 'hidden'/);
+  assert.doesNotMatch(map, /sheet: \{[^}]*borderTop/);
+  assert.match(map, /grabber: \{[^}]*width: 36, height: 5[^}]*colors\.wash2/);
+  assert.match(map, /circle: \{ width: 44, height: 44, borderRadius: 22/);
+  assert.match(map, /circles: \{ position: 'absolute', right: 16, gap: 12 \}/);
+  assert.match(map, /bottom: sheetHeight \+ 12/);
+  // Reduce Transparency falls back to the lift fill.
+  assert.match(map, /isReduceTransparencyEnabled/);
+  assert.match(map, /!reduce\) \{\s*return <GlassView/);
+  assert.doesNotMatch(map, /inlineTitle|edgeSolid|setScrolled/);
+});
+
+test('V4 Map: the Emergency member is first in the Sharing now list, with the "N of M" count and 52 pt rows', () => {
+  const map = src('app/room/[id]/map.tsx');
+  // Merge with P0: sharingNowEntries puts Emergency members first and keeps them with no presence row.
+  assert.match(map, /sharingNow\.map\(\(\{ userId: memberId, row, emergency \}, i\) =>/);
+  assert.match(map, /emergency=\{emergency\}/);
+  assert.match(map, /en\.map\.sharingCount\(/);
+  assert.match(map, /presence: \{\s*minHeight: 52/);
+  assert.match(map, /rowLine: \{ height: 1, marginLeft: 40, backgroundColor: colors\.wash \}/);
 });
 
 test('UX2-134 (C42): the pushed event editor uses the paper ground, not the sheet, and the picked icon fills with colors.field', () => {

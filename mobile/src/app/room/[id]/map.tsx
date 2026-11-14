@@ -2,17 +2,18 @@ import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
-import { useInlineHeaderTitle } from '@/components/inline-header-title';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
-import { edgeSolid, QLink } from '@/components/q-screen';
-import { Button, colors, Hint, palette, radius, usePalette } from '@/components/ui';
+import { QLink } from '@/components/q-screen';
+import { Button, colors, Hint, radius, useLift, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { PaceCard } from '@/features/pace/pace-card';
 import { type PersonGap, personGap } from '@/features/pace/pace-core';
@@ -78,13 +79,9 @@ type State =
 const LABEL_BACKGROUND = '#FFFFFF';
 const LABEL_TEXT = '#000000';
 const LABEL_STALE_TEXT = '#6C6C70';
-/** Gap under the bottom map buttons. */
-const OVERLAY_BOTTOM = 8;
 // UX2-35: the 34 pt overlay buttons reach 44 pt tall without growing.
 const OVERLAY_HIT_SLOP = { top: 5, bottom: 5 };
 // #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
-// C15: Emergency text on the fixed white pin label uses the light errorText (4.5:1+ on white).
-const EMERGENCY_LABEL_TEXT = palette.light.errorText;
 /** UX P0-3: pins never show a photo (the mockup shows initials). */
 const NO_ICONS: ReadonlyMap<string, null> = new Map<string, null>();
 type MapProperties = NonNullable<ComponentProps<typeof AppleMaps.View>['properties']>;
@@ -211,13 +208,16 @@ function RoomMap({
   // #1: open Emergencies show on Map too (banner above the map, red pin and pill for the sender).
   const activity = useRoomActivity(room.id, userId, room.activity_seq);
   const emergencyPinIds = new Set(activity.emergencies.flatMap((e) => [e.userId, stalePinId(e.userId)]));
+  // V4: members who answered On my way get a walker badge on their pin.
+  const onWayPinIds = new Set(activity.emergencies.flatMap((e) => e.onWay.flatMap((id) => [id, stalePinId(id)])));
   // #2: each member's current status, on their pill line and in their "Sharing now" row.
   const statusOf = memberStatusLabels(activity.memberStatus, activity.statuses);
   const [busy, setBusy] = useState<string | null>(null);
   // M2: the app-level LocationReporters does the reporting; this screen only reads its state.
   const sharingState = useSharingState(room.id);
   // UX2-38: the route is ink (light) / #EDEDE8 (dark), the same as the editor.
-  const routeColor = usePalette().ink;
+  const pal = usePalette();
+  const routeColor = pal.ink;
 
   // M5: the permission is read again whenever the app returns to the foreground (e.g. from Settings).
   const [granted, setGranted] = useState<boolean | null>(null);
@@ -301,7 +301,7 @@ function RoomMap({
     status: statusOf.get(row.user_id) ?? null,
   }));
   const pins = planPins(pinInputs, now, NO_ICONS, en.map.stalePin);
-  const avatarPins = planAvatarPins(pins, pinInputs, userId, emergencyPinIds);
+  const avatarPins = planAvatarPins(pins, pinInputs, userId, emergencyPinIds, undefined, onWayPinIds);
   const pinIcons = useAvatarPinIcons(avatarPins.map((pin) => pin.face));
   const labelInputs: LabelPin[] = avatarPins.flatMap((pin) =>
     pin.face.emergency
@@ -515,8 +515,8 @@ function RoomMap({
               coordinates: pin.coordinates,
               text: en.map.emergencyPin(pin.names[0]),
               anchor: avatarPillAnchor(1, 'below'),
-              backgroundColor: LABEL_BACKGROUND,
-              textColor: EMERGENCY_LABEL_TEXT,
+              backgroundColor: pal.lift,
+              textColor: pal.errorText,
             },
           ]
         : [],
@@ -542,59 +542,19 @@ function RoomMap({
   const reporterText = en.map.reporter[sharingState];
   // UX2-59: "Map" moves into the nav bar once the large title scrolls under the header.
   const headerHeight = useHeaderHeight();
-  const inlineTitle = useInlineHeaderTitle(en.map.title, headerHeight);
-  // UX2-93: QScreen's top edge fade, since Map has its own ScrollView.
-  const [scrolled, setScrolled] = useState(false);
-  const paper = usePalette().paper;
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // V4: a fixed lift sheet (about 45% of the screen) that scrolls inside; the map fills the screen behind it.
+  const sheetHeight = Math.round(windowHeight * 0.45);
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission'; // UX2-32: 'refused' is a normal event (ink2)
 
   return (
-    // Qrewing pace maker: its cue banner and stationary sheet sit over the scroll view (PaceLayer).
+    // Qrewing pace maker: its cue banner and stationary sheet sit over the map (PaceLayer).
     <View style={styles.root}>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        onScroll={(e) => {
-          const y = e.nativeEvent.contentOffset.y;
-          inlineTitle.onScrollY(y);
-          setScrolled(y > 1);
-        }}
-        scrollEventThrottle={16}
-      >
-      <Stack.Screen
-        options={{
-          title: en.map.title,
-        }}
-      />
-      {/* Qrew unit 4 (Q 04.02, 08.03): handwritten title and the room name; no art on the map. */}
-      <Animated.View style={[styles.head, { opacity: inlineTitle.blockOpacity }]} onLayout={inlineTitle.onTitleLayout}>
-        <HandTitle>{en.map.title}</HandTitle>
-        <Text style={styles.roomName} numberOfLines={2}>
-          {room.name}
-        </Text>
-      </Animated.View>
-      {/* V4: the Emergency line is the redwash capsule; content padding (16) keeps it 16 pt from the sides. */}
-      <EmergencyAlerts
-        place="map"
-        roomId={room.id}
-        activity={activity}
-        userId={userId}
-        names={names}
-        presence={emergencyPresence}
-        onOpenLocation={(_sender, coordinates) => focusOn(coordinates)}
-      />
-
-      {reduced && granted !== false ? (
-        <View style={styles.preciseBar}>
-          <Text style={styles.preciseText}>{en.map.preciseOff}</Text>
-          <Pressable accessibilityRole="button" onPress={() => Linking.openSettings()} hitSlop={8} style={styles.preciseLink}>
-            <Text style={styles.preciseLinkText}>{en.map.openSettings}</Text>
-          </Pressable>
-        </View>
-      ) : null}
+      {/* V4: the map is full bleed under the header and ends at the sheet's top edge, so MapKit's Apple Maps logo and
+          Legal link (bottom corners; expo-maps has no padding prop for Apple Maps) stay visible. */}
       <View
-        style={styles.mapWrap}
+        style={[styles.mapFill, { bottom: sheetHeight }]}
         accessibilityLabel={pinsSpoken ? `${en.map.title}: ${pinsSpoken}` : undefined}
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
@@ -623,24 +583,34 @@ function RoomMap({
           onMapClick={() => setSelectedPin(null)}
         />
         {pinIcons.baker}
-        <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={en.map.showMine}
-              accessibilityState={{ busy: locate === 'busy' }}
-              onPress={showMyLocation}
-              hitSlop={OVERLAY_HIT_SLOP}
-              style={[styles.overlayButton, styles.showMine]}
-            >
-              <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
-            </Pressable>
-            {start.rank > 1 ? (
-              <Pressable accessibilityRole="button" onPress={recenter} hitSlop={OVERLAY_HIT_SLOP} style={[styles.overlayButton, styles.recenter]}>
-                <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{en.map.recenter}</Text>
-              </Pressable>
-            ) : null}
+      </View>
+      <Stack.Screen
+        options={{
+          title: en.map.title,
+          headerTransparent: true,
+          headerShadowVisible: false,
+          headerTitle: () => (
+            <MapGlass style={styles.titlePill}>
+              <HandTitle style={styles.titleText} numberOfLines={1}>
+                {en.map.title}
+              </HandTitle>
+            </MapGlass>
+          ),
+        }}
+      />
+      {/* V4: the Emergency capsule (16 pt from the sides) and the host's route chips float under the header. */}
+      <View style={[styles.topOverlay, { top: headerHeight + 8 }]} pointerEvents="box-none">
+        <EmergencyAlerts
+          place="map"
+          roomId={room.id}
+          activity={activity}
+          userId={userId}
+          names={names}
+          presence={emergencyPresence}
+          onOpenLocation={(_sender, coordinates) => focusOn(coordinates)}
+        />
         {isHost || routeKm ? (
-          // Top left: Edit / Draw route (host, the plan's Pen), then the route length. A row, so the length never covers Pen.
-          <View style={styles.topLeft}>
+          <View style={styles.topLeft} pointerEvents="box-none">
             {isHost ? (
               <Pressable
                 accessibilityRole="button"
@@ -663,127 +633,176 @@ function RoomMap({
           </View>
         ) : null}
       </View>
-      {/* UX2-87 (pattern P): an ink2 line and Open Settings, not red. */}
-      {locate === 'denied' || locate === 'settings' ? (
-        <>
-          <Hint>{en.pace.locationOff}</Hint>
-          <Button title={en.map.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
-        </>
-      ) : null}
-      {locate === 'unavailable' ? <Hint tone="error">{en.map.locateUnavailable}</Hint> : null}
-      {showingMine && !my.share ? <Hint>{en.map.showMineHint}</Hint> : null}
-
-      {isHost ? (
-        <View style={styles.group}>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>{en.map.allowLocation}</Text>
-            <InkSwitch
-              value={allowed}
-              disabled={busy === 'allowed'}
-              onValueChange={toggleAllowed}
-              accessibilityLabel={en.map.allowLocation}
-            />
-          </View>
-          <Hint>{en.map.allowLocationHint}</Hint>
-          {allowed ? (
-            // Unit 4 F2 (work list B, Map host): Start / End activity is a card under the map, like Allow sharing.
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ busy: busy === 'activity', disabled: busy === 'activity' }}
-              disabled={busy === 'activity'}
-              onPress={toggleActivity}
-              style={({ pressed }) => [styles.switchRow, styles.cardRow, pressed && styles.pressed]}
-            >
-              {/* UX2-65: End activity ends sharing for everyone: red, no chevron (its confirm screen stays). */}
-              <Text style={[styles.switchLabel, active && { color: colors.errorText }]}>
-                {active ? en.map.endActivity : en.map.startActivity}
-              </Text>
-              {busy === 'activity' ? (
-                <ActivityIndicator />
-              ) : active ? null : (
-                <SymbolView name="chevron.right" size={14} weight="semibold" tintColor={colors.secondaryLabel} />
-              )}
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View style={styles.group}>
-        <Text style={styles.status} accessibilityRole="header">
-          {active ? en.map.activityActive : en.map.activityIdle}
-        </Text>
-        {/* UX2-41: the host has the switch right above, so no line. */}
-        {!allowed ? (isHost ? null : <Hint>{en.map.notAllowed}</Hint>) : !active ? <Hint>{en.map.activityIdleHint}</Hint> : null}
-        {allowed ? (
-          <>
-            {my.unknown ? (
-              <>
-                {/* UX2-86 (C15): my share is unknown, so no switch that might lie. */}
-                <Hint tone="error">{en.map.shareUnknown}</Hint>
-                <Button title={en.map.tryAgain} variant="secondary" onPress={() => void my.reload()} />
-                <QLink title={en.map.stopSharing} onPress={() => toggleShare(false)} />
-              </>
-            ) : (
-              <>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>{en.map.shareMine}</Text>
-                  <InkSwitch
-                    value={my.share}
-                    disabled={busy === 'share'}
-                    onValueChange={toggleShare}
-                    accessibilityLabel={en.map.shareMine}
-                    accessibilityHint={meInEmergency && !my.share ? en.map.shareInEmergency : undefined}
-                  />
-                </View>
-                <Hint>{en.map.shareMineHint}</Hint>
-                {meInEmergency && !my.share ? <Text style={styles.shareEmergency} importantForAccessibility="no" accessibilityElementsHidden>{en.map.shareInEmergency}</Text> : null}
-              </>
-            )}
-            {permissionDenied ? (
-              <>
-                {/* UX2-87: one block for sharing and the pace maker (the pace card has none of its own). */}
-                <Hint>{en.map.locationOffShare}</Hint>
-                <Button title={en.map.openSettings} onPress={() => Linking.openSettings()} />
-              </>
-            ) : reporterText ? (
-              <Hint tone={reporterIsError ? 'error' : 'normal'}>{reporterText}</Hint>
-            ) : null}
-          </>
+      {/* V4: Show my location / Recenter, 44 pt glass circles on the right, 12 pt apart, above the sheet. */}
+      <View style={[styles.circles, { bottom: sheetHeight + 12 }]} pointerEvents="box-none">
+        {start.rank > 1 ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={en.map.recenter} onPress={recenter}>
+            <MapGlass style={styles.circle}>
+              <SymbolView name="scope" size={20} weight="semibold" tintColor={colors.label} />
+            </MapGlass>
+          </Pressable>
         ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={locate === 'busy' ? en.map.locating : en.map.showMine}
+          accessibilityState={{ busy: locate === 'busy' }}
+          onPress={showMyLocation}
+        >
+          <MapGlass style={styles.circle}>
+            {locate === 'busy' ? (
+              <ActivityIndicator />
+            ) : (
+              <SymbolView name="location" size={20} weight="semibold" tintColor={colors.label} />
+            )}
+          </MapGlass>
+        </Pressable>
       </View>
 
-      <PaceCard room={room} share={my.share} userId={userId} />
+      <View style={[styles.sheet, { height: sheetHeight }]}>
+        <View style={styles.sheetClip}>
+          <View style={styles.grabber} accessible={false} />
+          <ScrollView
+            contentContainerStyle={[styles.sheetContent, { paddingBottom: insets.bottom + 24 }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {reduced && granted !== false ? (
+              <View style={styles.preciseBar}>
+                <Text style={styles.preciseText}>{en.map.preciseOff}</Text>
+                <Pressable accessibilityRole="button" onPress={() => Linking.openSettings()} hitSlop={8} style={styles.preciseLink}>
+                  <Text style={styles.preciseLinkText}>{en.map.openSettings}</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {/* UX2-87 (pattern P): an ink2 line and Open Settings, not red. */}
+            {locate === 'denied' || locate === 'settings' ? (
+              <>
+                <Hint>{en.pace.locationOff}</Hint>
+                <Button title={en.map.openSettings} variant="secondary" onPress={() => Linking.openSettings()} />
+              </>
+            ) : null}
+            {locate === 'unavailable' ? <Hint tone="error">{en.map.locateUnavailable}</Hint> : null}
+            {showingMine && !my.share ? <Hint>{en.map.showMineHint}</Hint> : null}
 
-      {active ? (
-        <View style={styles.group}>
-          <Text style={styles.status}>{en.map.members}</Text>
-          {presenceState === 'loading' ? <Hint>{en.map.presenceLoading}</Hint> : null}
-          {presenceState === 'empty' ? <Hint>{en.map.nobody}</Hint> : null}
-          {presenceState === 'error' ? <Hint tone="error">{en.map.presenceFailed}</Hint> : null}
-          {/* UX2-117: rows already shown stay; one ink2 line says they may be old. */}
-          {presenceState === 'rows' && presence.error ? <Hint>{en.map.presenceStale}</Hint> : null}
-          {presence.error ? (
-            <Button title={en.map.tryAgain} variant="secondary" onPress={() => void presence.reload()} />
-          ) : null}
-          {sharingNow.map(({ userId: memberId, row, emergency }) => (
-            <PresenceRow
-              gap={
-                !row || memberId === userId
-                  ? null
-                  : personGap(meNow, { latitude: row.lat, longitude: row.lng }, savedRoute)
-              }
-              key={memberId}
-              row={row}
-              name={memberName(memberId, userId, names)}
-              initialOf={names.get(memberId) ?? ''}
-              avatarPath={avatars.get(memberId) ?? null}
-              status={statusOf.get(memberId) ?? null}
-              emergency={emergency}
-              now={now}
-            />
-          ))}
+            {active ? (
+              <View style={styles.group}>
+                <View style={styles.sheetHead}>
+                  <Text style={styles.status} accessibilityRole="header">{en.map.members}</Text>
+                  <Text style={styles.sheetCount}>{en.map.sharingCount(presence.rows.length, Math.max(names.size, presence.rows.length))}</Text>
+                </View>
+                {presenceState === 'loading' ? <Hint>{en.map.presenceLoading}</Hint> : null}
+                {presenceState === 'empty' ? <Hint>{en.map.nobody}</Hint> : null}
+                {presenceState === 'error' ? <Hint tone="error">{en.map.presenceFailed}</Hint> : null}
+                {/* UX2-117: rows already shown stay; one ink2 line says they may be old. */}
+                {presenceState === 'rows' && presence.error ? <Hint>{en.map.presenceStale}</Hint> : null}
+                {presence.error ? (
+                  <Button title={en.map.tryAgain} variant="secondary" onPress={() => void presence.reload()} />
+                ) : null}
+                {/* P0: Emergency members on top and never dropped (sharingNowEntries), in the V4 row style. */}
+                {sharingNow.map(({ userId: memberId, row, emergency }, i) => (
+                  <View key={memberId}>
+                    {i > 0 ? <View style={styles.rowLine} /> : null}
+                    <PresenceRow
+                      gap={
+                        !row || memberId === userId
+                          ? null
+                          : personGap(meNow, { latitude: row.lat, longitude: row.lng }, savedRoute)
+                      }
+                      row={row}
+                      name={memberName(memberId, userId, names)}
+                      initialOf={names.get(memberId) ?? ''}
+                      avatarPath={avatars.get(memberId) ?? null}
+                      status={statusOf.get(memberId) ?? null}
+                      emergency={emergency}
+                      now={now}
+                    />
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            <View style={styles.group}>
+              {!active ? (
+                <Text style={styles.status} accessibilityRole="header">{en.map.activityIdle}</Text>
+              ) : null}
+              {/* UX2-41: the host has the switch below, so no line. */}
+              {!allowed ? (isHost ? null : <Hint>{en.map.notAllowed}</Hint>) : !active ? <Hint>{en.map.activityIdleHint}</Hint> : null}
+              {allowed ? (
+                <>
+                  {my.unknown ? (
+                    <>
+                      {/* UX2-86 (C15): my share is unknown, so no switch that might lie. */}
+                      <Hint tone="error">{en.map.shareUnknown}</Hint>
+                      <Button title={en.map.tryAgain} variant="secondary" onPress={() => void my.reload()} />
+                      <QLink title={en.map.stopSharing} onPress={() => toggleShare(false)} />
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.switchRow}>
+                        <Text style={styles.switchLabel}>{en.map.shareMine}</Text>
+                        <InkSwitch
+                          value={my.share}
+                          disabled={busy === 'share'}
+                          onValueChange={toggleShare}
+                          accessibilityLabel={en.map.shareMine}
+                          accessibilityHint={meInEmergency && !my.share ? en.map.shareInEmergency : undefined}
+                        />
+                      </View>
+                      <Hint>{en.map.shareMineHint}</Hint>
+                      {meInEmergency && !my.share ? <Text style={styles.shareEmergency} importantForAccessibility="no" accessibilityElementsHidden>{en.map.shareInEmergency}</Text> : null}
+                    </>
+                  )}
+                  {permissionDenied ? (
+                    <>
+                      {/* UX2-87: one block for sharing and the pace maker (the pace card has none of its own). */}
+                      <Hint>{en.map.locationOffShare}</Hint>
+                      <Button title={en.map.openSettings} onPress={() => Linking.openSettings()} />
+                    </>
+                  ) : reporterText ? (
+                    <Hint tone={reporterIsError ? 'error' : 'normal'}>{reporterText}</Hint>
+                  ) : null}
+                </>
+              ) : null}
+            </View>
+
+            {isHost ? (
+              <View style={styles.group}>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>{en.map.allowLocation}</Text>
+                  <InkSwitch
+                    value={allowed}
+                    disabled={busy === 'allowed'}
+                    onValueChange={toggleAllowed}
+                    accessibilityLabel={en.map.allowLocation}
+                  />
+                </View>
+                <Hint>{en.map.allowLocationHint}</Hint>
+                {allowed ? (
+                  // Unit 4 F2 (work list B, Map host): Start / End activity is a card under the map, like Allow sharing.
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ busy: busy === 'activity', disabled: busy === 'activity' }}
+                    disabled={busy === 'activity'}
+                    onPress={toggleActivity}
+                    style={({ pressed }) => [styles.switchRow, styles.cardRow, pressed && styles.pressed]}
+                  >
+                    {/* UX2-65: End activity ends sharing for everyone: red, no chevron (its confirm screen stays). */}
+                    <Text style={[styles.switchLabel, active && { color: colors.errorText }]}>
+                      {active ? en.map.endActivity : en.map.startActivity}
+                    </Text>
+                    {busy === 'activity' ? (
+                      <ActivityIndicator />
+                    ) : active ? null : (
+                      <SymbolView name="chevron.right" size={14} weight="semibold" tintColor={colors.secondaryLabel} />
+                    )}
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
+            <PaceCard room={room} share={my.share} userId={userId} />
+          </ScrollView>
         </View>
-      ) : null}
+      </View>
 
       {editor ? (
         <RouteEditor
@@ -798,19 +817,37 @@ function RoomMap({
           onSave={saveEdited}
         />
       ) : null}
-      </ScrollView>
-      {scrolled && headerHeight > 0 ? (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.edgeFade,
-            { height: headerHeight + 16, backgroundImage: `linear-gradient(${paper} 0%, ${paper} ${edgeSolid(headerHeight)}%, ${paper}00 100%)` },
-          ]}
-        />
-      ) : null}
       <PaceLayer roomId={room.id} />
     </View>
   );
+}
+
+/** Follows the iOS Reduce Transparency setting. */
+function useReduceTransparency(): boolean {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    let live = true;
+    AccessibilityInfo.isReduceTransparencyEnabled().then((v) => live && setReduce(v)).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('reduceTransparencyChanged', setReduce);
+    return () => {
+      live = false;
+      sub.remove();
+    };
+  }, []);
+  return reduce;
+}
+
+/**
+ * V4: Liquid Glass for the Map title pill and the 44 pt circles; a lift fill with the lift shadow when glass is
+ * unavailable or Reduce Transparency is on. (ui.tsx GlassIconButton lacks the Reduce Transparency fallback.)
+ */
+function MapGlass({ children, style }: { children: ReactNode; style: StyleProp<ViewStyle> }) {
+  const reduce = useReduceTransparency();
+  const lift = useLift();
+  if (Platform.OS === 'ios' && isLiquidGlassAvailable() && !reduce) {
+    return <GlassView style={style}>{children}</GlassView>;
+  }
+  return <View style={[style, { backgroundColor: colors.lift }, lift]}>{children}</View>;
 }
 
 function gapLabel(gap: PersonGap): string {
@@ -901,43 +938,40 @@ function PresenceRow({
 const MAP_OVERLAY_MAX_SCALE = 1.3;
 const styles = StyleSheet.create({
   edgeFade: { position: 'absolute', top: 0, left: 0, right: 0 },
-  root: { flex: 1, backgroundColor: colors.background },
+  // V4 (ux): lift behind the map's rounded bottom corners, so paper never shows there.
+  root: { flex: 1, backgroundColor: colors.lift },
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 16 },
-  // Qrew unit 4: the QScreen head (title, gray room name under it) inside the map's own scroll view.
-  head: { gap: 4, marginBottom: -4 },
-  roomName: { fontSize: 15, color: colors.ink2 },
   loading: { marginTop: 48 },
   center: { padding: 20, gap: 12, alignItems: 'center' },
-  mapWrap: { height: 360, borderRadius: 12, borderCurve: 'continuous', overflow: 'hidden' },
+  titlePill: { height: 40, paddingHorizontal: 18, borderRadius: radius.pill, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  titleText: { fontSize: 22, lineHeight: 26 },
+  topOverlay: { position: 'absolute', left: 16, right: 16, gap: 8 },
+  circles: { position: 'absolute', right: 16, gap: 12 },
+  circle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  // V4 (ux): the sheet is flush with the map's rounded bottom: square top corners, no shadow or hairline.
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.lift },
+  sheetClip: { flex: 1, overflow: 'hidden' },
+  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, marginTop: 8, marginBottom: 4, backgroundColor: colors.wash2 },
+  sheetContent: { paddingHorizontal: 16, paddingTop: 8, gap: 16 },
+  sheetHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  sheetCount: { fontSize: 15, color: colors.ink2, fontVariant: ['tabular-nums'] },
+  rowLine: { height: 1, marginLeft: 40, backgroundColor: colors.wash },
   map: { flex: 1 },
-  overlayButton: {
-    position: 'absolute',
-    bottom: OVERLAY_BOTTOM,
-    backgroundColor: colors.field,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  showMine: { left: 8 },
+  mapFill: { position: 'absolute', top: 0, left: 0, right: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, borderCurve: 'continuous', overflow: 'hidden' },
   // Top left: MapKit's own controls (compass, pitch toggle, user location button) stack in the top right
   // corner, and expo-maps 58 cannot move them. The scale bar (top left) is off by default. Pen and the
   // route length sit in one row inside the top overlay band (ROOM_MAP_PADDING.top keeps the fit clear of it).
   topLeft: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 64,
+    marginRight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    pointerEvents: 'box-none',
   },
   chip: { backgroundColor: colors.field, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
   pen: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   distanceChip: { flexShrink: 1, pointerEvents: 'none' },
   distance: { fontSize: 15, lineHeight: 22, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
-  recenter: { right: 8 },
   group: { gap: 8 },
   status: { fontSize: 17, fontWeight: '600', color: colors.label },
   switchRow: {
@@ -959,11 +993,8 @@ const styles = StyleSheet.create({
   preciseLink: { minHeight: 44, justifyContent: 'center' },
   preciseLinkText: { fontSize: 13, lineHeight: 18, color: colors.tint },
   presence: {
-    backgroundColor: colors.field,
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    minHeight: 52,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

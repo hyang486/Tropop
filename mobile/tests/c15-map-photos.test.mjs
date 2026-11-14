@@ -12,5 +12,5 @@ test('C15-4: stale rows read "Last seen …" in ink2 with a clock; Emergency tex
   assert.match(map, /<SymbolView name="clock" size=\{13\} tintColor=\{colors\.ink2\} \/>/);
   assert.doesNotMatch(map, /colors\.warning|#FF3B30|EMERGENCY_RED/);
   assert.match(map, /emergencyText: \{ color: colors\.errorText/);
-  assert.match(map, /const EMERGENCY_LABEL_TEXT = palette\.light\.errorText;/);
+  assert.match(map, /textColor: pal\.errorText,/);
 });

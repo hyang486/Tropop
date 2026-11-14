@@ -33,11 +33,30 @@ const person = (userId, name, coordinates, over = {}) => ({
   avatarPath: null,
   ...over,
 });
-function plan(inputs, { me = 'me', emergency = [], meters } = {}) {
+function plan(inputs, { me = 'me', emergency = [], meters, onWay = [] } = {}) {
   const pins = planPins(inputs, NOW, new Map());
   const ids = new Set(emergency.flatMap((u) => [u, stalePinId(u)]));
-  return planAvatarPins(pins, inputs, me, ids, meters);
+  const way = new Set(onWay.flatMap((u) => [u, stalePinId(u)]));
+  return planAvatarPins(pins, inputs, me, ids, meters, way);
 }
+
+test('V4: an On my way member gets a badge on their own pin, out of any cluster; the face key changes', () => {
+  const pins = plan([person('jun', 'Jun', BASE), person('dani', 'Dani', north(5)), person('leo', 'Leo', north(10))], {
+    onWay: ['dani'],
+  });
+  assert.equal(pins.length, 2);
+  const dani = pins.find((p) => p.members.includes('dani'));
+  assert.deepEqual(dani.face, { kind: 'other', text: 'D', stale: false, emergency: false, onWay: true });
+  assert.deepEqual(pins.find((p) => p.face.kind === 'cluster').names, ['Jun', 'Leo']);
+  const calm = plan([person('dani', 'Dani', BASE)]);
+  assert.equal('onWay' in calm[0].face, false);
+  assert.notEqual(calm[0].faceKey, plan([person('dani', 'Dani', BASE)], { onWay: ['dani'] })[0].faceKey);
+});
+
+test('V4: the 40 pt pin and its 5 pt halo fit expo-maps\' fixed 50 pt frame', () => {
+  assert.equal(AVATAR_PIN_RADIUS * 2, 40);
+  assert.ok(AVATAR_PIN_RADIUS + AVATAR_RING_WIDTH <= 25);
+});
 
 test('planAvatarPins: you are ink-filled, others white with their initial', () => {
   const [me, jun] = plan([person('me', 'You', BASE), person('jun', 'Jun Park', north(500))]);
