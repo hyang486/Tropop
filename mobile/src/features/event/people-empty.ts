@@ -10,8 +10,18 @@ export type PeopleEmpty = 'noQuestions' | 'noEntry' | 'noMatches' | null;
  * plan_limit (a deep link, a lapsed plan, or the plan still loading); it wins over consent, as the server checks the
  * plan first. consent: on Plus (or not known yet) and not agreed to Qrewing AI here. Neither is an error.
  */
-export function peopleGate(input: { plus: boolean | null; error: string | null; notConsented: boolean }): 'plus' | 'consent' | null {
+export type PeopleGate = 'plus' | 'off' | 'unavailable' | 'left' | 'consent';
+
+/**
+ * UX2-09: dead ends a Refresh can't fix (pattern D), from the server's answer: off (the host turned Qrewing AI off),
+ * unavailable (ai_not_configured), left (not_member: the screen closes, like Ask). They win over consent, which is
+ * only my local read.
+ */
+export function peopleGate(input: { plus: boolean | null; error: string | null; notConsented: boolean }): PeopleGate | null {
   if (input.plus === false || input.error === 'plan_limit') return 'plus';
+  if (input.error === 'ai_off') return 'off';
+  if (input.error === 'ai_not_configured') return 'unavailable';
+  if (input.error === 'not_member') return 'left';
   return input.notConsented ? 'consent' : null;
 }
 

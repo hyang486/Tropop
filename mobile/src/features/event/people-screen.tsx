@@ -128,7 +128,17 @@ export function PeopleScreen() {
   }, [id]);
 
   const notConsented = q.me !== null && !q.me.aiOk;
-  const gate = peopleGate({ plus, error: state.status === 'error' ? state.error : null, notConsented });
+  // A failed re-ask on a kept list counts too: if Qrewing went off or I left, the old list must not stay up.
+  const gate = peopleGate({
+    plus,
+    error: state.status === 'error' || state.status === 'ready' ? state.error : null,
+    notConsented,
+  });
+  // UX2-09: not_member (left or removed) closes the screen, like Ask does.
+  const left = gate === 'left';
+  useEffect(() => {
+    if (left && router.canGoBack()) router.back();
+  }, [left, router]);
   const questions = useEntryQuestions(id);
   const empty = peopleEmpty({
     status: state.status,
@@ -147,7 +157,9 @@ export function PeopleScreen() {
             accessibilityHint={s.seePlusHint}
             onPress={() => router.push(plusIntroHref('meet'))}
           />
-        ) : gate === 'consent' ? (
+        ) : gate === 'off' || gate === 'unavailable' ? (
+          <Button title={s.back} variant="secondary" onPress={() => router.back()} />
+        ) : gate === 'left' ? undefined : gate === 'consent' ? (
           <Button title={s.agree} onPress={() => setConsent(true)} />
         ) : empty === 'noQuestions' ? undefined : empty === 'noEntry' ? (
           <Button
@@ -179,7 +191,9 @@ export function PeopleScreen() {
       />
       {gate === 'plus' ? (
         <EmptyState art="meetup" artWidth={160} title={s.plusTitle} body={s.plus} />
-      ) : gate === 'consent' ? (
+      ) : gate === 'off' || gate === 'unavailable' ? (
+        <EmptyState art="meetup" artWidth={160} title={gate === 'off' ? s.off : s.unavailable} />
+      ) : gate === 'left' ? null : gate === 'consent' ? (
         <EmptyState art="meetup" artWidth={160} title={s.consentTitle} body={s.notConsented} />
       ) : state.status === 'loading' ? (
         <View style={styles.center}>

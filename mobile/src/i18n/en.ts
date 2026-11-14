@@ -1066,6 +1066,10 @@ export const en = {
       seePlusHint: 'Opens the Qrew Plus page',
       consentTitle: 'Turn on Qrewing for you',
       agree: 'Agree',
+      // UX2-09: dead ends (pattern D), neutral with Back instead of a red Refresh.
+      off: 'Qrewing is off in this room.',
+      unavailable: "Qrewing isn't available right now.",
+      back: 'Back',
     },
     recap: {
       title: 'Recap',

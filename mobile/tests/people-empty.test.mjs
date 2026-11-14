@@ -38,3 +38,12 @@ test('UX2-01 gate: Free or a 402 → plus (over consent); Plus or unknown and no
   assert.equal(peopleGate({ plus: true, error: 'network', notConsented: false }), null);
   assert.equal(peopleGate({ plus: true, error: null, notConsented: false }), null);
 });
+
+test('UX2-09: ai_off, ai_not_configured and not_member are dead ends, not a red Refresh', () => {
+  assert.equal(peopleGate({ plus: true, error: 'ai_off', notConsented: false }), 'off');
+  assert.equal(peopleGate({ plus: true, error: 'ai_off', notConsented: true }), 'off');
+  assert.equal(peopleGate({ plus: null, error: 'ai_not_configured', notConsented: false }), 'unavailable');
+  assert.equal(peopleGate({ plus: true, error: 'not_member', notConsented: true }), 'left');
+  assert.equal(peopleGate({ plus: false, error: null, notConsented: false }), 'plus');
+  assert.equal(peopleGate({ plus: true, error: 'ai_failed', notConsented: false }), null);
+});
