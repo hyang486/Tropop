@@ -422,6 +422,10 @@ function createStore(admin: any): QrewingStore {
       );
       return typeof n === 'number' ? n : 0;
     },
+    async plan(userId) {
+      const r = must(await admin.from('user_plans').select('plan').eq('user_id', userId).maybeSingle(), 'plan');
+      return r?.plan === 'plus' ? 'plus' : 'free';
+    },
     async roomExtras(roomId) {
       // Both reads at once; must() in the old order, so the same error is logged and thrown.
       const [roomRes, labelRes] = await Promise.all([

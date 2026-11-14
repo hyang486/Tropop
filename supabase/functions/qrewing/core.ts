@@ -275,6 +275,8 @@ export interface QrewingStore {
   logUsage(roomId: string, action: UsageAction, model: string, inputTokens: number, outputTokens: number, userId?: string): Promise<void>;
   /** private.qrewing_usage rows of the room with this action at or after `since`; only this user's rows when given (0029). */
   usageCountSince(roomId: string, action: UsageAction, since: string, userId?: string): Promise<number>;
+  /** public.user_plans (0032): 'plus' only with a row saying so; no row = 'free'. */
+  plan(userId: string): Promise<'free' | 'plus'>;
   roomExtras(roomId: string): Promise<RoomExtras>;
   /** E2E (a): up to `limit` latest 'status' and 'emergency' messages of the room, newest first. */
   roomEvents(roomId: string, limit: number): Promise<Msg[]>;
@@ -385,7 +387,7 @@ export function localTime(isoStr: string, tz: string): string {
 export type AskLang = 'en' | 'ko';
 /** Korean if the question has any Hangul, else English. */
 export function questionLang(q: string): AskLang {
-  return /[ᄀ-ᇿ㄰-㆏가-힯]/.test(q) ? 'ko' : 'en';
+  return /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/.test(q) ? 'ko' : 'en';
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -480,7 +482,7 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
   if (!body) return { status: 400, body: { error: 'bad_request' } };
   if (!deps.model) return { status: 503, body: { error: 'ai_not_configured' } };
   if (body.action === 'probe' && body.roomId === null) return { status: 200, body: { ok: true } };
-  // No room: authenticated user only (index.ts checked the JWT). No Plus check here; the server has no plan data.
+  // No room: authenticated user only (index.ts checked the JWT). Plus-only (0032): calendarAdd checks the plan first.
   if (body.action === 'calendar_add') return calendarAdd({ ...deps, model: deps.model, now, log: deps.log ?? (() => {}) }, userId, body);
 
   const clock = deps.clock ?? Date.now;
@@ -506,6 +508,8 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
     case 'triage':
       return triage(ctx, body.messageIds);
     case 'recap': {
+      // diary is Qrewing Calendar (Plus, 0032): Free gets 402 before the shared recap, any count or model call.
+      if (body.diary && (await deps.store.plan(userId)) !== 'plus') return { status: 402, body: { error: 'plan_limit' } };
       const res = await (body.refresh ? recapRefresh(ctx) : recap(ctx));
       return body.diary ? withDiary(ctx, res) : res;
     }
@@ -998,7 +1002,7 @@ export function oneEmoji(raw: unknown): string | null {
 
 /** Control and bidi-override characters removed (titles and diary lines are shown verbatim on the phone). */
 export function cleanText(s: string): string {
-  return s.replace(/[\p{Cc}​‎‏‪-‮⁦-⁩﻿]/gu, ' ');
+  return s.replace(/[\p{Cc}\u200b\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/gu, ' ');
 }
 
 /** 'YYYY-MM-DD' of a real calendar date → days since the epoch, else null. */
@@ -1026,10 +1030,12 @@ type CalendarCtx = Pick<Ctx, 'model' | 'store' | 'log' | 'now'>;
 
 /**
  * Qrewing Calendar: free text → one date-only entry. 200 {event:{title,start,end,emoji}} (end inclusive, ≥ start,
- * ≤ start + CALENDAR_SPAN_DAYS); 422 unclear; 429 rate_limited (CALENDAR_USER_CAP per 24 h); 502 ai_failed.
+ * ≤ start + CALENDAR_SPAN_DAYS); 402 plan_limit (Free, before any count or model call); 422 unclear;
+ * 429 rate_limited (CALENDAR_USER_CAP per 24 h); 502 ai_failed.
  * The text is never logged or stored.
  */
 async function calendarAdd(ctx: CalendarCtx, userId: string, body: { text: string; today: string; tz: string }): Promise<Reply> {
+  if ((await ctx.store.plan(userId)) !== 'plus') return { status: 402, body: { error: 'plan_limit' } };
   const key = calendarUsage(userId);
   const since = new Date(ctx.now.getTime() - ASK_WINDOW_MS).toISOString();
   if ((await ctx.store.usageCountSince(key.roomId, key.action, since, userId)) >= CALENDAR_USER_CAP) {

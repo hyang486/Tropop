@@ -95,6 +95,8 @@ type World = {
   askUsedBy: Record<string, number>;
   cards: { roomId: string; askerId: string; answererId: string; question: string }[];
   cardFails: boolean;
+  /** user_plans (0032); absent = free. */
+  plans: Record<string, 'free' | 'plus'>;
 };
 
 // The default four (0028 backfill), stored out of order to prove core sorts by position.
@@ -146,6 +148,8 @@ function world(over: Partial<World> = {}): World {
     askUsedBy: {},
     cards: [],
     cardFails: false,
+    // Calendar tests run as Plus; the Free gate test sets its own plans.
+    plans: { [HOST]: 'plus', [BOB]: 'plus', [CAT]: 'plus', [OUT]: 'plus' },
     ...over,
   };
 }
@@ -287,6 +291,9 @@ function store(w: World): QrewingStore {
     },
     async logUsage(r, action, model, _i, _o, userId) {
       w.usage.push({ action, model, ...(userId ? { userId } : {}), ...(r !== ROOM ? { roomId: r } : {}) });
+    },
+    async plan(u) {
+      return w.plans[u] ?? 'free';
     },
     async usageCountSince(r, action, _since, userId) {
       const logged = w.usage.filter((u) => (u.roomId ?? ROOM) === r && u.action === action && (!userId || u.userId === userId)).length;
@@ -1698,4 +1705,38 @@ test('ask needs a human: card goes to the named member who spoke, else the host;
   const w5 = world({ cardFails: true });
   const r5 = await run(w5, model(needsHuman('')).m, BOB, ASK('Where do I park?'));
   assert.deepEqual(r5.body, { answer: 'x', usage: { input: 100, output: 20 } });
+});
+
+test('calendar_add is Plus-only (0032): Free or no plan row → 402 plan_limit before any count or model call', async () => {
+  for (const plans of [{}, { [HOST]: 'free' }] as Record<string, 'free' | 'plus'>[]) {
+    const w = world({ plans });
+    const { m, calls } = model(() => ({ text: '{}' }));
+    const st = store(w);
+    let counted = 0;
+    const count = st.usageCountSince.bind(st);
+    st.usageCountSince = async (...a) => { counted++; return count(...a); };
+    const r = await handle({ store: st, model: m, now: () => NOW }, HOST, CAL('hike this weekend'));
+    assert.deepEqual(r, { status: 402, body: { error: 'plan_limit' } });
+    assert.equal(calls.length, 0);
+    assert.equal(counted, 0);
+    assert.deepEqual(w.usage, []);
+  }
+});
+
+test('recap diary is Plus-only (0032): Free diary:true → 402 before any count or model call', async () => {
+  const w = world({ plans: { [HOST]: 'free' }, messages: [msg(1, HOST, 'Start at 7', 5)] });
+  const { m, calls } = model(() => ({ text: RECAP_OUT }));
+  const before = w.recap;
+  for (const refresh of [false, true, false]) {
+    const r = await handle({ store: store(w), model: m, now: () => NOW }, HOST, { action: 'recap', roomId: ROOM, diary: true, refresh });
+    assert.deepEqual(r, { status: 402, body: { error: 'plan_limit' } });
+  }
+  assert.equal(calls.length, 0);
+  assert.deepEqual(w.usage, []);
+  assert.deepEqual(w.recap, before, 'no recap row write or refreshed_at change, so no F1 attempt is spent');
+  // The app's retry without the diary then succeeds.
+  const plain = await handle({ store: store(w), model: m, now: () => NOW }, HOST, { action: 'recap', roomId: ROOM });
+  assert.equal(plain.status, 200);
+  assert.equal(w.recap?.state, 'done');
+  assert.equal(calls.length, 1);
 });
