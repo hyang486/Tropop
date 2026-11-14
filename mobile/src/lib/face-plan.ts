@@ -17,6 +17,11 @@ export function photosOfMe<M extends MediaLike>(media: readonly M[], matches: re
   return media.filter((m) => m.kind === 'photo' && m.status === 'ready' && mine.has(m.id));
 }
 
+/** UX2-68: how many photos are matched to me and not marked "Not me" (one per photo). */
+export function matchedPhotoCount(matches: readonly MatchLike[]): number {
+  return new Set(matches.filter((m) => m.matched && !m.excluded).map((m) => m.media_id)).size;
+}
+
 /** A stable key of the ready photo ids in the gallery list, so the Me view can notice new photos. */
 export function readyPhotoIds(media: readonly MediaLike[]): string {
   return media

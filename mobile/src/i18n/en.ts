@@ -300,6 +300,9 @@ export const en = {
     saving: 'Saving your reference…',
     referenceTitle: 'Your reference photo',
     referenceHint: 'Only you can see this. It is used only in this room.',
+    // UX2-68: the row under the reference photo.
+    matchCount: (n: number) => (n === 1 ? '1 photo of you in this room' : `${n} photos of you in this room`),
+    noMatchesYet: 'No photos of you yet.',
     replace: 'Replace photo',
     stop: 'Stop and remove',
     stopTitle: 'Stop finding photos of you?',

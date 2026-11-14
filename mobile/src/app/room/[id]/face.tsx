@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
+import { QRowCard } from '@/components/q-row-card';
 import { QLabel, QLink, QScreen } from '@/components/q-screen';
 import { RoomEnded } from '@/components/room-ended';
 import { Button, colors, Hint } from '@/components/ui';
@@ -31,6 +32,7 @@ import {
   removeFaceEnrollment,
   runFaceMatch,
 } from '@/lib/face';
+import { matchedPhotoCount } from '@/lib/face-plan';
 import { createLatestLoader } from '@/lib/latest-load';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, type Room } from '@/lib/rooms';
@@ -40,7 +42,7 @@ type State =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'gone' }
-  | { status: 'ready'; room: Room; enrollment: FaceEnrollment | null; refUrl: string | null };
+  | { status: 'ready'; room: Room; enrollment: FaceEnrollment | null; refUrl: string | null; matchCount: number };
 
 /**
  * Photos of me setup for one room (Qrew unit 5, Q 06.02): review the reference with the full consent points,
@@ -71,10 +73,10 @@ export default function FaceScreen() {
       async () => {
         // G-U6-1: the room row comes with the face data, so a room that ended or expired shows Room ended
         // instead of an enrollment form whose save would fail.
-        const [room, { enrollment }] = await Promise.all([getRoom(id), loadFaceData(id, userId)]);
+        const [room, { enrollment, matches }] = await Promise.all([getRoom(id), loadFaceData(id, userId)]);
         if (!room) return null;
         const refUrl = enrollment ? await faceRefUrl(enrollment.ref_path) : null;
-        return { room, enrollment, refUrl };
+        return { room, enrollment, refUrl, matchCount: matchedPhotoCount(matches) };
       },
       (outcome) => {
         if (outcome.ok) {
@@ -252,6 +254,16 @@ export default function FaceScreen() {
             <SymbolView name="faceid" size={56} tintColor={colors.secondaryLabel} />
           )}
         </View>
+        {/* UX2-68: the way from the reference to the matches; Photos & files opens on the Of me filter. */}
+        {state.matchCount > 0 ? (
+          <QRowCard
+            icon="face.smiling"
+            title={en.face.matchCount(state.matchCount)}
+            onPress={() => router.push({ pathname: '/room/[id]/gallery', params: { id, filter: 'me' } })}
+          />
+        ) : (
+          <QRowCard icon="face.smiling" title={en.face.noMatchesYet} />
+        )}
         {busy ? <ActivityIndicator /> : null}
         {message ? <Hint tone="error">{message}</Hint> : null}
       </QScreen>
