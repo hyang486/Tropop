@@ -160,14 +160,14 @@ export function HiddenRow({ count, onPress }: { count: number; onPress: () => vo
 
 /**
  * UX P1-1: before entry info the chat stays readable and this 64 pt card takes the composer's place
- * ("Introduce yourself to chat" + an ink "Add my info" button). The composer appears once the info is saved.
+ * ("Add your intro to chat." + an ink "Add my info" button). The composer appears once the info is saved.
  */
 /** UX2-02: sits in the composer row in place of the text field; the room keeps the "+" to its left. */
 export function EntryGate({ roomId }: { roomId: string }) {
   const router = useRouter();
   return (
     <View style={styles.gate}>
-      <Text style={styles.gateTitle} numberOfLines={2}>
+      <Text style={styles.gateTitle} numberOfLines={1}>
         {en.qrewing.entry.chatPrompt}
       </Text>
       <Pressable
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   hiddenText: { fontSize: 13, color: colors.ink2 },
   hiddenLink: { color: colors.label, textDecorationLine: 'underline' },
   gate: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  gateTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
+  gateTitle: { flex: 1, fontSize: 15, color: colors.ink2 },
   gateButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, justifyContent: 'center', backgroundColor: colors.tint },
   gateButtonText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
 });
