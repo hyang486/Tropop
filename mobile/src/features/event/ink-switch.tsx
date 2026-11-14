@@ -17,12 +17,15 @@ export function InkSwitch({
   value,
   onValueChange,
   accessibilityLabel,
+  accessibilityHint,
   disabled = false,
 }: {
   value: boolean;
   disabled?: boolean;
   onValueChange: (next: boolean) => void;
   accessibilityLabel: string;
+  /** P0 (ux): e.g. the Emergency share line under Map's switch. */
+  accessibilityHint?: string;
 }) {
   const [x] = useState(() => new Animated.Value(value ? 1 : 0));
   useEffect(() => {
@@ -40,6 +43,7 @@ export function InkSwitch({
     <Pressable
       accessibilityRole="switch"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ checked: value, disabled }}
       disabled={disabled}
       onPress={() => onValueChange(!value)}

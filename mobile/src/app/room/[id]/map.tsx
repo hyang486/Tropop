@@ -730,10 +730,11 @@ function RoomMap({
                     disabled={busy === 'share'}
                     onValueChange={toggleShare}
                     accessibilityLabel={en.map.shareMine}
+                    accessibilityHint={meInEmergency && !my.share ? en.map.shareInEmergency : undefined}
                   />
                 </View>
                 <Hint>{en.map.shareMineHint}</Hint>
-                {meInEmergency && !my.share ? <Text style={styles.shareEmergency}>{en.map.shareInEmergency}</Text> : null}
+                {meInEmergency && !my.share ? <Text style={styles.shareEmergency} importantForAccessibility="no" accessibilityElementsHidden>{en.map.shareInEmergency}</Text> : null}
               </>
             )}
             {permissionDenied ? (

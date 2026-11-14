@@ -36,6 +36,10 @@ test('P0: the Emergency row reads "Needs help · <age>" and a stale fix shows it
 test('P0 (ux): I never see my own Emergency row; with sharing off a red line asks me to turn it on', () => {
   assert.equal(en.map.shareInEmergency, 'Turn it on so others can find you.');
   assert.match(map, /const meInEmergency = activity\.emergencies\.some\(\(e\) => e\.userId === userId\);/);
-  assert.match(map, /\{meInEmergency && !my\.share \? <Text style=\{styles\.shareEmergency\}>\{en\.map\.shareInEmergency\}<\/Text> : null\}/);
+  assert.match(map, /\{meInEmergency && !my\.share \? <Text style=\{styles\.shareEmergency\} importantForAccessibility="no" accessibilityElementsHidden>\{en\.map\.shareInEmergency\}<\/Text> : null\}/);
+  // VoiceOver reads the line as the switch's hint (not twice).
+  assert.match(map, /accessibilityHint=\{meInEmergency && !my\.share \? en\.map\.shareInEmergency : undefined\}/);
+  const sw = readFileSync(new URL('../src/features/event/ink-switch.tsx', import.meta.url), 'utf8');
+  assert.match(sw, /accessibilityHint=\{accessibilityHint\}/);
   assert.match(map, /shareEmergency: \{ fontSize: 13, color: colors\.errorText \}/);
 });
