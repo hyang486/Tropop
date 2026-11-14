@@ -40,6 +40,15 @@ Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.
 - ux C36 follow-up: one open Emergency shows the nameless line at once and swaps in the name on load (a failed or missing name keeps the nameless line). If the activity read fails: red "Couldn't check for open Emergencies." + Try again (44 pt). If it is slow (> 3 s): ink2 "Checking for Emergencies…" + spinner. End/Leave stay enabled. The guest Leave Alert message is the "Your Emergency is still on…" line while mine is on.
 - Try again shows a spinner and reads "Trying again" (busy, disabled) from the press until the reload settles.
 - Verified: `npm test` 864/864, tsc 0, lint 0. Not verified: simulator (no device run).
+## 2026-11-14: UX2-52 Emergency guard, migration 0036 (NOT APPLIED; live apply held for the human)
+
+- Branch `ux2-52-emergency-guard`, on main 188b89f. Supervisor PASS 226dbc9. Renumbered from 0035 because live 0035 is room_ai_plus.
+- Revert: `supabase/rollback/20261104000036_emergency_status_guard_revert.sql`. It restores set_my_status from 0023 lines
+  48-94; 0035 does not touch it. Sitting SQL: `node scripts/emergency-guard-sitting.mjs <pre-check|dry-run|post-check>`.
+- Local PGlite: the guard and resolved tests pass through 0036. The dry run at 0035 passes with 0 leftovers.
+  Post-check at 0036 matches, and the revert restores the 0023 md5.
+- Known limit, unchanged from 0023: with no member_status row yet, `for update` locks nothing, so two Emergency taps
+  at the same moment can both insert (two events and two alert lines). Accepted, no change.
 
 ## 2026-11-14: hidden-state sweep (pace, calendar), branch audit2-hidden-states (local, rebased on 0c486a3)
 
