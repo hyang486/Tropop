@@ -526,6 +526,9 @@ export const en = {
     emergencyLine: (name: string) => `${name} · Emergency`,
     emergencyLineMine: 'You · Emergency',
     openEmergency: 'Open',
+    // UX2-30: three or more Emergencies in chat fold into one line until Show.
+    emergencyCount: (n: number) => `${n} Emergencies`,
+    showEmergencies: 'Show',
     hideEmergency: 'Hide',
     locationHint: (age: string) => `Opens the last shared location, ${age}`,
     imOk: "I'm OK",

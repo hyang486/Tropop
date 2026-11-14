@@ -19,7 +19,7 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, emergencyBarMode, seenSummary } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, emergencyBarMode, emergenciesFolded, seenSummary } from '@/lib/emergency-plan';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { type Presence, useLivePresence } from '@/lib/location';
@@ -82,6 +82,8 @@ export function EmergencyAlerts({
       else next.delete(id);
       return next;
     });
+  // UX2-30: the folded "N Emergencies" line was opened with Show.
+  const [shownAll, setShownAll] = useState(false);
   const lastSeen = useMemo(() => new Map(presence.map((p) => [p.user_id, p])), [presence]);
   const seeded = useRef(false);
   useEffect(() => {
@@ -110,6 +112,8 @@ export function EmergencyAlerts({
   const area = emergencyAreaMode({ loading: activity.loading, error: activity.error, count: activity.emergencies.length });
   if (!userId || area === 'none') return null;
 
+  const folded = emergenciesFolded({ place, count: activity.emergencies.length, shown: shownAll });
+
   // Recipients are the current members other than the sender.
   const recipients = Math.max(0, names.size - 1);
 
@@ -132,7 +136,29 @@ export function EmergencyAlerts({
       }}
     >
       {area === 'failed' ? <ReadFailedRow onRetry={activity.reload} /> : null}
-      {activity.emergencies.map((e) => {
+      {folded ? (
+        <EnterView>
+          <Pressable
+            style={({ pressed }) => [styles.line, pressed && { opacity: 0.6 }]}
+            onPress={() => setShownAll(true)}
+            accessibilityRole="button"
+            accessibilityLabel={en.activity.emergencyCount(activity.emergencies.length)}
+            accessibilityHint={en.activity.showEmergencies}
+          >
+            <View style={[styles.ring, styles.ringSmall]}>
+              <SymbolView name="exclamationmark.triangle" size={12} tintColor={colors.danger} />
+            </View>
+            <Text style={styles.lineText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+              {en.activity.emergencyCount(activity.emergencies.length)}
+            </Text>
+            <Text style={styles.lineOpen} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+              {en.activity.showEmergencies}
+            </Text>
+            <SymbolView name="chevron.down" size={11} weight="semibold" tintColor={colors.label} />
+          </Pressable>
+        </EnterView>
+      ) : null}
+      {(folded ? [] : activity.emergencies).map((e) => {
         const mine = e.userId === userId;
         const { who, seen } = seenSummary(e.ackedBy, names);
         const iAcked = e.ackedBy.has(userId);

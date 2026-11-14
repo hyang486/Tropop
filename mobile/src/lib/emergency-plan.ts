@@ -56,6 +56,12 @@ export function emergencyAreaMode(o: { loading: boolean; error: unknown; count: 
   return o.count > 0 ? 'list' : 'none';
 }
 
+/** UX2-30: in chat, three or more Emergencies fold into one "N Emergencies · Show" line until it is opened. */
+export const EMERGENCY_FOLD_AT = 3;
+export function emergenciesFolded(o: { place: 'chat' | 'other'; count: number; shown: boolean }): boolean {
+  return o.place === 'chat' && o.count >= EMERGENCY_FOLD_AT && !o.shown;
+}
+
 export function emergencyBarMode(o: {
   place: 'chat' | 'other';
   mine: boolean;

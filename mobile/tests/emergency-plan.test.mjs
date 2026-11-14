@@ -114,3 +114,11 @@ test('UX2-05b: Emergency resolves its id without the list and a failed send offe
   assert.equal(en.activity.emergencyTileA11y, 'Emergency, alerts everyone in the room');
   assert.equal(en.activity.emergencyNotSent, 'Emergency not sent');
 });
+
+test('emergenciesFolded: UX2-30 folds three or more in chat until Show', async () => {
+  const { emergenciesFolded } = await import('../src/lib/emergency-plan.ts');
+  assert.equal(emergenciesFolded({ place: 'chat', count: 2, shown: false }), false);
+  assert.equal(emergenciesFolded({ place: 'chat', count: 3, shown: false }), true);
+  assert.equal(emergenciesFolded({ place: 'chat', count: 3, shown: true }), false);
+  assert.equal(emergenciesFolded({ place: 'other', count: 5, shown: false }), false);
+});
