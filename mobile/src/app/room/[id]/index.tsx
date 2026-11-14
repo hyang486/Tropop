@@ -590,15 +590,18 @@ function MessageRow({
 
   if (item.kind === 'media') {
     const text = en.chat.shared(mine ? en.chat.you : name, item.body || en.chat.sharedFallback);
+    // UX2-56 follow-up: 2 centered lines like the notice rows; no-break spaces keep "· time ›" together on the
+    // last line; the whole row is one tap target of at least 44 pt.
+    const tail = `·\u00A0${time.replace(/\s/g, '\u00A0')}\u00A0›`;
     return (
       <Pressable
-        style={styles.noticeRow}
+        style={[styles.noticeRow, styles.mediaRow]}
         accessibilityRole="button"
         accessibilityHint={en.chat.openPhotosHint}
         onPress={onMediaPress}
       >
-        <Text style={styles.notice} numberOfLines={1}>
-          {text} · {time} ›
+        <Text style={styles.notice} numberOfLines={2}>
+          {text} {tail}
         </Text>
       </Pressable>
     );
@@ -716,6 +719,8 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, color: colors.ink2 },
   failedMeta: { color: colors.errorText },
   noticeRow: { alignSelf: 'center', marginVertical: 8, paddingHorizontal: 16 },
+  // UX2-56 follow-up: 44 pt tap target; less outer margin so the gap to its neighbours stays about the same.
+  mediaRow: { minHeight: 44, justifyContent: 'center', marginVertical: 2 },
   notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },
   composer: {
     flexDirection: 'row',
