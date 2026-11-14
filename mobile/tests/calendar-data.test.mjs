@@ -124,3 +124,17 @@ test('C14 sweep 1: editorTarget waits for the doc, edits a known id, says a gone
   assert.deepEqual(d.editorTarget('e1', empty, ev), { kind: 'edit', event: ev });
   assert.deepEqual(d.editorTarget('e2', empty, ev), { kind: 'missing' });
 });
+
+test('sweep 2: an Ask answer counts only while its sheet is open and it is the newest request', () => {
+  const gate = d.createRequestGate();
+  const a = gate.start();
+  assert.equal(gate.isCurrent(a), true);
+  gate.cancel(); // sheet closed while waiting
+  assert.equal(gate.isCurrent(a), false);
+  const b = gate.start(); // opened again and sent
+  assert.equal(gate.isCurrent(a), false);
+  assert.equal(gate.isCurrent(b), true);
+  const c = gate.start();
+  assert.equal(gate.isCurrent(b), false);
+  assert.equal(gate.isCurrent(c), true);
+});

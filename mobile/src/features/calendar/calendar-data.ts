@@ -245,3 +245,19 @@ export function editorTarget(id: string | undefined, doc: CalendarDoc | null, ke
   if (event) return { kind: 'edit', event };
   return doc ? { kind: 'missing' } : { kind: 'loading' };
 }
+
+/**
+ * Sweep 2: a request whose answer counts only while the sheet that sent it is still open. `start` before sending,
+ * `cancel` on close; `isCurrent(id)` is false once the sheet closed or a newer request started.
+ */
+export function createRequestGate() {
+  let seq = 0;
+  let live: number | null = null;
+  return {
+    start: () => (live = ++seq),
+    cancel: () => {
+      live = null;
+    },
+    isCurrent: (id: number) => live === id,
+  };
+}

@@ -33,7 +33,7 @@ import { useAuth } from '@/lib/auth';
 import { HAND_FONT_LATIN, handFontFor } from '@/lib/hand-font';
 import { useNow } from '@/lib/use-now';
 
-import { calendarGate, calendarItems, parseCalendarAdd, type RoomSnapshot } from './calendar-data';
+import { calendarGate, calendarItems, createRequestGate, parseCalendarAdd, type RoomSnapshot } from './calendar-data';
 import { dayTitle, diaryText, monthTitle, rangeLabel, spokenJoin, weekdayLabels } from './calendar-format';
 import {
   barAction,
@@ -311,10 +311,14 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
+  // Sweep 2: closing the sheet drops an answer still on its way (no editor opening after Cancel).
+  const [gate] = useState(createRequestGate);
   useAnnounce(error, tries);
   useAnnounce(busy ? t.askBusy : null, busy);
 
   function close() {
+    gate.cancel();
+    setBusy(false);
     setError(null);
     onClose();
   }
@@ -324,7 +328,10 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
     setBusy(true);
     setError(null);
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const id = gate.start();
     const res = await calendarAdd(text, today, tz);
+    if (!gate.isCurrent(id)) return;
+    gate.cancel();
     setBusy(false);
     const ev = 'data' in res ? parseCalendarAdd(res.data) : null;
     if (!ev) {
