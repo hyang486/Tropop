@@ -7,7 +7,8 @@ const src = readFileSync(new URL('../src/components/room-activity.tsx', import.m
 
 test('UX2-77: Emergency bar subtitle wraps to 2 lines; the pill stays centered on the bar', () => {
   assert.match(src, /<Text style=\{styles\.barMeta\} numberOfLines=\{2\}/);
-  assert.match(src, /bar: \{\s*flexDirection: 'row',\s*alignItems: 'center',/);
+  // On my way (2026-11-14): the row moved into barRow; the bar is a column so members' answers sit below.
+  assert.match(src, /barRow: \{ flexDirection: 'row', alignItems: 'center',/);
   assert.doesNotMatch(src, /barMetaRow/); // C37: the location icon moved to its own line.
 });
 
@@ -21,7 +22,7 @@ test('UX2-77b: spokenSentence drops each trailing period and joins the parts wit
 });
 
 test('UX2-77b: the Emergency bar label is built with spokenSentence, time and seen as separate parts', () => {
-  assert.match(src, /const spoken = spokenSentence\(\[\s*title,\s*timeOf\(e\.createdAt\),/);
+  assert.match(src, /const spoken = spokenSentence\(\[\s*title,\s*wayLine \?\? '',\s*timeOf\(e\.createdAt\),/);
   assert.doesNotMatch(src, /\]\.join\('\. '\)/);
 });
 

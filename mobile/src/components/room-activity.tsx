@@ -1,5 +1,6 @@
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Alert,
   AppState,
@@ -21,7 +22,8 @@ import { colors, radius } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
 import { emergencyLocation } from '@/lib/chat-plan';
-import { createAnnouncer, emergencyAreaMode, locationLineState, spokenSeparators, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
+import { createAnnouncer, emergencyAreaMode, locationLineState, onWayLine, spokenSeparators, emergencySender, emergencyBarMode, emergenciesFolded, seenPart, spokenSentence } from '@/lib/emergency-plan';
+import { haptics } from '@/lib/haptics';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { errorMessage } from '@/lib/errors';
@@ -76,7 +78,7 @@ export function EmergencyAlerts({
   onOpenLocation?: (userId: string, coordinates: LatLng) => void;
 }) {
   const router = useRouter();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, fontScale } = useWindowDimensions();
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const now = useNow(15_000);
   const [busy, setBusy] = useState<string | null>(null);
@@ -125,6 +127,43 @@ export function EmergencyAlerts({
     }
     if (announcer.fresh(others).length > 0) Vibration.vibrate([0, 400, 200, 400]);
   }, [activity.loading, activity.emergencies, userId]);
+
+  // "On my way" spec: the sender hears each new responder once (VoiceOver + success haptic); seeded on first sight.
+  const heardOnWay = useRef(new Map<string, Set<string>>());
+  useEffect(() => {
+    if (activity.loading || !userId) return;
+    for (const e of activity.emergencies) {
+      if (e.userId !== userId) continue;
+      const heard = heardOnWay.current.get(e.id);
+      if (!heard) {
+        heardOnWay.current.set(e.id, new Set(e.onWay));
+        continue;
+      }
+      for (const id of e.onWay) {
+        if (heard.has(id)) continue;
+        heard.add(id);
+        const who = names?.get(id);
+        if (who) AccessibilityInfo.announceForAccessibility(en.activity.onWayNames([who]));
+        haptics.success();
+      }
+    }
+  }, [activity.loading, activity.emergencies, userId, names]);
+
+  // Inline failure under the action row (spec: no Alert), keyed by event; retry repeats the same answer.
+  const [onWayFailed, setOnWayFailed] = useState<{ id: string; on: boolean } | null>(null);
+  async function answerOnWay(eventId: string, on: boolean) {
+    setBusy(`way:${eventId}`);
+    setOnWayFailed(null);
+    try {
+      await activity.setOnWay(eventId, on);
+      haptics.success();
+      if (on) toggle(eventId, false);
+    } catch {
+      setOnWayFailed({ id: eventId, on });
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function run(key: string, action: () => Promise<void>) {
     setBusy(key);
@@ -199,6 +238,15 @@ export function EmergencyAlerts({
         const mine = e.userId === userId;
         const seenText = seenPart({ mine, ackedBy: e.ackedBy, names, copy: en.activity });
         const iAcked = e.ackedBy.has(userId);
+        const iOnWay = e.onWay.includes(userId);
+        const wayLine = onWayLine({
+          userId,
+          onWay: e.onWay,
+          names,
+          copy: { you: en.activity.onWayYou, onWayNames: en.activity.onWayNames, onWayCount: en.activity.onWayCount },
+        });
+        const wayBusy = busy === `way:${e.id}`;
+        const wayFailed = onWayFailed?.id === e.id ? onWayFailed : null;
         const location = emergencyLocation(lastSeen.get(e.userId));
         const sender = emergencySender(names, e.userId);
         const name = sender.kind === 'name' ? sender.name : en.chat.formerMember;
@@ -219,7 +267,11 @@ export function EmergencyAlerts({
                 style={({ pressed }) => [styles.line, pressed && { opacity: 0.6 }]}
                 onPress={() => toggle(e.id, true)}
                 accessibilityRole="button"
-                accessibilityLabel={`${title}. ${meta}`}
+                accessibilityLabel={spokenSentence([
+                  title,
+                  e.onWay.length > 0 ? en.activity.onWayCount(e.onWay.length) : '',
+                  meta,
+                ])}
                 accessibilityHint={en.activity.openEmergency}
               >
                 <View style={[styles.ring, styles.ringSmall]}>
@@ -231,6 +283,7 @@ export function EmergencyAlerts({
                     : sender.kind === 'unknown'
                       ? en.activity.emergencyFromUnknown
                       : en.activity.emergencyLine(name)}
+                  {e.onWay.length > 0 ? en.activity.onWayLineSuffix(e.onWay.length) : ''}
                 </Text>
                 <Text style={styles.lineOpen} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                   {en.activity.openEmergency}
@@ -252,6 +305,7 @@ export function EmergencyAlerts({
         });
         const spoken = spokenSentence([
           title,
+          wayLine ?? '',
           timeOf(e.createdAt),
           seenText.spoken,
           location.kind === 'shared'
@@ -271,6 +325,7 @@ export function EmergencyAlerts({
         return (
           <EnterView key={e.id}>
             <View style={styles.bar} accessibilityRole="alert">
+             <View style={styles.barRow}>
               <View style={styles.ring}>
                 <SymbolView name="exclamationmark.triangle" size={16} tintColor={colors.danger} />
               </View>
@@ -296,6 +351,14 @@ export function EmergencyAlerts({
                 <Text style={styles.barTitle} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                   {title}
                 </Text>
+                {wayLine ? (
+                  <View style={styles.wayRow}>
+                    <SymbolView name="figure.walk" size={13} tintColor={colors.label} />
+                    <Text style={styles.wayText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                      {wayLine}
+                    </Text>
+                  </View>
+                ) : null}
                 {/* UX2-77: up to 2 lines ("2:32 AM · No one saw it…" no longer cut); the pill stays centered (bar). */}
                 <Text style={styles.barMeta} numberOfLines={2} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
                   {meta}
@@ -330,17 +393,6 @@ export function EmergencyAlerts({
               </Pressable>
               {mine ? (
                 <Pill label={en.activity.imOkNow} busy={busy === 'ok'} onPress={() => run('ok', activity.clearStatus)} />
-              ) : !iAcked ? (
-                <Pill
-                  label={en.activity.acknowledge}
-                  busy={busy === `ack:${e.id}`}
-                  onPress={() =>
-                    run(`ack:${e.id}`, async () => {
-                      await activity.acknowledge(e.id);
-                      toggle(e.id, false);
-                    })
-                  }
-                />
               ) : null}
               {collapsible ? (
                 <Pressable
@@ -351,6 +403,66 @@ export function EmergencyAlerts({
                   accessibilityLabel={en.activity.hideEmergency}
                 >
                   <SymbolView name="chevron.up" size={13} weight="semibold" tintColor={colors.label} />
+                </Pressable>
+              ) : null}
+             </View>
+              {/* "On my way" spec: members answer below the text; On my way first when the pills stack. */}
+              {!mine && iOnWay ? (
+                <View style={styles.youRow}>
+                  <SymbolView name="figure.walk" size={13} tintColor={colors.label} />
+                  <Text style={styles.wayText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                    {en.activity.youOnWay}
+                  </Text>
+                  <Pressable
+                    style={styles.cantCome}
+                    disabled={wayBusy}
+                    onPress={() => answerOnWay(e.id, false)}
+                    accessibilityRole="button"
+                    accessibilityLabel={en.activity.cantComeLabel(name)}
+                    accessibilityState={{ disabled: wayBusy, busy: wayBusy }}
+                  >
+                    <Text style={[styles.cantComeText, wayBusy && { opacity: 0.5 }]} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                      {en.activity.cantCome}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : !mine ? (
+                <View style={[styles.actions, fontScale > 1.2 && styles.actionsStacked]}>
+                  {!iAcked ? (
+                    <Pill
+                      wide
+                      variant="secondary"
+                      label={en.activity.acknowledge}
+                      busy={busy === `ack:${e.id}`}
+                      onPress={() =>
+                        run(`ack:${e.id}`, async () => {
+                          await activity.acknowledge(e.id);
+                          toggle(e.id, false);
+                        })
+                      }
+                    />
+                  ) : null}
+                  <Pill
+                    wide
+                    label={en.activity.onMyWay}
+                    accessibilityLabel={en.activity.onMyWayLabel(name)}
+                    busy={wayBusy}
+                    onPress={() => answerOnWay(e.id, true)}
+                  />
+                </View>
+              ) : null}
+              {wayFailed ? (
+                <Pressable
+                  style={styles.wayError}
+                  onPress={() => answerOnWay(e.id, wayFailed.on)}
+                  accessibilityRole="button"
+                  accessibilityLabel={en.activity.onWayFailed}
+                  accessibilityHint={en.activity.onWayRetry}
+                >
+                  <Text style={styles.wayErrorText} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+                    {`${en.activity.onWayFailed} `}
+                    <Text style={styles.barLocationOpen}>{en.activity.onWayRetry}</Text>
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
@@ -483,18 +595,42 @@ function ReadFailedRow({ onRetry, offline }: { onRetry: () => Promise<void>; off
 }
 
 /** UX P0-1: the bar's one action, an ink pill 36 pt tall inside a 44 pt hit area ("I see it", "I'm OK now"). */
-function Pill({ label, onPress, busy }: { label: string; onPress: () => void; busy?: boolean }) {
+// "On my way" spec: `wide` is the members' 44 pt answer pill (flex 1, 17 semibold); secondary is the 1.5 ink outline.
+function Pill({
+  label,
+  onPress,
+  busy,
+  wide,
+  variant = 'primary',
+  accessibilityLabel,
+}: {
+  label: string;
+  onPress: () => void;
+  busy?: boolean;
+  wide?: boolean;
+  variant?: 'primary' | 'secondary';
+  accessibilityLabel?: string;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!busy, busy: !!busy }}
       disabled={busy}
       onPress={onPress}
-      hitSlop={4}
-      style={({ pressed }) => [styles.pill, (pressed || busy) && { opacity: 0.5 }]}
+      hitSlop={wide ? 0 : 4}
+      style={({ pressed }) => [
+        styles.pill,
+        wide && styles.pillWide,
+        variant === 'secondary' && styles.pillSecondary,
+        (pressed || busy) && { opacity: 0.5 },
+      ]}
     >
-      <Text style={styles.pillText} numberOfLines={1} maxFontSizeMultiplier={EMERGENCY_FONT_CAP}>
+      <Text
+        style={[styles.pillText, wide && styles.pillTextWide, variant === 'secondary' && { color: colors.label }]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={EMERGENCY_FONT_CAP}
+      >
         {label}
       </Text>
     </Pressable>
@@ -505,10 +641,8 @@ const styles = StyleSheet.create({
   alerts: { gap: 8 },
   // UX P0-1: white (paper) fill, 1.5 pt ink border, 12 pt radius; only the icon ring is red (A17).
   bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
     minHeight: 60,
+    justifyContent: 'center',
     paddingVertical: 8,
     paddingLeft: 12,
     paddingRight: 8,
@@ -544,6 +678,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.tint,
   },
   pillText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
+  pillWide: { flex: 1, minHeight: 44, alignItems: 'center', borderRadius: 22 },
+  pillSecondary: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.label },
+  pillTextWide: { fontSize: 17 },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  wayRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  wayText: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: colors.label },
+  // The members' answer row sits 12 below the text; stacked at large text with On my way on top.
+  actions: { flexDirection: 'row', gap: 8, marginTop: 12, marginRight: 4 },
+  actionsStacked: { flexDirection: 'column-reverse' },
+  youRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    marginTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.separator,
+  },
+  cantCome: { marginLeft: 'auto', minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
+  cantComeText: { fontSize: 15, color: colors.label, textDecorationLine: 'underline' },
+  wayError: { minHeight: 44, justifyContent: 'center' },
+  wayErrorText: { fontSize: 13, color: colors.danger },
   hide: { width: 28, height: 44, alignItems: 'center', justifyContent: 'center' },
   line: {
     flexDirection: 'row',

@@ -601,6 +601,23 @@ export const en = {
     seenByCount: (n: number) => `Seen by ${n}`,
     emergencyLine: (name: string) => `${name} · Emergency`,
     emergencyLineMine: 'You · Emergency',
+    // Emergency "On my way" (ux spec 2026-11-14; server 0040 posts the "<name> is on the way" chat line itself).
+    onMyWay: 'On my way',
+    cantCome: "Can't come",
+    youOnWay: "You're on the way",
+    onWayYou: 'You',
+    onWayLineSuffix: (n: number) => ` · ${n} on the way`,
+    onMyWayLabel: (name: string) => `On my way, tell ${name} you're coming`,
+    cantComeLabel: (name: string) => `Can't come, tell ${name} you're not coming`,
+    /** `who` is in order, "You" first; 3 or more name the first two. */
+    onWayNames: (who: string[]) => {
+      const verb = who.length === 1 && who[0] !== 'You' ? 'is' : 'are';
+      if (who.length <= 2) return `${who.join(' and ')} ${verb} on the way`;
+      return `${who[0]}, ${who[1]} and ${who.length - 2} more are on the way`;
+    },
+    onWayCount: (n: number) => `${n} on the way`,
+    onWayFailed: "Couldn't send. Try again.",
+    onWayRetry: 'Try again',
     openEmergency: 'Open',
     // UX2-30: three or more Emergencies in chat fold into one line until Show.
     emergencyCount: (n: number) => `${n} Emergencies`,
