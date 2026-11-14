@@ -11,7 +11,9 @@ reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
   UX2-135 cold-start link needs a Release build (developer-pace building one for the spare sim).
 - Real-iPhone backlog (code only): UX2-85, UX2-124, UX2-129, UX2-130, pace cues with the silent switch on.
 - Open human decisions: ADR 0036 (Emergency guard checklist); UX2-27 password recovery; whether pace voice cues
-  continue with the screen off or Map closed. Push snapshot 4 still not pushed.
+  continue with the screen off or Map closed.
+- Push: qrew/main = d16e070 (= local b5356c8). The next push is a 0ceda26+ snapshot (steps in
+  docs/decisions/push-readiness-2026-11-14.md); it waits on the human's go.
 
 ## 2026-11-13: local main 0978eb7; qrewing v6 live; push snapshot 4 built, not pushed
 - Latency fix d528797 (USER_DECISIONS 2026-11-12 FINAL item 1, line 255): node tests 53/53, deployed as qrewing v6

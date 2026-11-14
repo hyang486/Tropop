@@ -91,7 +91,7 @@ qa live check of v10 (supervisor relay): anchor lead group, time phrase and no g
 
 **Open items**
 - Siri on a real iPhone: not yet verified end to end (simulator PASS on iOS 27.2).
-- Push: pending the human's approval (the 2026-11-07 one-time approval is used up). Nothing is pushed.
+- Push: qrew/main = d16e070 (= local b5356c8). The next push is a 0ceda26+ snapshot (docs/decisions/push-readiness-2026-11-14.md); it waits on the human's go.
 - Video: s11 was re-shot (PASS, Leo asks) and the video recomposed at 12:07 as `output/video/Qrew_Presentation_2026-11-13.mp4`. Scenes s02 and s21 are not in the video (qa).
 
 **App-side fixes merged today (local main):** calendar-lanes (F1 split a room at full days, F2 "+N", spoken labels; s11 ask anchor falls back to my first shared point, kept in memory only), form-a11y-sheet (the date label is read once), consent-sheet-entry e024b9f (a re-present guard; the retry never fired on the device, so it is unproven). Leo's Ask → Rooms kick during the re-shoot was a harness artifact (Metro reloads from merges), not an app bug.
