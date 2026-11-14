@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, colors, Hint } from '@/components/ui';
+import { colors } from '@/components/ui';
 import { SheetRow } from '@/features/chat/chat-sheet';
 
 import { getEntryProfile } from './entry-api';
@@ -158,17 +158,26 @@ export function HiddenRow({ count, onPress }: { count: number; onPress: () => vo
   );
 }
 
-/** The client gate shown instead of the message list until the member filled in their entry info. */
-export function EntryGate({ roomId }: { roomId: string }) {
+/**
+ * UX P1-1: before entry info the chat stays readable and this 64 pt card takes the composer's place
+ * ("Introduce yourself to chat" + an ink "Add my info" button). The composer appears once the info is saved.
+ */
+export function EntryGate({ roomId, bottomInset }: { roomId: string; bottomInset: number }) {
   const router = useRouter();
   return (
-    <View style={styles.gate}>
-      <Text style={styles.gateTitle}>{en.qrewing.entry.title}</Text>
-      <Hint>{en.qrewing.entry.intro}</Hint>
-      <Button
-        title={en.qrewing.info.addEntry}
+    <View style={[styles.gate, { paddingBottom: Math.max(bottomInset, 8) }]}>
+      <Text style={styles.gateTitle} numberOfLines={2}>
+        {en.qrewing.entry.chatPrompt}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
         onPress={() => router.push({ pathname: '/room/[id]/entry', params: { id: roomId, gate: '1' } })}
-      />
+        style={({ pressed }) => [styles.gateButton, pressed && { opacity: 0.6 }]}
+      >
+        <Text style={styles.gateButtonText} maxFontSizeMultiplier={1.4}>
+          {en.qrewing.entry.addMyInfo}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -196,6 +205,18 @@ const styles = StyleSheet.create({
   hiddenRow: { alignSelf: 'center', marginVertical: 6, paddingHorizontal: 16, paddingVertical: 4 },
   hiddenText: { fontSize: 13, color: colors.ink2 },
   hiddenLink: { color: colors.label, textDecorationLine: 'underline' },
-  gate: { flex: 1, padding: 24, gap: 12, justifyContent: 'center' },
-  gateTitle: { fontSize: 20, fontWeight: '600', color: colors.label },
+  gate: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.separator,
+    backgroundColor: colors.background,
+  },
+  gateTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.label },
+  gateButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, justifyContent: 'center', backgroundColor: colors.tint },
+  gateButtonText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
 });

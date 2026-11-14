@@ -918,6 +918,9 @@ export const en = {
     },
     entry: {
       title: 'Introduce yourself',
+      // UX P1-1: the card in the composer's place while the chat is read-only.
+      chatPrompt: 'Introduce yourself to chat',
+      addMyInfo: 'Add my info',
       intro: 'The host asks attendees for a short intro. Everyone in this room can see it, and it is deleted when the room ends, or 30 minutes after the host ends it early.',
       linksNote: 'Links are shown to attendees only. Qrewing does not open them.',
       save: 'Save',

@@ -393,9 +393,7 @@ function ChatRoom({
           {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it.
               Clipped so a message scrolled past the top never shows behind the Emergency card above. */}
           <View style={[styles.flex, styles.clip]}>
-          {qrewing.gates.entry ? (
-            <EntryGate roomId={room.id} />
-          ) : chat.loading ? (
+          {chat.loading ? (
             <ActivityIndicator style={styles.loading} />
           ) : chat.error && chat.messages.length === 0 ? (
             <View style={styles.center}>
@@ -451,8 +449,10 @@ function ChatRoom({
           <QrewingFab roomId={room.id} />
           </View>
 
-          {/* A10: before entry info there is no composer and no "+" (the tabs and status pills are gone with it). */}
-          {qrewing.gates.entry ? null : (
+          {/* UX P1-1: before entry info the chat is read-only; the entry card takes the composer's place (no "+"). */}
+          {qrewing.gates.entry ? (
+            <EntryGate roomId={room.id} bottomInset={insets.bottom} />
+          ) : (
             <View style={[styles.composer, { paddingBottom: plusOpen ? 8 : Math.max(insets.bottom, 8) }]}>
               {/* Spec 11 A11: "+" left of the field (KakaoTalk); it turns into a cross while the grid is open. */}
               <Pressable
