@@ -393,6 +393,23 @@ export function progressOf(point: Point, route: Point[], anchor: Point | null): 
   return anchor ? distanceM(anchor, point) : null;
 }
 
+/**
+ * UX P1-9: a person's place relative to me for the map's people list (Strava Beacon / Find My style). Along the
+ * route when it has 2+ points ("0.2 km behind" / "ahead"), else straight-line ("0.2 km away"). Within
+ * LEAD_GROUP_SPAN_M it is "with you". Null when my own position is unknown.
+ */
+export type PersonGap = { kind: 'with' } | { kind: 'behind' | 'ahead' | 'away'; meters: number };
+export function personGap(me: Point | null, them: Point, route: Point[]): PersonGap | null {
+  if (!me) return null;
+  if (route.length >= 2) {
+    const d = progressAlongRoute(them, route) - progressAlongRoute(me, route);
+    if (Math.abs(d) <= LEAD_GROUP_SPAN_M) return { kind: 'with' };
+    return { kind: d < 0 ? 'behind' : 'ahead', meters: Math.abs(d) };
+  }
+  const d = distanceM(me, them);
+  return d <= LEAD_GROUP_SPAN_M ? { kind: 'with' } : { kind: 'away', meters: d };
+}
+
 export type Runner = { userId: string; progressM: number; speedMps: number | null };
 export type LeadGroup = { members: string[]; frontM: number; rearM: number; speedMps: number | null };
 

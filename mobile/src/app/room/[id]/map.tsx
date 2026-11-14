@@ -13,6 +13,7 @@ import { Button, colors, Hint, radius } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { QrewingHeaderButton, useQrewingAskButton } from '@/features/event/qrewing-fab';
 import { PaceCard } from '@/features/pace/pace-card';
+import { type PersonGap, personGap } from '@/features/pace/pace-core';
 import { PaceLayer } from '@/features/pace/pace-layer';
 import { en } from '@/i18n/en';
 import { useRoomActivity } from '@/lib/activity';
@@ -56,7 +57,8 @@ import {
 } from '@/lib/location-plan';
 import { useRoomEvents } from '@/lib/room-channel';
 import { getRoom, listMembers, type Room } from '@/lib/rooms';
-import { editorStartCamera } from '@/lib/route-editor-plan';
+import { mapStartCamera } from '@/lib/map-start';
+import { editorStartCamera, regionalDefaultCamera } from '@/lib/route-editor-plan';
 import { useNow } from '@/lib/use-now';
 import { useRoomOver } from '@/lib/use-room-over';
 
@@ -284,16 +286,32 @@ function RoomMap({
     mapSize,
     shownRoute,
   );
-  const camera = roomCamera(pointsCamera, myPosition);
+  // UX P1-8: never the world view. Live positions, else the meeting place, else the route, else my position,
+  // else a regional default (see map-start).
+  // UX P1-9: my own position for the people list: my shared row, else the one-off position read above.
+  const myRow = presence.rows.find((r) => r.user_id === userId);
+  const meNow = myRow ? { latitude: myRow.lat, longitude: myRow.lng } : myPosition;
+  const place = room.place_name && room.place_lat != null && room.place_lng != null
+    ? { latitude: room.place_lat, longitude: room.place_lng }
+    : null;
+  const start = mapStartCamera({
+    livePointsCamera: presence.rows.length > 0 ? pointsCamera : null,
+    place,
+    routeCamera: savedRoute.length > 0 ? pointsCamera : null,
+    mine: myPosition,
+    regional: regionalDefaultCamera(Intl.DateTimeFormat().resolvedOptions().timeZone),
+    maxZoom: MAX_CAMERA_ZOOM,
+  });
+  const camera = start.camera;
   const [initialCamera, setInitialCamera] = useState<Camera | null>(null);
-  const centeredOn = useRef<'none' | 'mine' | 'points'>('none');
+  // The rank of the camera the map opened on; only a higher rank (a better start) replaces it, and rank 3 is final.
+  const centeredOn = useRef(0);
   useEffect(() => {
-    if (centeredOn.current === 'points' || !camera) return;
-    if (!pointsCamera && centeredOn.current === 'mine') return;
-    centeredOn.current = pointsCamera ? 'points' : 'mine';
+    if (start.rank <= centeredOn.current) return;
+    centeredOn.current = start.rank;
     // A one-time snapshot: later moves of the points must not move the camera.
-    setInitialCamera(camera);
-  }, [camera, pointsCamera]);
+    setInitialCamera(start.camera);
+  }, [start.rank, start.camera]);
 
   function recenter() {
     if (camera) mapRef.current?.setCameraPosition(camera).catch(() => {});
@@ -312,7 +330,7 @@ function RoomMap({
     focused.current = true;
     const coordinates = { latitude: focusRow.lat, longitude: focusRow.lng };
     // Both: the prop covers a map that is not ready yet, the call a map that already applied its first camera.
-    centeredOn.current = 'points';
+    centeredOn.current = 3;
     setInitialCamera({ coordinates, zoom: MAX_CAMERA_ZOOM });
     focusOn(coordinates);
   }, [focusRow]);
@@ -517,7 +535,7 @@ function RoomMap({
             >
               <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{locate === 'busy' ? en.map.locating : en.map.showMine}</Text>
             </Pressable>
-            {camera ? (
+            {start.rank > 1 ? (
               <Pressable accessibilityRole="button" onPress={recenter} style={[styles.overlayButton, styles.recenter]}>
                 <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>{en.map.recenter}</Text>
               </Pressable>
@@ -625,6 +643,11 @@ function RoomMap({
           {presence.rows.length === 0 ? <Hint>{en.map.nobody}</Hint> : null}
           {presence.rows.map((row) => (
             <PresenceRow
+              gap={
+                row.user_id === userId
+                  ? null
+                  : personGap(meNow, { latitude: row.lat, longitude: row.lng }, savedRoute)
+              }
               key={row.user_id}
               row={row}
               name={displayName(row, userId, names)}
@@ -667,17 +690,21 @@ function RoomMap({
   );
 }
 
-/** The fitted camera, or until there are points, street level on the user's own position. */
-function roomCamera(pointsCamera: Camera | null, myPosition: LatLng | null): Camera | null {
-  return pointsCamera ?? (myPosition ? { coordinates: myPosition, zoom: MAX_CAMERA_ZOOM } : null);
+function gapLabel(gap: PersonGap): string {
+  if (gap.kind === 'with') return en.map.withYou;
+  return gap.kind === 'behind' ? en.map.behind(gap.meters) : gap.kind === 'ahead' ? en.map.ahead(gap.meters) : en.map.away(gap.meters);
 }
 
 function displayName(row: Presence, userId: string | undefined, names: Map<string, string>) {
   return row.user_id === userId ? en.map.you : (names.get(row.user_id) ?? en.chat.formerMember);
 }
 
-/** C4: a stale row never shows its speed; it shows "Location stale" with its age instead. */
+/**
+ * C4: a stale row never shows its speed; it shows its age instead. UX P1-9: a fresh row shows where the person is
+ * relative to me ("0.2 km behind", "with you"), not "Updated just now" on every row; my own row shows my speed.
+ */
 function PresenceRow({
+  gap,
   row,
   name,
   initialOf,
@@ -686,6 +713,7 @@ function PresenceRow({
   emergency,
   now,
 }: {
+  gap: PersonGap | null;
   row: Presence;
   name: string;
   initialOf: string;
@@ -706,7 +734,7 @@ function PresenceRow({
           {status ? <Text style={[styles.presenceStatus, emergency && styles.emergencyText]}>{` · ${status}`}</Text> : null}
         </Text>
         <Text style={[styles.presenceMeta, stale && styles.staleText]}>
-          {stale ? en.map.stale(age) : [speed, en.map.updated(age)].filter(Boolean).join(' · ')}
+          {stale ? en.map.stale(age) : gap ? gapLabel(gap) : speed}
         </Text>
       </View>
     </View>
@@ -782,7 +810,7 @@ const styles = StyleSheet.create({
   },
   presenceText: { flex: 1, gap: 2 },
   presenceName: { fontSize: 17, color: colors.label },
-  presenceMeta: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'] },
+  presenceMeta: { fontSize: 15, color: colors.ink2, fontVariant: ['tabular-nums'] },
   staleText: { color: colors.warning },
   presenceStatus: { color: colors.ink2 },
   emergencyText: { color: EMERGENCY_RED, fontWeight: '600' },

@@ -14,3 +14,15 @@ export function targetFieldsFilled(mode: 'usual' | 'pace' | 'time', pace: string
   if (mode === 'time') return km.trim() !== '' && time.trim() !== '';
   return true;
 }
+
+/** UX P1-9: where the target tick sits on the pace bar (share of its width). */
+export const TARGET_TICK = 0.8;
+
+/**
+ * UX P1-9: the pace bar's fill (0..1) against the target tick: on target fills to the tick, faster runs past it,
+ * slower stops short. Null without a current pace or a target (the bar shows empty).
+ */
+export function targetBarFill(currentSecPerKm: number | null, goalSecPerKm: number | null): number | null {
+  if (currentSecPerKm == null || goalSecPerKm == null || currentSecPerKm <= 0 || goalSecPerKm <= 0) return null;
+  return Math.max(0, Math.min(1, (TARGET_TICK * goalSecPerKm) / currentSecPerKm));
+}

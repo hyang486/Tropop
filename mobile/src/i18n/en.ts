@@ -512,6 +512,15 @@ export const en = {
     segPace: 'Pace',
     segTime: 'Time',
     targetNow: (pace: string | null) => (pace ? `${pace} per km` : 'Not set'),
+    // UX P1-9: one target row (pace bar against a target tick) and an Edit sheet.
+    targetRow: 'Target',
+    targetRowValue: (pace: string | null) => (pace ? `${pace}/km` : 'not set'),
+    targetBarA11y: (pace: string | null, target: string | null) =>
+      `Target ${target ? `${target} per km` : 'not set'}. Your pace ${pace ? `${pace} per km` : 'not known yet'}.`,
+    editTarget: 'Edit',
+    editTargetA11y: 'Edit target',
+    targetSheetTitle: 'Target',
+    done: 'Done',
     // Cues (spoken when voice is available; otherwise a vibration and this banner).
     cueKm: (n: number, pace: string | null, target: string | null) =>
       `Kilometer ${n}${pace ? `: ${pace} per km` : ''}${target ? `, target ${target}` : ''}.`,
@@ -557,6 +566,11 @@ export const en = {
     stalePin: 'stale',
     emergencyPin: (name: string) => `${name} · help`,
     updated: (age: string) => `Updated ${age}`,
+    // UX P1-9: each person's place relative to me; only a stale position shows its age.
+    withYou: 'with you',
+    behind: (meters: number) => `${(meters / 1000).toFixed(1)} km behind`,
+    ahead: (meters: number) => `${(meters / 1000).toFixed(1)} km ahead`,
+    away: (meters: number) => `${(meters / 1000).toFixed(1)} km away`,
     route: 'Route',
     /** #10: the route length label, e.g. "Route 5.2 km". */
     routeDistance: (km: string) => `Route ${km}`,

@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, colors, Hint, radius } from '@/components/ui';
+import { HandTitle } from '@/components/hand-title';
+import { QLink, qSpacing } from '@/components/q-screen';
+import { Button, colors, Hint, radius, size, space, textRole } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import type { Room } from '@/lib/rooms';
 
@@ -18,7 +21,7 @@ import {
 } from './pace-core';
 import { paceApplies } from './pace-layer';
 import { saveTarget, setOn, usePaceSettings } from './settings';
-import { initialPaceSec, targetFieldsFilled } from './target-form';
+import { initialPaceSec, TARGET_TICK, targetBarFill, targetFieldsFilled } from './target-form';
 import { en } from '@/i18n/en';
 const t = en.pace;
 
@@ -56,7 +59,7 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
         <>
           {!active ? <Hint>{t.needsActivity}</Hint> : null}
           {stats ? <StatsRow {...stats} /> : null}
-          <TargetEditor target={settings.target} usual={usual} goal={goal} />
+          <TargetRow target={settings.target} usual={usual} goal={goal} current={run?.recent ?? null} />
           {goal == null ? <Hint>{t.noTarget}</Hint> : null}
         </>
       ) : null}
@@ -64,7 +67,7 @@ export function PaceCard({ room, share }: { room: Room; share: boolean }) {
   );
 }
 
-/** Spec 11 A19: full-width stats, Strava/NRC style: big numbers, small labels. VoiceOver reads one line. */
+/** Spec 11 A19, UX P1-9: 34 pt tabular numbers, 13 pt labels under them, left aligned. VoiceOver reads one line. */
 function StatsRow({ km, moving, pace, spoken }: { km: string; moving: string; pace: string | null; spoken: string }) {
   const cells = [
     { value: km, label: t.statKm },
@@ -73,17 +76,83 @@ function StatsRow({ km, moving, pace, spoken }: { km: string; moving: string; pa
   ];
   return (
     <View style={styles.statsRow} accessible accessibilityLabel={spoken}>
-      {cells.map((c, i) => (
-        <View key={c.label} style={[styles.statCell, i > 0 && styles.statDivider]}>
-          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+      {cells.map((c) => (
+        <View key={c.label} style={styles.statCell}>
+          <Text style={textRole.stat} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
             {c.value}
           </Text>
-          <Text style={styles.statLabel} numberOfLines={1}>
+          <Text style={textRole.caption} numberOfLines={1}>
             {c.label}
           </Text>
         </View>
       ))}
     </View>
+  );
+}
+
+/**
+ * UX P1-9: one 56 pt row: "Target 5:00/km", my recent pace as a bar against the target tick, and Edit, which
+ * opens the Usual / Pace / Time form in a sheet.
+ */
+function TargetRow({
+  target,
+  usual,
+  goal,
+  current,
+}: {
+  target: PaceTarget;
+  usual: number | null;
+  goal: number | null;
+  current: number | null;
+}) {
+  const [editing, setEditing] = useState(false);
+  const insets = useSafeAreaInsets();
+  const fill = targetBarFill(current, goal);
+  return (
+    <>
+      <View style={styles.targetRow}>
+        <View
+          style={styles.targetMain}
+          accessible
+          accessibilityLabel={t.targetBarA11y(formatPace(current), formatPace(goal))}
+        >
+          <Text style={textRole.body} numberOfLines={1}>
+            {`${t.targetRow} `}
+            <Text style={styles.targetValue}>{t.targetRowValue(formatPace(goal))}</Text>
+          </Text>
+          <View style={styles.bar}>
+            {fill != null ? <View style={[styles.barFill, { width: `${fill * 100}%` }]} /> : null}
+            {goal != null ? <View style={styles.tick} /> : null}
+          </View>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.editTargetA11y}
+          onPress={() => setEditing(true)}
+          hitSlop={8}
+          style={styles.edit}
+        >
+          <Text style={styles.editText}>{t.editTarget}</Text>
+        </Pressable>
+      </View>
+      <Modal visible={editing} transparent animationType="slide" onRequestClose={() => setEditing(false)}>
+        {/* The pace and time fields sit in the sheet, so it rises with the keyboard. */}
+        <KeyboardAvoidingView behavior="padding" style={styles.sheetRoot}>
+          <Pressable
+            style={styles.backdrop}
+            onPress={() => setEditing(false)}
+            accessibilityRole="button"
+            accessibilityLabel={t.done}
+          />
+          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.m) + space.xs }]} accessibilityViewIsModal>
+            <View style={styles.grabber} />
+            <HandTitle style={styles.sheetTitle}>{t.targetSheetTitle}</HandTitle>
+            <TargetEditor target={target} usual={usual} goal={goal} />
+            <QLink title={t.done} onPress={() => setEditing(false)} />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
   );
 }
 
@@ -147,7 +216,7 @@ function TargetEditor({ target, usual, goal }: { target: PaceTarget; usual: numb
       : null;
 
   return (
-    // Spec 11 A19: one outlined box: the saved target on the head line, a one-line segmented control, then the
+    // UX P1-9: inside the Edit sheet: the saved target on the head line, a one-line segmented control, then the
     // fields for the chosen kind.
     <View style={styles.target}>
       <View style={styles.targetHead}>
@@ -238,19 +307,40 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   switchLabel: { fontSize: 17, color: colors.label, flexShrink: 1 },
-  statsRow: { flexDirection: 'row', paddingVertical: 8 },
-  statCell: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-  statDivider: { borderLeftWidth: StyleSheet.hairlineWidth * 2, borderLeftColor: colors.separator },
-  statValue: { fontSize: 40, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] },
-  statLabel: { fontSize: 13, color: colors.ink2, marginTop: 2 },
-  target: {
-    gap: 10,
+  statsRow: { flexDirection: 'row', paddingVertical: space.s, gap: space.l },
+  statCell: { flex: 1, alignItems: 'flex-start' },
+  targetRow: {
+    minHeight: size.rowSubtitle,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.m,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: colors.separator,
     borderRadius: 12,
     borderCurve: 'continuous',
-    padding: 14,
+    paddingHorizontal: space.l,
   },
+  targetMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.m },
+  targetValue: { fontWeight: '700', fontVariant: ['tabular-nums'] },
+  bar: { flex: 1, minWidth: 48, height: 6, borderRadius: 3, backgroundColor: colors.separator, justifyContent: 'center' },
+  barFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 3, backgroundColor: colors.label },
+  tick: { position: 'absolute', left: `${TARGET_TICK * 100}%`, width: 2, height: 18, marginLeft: -1, backgroundColor: colors.label },
+  edit: { minHeight: size.hit, justifyContent: 'center' },
+  editText: { fontSize: 17, color: colors.label, textDecorationLine: 'underline' },
+  sheetRoot: { flex: 1, justifyContent: 'flex-end' },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.25)' },
+  sheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderCurve: 'continuous',
+    paddingHorizontal: qSpacing.side,
+    paddingTop: space.s,
+    gap: space.m,
+  },
+  grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.separator, marginBottom: space.xs },
+  sheetTitle: { marginBottom: space.xs },
+  target: { gap: 10 },
   targetHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   label: { fontSize: 17, fontWeight: '600', color: colors.label },
   targetNow: { fontSize: 17, color: colors.label, fontVariant: ['tabular-nums'] },
