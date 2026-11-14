@@ -60,9 +60,11 @@ export default function Rooms() {
       syncCalendarRooms(uid, list);
       // Local 24-hour reminders for every open room; cancels those of rooms no longer listed. Rooms the host
       // ended (listed only during their grace window, spec 7) get no reminder.
+      // UX2-127: the Rooms list never shows a cold notification prompt; the room screen still asks.
       syncExpiryReminders(
         list.filter((r) => r.deleted_at === null),
         true,
+        { ask: false },
       );
     } catch (e) {
       setError(`${en.home.loadFailed} ${errorMessage(e)}`);

@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '@/components/avatar';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
+import { RemindersOffNote } from '@/components/reminders-off-note';
 import { RoomEnded } from '@/components/room-ended';
 import { purgeAskHistory } from '@/features/event/ask-store';
 import { noteSiriRoomClosed } from '@/features/event/siri-mirror';
@@ -228,6 +229,7 @@ export default function RoomInfoScreen() {
         </View>
       ) : null}
       <QRowCard icon="clock" title={endsLine} subtitle={en.room.endsSoonInfo} />
+      <RemindersOffNote />
       {/* Place and time (0026), only when the host set them: map, place + Open in Maps, start time. */}
       {placeTime ? <PlaceTimeCards placeTime={placeTime} /> : null}
       <QrewingInfoSection roomId={room.id} roomType={room.type} isHost={isHost} />

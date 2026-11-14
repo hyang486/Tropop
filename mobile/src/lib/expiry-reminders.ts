@@ -21,6 +21,7 @@ import {
   REMINDER_ID_PREFIX,
   REMINDER_WINDOW_MS,
 } from './expiry-plan';
+import { permissionStep } from './reminders-plan';
 import { formatRemaining } from './rooms';
 import { supabase } from './supabase';
 
@@ -42,20 +43,24 @@ function dataFor(room: ReminderRoom, fireAt?: number): ReminderData {
   return { kind: 'expiry', roomId: room.id, expiryVersion: room.expiry_version, expiresAt: room.expires_at, fireAt };
 }
 
-/** Asks once (iOS shows its own prompt). Returns whether local notifications may be shown. */
-async function ensurePermission() {
+/**
+ * Asks once (iOS shows its own prompt). Returns whether local notifications may be shown. UX2-127: `{ ask: false }`
+ * only checks, never prompts.
+ */
+async function ensurePermission(options?: { ask?: boolean }) {
   const current = await Notifications.getPermissionsAsync();
-  if (current.granted) return true;
-  if (!current.canAskAgain) return false;
+  const step = permissionStep(current, options);
+  if (step !== 'ask') return step === 'granted';
   const asked = await Notifications.requestPermissionsAsync();
   return asked.granted;
 }
 
 /**
  * Brings the scheduled local reminders in line with `rooms`. `complete` means `rooms` is every room
- * the user can still open (home list); a single room screen passes false.
+ * the user can still open (home list); a single room screen passes false. `options.ask` (default true): false
+ * schedules only when the permission is already granted (UX2-127: no cold prompt from the Rooms list).
  */
-export async function syncExpiryReminders(rooms: ReminderRoom[], complete: boolean) {
+export async function syncExpiryReminders(rooms: ReminderRoom[], complete: boolean, options?: { ask?: boolean }) {
   try {
     const scheduled = (await Notifications.getAllScheduledNotificationsAsync()).map((n) => ({
       identifier: n.identifier,
@@ -63,7 +68,7 @@ export async function syncExpiryReminders(rooms: ReminderRoom[], complete: boole
     }));
     const plan = planReminders(rooms, scheduled, Date.now(), complete);
     await Promise.all(plan.cancel.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
-    if (plan.schedule.length === 0 || !(await ensurePermission())) return;
+    if (plan.schedule.length === 0 || !(await ensurePermission(options))) return;
     await Promise.all(
       plan.schedule.map(({ identifier, room, fireAt }) =>
         Notifications.scheduleNotificationAsync({

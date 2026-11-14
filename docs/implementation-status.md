@@ -2,6 +2,12 @@
 
 Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-14: UX2-127 / UX2-128 reminder permission, branch ux2-127-128-reminders (local, from 188b89f, not pushed)
+
+- UX2-127: `syncExpiryReminders(rooms, complete, options?: { ask?: boolean })`. The default still prompts. The Rooms list (`app/index.tsx`) passes `{ ask: false }`, so it schedules only when notifications are already allowed and never shows a cold prompt. The chat-screen call is unchanged. The rule is `permissionStep()` in `lib/reminders-plan.ts`.
+- UX2-128: `RemindersOffNote` sits under Room info's Ends card. It reads `getPermissionsAsync()` (no prompt) on mount and whenever the app becomes active. Only when the status is denied does it show an ink2 line and Open Settings (`Linking.openSettings`, 44 pt).
+- Verified: `npm test` 860/860, tsc 0, lint 0. Not verified: simulator (no device run).
+
 ## 2026-11-14: hidden-state sweep (pace, calendar), branch audit2-hidden-states (local, rebased on 0c486a3)
 
 Sweep 8 (target 'Saved' clears on edit), sweep 1 + C14 (event editor waits for the doc, gone event, save/delete

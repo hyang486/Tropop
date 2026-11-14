@@ -224,6 +224,9 @@ export const en = {
     reminderTitle: 'Room ends soon',
     // #9: one compact line in chat; the full note is in Info.
     endsSoonLine: 'Room ends soon · photos and files are deleted',
+    // UX2-128: under the Ends card when notifications are denied.
+    remindersOff: "Reminders are off, so you won't get a heads-up before this room ends.",
+    openSettings: 'Open Settings',
     endsSoonInfo: "Photos, files and chat are deleted when the room ends, or 30 minutes after the host ends it early. Download anything you'd like to keep.",
     reminderBody: (name: string, remaining: string) =>
       `${name} disappears in ${remaining}. Download any photos and files you'd like to keep.`,
