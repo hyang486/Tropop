@@ -189,7 +189,8 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
       actions={
         <>
           {error ? <Hint tone="error">{error}</Hint> : null}
-          <Button title={copy.confirm} busy={running} onPress={confirm} />
+          {/* UX2-72: the destructive confirm is red-filled; Keep stays outlined. */}
+          <Button title={copy.confirm} variant="destructiveFill" accessibilityHint={copy.confirmHint} busy={running} onPress={confirm} />
           <Button title={copy.keep} variant="secondary" disabled={running} onPress={() => router.back()} />
         </>
       }

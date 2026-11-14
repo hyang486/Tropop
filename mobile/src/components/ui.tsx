@@ -162,7 +162,8 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
 type ButtonProps = {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'destructive';
+  /** UX2-72: destructiveFill is the confirm on End room / End activity: a systemRed fill with a white label. */
+  variant?: 'primary' | 'secondary' | 'destructive' | 'destructiveFill';
   busy?: boolean;
   disabled?: boolean;
   /** Caps the title's Dynamic Type scale, for buttons in a pinned footer that must stay on screen. */
@@ -179,9 +180,12 @@ export function Button({
   maxFontSizeMultiplier,
   accessibilityHint,
 }: ButtonProps) {
-  const isPrimary = variant === 'primary';
-  // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red.
+  const filled = variant === 'primary' || variant === 'destructiveFill';
+  // A2: black (ink) primary; secondary and destructive are outlined, destructive stays red. UX2-72: destructiveFill
+  // is red-filled with a white label in both modes.
   const accent = variant === 'destructive' ? colors.danger : colors.tint;
+  const fill = variant === 'destructiveFill' ? colors.danger : colors.tint;
+  const label = variant === 'destructiveFill' ? '#FFFFFF' : colors.onTint;
   return (
     <Pressable
       accessibilityRole="button"
@@ -191,15 +195,15 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        isPrimary ? { backgroundColor: colors.tint } : [styles.outlined, { borderColor: accent }],
+        filled ? { backgroundColor: fill } : [styles.outlined, { borderColor: accent }],
         (pressed || disabled) && { opacity: 0.6 },
       ]}
     >
       {busy ? (
-        <ActivityIndicator color={isPrimary ? colors.onTint : accent} />
+        <ActivityIndicator color={filled ? label : accent} />
       ) : (
         <Text
-          style={[styles.buttonText, { color: isPrimary ? colors.onTint : accent }]}
+          style={[styles.buttonText, { color: filled ? label : accent }]}
           maxFontSizeMultiplier={maxFontSizeMultiplier}
         >
           {title}
