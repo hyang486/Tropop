@@ -90,6 +90,10 @@ test('UX2-114 (ux C36 b): both screens show the check line, End and Leave stay e
   assert.match(note, /minHeight: 44/);
   assert.match(note, /spokenEllipsis\(/);
   assert.match(note, /ActivityIndicator/);
+  // Pattern E: Try again is busy (spinner, "Trying again") from the press until the reload settles.
+  assert.equal(copy.tryingAgain, 'Trying again');
+  assert.match(note, /setRetrying\(true\)[^]*?finally\(\(\) => setRetrying\(false\)\)/);
+  assert.match(note, /accessibilityState=\{\{ busy: retrying \}\}/);
 });
 
 test('UX2-114 (ux C36 c): the guest Leave Alert says to tap I\'m OK now first while my Emergency is on', () => {

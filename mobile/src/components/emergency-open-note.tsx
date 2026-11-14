@@ -34,8 +34,14 @@ export function useSlow(loading: boolean): boolean {
  * UX2-114 (ux C36 b): the activity read failed (red line + Try again, 44 pt hit) or is slow (ink2 + small spinner).
  * It never disables End or Leave.
  */
-export function EmergencyCheckNote({ line, onRetry }: { line: 'failed' | 'checking'; onRetry: () => void }) {
+export function EmergencyCheckNote({ line, onRetry }: { line: 'failed' | 'checking'; onRetry: () => Promise<void> }) {
   const copy = en.emergencyOpen;
+  const [retrying, setRetrying] = useState(false);
+  const retry = () => {
+    if (retrying) return;
+    setRetrying(true);
+    void onRetry().finally(() => setRetrying(false));
+  };
   if (line === 'checking') {
     return (
       <View style={styles.row} accessible accessibilityLabel={spokenEllipsis(copy.checking)}>
@@ -50,8 +56,16 @@ export function EmergencyCheckNote({ line, onRetry }: { line: 'failed' | 'checki
         <SymbolView name="exclamationmark.triangle" size={13} tintColor={colors.errorText} />
         <Text style={styles.text}>{copy.checkFailed}</Text>
       </View>
-      <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.retry, pressed && { opacity: 0.5 }]}>
-        <Text style={styles.retryText}>{copy.tryAgain}</Text>
+      {/* Pattern E: busy from the press until the reload settles. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={retrying ? copy.tryingAgain : copy.tryAgain}
+        accessibilityState={{ busy: retrying }}
+        disabled={retrying}
+        onPress={retry}
+        style={({ pressed }) => [styles.retry, pressed && { opacity: 0.5 }]}
+      >
+        {retrying ? <ActivityIndicator size="small" /> : <Text style={styles.retryText}>{copy.tryAgain}</Text>}
       </Pressable>
     </View>
   );

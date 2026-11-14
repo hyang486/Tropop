@@ -749,6 +749,7 @@ export const en = {
     checkFailed: "Couldn't check for open Emergencies.",
     checking: 'Checking for Emergencies…',
     tryAgain: 'Try again',
+    tryingAgain: 'Trying again',
   },
   invite: {
     title: 'Invite',
