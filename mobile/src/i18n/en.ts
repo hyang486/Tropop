@@ -540,6 +540,9 @@ export const en = {
     waitingSeen: 'Waiting for someone to see it.',
     lastLocation: (age: string) => `Last location shared · ${age}`,
     noLocation: 'No location shared',
+    // C37 (UX2-126): the location line on the expanded Emergency bar.
+    openLastLocationAge: (age: string) => `Open last location · ${age}`,
+    yourLastLocation: (age: string) => `Your last location · ${age}`,
     openLastLocation: 'Open last shared location',
     imOkNow: "I'm OK now",
     inEmergencyCaption: "You're in Emergency. Other statuses come back after you're OK.",

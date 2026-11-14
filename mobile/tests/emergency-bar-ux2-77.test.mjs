@@ -8,7 +8,7 @@ const src = readFileSync(new URL('../src/components/room-activity.tsx', import.m
 test('UX2-77: Emergency bar subtitle wraps to 2 lines; the pill stays centered on the bar', () => {
   assert.match(src, /<Text style=\{styles\.barMeta\} numberOfLines=\{2\}/);
   assert.match(src, /bar: \{\s*flexDirection: 'row',\s*alignItems: 'center',/);
-  assert.match(src, /barMetaRow: \{ flexDirection: 'row', alignItems: 'flex-start', gap: 4 \}/);
+  assert.doesNotMatch(src, /barMetaRow/); // C37: the location icon moved to its own line.
 });
 
 test('UX2-77b: spokenSentence drops each trailing period and joins the parts with ". "', async () => {
