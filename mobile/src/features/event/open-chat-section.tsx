@@ -1,0 +1,112 @@
+// Spec 11 D: the Open chat section for Rooms. Lists open public rooms (list_open_rooms) and joins one without a code
+// (join_open_room). Renders nothing while OPEN_ROOMS_LIVE is false (migration 0031 not live yet).
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { InkIcon } from '@/components/calendar';
+import { QLabel } from '@/components/q-screen';
+import { colors, Hint } from '@/components/ui';
+import { en } from '@/i18n/en';
+import { errorMessage } from '@/lib/errors';
+
+import { iconEmoji, OPEN_ROOMS_LIVE, openRowSpoken } from './open-room-plan';
+import { joinOpenRoom, listOpenRooms, type OpenRoom } from './open-rooms-api';
+
+export function OpenChatSection() {
+  const router = useRouter();
+  const [rooms, setRooms] = useState<OpenRoom[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [joining, setJoining] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    let live = true;
+    listOpenRooms()
+      .then((rows) => {
+        if (!live) return;
+        setRooms(rows);
+        // Clears only a load failure, so a join error ("This room is full.") stays after the refresh it triggers.
+        setError((e) => (e === en.openChat.loadFailed ? null : e));
+      })
+      .catch(() => live && setError(en.openChat.loadFailed));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // Re-read each time Rooms comes into view, so counts and newly opened rooms stay current.
+  useFocusEffect(useCallback(() => (OPEN_ROOMS_LIVE ? load() : undefined), [load]));
+
+  async function open(room: OpenRoom) {
+    if (room.already_member) {
+      router.push({ pathname: '/room/[id]', params: { id: room.room_id } });
+      return;
+    }
+    setJoining(room.room_id);
+    setError(null);
+    try {
+      const id = await joinOpenRoom(room.room_id);
+      router.push({ pathname: '/room/[id]', params: { id } });
+    } catch (e) {
+      setError(errorMessage(e));
+      load();
+    } finally {
+      setJoining(null);
+    }
+  }
+
+  if (!OPEN_ROOMS_LIVE) return null;
+  return (
+    <View style={styles.section}>
+      <QLabel>{en.openChat.section}</QLabel>
+      {error ? <Hint tone="error">{error}</Hint> : null}
+      {rooms && rooms.length === 0 ? <Hint>{en.openChat.empty}</Hint> : null}
+      {rooms?.map((room) => (
+        <Pressable
+          key={room.room_id}
+          accessibilityRole="button"
+          accessibilityLabel={openRowSpoken(room.public_icon, room.name, room.public_location)}
+          accessibilityValue={{ text: en.openChat.count(room.member_count, room.max_members) }}
+          accessibilityHint={room.already_member ? undefined : en.openChat.joinHint}
+          accessibilityState={{ busy: joining === room.room_id }}
+          disabled={joining !== null}
+          onPress={() => open(room)}
+          style={styles.row}
+        >
+          <InkIcon emoji={iconEmoji(room.public_icon)} size={28} />
+          <View style={styles.text}>
+            <Text style={styles.name} numberOfLines={1}>
+              {room.name}
+            </Text>
+            <Text style={styles.area} numberOfLines={1}>
+              {room.public_location}
+            </Text>
+          </View>
+          <Text style={styles.count}>
+            {room.already_member ? en.openChat.joined : en.openChat.count(room.member_count, room.max_members)}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  section: { gap: 8 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 60,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: colors.separator,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+  },
+  text: { flex: 1, gap: 2 },
+  name: { fontSize: 16, color: colors.label },
+  area: { fontSize: 13, color: colors.secondaryLabel },
+  count: { fontSize: 14, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] },
+});
