@@ -5,7 +5,12 @@ the human anything again). Delivery agreement: planning/48H_DRAFT_PROPOSAL_EN.md
 full requirements in scope). The developer owns this file. History: docs/implementation-status.md;
 reviews: docs/reviews/current.md (supervisor-owned). Read them on demand.
 
-## 2026-11-13: local main 0978eb7 (resume here); qrewing v6 live; push snapshot 4 built, not pushed
+## 2026-11-14: local main e2b16e7 (resume here); UX2 audit fixes through UX2-139
+- UX2-129 to UX2-139 merged; details: docs/implementation-status.md "2026-11-14: UX2-129 to UX2-139". 1001/1001 tests.
+- Device: UX2-133 and UX2-135 PASS (qa). UX2-136 and UX2-139 not device-checked yet.
+- Open: ADR 0036 (Emergency guard checklist) waits on the human. Push snapshot 4 still not pushed.
+
+## 2026-11-13: local main 0978eb7; qrewing v6 live; push snapshot 4 built, not pushed
 - Latency fix d528797 (USER_DECISIONS 2026-11-12 FINAL item 1, line 255): node tests 53/53, deployed as qrewing v6
   (verify_jwt false). Deployed index.ts and prompts.ts match d528797 byte for byte. core.ts differs only at line 603, where
   the MCP deploy turned the EMOJI_RE \u200d\ufe0f\u20e3 escapes into literal characters (same regex).

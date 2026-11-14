@@ -2,6 +2,18 @@
 
 Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-14: UX2-129 to UX2-139 merged on local main e2b16e7 (not pushed)
+
+- UX2-129 / UX2-130 (7819c38, 15e49c8): not_member alert before Ask/People close; in-chat reminder card is the only notification ask, also in an empty chat.
+- UX2-133 (76fdb30): `selectionColor={colors.label}` on every TextInput. qa device: PASS after a cold reload (the earlier blue cursor was stale Fast Refresh state; no code change).
+- UX2-134 (cadf011): pushed event editor drops the sheet ground; picked icon fills with `colors.field`.
+- UX2-135 (a54dbcd): a signed-in warm link to a signed-out-only screen (`/start/code`) resets to the Rooms root. qa device: PASS. Cold-start link not checked.
+- UX2-136 (c539291): a warm room link with a modal open (upgrade, invite, ask, questions) closes the modal and opens the room from the root. Device repro not run yet.
+- UX2-137 / UX2-138 (6cd137c, d523739): People host wording, consentTitle 'Find who to meet', shorter entry intro; disabled Button at 40% opacity app-wide.
+- UX2-139 (d2c547d): Edit profile "Save name" is disabled until the trimmed name is non-empty and differs from the saved name. Device not checked.
+- ADR 0036 Emergency guard checklist (f594e7b): document only, nothing run or applied; waiting on the human.
+- Verified (supervisor, e2b16e7): `npm test` 1001/1001, tsc 0, lint 0.
+
 ## 2026-11-14: UX2-131 / UX2-132, branch ux2-131-132 (local, from e1ebdc7, not pushed)
 
 - UX2-131: typing a people count above the plan max still clamps it, and now a line appears under the stepper. Free host: "Free rooms hold up to 6." + "See Plus" (same `/plan-preview?from=capacity` route as the + tap, 44 pt). Plus host: "Rooms hold up to 30." with no link. VoiceOver announces the line (useAnnounce). The next stepper change clears it. Done never opens Plus. The rule is `capacityClampNote()` in `lib/capacity-clamp-plan.ts`.
