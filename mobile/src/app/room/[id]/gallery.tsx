@@ -428,30 +428,32 @@ function UploadRow({
             <View style={[styles.bar, { width: `${job.state === 'queued' ? 0 : Math.max(2, pct)}%` }]} />
           </View>
         ) : null}
-      </View>
-      {failed ? (
-        <View style={styles.jobActions}>
-          {deadEnd ? (
-            step === 'plus' ? (
-              <Pressable onPress={onSeePlus} accessibilityRole="button" hitSlop={6}>
-                <Text style={styles.action}>{en.media.seePlus}</Text>
+        {failed ? (
+          // UX2-35: one 44 pt action line under the message, from the text column's leading edge.
+          <View style={styles.jobActions}>
+            {deadEnd ? (
+              step === 'plus' ? (
+                <Pressable onPress={onSeePlus} accessibilityRole="button" style={styles.actionButton}>
+                  <Text style={styles.action}>{en.media.seePlus}</Text>
+                </Pressable>
+              ) : null
+            ) : closed ? null : (
+              <Pressable onPress={onRetry} accessibilityRole="button" style={styles.actionButton}>
+                <Text style={styles.action}>{en.media.retry}</Text>
               </Pressable>
-            ) : null
-          ) : closed ? null : (
-            <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={6}>
-              <Text style={styles.action}>{en.media.retry}</Text>
+            )}
+            <Pressable onPress={onDismiss} accessibilityRole="button" style={styles.actionButton}>
+              <Text style={styles.actionSecondary}>{en.media.dismiss}</Text>
             </Pressable>
-          )}
-          <Pressable onPress={onDismiss} accessibilityRole="button" hitSlop={6}>
-            <Text style={[styles.action, { color: colors.ink2 }]}>{en.media.dismiss}</Text>
-          </Pressable>
-        </View>
-      ) : (
+          </View>
+        ) : null}
+      </View>
+      {failed ? null : (
         <Pressable
           onPress={onCancel}
           accessibilityRole="button"
           accessibilityLabel={`${en.media.cancelUpload}: ${job.item.fileName}`}
-          hitSlop={8}
+          hitSlop={11}
         >
           <SymbolView name="xmark.circle.fill" size={22} tintColor={colors.secondaryLabel} />
         </Pressable>
@@ -500,8 +502,11 @@ const styles = StyleSheet.create({
   jobText: { flex: 1, gap: 4 },
   jobName: { fontSize: 15, color: colors.label },
   jobStatus: { fontSize: 13, color: colors.ink2 },
-  jobActions: { gap: 8, alignItems: 'flex-end' },
-  action: { fontSize: 15, color: colors.tint, fontWeight: '500' },
+  // 8 pt padding each side: 16 pt between the labels, and each button at least 44 × 44.
+  jobActions: { flexDirection: 'row', minHeight: 44, marginStart: -8 },
+  actionButton: { minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  action: { fontSize: 15, color: colors.label, fontWeight: '600' },
+  actionSecondary: { fontSize: 15, color: colors.secondaryLabel },
   track: { height: 4, borderRadius: 2, backgroundColor: colors.separator, overflow: 'hidden' },
   bar: { height: 4, backgroundColor: colors.tint },
   fill: { width: '100%', height: '100%' },
