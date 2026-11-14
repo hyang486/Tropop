@@ -8,7 +8,11 @@ import { useSyncExternalStore } from 'react';
 export type NoticeKind = 'room-ending' | 'question' | 'emergency' | 'reminder';
 
 /** What tapping the notice opens. */
-export type NoticeAction = { kind: 'open-question'; cardId: string } | { kind: 'open-chat' } | { kind: 'open-info' };
+export type NoticeAction =
+  | { kind: 'open-question'; cardId: string }
+  | { kind: 'open-ask' }
+  | { kind: 'open-chat' }
+  | { kind: 'open-info' };
 
 export type Notice = {
   /** Stable per notice, e.g. 'question:<card id>' or 'room-ending:<room id>:1h'. Upserting the same id replaces it. */

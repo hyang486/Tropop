@@ -1,0 +1,111 @@
+// Spec 11 C, in Ask Qrewing: questions Qrewing passed on to a person. Waiting, the answer (only I see it), or after
+// ~3 minutes with no answer the offer to ask in the room chat instead (the server posts it as my chat message).
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Button, colors, Hint } from '@/components/ui';
+import { en } from '@/i18n/en';
+import { useAuth } from '@/lib/auth';
+import { listMembers } from '@/lib/rooms';
+
+import { canAskInChat, type CardError, cardsIAsked, msUntilOffer, type QuestionCard } from './question-plan';
+import { askInChat, loadCards, useRoomCards } from './question-store';
+
+const s = en.questions;
+
+export function RelayedCards({ roomId, refreshKey }: { roomId: string; refreshKey?: number }) {
+  const { session } = useAuth();
+  const { cards } = useRoomCards(roomId);
+  const mine = cardsIAsked(cards, session?.user.id);
+  const [names, setNames] = useState<ReadonlyMap<string, string>>(new Map());
+  const [now, setNow] = useState(() => Date.now());
+
+  // A new ask may have created a card: refetch after each answer from Qrewing.
+  useEffect(() => {
+    loadCards(roomId);
+  }, [roomId, refreshKey]);
+
+  useEffect(() => {
+    let live = true;
+    listMembers(roomId)
+      .then((m) => live && setNames(new Map(m.map((x) => [x.user_id, x.display_name]))))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [roomId, mine.length]);
+
+  // Wake when the next offer is due.
+  const nextDue = Math.min(...mine.map((c) => msUntilOffer(c, now)).filter((ms) => ms > 0), Infinity);
+  useEffect(() => {
+    if (!Number.isFinite(nextDue)) return;
+    const t = setTimeout(() => setNow(Date.now()), nextDue + 250);
+    return () => clearTimeout(t);
+  }, [nextDue]);
+
+  if (mine.length === 0) return null;
+  const name = (uid: string) => names.get(uid) ?? en.chat.formerMember;
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.section}>{s.relayed}</Text>
+      {mine.map((c) => (
+        <Relayed key={c.id} card={c} answerer={name(c.answererId)} now={now} />
+      ))}
+    </View>
+  );
+}
+
+function Relayed({ card, answerer, now }: { card: QuestionCard; answerer: string; now: number }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<CardError | null>(null);
+
+  async function move() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    const res = await askInChat(card.id);
+    setBusy(false);
+    if ('error' in res) setError(res.error);
+  }
+
+  return (
+    <View style={styles.card} accessible={card.status !== 'pending'}>
+      <View style={[styles.bubble, styles.mine]}>
+        <Text style={[styles.text, { color: colors.onTint }]} selectable>
+          {card.question}
+        </Text>
+      </View>
+      {card.status === 'answered' ? (
+        <View style={[styles.bubble, styles.bot]} accessibilityLabel={`${s.answerFrom(answerer)}: ${card.answer ?? ''}`}>
+          <Text style={styles.by}>{s.answerFrom(answerer)}</Text>
+          <Text style={styles.text} selectable>
+            {card.answer}
+          </Text>
+        </View>
+      ) : card.status === 'asked_in_chat' ? (
+        <Text style={styles.note}>{s.movedToChat}</Text>
+      ) : canAskInChat(card, now) ? (
+        <View style={styles.offer} accessibilityLiveRegion="polite">
+          <Text style={styles.note}>{s.noAnswer(answerer)}</Text>
+          <Button title={s.askInChat} variant="secondary" onPress={move} busy={busy} />
+        </View>
+      ) : (
+        <Text style={styles.note}>{s.waitingFor(answerer)}</Text>
+      )}
+      {error ? <Hint tone="error">{s.errors[error]}</Hint> : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: 12 },
+  section: { fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, textTransform: 'uppercase', marginTop: 8 },
+  card: { gap: 8 },
+  bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
+  mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
+  bot: { alignSelf: 'flex-start', backgroundColor: colors.field, gap: 2 },
+  by: { fontSize: 13, fontWeight: '600', color: colors.secondaryLabel },
+  text: { fontSize: 16, color: colors.label },
+  note: { fontSize: 14, color: colors.secondaryLabel },
+  offer: { gap: 8 },
+});
