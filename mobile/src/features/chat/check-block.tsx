@@ -27,6 +27,7 @@ export function CheckBlock({
   doubleTap,
   onToggle,
   onShowCheckedBy,
+  onReact,
 }: {
   children: ReactElement;
   mine: boolean;
@@ -36,6 +37,8 @@ export function CheckBlock({
   doubleTap: boolean;
   onToggle: (viaDoubleTap: boolean) => void;
   onShowCheckedBy: () => void;
+  /** B3: opens the reaction bar for this message; adds a "React" item to the menu. */
+  onReact?: () => void;
 }) {
   const checked = !!check?.mine;
   const count = check?.count ?? 0;
@@ -72,6 +75,7 @@ export function CheckBlock({
       <Host matchContents>
         <ContextMenu>
           <ContextMenu.Items>
+            {onReact ? <Button label="React" systemImage="face.smiling" onPress={onReact} /> : null}
             <Button label={actionLabel} systemImage="checkmark" onPress={() => onToggle(false)} />
             {copyText != null ? (
               <Button label={en.chat.copy} systemImage="doc.on.doc" onPress={() => void Clipboard.setStringAsync(copyText)} />

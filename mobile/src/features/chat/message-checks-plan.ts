@@ -60,7 +60,7 @@ export function toggleCheckRows(rows: readonly CheckRow[], messageId: string, us
 /** Text bubbles and media blocks take a check; system lines and unsent (sending/failed) messages do not. */
 export function canCheck(item: { kind: string; pending?: string }, isMediaBlock: boolean): boolean {
   if (item.pending) return false;
-  if (item.kind === 'text') return true;
+  if (item.kind === 'text' || item.kind === 'sticker') return true;
   return item.kind === 'media' && isMediaBlock;
 }
 
