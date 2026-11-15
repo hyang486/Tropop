@@ -1,277 +1,257 @@
 /**
- * Trok Calendar (human FINAL 2026-11-13; tiers FINAL 2026-11-13 PM): a hand-drawn month with my rooms (hosted
- * or joined; past, current, future) as highlighter strokes and my own events. Phone-only data. Free and Plus: the
- * month, "+" to add, and a tap on my event's bar opens its editor. A room's bar or icon opens its diary card on Plus
- * and the Plus upsell on Free. "+N" lists that day's items. Plus only: the Trok button adds an event from a
- * sentence. All interaction is on the grid (no day list).
+ * Moments home (calendar-v2-spec §A, human FINAL 2026-11-15 02:00): greeting, the Trok summary of this week, a
+ * two-week day strip that expands to the month, and Past / Upcoming rows. A day tap opens the day detail
+ * (/calendar-day); rooms, recaps and the Plus upsell live there. Phone-only data. Add opens Add event / Add with
+ * Trok (Plus only; Free goes to the Plus intro).
  */
-import { useFonts } from 'expo-font';
-import { Image } from 'expo-image';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ActionSheetIOS, ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/text';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  DayItemsSheet,
-  DiaryCard,
-  HighlighterStroke,
-  highlighterFor,
-  PlusUpsellCard,
-  primarySegments,
-  SketchyMonthGrid,
-  useCalendarColors,
-} from '@/components/calendar';
-import { HAND_FONTS, HandTitle } from '@/components/hand-title';
+import { DayItemsSheet } from '@/components/calendar';
+import { useReduceMotion } from '@/components/enter-view';
+import { HandTitle } from '@/components/hand-title';
 import { ProfileAvatarButton } from '@/components/tab-header';
-import { QScreen } from '@/components/q-screen';
 import { Button, colors, GlassIconButton, Hint, titleSize } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
 import { calendarAdd } from '@/features/event/qrewing-api';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
-import { HAND_FONT_LATIN, handFontFor } from '@/lib/hand-font';
 import { useNow } from '@/lib/use-now';
 
-import { calendarGate, calendarItems, createRequestGate, parseCalendarAdd, type RoomSnapshot } from './calendar-data';
-import { dayTitle, diaryText, monthTitle, rangeLabel, spokenJoin, weekdayLabels } from './calendar-format';
-import {
-  barAction,
-  type CalItem,
-  cellOf,
-  type DateKey,
-  isPastRoom,
-  itemAction,
-  itemsOnDay,
-  keyOf,
-  layoutMonth,
-  localDateKey,
-  MAX_LANES,
-  monthGrid,
-  overflowByDay,
-  shiftMonth,
-} from './calendar-plan';
+import { calendarGate, createRequestGate, parseCalendarAdd } from './calendar-data';
+import { monthTitle, rangeLabel, weekdayLabels } from './calendar-format';
+import { type DateKey, localDateKey, shiftMonth } from './calendar-plan';
 import { reloadCalendar, useCalendar, useCalendarFailed, usePlanState } from './calendar-store';
+import {
+  dayMarks, dimmed, type HomeItem, homeItems, joinParts, pastRow, type RowSummary, stripRows, summaryParts, upcomingRow, weekSummary,
+} from './home-model';
 import { PlanOfflineLine } from './plan-offline-line';
 import { addTapAction, plusIntroHref } from './plus-intro';
 
 const t = en.calendar;
-const ART = require('../../../assets/images/icon.png');
-const CELL_H = 74;
-const DAY_H = 20;
-const STROKE_H = 14;
-const LANE_PITCH = STROKE_H + 2;
+const EVENT_DOT = '#E0A800';
 
 export function CalendarScreen() {
   const uid = useAuth().session?.user.id;
   // Signed out: the root auth redirect takes over; nothing to show here.
   if (calendarGate(!!uid) === 'signedOut') return <ActivityIndicator style={styles.loading} />;
-  return <CalendarMonth uid={uid!} />;
+  return <MomentsHome uid={uid!} />;
 }
 
-function CalendarMonth({ uid }: { uid: string }) {
-  // C14: null until the plan is confirmed (room taps and the Add button wait); an upsell shows only on Free.
+function firstName(name: string | null | undefined): string | null {
+  const first = (name ?? '').trim().split(/\s+/)[0];
+  return first ? first : null;
+}
+
+const longDay = (key: DateKey) => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+};
+
+function MomentsHome({ uid }: { uid: string }) {
+  // C14: null until the plan is confirmed (Add with Trok waits); the Plus intro shows only on Free.
   const plan = usePlanState(uid);
   const plus = plan === 'plus' ? true : plan === 'free' ? false : null;
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const palette = useCalendarColors();
-  // Month, weekday and date numbers in the hand font (human FINAL 10:50); system font until it loads.
-  const [handLoaded] = useFonts(HAND_FONTS);
-  const hand = (text: string) => (handLoaded ? { fontFamily: handFontFor(text) } : null);
-  const handNum = handLoaded ? { fontFamily: HAND_FONT_LATIN } : null;
+  const profile = useAuth().profile;
+  const reduceMotion = useReduceMotion();
   const doc = useCalendar(uid);
   const docFailed = useCalendarFailed(uid);
   const [docRetrying, setDocRetrying] = useState(false);
   const now = useNow(60_000);
   const today = localDateKey(now);
+  const [expanded, setExpanded] = useState(false);
   const [month, setMonth] = useState(() => ({ year: +today.slice(0, 4), month0: +today.slice(5, 7) - 1 }));
-  const [width, setWidth] = useState(0);
-  const [diary, setDiary] = useState<RoomSnapshot | null>(null);
-  // UX2-46: closes at once when a link or notification tap navigates.
-  const diaryInstant = useDismissOnLink(diary ? () => setDiary(null) : null);
-  const [upsell, setUpsell] = useState<RoomSnapshot | null>(null);
-  const [sheetDay, setSheetDay] = useState<DateKey | null>(null);
+  const [selected, setSelected] = useState<DateKey>(today);
+  const [sheet, setSheet] = useState<'past' | 'upcoming' | null>(null);
   const [asking, setAsking] = useState(false);
 
-  const grid = useMemo(() => monthGrid(month.year, month.month0), [month]);
-  const items = useMemo(() => (doc ? calendarItems(doc) : []), [doc]);
-  const segments = useMemo(() => layoutMonth(items, grid), [items, grid]);
-  const overflow = useMemo(() => overflowByDay(segments, grid), [segments, grid]);
-  const shown = useMemo(() => segments.filter((s) => s.lane < MAX_LANES), [segments]);
-  const a11yFirst = useMemo(() => primarySegments(shown), [shown]);
-  const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  // §A4: collapsed, on this month, with today selected every time the tab opens.
+  useFocusEffect(
+    useCallback(() => {
+      const key = localDateKey(Date.now());
+      setExpanded(false);
+      setMonth({ year: +key.slice(0, 4), month0: +key.slice(5, 7) - 1 });
+      setSelected(key);
+    }, []),
+  );
+
+  const items = useMemo(() => (doc ? homeItems(doc, now) : []), [doc, now]);
+  const summary = useMemo(() => weekSummary(items, today, now), [items, today, now]);
+  const rows = useMemo(() => stripRows(today, expanded, month.year, month.month0), [today, expanded, month]);
+  const marks = useMemo(() => dayMarks(items, rows.flat()), [items, rows]);
+  const past = useMemo(() => pastRow(items, today), [items, today]);
+  const upcoming = useMemo(() => upcomingRow(items, now), [items, now]);
   const weekdays = useMemo(() => weekdayLabels(0), []);
-  const cellW = width / 7;
   const thisYear = +today.slice(0, 4);
 
-  // A current or future room has no diary yet (Plus).
-  function diaryLines(room: RoomSnapshot): string[] {
-    return isPastRoom(room, now) ? diaryText(room.diary, t.diaryNone) : [t.diaryLater];
+  function openDay(key: DateKey) {
+    setSelected(key);
+    router.push({ pathname: '/calendar-day', params: { date: key } });
   }
 
-  function roomOf(item: CalItem): RoomSnapshot | null {
-    return item.kind === 'room' && doc ? (doc.rooms[item.id.slice('room:'.length)] ?? null) : null;
+  function openAdd() {
+    const ask = addTapAction(plus);
+    const run = (i: number) => {
+      if (i === 0) router.push('/calendar-event');
+      else if (i === 1 && ask === 'ask') setAsking(true);
+      else if (i === 1 && ask) router.push(plusIntroHref('calendar'));
+    };
+    // Plan unread: only Add event (Add with Trok waits for the plan, C14).
+    const options = ask === null ? [t.add, t.addMenuCancel] : [t.add, t.ask, t.addMenuCancel];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: options.length - 1, tintColor: colors.tint }, run);
+    } else {
+      router.push('/calendar-event');
+    }
   }
 
-  // Tiers FINAL: room → diary (Plus) or upsell (Free, never the diary text); my event → editor.
-  function openItem(item: CalItem) {
-    setSheetDay(null);
-    const action = itemAction(item.kind, plus);
-    if (action === 'edit') return router.push({ pathname: '/calendar-event', params: { id: item.id.slice('event:'.length) } });
-    const room = roomOf(item);
-    if (!room || !action) return;
-    if (action === 'diary') setDiary(room);
-    else setUpsell(room);
-  }
-
-  function itemLabel(item: CalItem): string {
-    return t.barLabel(item.title, rangeLabel(item.start, item.end, thisYear), barAction(item.kind, plus));
-  }
-
-  const go = (by: number) => setMonth((m) => shiftMonth(m.year, m.month0, by));
-  const sheetItems = sheetDay ? itemsOnDay(items, sheetDay) : [];
+  const parts = summaryParts(summary);
+  const sentence = joinParts(parts, (p) =>
+    p.kind === 'rooms' ? t.summaryRooms(p.n) : p.kind === 'people' ? t.summaryPeople(p.n) : t.summaryComing(p.n),
+  );
+  const spokenSummary = `${t.summaryLabel}. ${parts.length ? sentence.flat().join('') : t.summaryEmpty}`;
+  const sheetRow = sheet === 'past' ? past : sheet === 'upcoming' ? upcoming : null;
 
   return (
     <>
       <Stack.Screen
         options={{
           headerShadowVisible: false,
-          // Tab root (tabs-spec §1): Add, then the profile avatar.
+          // §A1 (ux 2026-11-15): the tab nav bar holds the wordmark (layout) and, on the right, Add then the avatar.
           headerRight: () => (
             <View style={styles.headerRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.add}
-              onPress={() => router.push('/calendar-event')}
-              style={styles.headerIcon}
-            >
-              <SymbolView name="plus" size={22} tintColor={colors.tint} />
-            </Pressable>
-            <ProfileAvatarButton />
+              <Pressable accessibilityRole="button" accessibilityLabel={t.addButton} onPress={openAdd} style={styles.addBtn}>
+                <SymbolView name="plus" size={20} tintColor={colors.tint} />
+              </Pressable>
+              <ProfileAvatarButton />
             </View>
           ),
         }}
       />
-      <QScreen
-        title={t.title}
-        floating={
-          // "Add with Trok" is Plus only (tiers FINAL). Free taps open the Plus intro with no server call.
-          addTapAction(plus) === null ? undefined : (
+      <ScrollView contentContainerStyle={styles.scroll} contentInsetAdjustmentBehavior="automatic">
+        <View style={styles.greeting}>
+          <Text style={styles.hi}>{t.greeting(firstName(profile?.display_name))}</Text>
+          <Text style={styles.weekTitle} accessibilityRole="header">
+            {t.weekTitle}
+          </Text>
+        </View>
+
+        <View style={styles.summary} accessible accessibilityLabel={spokenSummary}>
+          <View style={styles.summaryTop}>
+            <SymbolView name="sparkles" size={18} tintColor={colors.tint} />
+            <Text style={styles.summaryLabel}>{t.summaryLabel}</Text>
+          </View>
+          {parts.length ? (
+            <Text style={styles.summaryBody}>
+              {sentence.map(([sep, em, rest], i) => (
+                <Text key={i}>
+                  {sep}
+                  <Text style={styles.summaryEm}>{em}</Text>
+                  {rest}
+                </Text>
+              ))}
+            </Text>
+          ) : (
+            <Text style={[styles.summaryBody, { color: colors.ink2 }]}>{t.summaryEmpty}</Text>
+          )}
+        </View>
+
+        {plan === 'offline' ? <PlanOfflineLine uid={uid} /> : null}
+
+        <View style={styles.monthHead}>
+          <Text style={styles.month} accessibilityRole="header">
+            {monthTitle(month.year, month.month0)}
+          </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t.ask}
-            onPress={() => (addTapAction(plus) === 'ask' ? setAsking(true) : router.push(plusIntroHref('calendar')))}
-            style={[styles.fab, { bottom: Math.max(insets.bottom, 12) + 12, right: insets.right + 16 }]}
+            accessibilityLabel={expanded ? t.collapseMonth : t.expandMonth}
+            accessibilityState={{ expanded }}
+            onPress={() => {
+              if (expanded) setMonth({ year: +today.slice(0, 4), month0: +today.slice(5, 7) - 1 });
+              setExpanded(!expanded);
+            }}
+            style={styles.iconBtn}
           >
-            <Image source={ART} style={styles.fabArt} contentFit="cover" accessibilityIgnoresInvertColors />
-            <View style={styles.fabRing} pointerEvents="none" />
+            <SymbolView
+              name={reduceMotion && expanded ? 'chevron.up' : 'chevron.down'}
+              size={18}
+              tintColor={colors.label}
+              style={!reduceMotion && expanded ? styles.flipped : undefined}
+            />
           </Pressable>
-          )
-        }
-      >
-        <View style={styles.nav}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t.prevMonth} onPress={() => go(-1)} style={styles.navBtn}>
-            <SymbolView name="chevron.left" size={20} tintColor={colors.label} />
-          </Pressable>
-          <Text style={[styles.month, { color: palette.ink }, hand(monthTitle(grid.year, grid.month0))]} accessibilityRole="header">
-            {monthTitle(grid.year, grid.month0)}
-          </Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={t.nextMonth} onPress={() => go(1)} style={styles.navBtn}>
-            <SymbolView name="chevron.right" size={20} tintColor={colors.label} />
-          </Pressable>
-        </View>
-        {plan === 'offline' ? <PlanOfflineLine uid={uid} /> : null}
-        <View style={styles.weekdays} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          {weekdays.map((w, i) => (
-            <Text key={i} style={[styles.weekday, { color: palette.ink }, hand(w)]}>
-              {w}
-            </Text>
-          ))}
-        </View>
-        <View
-          style={[styles.grid, { height: grid.rows * CELL_H, backgroundColor: palette.notebook }]}
-          onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-        >
-          {width > 0 ? (
+          <View style={styles.flex} />
+          {expanded ? (
             <>
-              <SketchyMonthGrid weeks={grid.rows} cellWidth={cellW} cellHeight={CELL_H} seed={`${grid.year}-${grid.month0}`} />
-              {Array.from({ length: grid.days }, (_, i) => {
-                const day = i + 1;
-                const key = keyOf(grid.year, grid.month0, day);
-                const { row, col } = cellOf(grid, day);
-                const more = overflow.get(day) ?? 0;
-                // Day cells are not tap targets (tiers FINAL): the bars and "+N" are. VoiceOver reads the bars.
-                return (
-                  <View
-                    key={key}
-                    pointerEvents="box-none"
-                    style={[styles.cell, { left: col * cellW, top: row * CELL_H, width: cellW, height: CELL_H }]}
-                  >
-                    <View style={key === today ? styles.todayRing : undefined}>
-                      <Text
-                        style={[
-                          styles.dayNum,
-                          { color: palette.ink },
-                          handNum,
-                          key === today && { color: colors.tint, fontWeight: '600' },
-                        ]}
-                        accessibilityElementsHidden
-                        importantForAccessibility="no"
-                      >
-                        {day}
-                      </Text>
-                    </View>
-                    {more > 0 ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={t.moreLabel(more, dayTitle(key))}
-                        onPress={() => setSheetDay(key)}
-                        hitSlop={10}
-                        style={styles.more}
-                      >
-                        <Text style={[styles.moreText, { color: palette.ink }, handNum]}>{t.more(more)}</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                );
-              })}
-              {shown.map((s) => {
-                  const item = byId.get(s.itemId)!;
-                  return (
-                    <View
-                      key={`${s.itemId}:${s.row}`}
-                      pointerEvents="box-none"
-                      style={{
-                        position: 'absolute',
-                        left: s.colStart * cellW + 2,
-                        top: s.row * CELL_H + DAY_H + s.lane * LANE_PITCH,
-                      }}
-                    >
-                      <HighlighterStroke
-                        width={(s.colEnd - s.colStart + 1) * cellW - 4}
-                        height={STROKE_H}
-                        color={highlighterFor(palette, s.itemId)}
-                        startCap={s.capStart ? 'round' : 'flat'}
-                        endCap={s.capEnd ? 'round' : 'flat'}
-                        seed={`${s.itemId}:${s.row}`}
-                        emoji={s.emoji ? item.emoji : undefined}
-                        lanePitch={LANE_PITCH}
-                        onPress={() => openItem(item)}
-                        accessibilityLabel={itemLabel(item)}
-                        a11yPrimary={a11yFirst.has(`${s.itemId}:${s.row}`)}
-                      />
-                    </View>
-                  );
-                })}
+              <Pressable accessibilityRole="button" accessibilityLabel={t.prevMonth} onPress={() => setMonth((m) => shiftMonth(m.year, m.month0, -1))} style={styles.iconBtn}>
+                <SymbolView name="chevron.left" size={18} tintColor={colors.label} />
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={t.nextMonth} onPress={() => setMonth((m) => shiftMonth(m.year, m.month0, 1))} style={styles.iconBtn}>
+                <SymbolView name="chevron.right" size={18} tintColor={colors.label} />
+              </Pressable>
             </>
           ) : null}
         </View>
-        {doc && shown.length === 0 ? <Hint>{t.emptyMonth}</Hint> : null}
-        {/* UX2-124: loading and a failed read of the calendar on this phone. */}
+
+        <View>
+          <View style={styles.weekRow} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            {weekdays.map((w, i) => (
+              <Text key={i} style={styles.weekday}>
+                {w}
+              </Text>
+            ))}
+          </View>
+          {rows.map((row) => (
+            <View key={row[0]} style={styles.weekRow}>
+              {row.map((key) => {
+                const mark = marks.get(key) ?? { rooms: 0, events: 0 };
+                const isSel = key === selected;
+                const isToday = key === today;
+                const room = mark.rooms > 0;
+                const dot = room ? (isSel ? colors.onTint : colors.tint) : mark.events > 0 ? (isSel ? colors.onTint : EVENT_DOT) : null;
+                return (
+                  <Pressable
+                    key={key}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.dayCellLabel(longDay(key), isToday, mark.rooms, mark.events)}
+                    accessibilityState={{ selected: isSel }}
+                    onPress={() => openDay(key)}
+                    style={[styles.cell, dimmed(key, today, expanded, month.year, month.month0) && styles.dim]}
+                  >
+                    <View
+                      style={[
+                        styles.circle,
+                        room && { backgroundColor: colors.redwash },
+                        isSel && { backgroundColor: colors.tint },
+                        isToday && !isSel && styles.todayRing,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.dayNum,
+                          room && styles.dayNumRoom,
+                          isSel && styles.dayNumSel,
+                        ]}
+                      >
+                        {+key.slice(8)}
+                      </Text>
+                      {dot ? <View style={[styles.dot, { backgroundColor: dot }]} /> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+
+        <SummaryRow icon="checkmark.circle" title={t.past} line={rowLine(past, true)} onPress={() => setSheet('past')} />
+        <SummaryRow icon="calendar" title={t.upcoming} line={rowLine(upcoming, false)} onPress={() => setSheet('upcoming')} />
+
+        {/* UX2-124: loading and a failed read of the calendar on this phone (same copy as before). */}
         {!doc && !docFailed ? <ActivityIndicator style={styles.docLoading} accessibilityLabel={t.loading} /> : null}
         {!doc && docFailed ? (
           <>
@@ -287,57 +267,54 @@ function CalendarMonth({ uid }: { uid: string }) {
             />
           </>
         ) : null}
-      </QScreen>
-
-      <Modal visible={!!diary} transparent animationType={diaryInstant ? 'none' : 'fade'} onRequestClose={() => setDiary(null)}>
-        {/* The close scrim is a sibling behind the card: a Pressable wrapping the card would make VoiceOver read
-            only "Close diary" and never the diary itself. */}
-        <View style={styles.scrim} accessibilityViewIsModal onAccessibilityEscape={() => setDiary(null)}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            accessibilityRole="button"
-            accessibilityLabel={t.diaryClose}
-            onPress={() => setDiary(null)}
-          />
-          {diary ? (
-            <DiaryCard
-              // UX2-40: never wider than the content area (343 pt on a 375 pt phone).
-              width={Math.min(360, width || 340)}
-              title={diary.name}
-              icon={diary.emoji}
-              dateLine={rangeLabel(diary.start, diary.end, thisYear)}
-              lines={diaryLines(diary)}
-              accessibilityLabel={spokenJoin([diary.name, rangeLabel(diary.start, diary.end, thisYear), ...diaryLines(diary)])}
-            />
-          ) : null}
-        </View>
-      </Modal>
-
-      <PlusUpsellCard
-        visible={!!upsell}
-        roomName={upsell?.name ?? ''}
-        rangeLabel={upsell ? rangeLabel(upsell.start, upsell.end, thisYear) : ''}
-        icon={upsell?.emoji}
-        onSeePlus={() => {
-          setUpsell(null);
-          router.push(plusIntroHref('diary'));
-        }}
-        onClose={() => setUpsell(null)}
-      />
+      </ScrollView>
 
       <DayItemsSheet
-        visible={!!sheetDay}
-        dateLabel={sheetDay ? dayTitle(sheetDay) : ''}
-        items={sheetItems.map((i) => ({ key: i.id, title: i.title, icon: i.emoji, kind: i.kind, a11yLabel: itemLabel(i) }))}
+        visible={!!sheetRow}
+        dateLabel={sheet === 'past' ? t.past : t.upcoming}
+        items={(sheetRow?.items ?? []).map((i: HomeItem) => ({
+          key: i.id,
+          title: i.title,
+          icon: i.emoji,
+          kind: i.kind,
+          a11yLabel: `${i.title}, ${rangeLabel(i.start, i.end, thisYear)}`,
+        }))}
         onPick={(key) => {
-          const item = byId.get(key);
-          if (item) openItem(item);
+          const item = sheetRow?.items.find((i) => i.id === key);
+          setSheet(null);
+          if (item) openDay(item.start);
         }}
-        onClose={() => setSheetDay(null)}
+        onClose={() => setSheet(null)}
       />
 
       <AskSheet visible={asking} onClose={() => setAsking(false)} today={today} />
     </>
+  );
+}
+
+/** "2 rooms · 5 new people" (Past) / "1 room · 1 event" (Upcoming); nothing → "Nothing planned". */
+function rowLine(r: RowSummary, withPeople: boolean): string {
+  const bits = [r.rooms ? t.rowRooms(r.rooms) : null, r.events ? t.rowEvents(r.events) : null];
+  if (withPeople && r.people) bits.push(t.rowPeople(r.people));
+  const line = bits.filter(Boolean).join(t.rowSep);
+  return line || t.nothingPlanned;
+}
+
+function SummaryRow({ icon, title, line, onPress }: { icon: 'checkmark.circle' | 'calendar'; title: string; line: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${line}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
+      <SymbolView name={icon} size={24} tintColor={colors.tint} />
+      <View style={styles.flex}>
+        <Text style={styles.rowTitle}>{title}</Text>
+        <Text style={styles.rowLine}>{line}</Text>
+      </View>
+      <SymbolView name="chevron.right" size={14} tintColor={colors.ink2} />
+    </Pressable>
   );
 }
 
@@ -428,41 +405,39 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
   );
 }
 
-const FAB = 56;
-
 const styles = StyleSheet.create({
   loading: { marginTop: 80 },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  headerIcon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  month: { flex: 1, textAlign: 'center', fontSize: 24 },
-  weekdays: { flexDirection: 'row' },
-  weekday: { flex: 1, textAlign: 'center', fontSize: 16, opacity: 0.6 },
-  grid: { position: 'relative', borderRadius: 8 },
-  cell: { position: 'absolute', paddingTop: 2, paddingHorizontal: 4 },
-  dayNum: { fontSize: 16, lineHeight: 18 },
-  // ux: the ring hugs the number (22 pt, a slight pill for two digits); its bottom stays at y=20, clear of the lanes.
-  todayRing: {
-    alignSelf: 'flex-start',
-    minWidth: 22,
-    height: 22,
-    paddingHorizontal: 2,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: colors.tint,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -2,
-    marginLeft: -3,
-  },
-  more: { position: 'absolute', right: 2, top: 0, minWidth: 24, alignItems: 'flex-end', paddingHorizontal: 2 },
-  moreText: { fontSize: 13, lineHeight: 18 },
-  fab: { position: 'absolute', width: FAB, height: FAB, borderRadius: FAB / 2 },
-  fabArt: { width: '100%', height: '100%', borderRadius: FAB / 2 },
-  fabRing: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: FAB / 2, borderWidth: 1.5, borderColor: colors.label },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 16, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.wash, alignItems: 'center', justifyContent: 'center' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  greeting: { gap: 2 },
+  hi: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
+  weekTitle: { fontSize: 28, lineHeight: 36, fontFamily: 'SourceSans3-Bold', color: colors.label },
+  summary: { backgroundColor: colors.softGold, borderRadius: 24, padding: 16, minHeight: 96, gap: 8 },
+  summaryTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  summaryLabel: { fontSize: 14, lineHeight: 20, fontFamily: 'SourceSans3-Semibold', color: colors.tint },
+  summaryBody: { fontSize: 17, lineHeight: 24, color: colors.label },
+  summaryEm: { fontFamily: 'SourceSans3-Semibold', color: colors.tint },
+  monthHead: { flexDirection: 'row', alignItems: 'center' },
+  month: { fontSize: 20, lineHeight: 28, fontFamily: 'SourceSans3-Semibold', color: colors.label },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  flipped: { transform: [{ rotate: '180deg' }] },
+  weekRow: { flexDirection: 'row' },
+  weekday: { flex: 1, textAlign: 'center', fontSize: 12, lineHeight: 18, color: colors.ink2 },
+  cell: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
+  dim: { opacity: 0.5 },
+  circle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  todayRing: { borderWidth: 1.5, borderColor: colors.tint },
+  dayNum: { fontSize: 17, lineHeight: 22, color: colors.label },
+  dayNumRoom: { fontFamily: 'SourceSans3-Semibold', color: colors.tint },
+  dayNumSel: { fontFamily: 'SourceSans3-Bold', color: colors.onTint },
+  dot: { position: 'absolute', bottom: 3, width: 5, height: 5, borderRadius: 2.5 },
+  row: { minHeight: 64, borderRadius: 24, backgroundColor: colors.wash, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pressed: { opacity: 0.7 },
+  rowTitle: { fontSize: 17, lineHeight: 22, fontFamily: 'SourceSans3-Semibold', color: colors.label },
+  rowLine: { fontSize: 15, lineHeight: 20, color: colors.ink2 },
   docLoading: { alignSelf: 'center', paddingVertical: 16 },
-  scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.scrim, padding: 16 }, // UX2-115
   sheet: { flex: 1, padding: 24, gap: 12, backgroundColor: colors.sheet },
   sheetHead: { flexDirection: 'row', alignItems: 'center' },
   sheetTitle: { flex: 1, fontSize: titleSize.sheet, lineHeight: 28 },

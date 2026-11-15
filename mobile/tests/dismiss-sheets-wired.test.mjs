@@ -9,7 +9,7 @@ const WIRED = {
   'features/pace/pace-card.tsx': 1,
   'app/plan-preview.tsx': 1,
   'components/route-editor.tsx': 1,
-  'features/calendar/calendar-screen.tsx': 2,
+  'features/calendar/calendar-screen.tsx': 1, // Add with Trok; the diary modal left with calendar v2
   'components/calendar/day-items-sheet.tsx': 1,
   'components/calendar/plus-upsell-card.tsx': 1,
 };

@@ -62,7 +62,7 @@ test('UX2-88/119: plan unknown offline has Try again, re-reads on focus and fore
   assert.match(line, /busy=\{busy\}/);
   assert.match(src('features/calendar/calendar-store.ts'), /export async function rereadPlan/);
   const cal = src('features/calendar/calendar-screen.tsx');
-  assert.ok(cal.indexOf('<PlanOfflineLine') > cal.indexOf('t.nextMonth'), 'line sits under the month nav');
+  assert.match(cal, /\{plan === 'offline' \? <PlanOfflineLine uid=\{uid\} \/> : null\}/);
   assert.match(src('features/pace/pace-card.tsx'), /<PlanOfflineLine uid=\{userId\} \/>/);
   assert.match(src('features/pace/pace-layer.tsx'), /const plan = usePlanState\(userId\);/);
 });
@@ -113,7 +113,8 @@ test('UX2-91: a failed Map action alert has a title, the reason, Try again and C
 });
 
 test('UX2-115/116: calendar scrim and event-editor picked icon use themed tokens', () => {
-  assert.match(src('features/calendar/calendar-screen.tsx'), /scrim: \{[^}]*backgroundColor: colors\.scrim/);
+  // Calendar v2 home: themed tokens only; the gold event dot is the one fixed color.
+  assert.deepEqual(src('features/calendar/calendar-screen.tsx').match(/'#[0-9A-Fa-f]{3,8}'/g), ["'#E0A800'"]);
   assert.match(src('features/calendar/event-editor.tsx'), /backgroundColor: colors\.tint \}/);
 });
 

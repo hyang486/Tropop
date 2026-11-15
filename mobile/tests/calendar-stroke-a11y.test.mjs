@@ -30,10 +30,7 @@ test('strokeA11y: primary is a labelled button; the rest are hidden from VoiceOv
   assert.equal(rest.accessibilityLabel, undefined);
 });
 
-test('the stroke and the calendar screen use them', () => {
+test('the stroke uses them', () => {
   const stroke = readFileSync(new URL('../src/components/calendar/highlighter-stroke.tsx', import.meta.url), 'utf8');
   assert.match(stroke, /strokeA11y\(/);
-  const screen = readFileSync(new URL('../src/features/calendar/calendar-screen.tsx', import.meta.url), 'utf8');
-  assert.match(screen, /primarySegments\(/);
-  assert.match(screen, /a11yPrimary=\{/);
 });

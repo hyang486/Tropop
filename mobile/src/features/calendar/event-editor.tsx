@@ -19,8 +19,8 @@ import { useAuth } from '@/lib/auth';
 
 import { checkEvent, editorTarget, EVENT_TITLE_MAX, type PersonalEvent } from './calendar-data';
 import { defaultEventTimes, endAfterStart, keyTimeToLocalDate, localDateToKeyTime } from './calendar-format';
-import { isDateKey } from './calendar-plan';
 import { removeEvent, saveEvent, useCalendar } from './calendar-store';
+import { editorPrefill, type EditorParams } from './editor-prefill';
 
 const t = en.calendar;
 
@@ -35,7 +35,7 @@ function emojiColumnGap(width: number): number {
   return Math.max(6, Math.floor((width - EMOJI_COLUMNS * EMOJI_SIZE) / (EMOJI_COLUMNS - 1)));
 }
 
-type Params = { id?: string; title?: string; start?: string; end?: string; emoji?: string; ask?: string };
+type Params = EditorParams;
 
 export function EventEditor() {
   const router = useRouter();
@@ -71,15 +71,16 @@ export function EventEditor() {
 function EventForm({ uid, params, existing }: { uid: string | undefined; params: Params; existing: PersonalEvent | undefined }) {
   const router = useRouter();
   // UX3-A13: a new event starts at the next full hour and lasts an hour; read once when the form opens.
-  const [fresh] = useState(() => defaultEventTimes(new Date()));
-  const [title, setTitle] = useState(existing?.title ?? params.title ?? '');
-  const [start, setStart] = useState(existing?.start ?? (isDateKey(params.start) ? params.start : fresh.start));
-  const [end, setEnd] = useState(existing?.end ?? (isDateKey(params.end) ? params.end : fresh.end));
-  // Existing events without a time, and Trok's date-only picks, open as all day.
-  const [allDay, setAllDay] = useState(existing ? !existing.startTime : params.ask === '1');
-  const [startTime, setStartTime] = useState(existing?.startTime ?? fresh.startTime);
-  const [endTime, setEndTime] = useState(existing?.endTime ?? fresh.endTime);
-  const [emoji, setEmoji] = useState(existing?.emoji ?? params.emoji ?? EVENT_EMOJIS[0]);
+  // Params (ask=1, a day-detail copy, an empty day's date) are read once when the form opens.
+  const [init] = useState(() => editorPrefill(params, defaultEventTimes(new Date())));
+  const [title, setTitle] = useState(existing?.title ?? init.title);
+  const [start, setStart] = useState(existing?.start ?? init.start);
+  const [end, setEnd] = useState(existing?.end ?? init.end);
+  // Existing events without a time, Trok's date-only picks and all-day copies open as all day.
+  const [allDay, setAllDay] = useState(existing ? !existing.startTime : init.allDay);
+  const [startTime, setStartTime] = useState(existing?.startTime ?? init.startTime);
+  const [endTime, setEndTime] = useState(existing?.endTime ?? init.endTime);
+  const [emoji, setEmoji] = useState(existing?.emoji ?? init.emoji ?? EVENT_EMOJIS[0]);
   const [problem, setProblem] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
   useAnnounce(problem, tries);
