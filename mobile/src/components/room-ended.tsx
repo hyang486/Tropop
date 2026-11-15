@@ -79,7 +79,7 @@ export function RoomEnded({
       {reminder && !grace.grace ? <Text style={styles.line}>{en.room.reminderGoneHint}</Text> : null}
       {!reminder && !grace.grace ? (
         <View style={styles.save}>
-          <Image source={require('@/assets/art/save-your-pics.png')} style={styles.saveArt} accessible={false} />
+          <Image source={require('@/assets/brand/stickers/connection-10.png')} style={styles.saveArt} accessible={false} />
           <Text style={styles.saveText}>{en.room.savedStay}</Text>
         </View>
       ) : null}
