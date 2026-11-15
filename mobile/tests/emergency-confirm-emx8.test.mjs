@@ -4,10 +4,11 @@ import test from 'node:test';
 
 const src = (p) => readFileSync(new URL(`../src/${p}`, import.meta.url), 'utf8');
 
-test('F-EMX8: the confirm is an in-app modal, not a native Alert, so the room ending can close it', () => {
+test('F-EMX8: the confirm is an in-screen overlay (no native Alert, no Modal presenter race), so the room ending can close it', () => {
   const sp = src('components/status-picker.tsx');
   assert.match(sp, /openEmergencyConfirm\(\(\) => void attempt\(\), room\?\.onEnded\)/);
   assert.doesNotMatch(sp, /Alert\.alert\(en\.activity\.emergencyConfirmTitle/);
+  assert.doesNotMatch(src('components/emergency-confirm.tsx'), /<Modal\b/);
 });
 
 test('F-EMX8: ending closes the open confirm and alerts at once (Room has ended, call local emergency number)', () => {
