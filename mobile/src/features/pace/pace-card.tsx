@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
+import { Modal } from '@/components/modal';
 import { Text, TextInput } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

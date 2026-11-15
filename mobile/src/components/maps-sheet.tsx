@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Modal } from '@/components/modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
