@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Tex
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { openEmergencyConfirm } from '@/components/emergency-confirm';
 import { HandTitle } from '@/components/hand-title';
 import { colors, radius, usePalette } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -61,10 +62,8 @@ export function confirmEmergency(
       emergencyFailedAlert(cause, () => void attempt(), room?.onEnded);
     }
   }
-  Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [
-    { text: en.room.cancel, style: 'cancel' },
-    { text: en.activity.sendEmergency, style: 'destructive', onPress: () => void attempt() },
-  ]);
+  // F-EMX8: an in-app modal, so the room ending can close it (see components/emergency-confirm).
+  openEmergencyConfirm(() => void attempt(), room?.onEnded);
 }
 
 /**

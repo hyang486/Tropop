@@ -15,6 +15,7 @@ import {
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { dismissEmergencyConfirmForEnd, EmergencyConfirmHost } from '@/components/emergency-confirm';
 import { HandTitle } from '@/components/hand-title';
 import { Avatar } from '@/components/avatar';
 import { Composer } from '@/components/composer';
@@ -76,6 +77,16 @@ type State =
   | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
 
 export default function RoomScreen() {
+  // F-EMX8: the Emergency confirm lives above the chat / ended switch so it can close when the room ends.
+  return (
+    <>
+      <RoomScreenBody />
+      <EmergencyConfirmHost />
+    </>
+  );
+}
+
+function RoomScreenBody() {
   const { id, from, aiNote } = useLocalSearchParams<{ id: string; from?: string; aiNote?: string }>();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -140,6 +151,7 @@ export default function RoomScreen() {
     state.status === 'gone' || (state.status === 'ready' && new Date(state.room.expires_at).getTime() <= now);
   useEffect(() => {
     if (!isGone) return;
+    dismissEmergencyConfirmForEnd();
     clearRoomCache(id);
     clearRoomNotices(id);
   }, [isGone, id]);
