@@ -37,6 +37,18 @@ export type CameraMoveEvent = { coordinates: { latitude?: number; longitude?: nu
 const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
+// Brand polish: muted OSM tiles (paper/ink app), a small attribution that stays clear of the sheet, no zoom
+// buttons under the back button (pinch and wheel zoom stay on).
+if (typeof document !== 'undefined' && !document.getElementById('qrew-leaflet-style')) {
+  const style = document.createElement('style');
+  style.id = 'qrew-leaflet-style';
+  style.textContent =
+    '.leaflet-tile-pane{filter:grayscale(.85) sepia(.12) contrast(.95)}' +
+    ".leaflet-container{font-family:'Source Sans 3',system-ui,sans-serif}" +
+    '.leaflet-control-attribution{background:rgba(255,253,248,.8)!important;font-size:10px!important}';
+  document.head.appendChild(style);
+}
+
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
@@ -57,7 +69,7 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
   useEffect(() => {
     if (!el.current) return;
     const cam = latest.current.cameraPosition;
-    const m = L.map(el.current, { center: cam ? [cam.coordinates.latitude, cam.coordinates.longitude] : [37.77, -122.42], zoom: cam?.zoom ?? 13, maxZoom: 19 });
+    const m = L.map(el.current, { center: cam ? [cam.coordinates.latitude, cam.coordinates.longitude] : [37.77, -122.42], zoom: cam?.zoom ?? 13, maxZoom: 19, zoomControl: false, attributionControl: true });
     L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_ATTRIBUTION }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     m.on('moveend', () => {
@@ -110,7 +122,7 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
       const size = short ? 'min-width:34px;height:34px;border-radius:17px;line-height:34px;font-size:15px' : 'padding:2px 8px;border-radius:12px;line-height:18px;font-size:12px';
       const html = a.iconUrl
         ? `<img src="${esc(a.iconUrl)}" alt="" style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:block;max-width:none">`
-        : `<div style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:inline-block;text-align:center;white-space:pre;font:600 12px system-ui;box-sizing:border-box;` +
+        : `<div style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:inline-block;text-align:center;white-space:pre;font:600 12px 'Source Sans 3',system-ui,sans-serif;box-sizing:border-box;` +
         `border:1px solid rgba(0,0,0,.15);box-shadow:0 1px 3px rgba(0,0,0,.25);${size};background:${a.backgroundColor ?? '#fff'};color:${a.textColor ?? '#1a1a1a'}">${esc(text)}</div>`;
       const marker = L.marker([a.coordinates.latitude, a.coordinates.longitude], { icon: L.divIcon({ className: '', iconSize: [0, 0], html }), keyboard: false });
       marker.on('click', (e) => {
