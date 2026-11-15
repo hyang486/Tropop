@@ -289,7 +289,10 @@ export function useReduceTransparency() {
   const [on, setOn] = useState(false);
   useEffect(() => {
     let live = true;
-    AccessibilityInfo.isReduceTransparencyEnabled().then((v) => live && setOn(v), () => {});
+    // react-native-web has no isReduceTransparencyEnabled (it would throw synchronously).
+    if (typeof AccessibilityInfo.isReduceTransparencyEnabled === 'function') {
+      AccessibilityInfo.isReduceTransparencyEnabled().then((v) => live && setOn(v), () => {});
+    }
     const sub = AccessibilityInfo.addEventListener('reduceTransparencyChanged', setOn);
     return () => {
       live = false;
