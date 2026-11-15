@@ -391,6 +391,9 @@ export const en = {
     bodyLastHour: (name: string) => `${name} disappears in 1 hour. Download any photos and files you'd like to keep.`,
   },
   chat: {
+    // B2 chat header: the room-ends chip (last 60 min; last 10 min says what gets deleted).
+    endsChip: (min: number) => `Ends in ${min} min`,
+    endsChipDelete: 'Photos and files are deleted at End',
     // UX2-130 (R-C8): the in-chat reminder card, the only place the app asks for notifications.
     reminderCardTitle: 'Get a reminder a day before this room ends?',
     reminderCardTurnOn: 'Turn on',
