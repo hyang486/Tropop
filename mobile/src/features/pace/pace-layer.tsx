@@ -277,5 +277,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.ink2,
   },
-  bannerText: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.ink },
+  bannerText: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.label },
 });
