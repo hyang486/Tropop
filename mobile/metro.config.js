@@ -6,6 +6,7 @@ const config = getDefaultConfig(__dirname);
 // Web only: swap native-only modules for stubs. Native resolution is untouched.
 const webStubs = {
   'expo-notifications': path.resolve(__dirname, 'src/web-stubs/expo-notifications.ts'),
+  'expo-symbols': path.resolve(__dirname, 'src/web-stubs/expo-symbols.tsx'),
   'expo-maps': path.resolve(__dirname, 'src/web-stubs/expo-maps.tsx'),
   'expo-file-system': path.resolve(__dirname, 'src/web-stubs/expo-file-system.ts'),
   '@expo/ui/swift-ui': path.resolve(__dirname, 'src/web-stubs/expo-ui-swift-ui.tsx'),

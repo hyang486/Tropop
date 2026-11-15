@@ -25,12 +25,18 @@ export function WebDemoPanel() {
       .then((r) => setPresent(r.ok && (r.headers.get('content-type') ?? '').startsWith('image/')))
       .catch(() => setPresent(false));
   }, []);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
   if (width < 1024) return null;
   return (
     <>
       <div style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: 320, overflowY: 'auto', padding: 16, boxSizing: 'border-box', fontFamily: "'SourceSans3-Regular', -apple-system, sans-serif", backgroundColor: colors.background, borderRight: `1px solid ${colors.separator}` }}>
-        <div style={{ fontSize: 17, fontFamily: "'SourceSans3-Semibold', -apple-system, sans-serif", color: colors.label, marginBottom: 4 }}>Sample photos</div>
-        <div style={{ fontSize: 13, lineHeight: '18px', color: colors.ink2, marginBottom: 12 }}>Click to enlarge. Drag onto Photos or Add QR in the app.</div>
+        <div style={{ fontSize: 17, fontWeight: 600, fontFamily: "'SourceSans3-Semibold', -apple-system, sans-serif", color: colors.label, marginBottom: 4 }}>Sample photos</div>
+        <div style={{ fontSize: 13, fontWeight: 400, lineHeight: '18px', color: colors.ink2, marginBottom: 12 }}>Click to enlarge. Drag one onto a photo picker in the app.</div>
         {!present ? (
           <div style={{ fontSize: 14, lineHeight: '20px', color: colors.ink2, padding: '24px 0' }}>No sample photos found. Put them in mobile/public/demo-gallery/ to use this panel.</div>
         ) : null}
@@ -53,7 +59,16 @@ export function WebDemoPanel() {
       </div>
       {open ? (
         <div onClick={() => setOpen(null)} style={{ position: 'fixed', inset: 0, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
-          <img src={open} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12 }} />
+          <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+            <img src={open} alt="" style={{ display: 'block', maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12 }} />
+            <button
+              onClick={() => setOpen(null)}
+              aria-label="Close"
+              style={{ position: 'absolute', top: 8, right: 8, width: 44, height: 44, borderRadius: 22, border: 'none', cursor: 'pointer', backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 22, lineHeight: '44px', padding: 0 }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
       ) : null}
     </>
