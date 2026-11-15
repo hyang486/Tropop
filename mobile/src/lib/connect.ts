@@ -1,13 +1,15 @@
 import { scanFromURLAsync } from 'expo-camera';
 import { randomUUID } from 'expo-crypto';
-import { File } from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import * as MediaLibrary from 'expo-media-library';
 
 import {
   CONNECT_BUCKET,
   CONNECT_QR_MAX_BYTES,
   ConnectError,
   isConnectApp,
+  qrCropCandidates,
   qrImagePath,
   qrImageType,
   qrLinkFor,
@@ -16,6 +18,7 @@ import {
   type ConnectState,
   type RequestResult,
 } from './connect-plan';
+import { authHeaders, freshToken } from './media';
 import { supabase, SUPABASE_URL } from './supabase';
 
 /**
@@ -136,6 +139,34 @@ export async function decodeQrImage(uri: string): Promise<string | null> {
 }
 
 /**
+ * spec §1 steps 2-3: reads the QR in a picked screenshot and makes the default crop (QR + 12% margin).
+ * The crop is kept only if it still decodes to the same text, so a wrong bounds origin never saves a cut-off code.
+ * `decoded` null = no QR found. `croppedUri` null = no usable crop (the full image is the only option).
+ */
+export async function prepareQrImage(uri: string): Promise<{ decoded: string | null; croppedUri: string | null }> {
+  let found: Awaited<ReturnType<typeof scanFromURLAsync>>;
+  try {
+    found = await scanFromURLAsync(uri, ['qr']);
+  } catch {
+    return { decoded: null, croppedUri: null };
+  }
+  const hit = found.find((b) => b.data);
+  if (!hit) return { decoded: null, croppedUri: null };
+  try {
+    const full = await ImageManipulator.manipulate(uri).renderAsync();
+    for (const rect of qrCropCandidates(hit.bounds, full.width, full.height)) {
+      const ref = await ImageManipulator.manipulate(uri).crop(rect).renderAsync();
+      const saved = await ref.saveAsync({ format: SaveFormat.PNG });
+      const again = await scanFromURLAsync(saved.uri, ['qr']).catch(() => []);
+      if (again.some((b) => b.data === hit.data)) return { decoded: hit.data, croppedUri: saved.uri };
+    }
+  } catch {
+    // Crop is a nicety: fall back to the full screenshot.
+  }
+  return { decoded: hit.data, croppedUri: null };
+}
+
+/**
  * Uploads a QR screenshot for one app and saves it as that app's code (replacing any earlier one).
  * `decoded` is the QR's text from decodeQrImage; it is stored as the tap-to-open link only when it is that app's own
  * https link, otherwise the code is image-only. Returns the stored link.
@@ -190,6 +221,33 @@ export async function deleteQrCode(app: ConnectApp): Promise<void> {
 /** Authenticated Storage URL for a code image (owner or accepted connection); pass the session token as a header. */
 export function qrImageUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/authenticated/${CONNECT_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;
+}
+
+/** Thrown when Photos add access is off: the fallback shows "Open Settings" instead of an error. */
+export class QrPhotosDeniedError extends Error {
+  constructor() {
+    super('photos-denied');
+    this.name = 'QrPhotosDeniedError';
+  }
+}
+
+/**
+ * spec §10 fallback "Save to Photos": downloads a connection's code with the session token into the cache, adds it
+ * to the library (add-only access), then deletes the temporary file.
+ */
+export async function saveQrToPhotos(path: string): Promise<void> {
+  const permission = await MediaLibrary.requestPermissionsAsync(true);
+  if (!permission.granted) throw new QrPhotosDeniedError();
+  const ext = path.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+  const dest = new File(Paths.cache, `qrew-qr-${randomUUID()}.${ext}`);
+  try {
+    const file = await File.downloadFileAsync(qrImageUrl(path), dest, { headers: authHeaders(await freshToken()) });
+    await MediaLibrary.Asset.create(file.uri);
+  } catch (e) {
+    throw toConnectError(e);
+  } finally {
+    if (dest.exists) dest.delete();
+  }
 }
 
 // ------------------------------------------------------------------ quota, rooms, requests

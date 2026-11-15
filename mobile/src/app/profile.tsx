@@ -6,6 +6,7 @@ import { Avatar } from '@/components/avatar';
 import { QLink, QScreen } from '@/components/q-screen';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QRowCard } from '@/components/q-row-card';
+import { ProfileConnectRows } from '@/features/connect/profile-rows';
 import { Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { deleteAccount, signOut, useAuth } from '@/lib/auth';
@@ -97,6 +98,7 @@ export default function Profile() {
 
       <View style={styles.rows}>
         <QRowCard icon="globe" title={en.profile.language} value={en.profile.languageValue} />
+        {isGuest ? null : <ProfileConnectRows />}
         {/* UX2-29: a guest can't create rooms, so no host-only Plus pitch; the row leads to a host account instead. */}
         {isGuest ? (
           <QRowCard icon="person.badge.plus" title={en.profile.guestHostRow} onPress={() => router.push('/upgrade')} />

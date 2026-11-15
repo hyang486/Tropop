@@ -90,6 +90,10 @@ function RootNavigator() {
         <Stack.Screen name="index" options={{ title: en.home.title, headerTitle: '' }} />
         <Stack.Screen name="profile" options={{ title: en.profile.title, headerTitle: '' }} />
         <Stack.Screen name="profile-edit" options={{ title: en.profile.editProfile, headerTitle: '' }} />
+        <Stack.Screen name="connect/index" options={{ title: 'Connections', headerTitle: '' }} />
+        <Stack.Screen name="connect/codes" options={{ title: 'My QR codes', headerTitle: '' }} />
+        <Stack.Screen name="connect/code/[app]" options={{ title: '', headerTitle: '' }} />
+        <Stack.Screen name="connect/person/[userId]" options={{ title: '', headerTitle: '' }} />
         {/* Modal screens (upgrade, room/[id]/invite, ask, questions): keep MODAL_ROUTES in lib/root-link.ts in sync (P-3). */}
         <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, headerTitle: '', presentation: 'modal' }} />
         <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title, headerTitle: '' }} />
