@@ -289,7 +289,7 @@ function MediaDetail({
           headerRight: matchEnrollment
             ? () => (
                 <Pressable onPress={openMenu} accessibilityRole="button" accessibilityLabel={en.media.more} hitSlop={8}>
-                  <SymbolView name="ellipsis.circle" size={22} tintColor={colors.tint} />
+                  <SymbolView name="ellipsis.circle" size={22} tintColor={colors.label} />
                 </Pressable>
               )
             : undefined,

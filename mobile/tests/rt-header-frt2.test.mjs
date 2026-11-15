@@ -15,7 +15,7 @@ test('the shared surface: lift fill, 0.5 pt hairline (light only, B1), light sha
   assert.match(helper, /size\.hit/);
   assert.equal((helper.match(/hidesSharedBackground: true/g) ?? []).length, 2);
   assert.match(helper, /tintColor=\{pal\.ink\}/);
-  assert.match(read('../src/features/chat/chat-header.tsx'), /tintColor=\{rt \? pal\.ink : colors\.tint\}/);
+  assert.match(read('../src/features/chat/chat-header.tsx'), /tintColor=\{rt \? pal\.ink : colors\.label\}/);
 });
 
 test('Rooms capsule, chat back and chat bell/gear all use the helper only when RT is on', () => {

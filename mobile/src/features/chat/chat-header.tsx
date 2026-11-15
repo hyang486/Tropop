@@ -55,7 +55,7 @@ function HeaderIcon({
   const pal = usePalette();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={rt ? 0 : 7} style={rt ? styles.rtIcon : styles.icon}>
-      <SymbolView name={symbol} size={22} tintColor={rt ? pal.ink : colors.tint} />
+      <SymbolView name={symbol} size={22} tintColor={rt ? pal.ink : colors.label} />
       {badge > 0 ? (
         <View style={styles.badge} importantForAccessibility="no-hide-descendants">
           <Text style={styles.badgeText} maxFontSizeMultiplier={1.2}>
