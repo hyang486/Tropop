@@ -20,30 +20,32 @@ export const connectTokens = {
 };
 
 /**
- * PLACEHOLDER app marks (human H1 = B: official logos). The official files from each company's brand kit are not in
- * the repo yet; this draws a coloured tile with the short name so layout and VoiceOver match the final. Replace the
- * body with the official image per app, same size, no recolouring.
+ * Official app icons (human H1 = B; ux connect-logos: the publishers' App Store icons, unmodified, only scaled).
+ * 40 pt in rows and the fallback, 32 pt in the connection card header, 20 pt (32 files) in the Connected row (mock 03). Decorative: the name always sits next to it.
  */
-const MARK: Record<ConnectApp, { bg: string; fg: string; text: string }> = {
-  kakaotalk: { bg: '#FEE500', fg: '#3C1E1E', text: 'TALK' },
-  wechat: { bg: '#07C160', fg: '#FFFFFF', text: 'WC' },
-  whatsapp: { bg: '#25D366', fg: '#FFFFFF', text: 'WA' },
-  line: { bg: '#06C755', fg: '#FFFFFF', text: 'LINE' },
-  linkedin: { bg: '#0A66C2', fg: '#FFFFFF', text: 'in' },
+const LOGO_40: Record<ConnectApp, number> = {
+  kakaotalk: require('../../../assets/brand/connect/kakaotalk.png'),
+  wechat: require('../../../assets/brand/connect/wechat.png'),
+  whatsapp: require('../../../assets/brand/connect/whatsapp.png'),
+  line: require('../../../assets/brand/connect/line.png'),
+  linkedin: require('../../../assets/brand/connect/linkedin.png'),
+};
+const LOGO_32: Record<ConnectApp, number> = {
+  kakaotalk: require('../../../assets/brand/connect/kakaotalk-32.png'),
+  wechat: require('../../../assets/brand/connect/wechat-32.png'),
+  whatsapp: require('../../../assets/brand/connect/whatsapp-32.png'),
+  line: require('../../../assets/brand/connect/line-32.png'),
+  linkedin: require('../../../assets/brand/connect/linkedin-32.png'),
 };
 
-export function AppMark({ app, size = 40 }: { app: ConnectApp; size?: number }) {
-  const m = MARK[app];
+export function AppMark({ app, size = 40 }: { app: ConnectApp; size?: 40 | 32 | 20 }) {
   return (
-    <View
-      style={[styles.mark, { width: size, height: size, borderRadius: size * 0.225, backgroundColor: m.bg }]}
+    <Image
+      source={(size === 40 ? LOGO_40 : LOGO_32)[app]}
+      style={[styles.mark, { width: size, height: size, borderRadius: size * 0.225 }]}
       accessible={false}
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Text style={[styles.markText, { color: m.fg, fontSize: Math.round(size * (m.text.length > 2 ? 0.26 : 0.4)) }]}>
-        {m.text}
-      </Text>
-    </View>
+      importantForAccessibility="no"
+    />
   );
 }
 
@@ -89,8 +91,7 @@ export function GoldBadge({ count, label }: { count: number; label?: string }) {
 }
 
 const styles = StyleSheet.create({
-  mark: { alignItems: 'center', justifyContent: 'center' },
-  markText: { fontWeight: '800' },
+  mark: { borderCurve: 'continuous', overflow: 'hidden' },
   qrBox: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
