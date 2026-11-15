@@ -2,6 +2,7 @@
  * Moments home (calendar-v2-spec §A), pure: the week summary counts, the day strip rows and cell marks, and the
  * Past / Upcoming rows. Counted on the phone from the calendar doc; no model call.
  */
+import { en } from '../../i18n/en';
 import type { CalendarDoc, PersonalEvent, RoomSnapshot } from './calendar-data';
 import { addDays, type DateKey, daysInMonth, isPastRoom, keyOf } from './calendar-plan';
 
@@ -151,4 +152,13 @@ export function pastRow(items: readonly HomeItem[], today: DateKey): RowSummary 
 /** §A6 Upcoming: items that start in the next 30 days; soonest first. */
 export function upcomingRow(items: readonly HomeItem[], now: number): RowSummary {
   return rowSummary(items.filter((it) => comingWithin(it, now, 30)).sort((a, b) => a.startMs - b.startMs));
+}
+
+/** "2 rooms · 5 new people" (Past) / "1 room · 1 event" (Upcoming); nothing → "No rooms yet" (Past) / "Nothing planned". */
+export function rowLine(r: RowSummary, withPeople: boolean): string {
+  const t = en.calendar;
+  const bits = [r.rooms ? t.rowRooms(r.rooms) : null, r.events ? t.rowEvents(r.events) : null];
+  if (withPeople && r.people) bits.push(t.rowPeople(r.people));
+  const line = bits.filter(Boolean).join(t.rowSep);
+  return line || (withPeople ? t.pastEmpty : t.nothingPlanned);
 }

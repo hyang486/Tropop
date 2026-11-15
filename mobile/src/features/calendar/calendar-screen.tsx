@@ -29,7 +29,7 @@ import { monthTitle, rangeLabel, weekdayLabels } from './calendar-format';
 import { type DateKey, localDateKey, shiftMonth } from './calendar-plan';
 import { reloadCalendar, useCalendar, useCalendarFailed, usePlanState } from './calendar-store';
 import {
-  dayMarks, dimmed, type HomeItem, homeItems, joinParts, pastRow, type RowSummary, stripRows, summaryParts, upcomingRow, weekSummary,
+  dayMarks, dimmed, type HomeItem, homeItems, joinParts, pastRow, rowLine, stripRows, summaryParts, upcomingRow, weekSummary,
 } from './home-model';
 import { PlanOfflineLine } from './plan-offline-line';
 import { addTapAction, plusIntroHref } from './plus-intro';
@@ -292,14 +292,6 @@ function MomentsHome({ uid }: { uid: string }) {
       <AskSheet visible={asking} onClose={() => setAsking(false)} today={today} />
     </>
   );
-}
-
-/** "2 rooms · 5 new people" (Past) / "1 room · 1 event" (Upcoming); nothing → "Nothing planned". */
-function rowLine(r: RowSummary, withPeople: boolean): string {
-  const bits = [r.rooms ? t.rowRooms(r.rooms) : null, r.events ? t.rowEvents(r.events) : null];
-  if (withPeople && r.people) bits.push(t.rowPeople(r.people));
-  const line = bits.filter(Boolean).join(t.rowSep);
-  return line || t.nothingPlanned;
 }
 
 function SummaryRow({ icon, title, line, onPress }: { icon: 'checkmark.circle' | 'calendar'; title: string; line: string; onPress: () => void }) {

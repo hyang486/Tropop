@@ -1211,6 +1211,7 @@ export const en = {
     past: 'Past',
     upcoming: 'Upcoming',
     nothingPlanned: 'Nothing planned',
+    pastEmpty: 'No rooms yet',
     recapTitle: 'Trok recap',
     recapPending: 'Your recap appears after this room ends.',
     recapNone: 'No recap was saved for this room.',
