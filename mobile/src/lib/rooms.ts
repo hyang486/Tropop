@@ -143,7 +143,7 @@ export async function listMembers(roomId: string): Promise<RoomMember[]> {
     ? await supabase.from('profiles').select('id, display_name, avatar_path, avatar_character').in('id', ids)
     : { data: [], error: null };
   if (profileError) throw profileError;
-  const byId = new Map((profiles as unknown as { id: string; display_name: string; avatar_path: string | null; avatar_character?: number | null }[]).map((p) => [p.id, p]));
+  const byId = new Map(profiles.map((p) => [p.id, p]));
   return members.map((m) => ({
     ...m,
     display_name: byId.get(m.user_id)?.display_name ?? en.rooms.someone,
