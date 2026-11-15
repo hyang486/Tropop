@@ -34,8 +34,9 @@ type Props = {
 export type MapView = { setCameraPosition: (camera: Camera) => Promise<void> };
 export type CameraMoveEvent = { coordinates: { latitude?: number; longitude?: number }; zoom?: number };
 
-const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+// CARTO Positron (light, quiet basemap) on OpenStreetMap data.
+const OSM_TILES = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 // Brand polish: muted OSM tiles (paper/ink app), a small attribution that stays clear of the sheet, no zoom
 // buttons under the back button (pinch and wheel zoom stay on).
@@ -43,7 +44,6 @@ if (typeof document !== 'undefined' && !document.getElementById('qrew-leaflet-st
   const style = document.createElement('style');
   style.id = 'qrew-leaflet-style';
   style.textContent =
-    '.leaflet-tile-pane{filter:grayscale(.85) sepia(.12) contrast(.95)}' +
     ".leaflet-container{font-family:'Source Sans 3',system-ui,sans-serif}" +
     '.leaflet-control-attribution{background:rgba(255,253,248,.8)!important;font-size:10px!important}';
   document.head.appendChild(style);
@@ -70,7 +70,7 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
     if (!el.current) return;
     const cam = latest.current.cameraPosition;
     const m = L.map(el.current, { center: cam ? [cam.coordinates.latitude, cam.coordinates.longitude] : [37.77, -122.42], zoom: cam?.zoom ?? 13, maxZoom: 19, zoomControl: false, attributionControl: true });
-    L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_ATTRIBUTION }).addTo(m);
+    L.tileLayer(OSM_TILES, { maxZoom: 19, subdomains: 'abcd', attribution: OSM_ATTRIBUTION }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     m.on('moveend', () => {
       const c = m.getCenter();
@@ -83,7 +83,9 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
     // A flex layout can settle after mount; Leaflet needs to re-measure.
     const ro = new ResizeObserver(() => m.invalidateSize());
     ro.observe(el.current);
+    const t = setTimeout(() => m.invalidateSize(), 0);
     return () => {
+      clearTimeout(t);
       ro.disconnect();
       m.remove();
       map.current = null;
@@ -91,13 +93,13 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
     };
   }, []);
 
-  // The first camera that arrives after mount (the screen sets it once, when the start view is known).
-  const moved = useRef(false);
+  // Every new cameraPosition object re-centers, like native expo-maps (the screen only changes it on a
+  // better start: regional default, then the live members' fit), so the later fit is not dropped.
   const cam = props.cameraPosition;
   useEffect(() => {
-    if (!cam || moved.current) return;
-    moved.current = true;
-    map.current?.setView([cam.coordinates.latitude, cam.coordinates.longitude], cam.zoom ?? 13);
+    if (!cam || !map.current) return;
+    map.current.invalidateSize();
+    map.current.setView([cam.coordinates.latitude, cam.coordinates.longitude], cam.zoom ?? 13, { animate: false });
   }, [cam]);
 
   useEffect(() => {
