@@ -9,6 +9,7 @@ import {
   CONNECT_QR_MAX_BYTES,
   ConnectError,
   isConnectApp,
+  otherCharacterOf,
   qrCropCandidates,
   qrImagePath,
   qrImageType,
@@ -93,6 +94,8 @@ export type ConnectRequest = {
   otherId: string;
   otherName: string | null;
   otherAvatarPath: string | null;
+  /** 1-12, or null for the default character (migration 0044). */
+  otherCharacter: number | null;
   otherApps: ConnectApp[];
   roomId: string | null;
   /** Only while the room still exists (H3: never stored on the request). */
@@ -105,6 +108,8 @@ export type Connection = {
   otherId: string;
   otherName: string | null;
   otherAvatarPath: string | null;
+  /** 1-12, or null for the default character (migration 0044). */
+  otherCharacter: number | null;
   otherApps: ConnectApp[];
   roomId: string | null;
   /** "Met in …" only while the room still exists. */
@@ -287,6 +292,7 @@ export async function listConnectRequests(): Promise<ConnectRequest[]> {
     otherId: String(r.other_id),
     otherName: s(r.other_name),
     otherAvatarPath: s(r.other_avatar_path),
+    otherCharacter: otherCharacterOf(r.other_character),
     otherApps: apps(r.other_apps),
     roomId: s(r.room_id),
     roomName: s(r.room_name),
@@ -323,6 +329,7 @@ export async function listConnections(): Promise<Connection[]> {
     otherId: String(r.other_id),
     otherName: s(r.other_name),
     otherAvatarPath: s(r.other_avatar_path),
+    otherCharacter: otherCharacterOf(r.other_character),
     otherApps: apps(r.other_apps),
     roomId: s(r.room_id),
     roomName: s(r.room_name),

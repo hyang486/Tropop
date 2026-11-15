@@ -240,3 +240,8 @@ export function qrCropCandidates(
   }
   return out;
 }
+
+/** `other_character` from the connect RPCs (migration 0044): smallint 1-12, null when the person kept the default. */
+export function otherCharacterOf(v: unknown): number | null {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 12 ? v : null;
+}
