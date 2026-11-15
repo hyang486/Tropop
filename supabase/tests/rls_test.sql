@@ -256,7 +256,7 @@ reset role;
 select tests.login('a0000000-0000-4000-8000-000000000001', false);
 set local role authenticated;
 select tests.expect_ok($q$ select public.set_activity_state(current_setting('t.r')::uuid, 'active') $q$, 'host starts activity');
-select tests.expect_ok($q$ select public.set_route(current_setting('t.r')::uuid, '[{"latitude":37,"longitude":-122}]'::jsonb) $q$, 'host sets route');
+select tests.expect_ok($q$ select public.set_route(current_setting('t.r')::uuid, '[{"lat":37,"lng":-122}]'::jsonb) $q$, 'host sets route');
 select tests.expect_error($q$ select public.set_activity_state(current_setting('t.x')::uuid, 'active') $q$,
   'activity cannot start in a room without location permission');
 select tests.expect_count($q$ select 1 from public.profiles where id = 'a0000000-0000-4000-8000-000000000002' $q$, 1,
