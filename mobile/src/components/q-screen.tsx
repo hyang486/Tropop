@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   spacer: { flexGrow: 1 },
   caption: { fontSize: 13, color: colors.ink2, textAlign: 'center', fontVariant: ['tabular-nums'] },
   label: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.label, marginTop: 6 },
-  card: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
+  card: { backgroundColor: colors.field, borderRadius: 24, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardOnSheet: { backgroundColor: colors.sheetField },
   fieldOnSheet: { backgroundColor: colors.sheetField },

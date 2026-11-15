@@ -290,8 +290,8 @@ const styles = StyleSheet.create({
     bottom: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 999,
+    backgroundColor: colors.tint,
   },
   badgeText: { fontSize: 11, fontWeight: '600', color: 'white' },
 });
