@@ -36,3 +36,16 @@ test('VoiceOver labels', () => {
   assert.equal(characterA11y(1), 'Host character');
   assert.equal(characterA11y(1, true), 'Host character, selected');
 });
+
+// Real-deletion rule: choosing a character clears avatar_path in the same update as Remove photo does, and the
+// profile_avatar trigger (private.on_profile_avatar) queues the old stored photo for deletion on that change.
+import { readFileSync } from 'node:fs';
+
+test('choosing a character clears avatar_path so the server queues the old photo for deletion', () => {
+  const store = readFileSync(new URL('../src/features/characters/character-store.ts', import.meta.url), 'utf8');
+  assert.match(store, /update\(\{ avatar_character: id, avatar_path: null \}/);
+  const remove = readFileSync(new URL('../src/lib/avatar.ts', import.meta.url), 'utf8');
+  assert.match(remove, /update\(\{ avatar_path: null \}\)/);
+  const mig = readFileSync(new URL('../../supabase/migrations/20261104000031_spec11_capacity_open_chat_question_cards.sql', import.meta.url), 'utf8');
+  assert.match(mig, /old\.avatar_path is distinct from new\.avatar_path then\s+perform private\.enqueue_cleanup\('avatars', old\.avatar_path, 'avatar_replaced'\)/);
+});
