@@ -1085,3 +1085,6 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   photo, refresh ignored new media, and Sora's text is excluded by consent so the model saw an empty chat. Fix: refresh also
   fires on ready media created after the recap (counts only, no sender) + prompt rule against "no messages" claims.
   qrewing node tests 84/84; strict tsc on the fn shows only 2 pre-existing errors (same on main). NOT deployed (needs OK).
+- MERGED (supervisor PASS + go): fix-rcp1 → local main 9395072. qrewing 84/84, tsc 0, lint 0, 1146/1146. No push.
+  qrewing v18 deploy NOT approved (supervisor asking the human); device check only after deploy.
+  0043 dry run (dry0043 ee9f988, PGlite through 0042 + both 0043 tests): PASSED. B3 waits on F-RM1 repro + go; redo merge-tree on new main.
