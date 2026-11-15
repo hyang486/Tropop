@@ -63,6 +63,7 @@ test('editor: All day switch, date+time pickers when timed, times saved only whe
   assert.match(src, /<InkSwitch[^>]*value=\{allDay\}/s);
   assert.match(src, /displayedComponents=\{allDay \? \['date'\] : \['date', 'hourAndMinute'\]\}/);
   assert.match(src, /allDay \? \{ title, start, end, emoji \} : \{ title, start, end, emoji, startTime, endTime \}/);
-  // Existing events without a time, and Trok's date-only picks, open as all day.
-  assert.match(src, /existing \? !existing\.startTime : params\.ask === '1'/);
+  // Existing events without a time open as all day; new ones follow editorPrefill (ask=1 → all day; see calendar-editor-prefill tests).
+  assert.match(src, /existing \? !existing\.startTime : init\.allDay/);
+  assert.match(src, /editorPrefill\(params, defaultEventTimes\(new Date\(\)\)\)/);
 });

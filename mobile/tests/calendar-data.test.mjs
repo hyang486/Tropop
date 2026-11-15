@@ -140,3 +140,22 @@ test('sweep 2: an Ask answer counts only while its sheet is open and it is the n
   assert.equal(gate.isCurrent(b), false);
   assert.equal(gate.isCurrent(c), true);
 });
+
+test('Calendar v2 §C: startsAt, placeName, people are snapshotted; people keeps the max; old docs still load', () => {
+  let doc = d.mergeRooms(d.emptyDoc(), [room('v', { starts_at: '2026-11-15T17:00:00Z', place_name: 'Exposition Park', people: 6 })], tz);
+  assert.deepEqual([doc.rooms.v.startsAt, doc.rooms.v.placeName, doc.rooms.v.people], ['2026-11-15T17:00:00Z', 'Exposition Park', 6]);
+  // Someone left (4), place not fetched this time (undefined): keep 6 and the place.
+  doc = d.mergeRooms(doc, [room('v', { starts_at: '2026-11-15T17:00:00Z', people: 4 })], tz);
+  assert.deepEqual([doc.rooms.v.placeName, doc.rooms.v.people], ['Exposition Park', 6]);
+  // Place cleared on the server: null.
+  doc = d.mergeRooms(doc, [room('v', { place_name: null })], tz);
+  assert.equal(doc.rooms.v.placeName, null);
+  const back = d.parseDoc(JSON.stringify(doc));
+  assert.deepEqual([back.rooms.v.startsAt, back.rooms.v.placeName, back.rooms.v.people], [null, null, 6]);
+  // A v1 snapshot without the fields, and a bad count, parse to nulls.
+  const old = JSON.parse(JSON.stringify(doc));
+  delete old.rooms.v.startsAt; delete old.rooms.v.placeName; old.rooms.v.people = -2;
+  const r = d.parseDoc(JSON.stringify(old)).rooms.v;
+  assert.ok(r);
+  assert.deepEqual([r.startsAt, r.placeName, r.people], [null, null, null]);
+});

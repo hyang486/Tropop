@@ -26,7 +26,17 @@ export type RoomSnapshot = {
   diary?: string[] | null;
   /** Hero art, picked once at the first sync so renaming the room keeps it. Older snapshots get one on the next sync. */
   hero?: HeroTopic;
+  /** Calendar v2 §C: the room's start instant (rooms.starts_at); null when it had none. */
+  startsAt?: string | null;
+  /** Calendar v2 §C: rooms.place_name (120 chars max). */
+  placeName?: string | null;
+  /** Calendar v2 §C: member count, the max of every count seen (people leave; we keep who was there). Unknown → absent. */
+  people?: number | null;
 };
+
+const count = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null);
+const maxCount = (a: number | null | undefined, b: number | null | undefined) =>
+  a == null ? (b ?? null) : b == null ? a : Math.max(a, b);
 
 /** UX3-A13: local 24 h "HH:MM". An event has both times or none (none = all day). */
 export type TimeKey = string;
@@ -65,7 +75,8 @@ function parseRoom(v: unknown): RoomSnapshot | null {
   const emoji = str(r.emoji, 16);
   if (!roomId || !name || !emoji || !isDateKey(r.start) || !isDateKey(r.end) || typeof r.endAt !== 'string') return null;
   const diary = Array.isArray(r.diary) ? cleanDiary(r.diary) : r.diary === null ? null : undefined;
-  return { roomId, name, type: typeof r.type === 'string' ? r.type : 'general', start: r.start, end: r.end, endAt: r.endAt, emoji, diary, hero: isHeroTopic(r.hero) ? r.hero : undefined };
+  return { roomId, name, type: typeof r.type === 'string' ? r.type : 'general', start: r.start, end: r.end, endAt: r.endAt, emoji, diary, hero: isHeroTopic(r.hero) ? r.hero : undefined,
+    startsAt: typeof r.startsAt === 'string' ? r.startsAt : null, placeName: str(r.placeName, 120), people: count(r.people) };
 }
 
 function parseEvent(v: unknown): PersonalEvent | null {
@@ -115,6 +126,9 @@ type RoomLike = {
   expires_at: string;
   deleted_at?: string | null;
   location_allowed?: boolean;
+  place_name?: string | null;
+  /** Member count from a head count query on room_members; absent when not fetched. */
+  people?: number | null;
 };
 
 /** Snapshot every listed room (current and future, plus grace); keeps an emoji and diary already saved. */
@@ -135,6 +149,9 @@ export function mergeRooms(doc: CalendarDoc, rooms: readonly RoomLike[], timeZon
       emoji: prev?.emoji ?? defaultEmoji(room.type),
       diary: prev?.diary,
       hero: prev?.hero ?? roomHero(room),
+      startsAt: room.starts_at,
+      placeName: room.place_name === undefined ? (prev?.placeName ?? null) : str(room.place_name, 120),
+      people: maxCount(prev?.people, count(room.people)),
     };
   }
   return next;
