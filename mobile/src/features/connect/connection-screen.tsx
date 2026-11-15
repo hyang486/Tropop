@@ -127,7 +127,7 @@ export function ConnectionScreen() {
               <View style={styles.cardHead}>
                 <AppMark app={code.app} />
                 <Text style={styles.appName}>{t.appName(code.app)}</Text>
-                {isRecentlyUpdated(code.updatedAt) ? (
+                {isRecentlyUpdated(code.updatedAt, Date.now(), person.createdAt) ? (
                   <View style={styles.tag}>
                     <Text style={styles.tagText}>{t.updated}</Text>
                   </View>
