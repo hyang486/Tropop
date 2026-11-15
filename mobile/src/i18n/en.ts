@@ -31,7 +31,7 @@ export const en = {
     valuePhotosTitle: 'Photos of you, found for you',
     valuePhotosLine: 'Full-quality photos from everyone.',
     valueGoneTitle: 'Gone when it ends',
-    valueGoneLine: 'Chat and photos are deleted at End.',
+    valueGoneLine: 'Chat and photos are deleted for everyone.',
     join: 'Join a room',
     create: 'Create a room',
     // UX2-27: returning users (Welcome and Guest) go to Log in.

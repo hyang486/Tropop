@@ -47,6 +47,9 @@ export function lastItemLine(
     return { text: en.chat.emergencySet(line.name), danger: true };
   if (line.kind === "activityStarted")
     return { text: en.chat.activityStarted, danger: false };
+  // Rooms preview: "Sora is OK (Emergency resolved)" reads "Sora is OK now" (stored text is unchanged).
+  const resolved = /^(.+) is OK \(Emergency resolved\)/.exec(oneLine(line.text));
+  if (resolved) return { text: `${resolved[1]} is OK now`, danger: false };
   return { text: oneLine(line.text), danger: s.last_kind === "emergency" };
 }
 
