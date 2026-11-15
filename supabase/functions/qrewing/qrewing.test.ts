@@ -60,7 +60,7 @@ import {
   type StoredMatch,
   type TriageRow,
 } from './core.ts';
-import { ASK_SYSTEM, cut, DIARY_SYSTEM, esc, MATCH_SYSTEM, RECAP_REFRESH_SYSTEM, RECAP_SYSTEM, recapRefreshUser, TRIAGE_SYSTEM, triageUser } from './prompts.ts';
+import { ASK_SYSTEM, cut, DIARY_SYSTEM, esc, MATCH_SYSTEM, PROMPT_VERSION, RECAP_REFRESH_SYSTEM, RECAP_SYSTEM, recapRefreshUser, TRIAGE_SYSTEM, triageUser } from './prompts.ts';
 
 const NOW = new Date('2026-11-12T20:00:00.000Z');
 const ROOM = '11111111-1111-4111-8111-111111111111';
@@ -830,6 +830,21 @@ test('recap prompts F-RCP1: the chat is consenting members only, so the model ma
   }
   // Older callers without counts get no media tag.
   assert.ok(!recapRefreshUser({ previous: { title: 't', summary: 's', highlights: [] }, lines: [] }).includes('shared_media'));
+});
+
+test('recap prompts v20: no meta talk, one plain line for an empty chat, no room-type or zero-count highlights', () => {
+  for (const sys of [RECAP_SYSTEM, RECAP_REFRESH_SYSTEM]) {
+    assert.ok(sys.includes('Never mention AI, Trok AI, consent or opting in'));
+    assert.ok(sys.includes('any earlier or previous recap'));
+    assert.ok(sys.includes('the summary is one plain factual line'));
+    assert.ok(sys.includes('"A short sports meetup. 1 photo was shared."'));
+    assert.ok(sys.includes('no "Room type: ..." items'));
+    assert.ok(sys.includes('never mention a count of 0'));
+    assert.ok(!sys.includes('short recap from the room details'));
+  }
+  assert.ok(RECAP_SYSTEM.includes('short and factual'));
+  assert.ok(!RECAP_SYSTEM.includes('short and honest'));
+  assert.equal(PROMPT_VERSION, 'qrewing-v3');
 });
 
 test('recap refresh: a failed refresh keeps the previous recap and is spent', async () => {
