@@ -2,7 +2,6 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { Text } from '@/components/text';
 
 import { colors } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -10,16 +9,8 @@ import { qrImageUrl } from '@/lib/connect';
 import type { ConnectApp } from '@/lib/connect-plan';
 import { authHeaders } from '@/lib/media';
 
-/**
- * Brand colours that phase 1 (rebuild-b1) adds to ui.tsx as colors.gold / colors.softGold. Local until that merges;
- * swap to the ui.tsx tokens then. reportedText: dark gold for "Reported Nov 16" (ink-on-light contrast ≥ 4.5:1).
- */
-export const connectTokens = {
-  gold: '#FFCC00',
-  softGold: '#FFF2BF',
-  reportedText: '#7A5C00',
-  hairline: '#E6DED7',
-};
+/** Dark gold for "Reported Nov 16" (ink-on-light contrast ≥ 4.5:1); not a B1 token (gold is never text on light). */
+export const REPORTED_TEXT = '#7A5C00';
 
 /**
  * App logos (ux "Logo compliance addendum", connect-spec.md): the publishers' brand-kit files from app-logos/40,
@@ -79,35 +70,15 @@ export function QrImage({
   );
 }
 
-/** Small count badge (gold, ink text) for pending requests. */
-export function GoldBadge({ count, label }: { count: number; label?: string }) {
-  if (count <= 0) return null;
-  return (
-    <View style={styles.badge} accessibilityLabel={label}>
-      <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   mark: { width: 40, height: 40 },
   markSlot: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   qrBox: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: connectTokens.hairline,
+    borderColor: colors.separator,
     overflow: 'hidden',
     padding: 6,
   },
   qrImage: { flex: 1 },
-  badge: {
-    minWidth: 24,
-    height: 24,
-    paddingHorizontal: 6,
-    borderRadius: 12,
-    backgroundColor: connectTokens.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { fontSize: 14, fontWeight: '700', color: colors.label },
 });

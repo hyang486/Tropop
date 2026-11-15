@@ -11,7 +11,7 @@ import { CONNECT_APPS, toConnectError, type ConnectApp } from '@/lib/connect-pla
 
 import { useAddQrCode } from './add-flow';
 import { connectCopy as t } from './copy';
-import { AppMark, connectTokens, QrImage } from './parts';
+import { AppMark, QrImage, REPORTED_TEXT } from './parts';
 
 /** Mock 01 / spec §1: My QR codes (Profile → My QR codes). */
 export function MyCodesScreen() {
@@ -149,13 +149,13 @@ function CodeRow({
 const styles = StyleSheet.create({
   loading: { marginVertical: 24 },
   card: { backgroundColor: colors.lift, borderRadius: 24, borderCurve: 'continuous', paddingHorizontal: 16 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.wash2, marginLeft: 56 },
+  divider: { height: 1, backgroundColor: colors.separator, marginLeft: 52 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingVertical: 12 },
   pressed: { opacity: 0.6 },
   rowText: { flex: 1, gap: 2 },
   name: { flex: 1, fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
   meta: { fontSize: 14, lineHeight: 20, color: colors.ink2 },
-  reported: { color: connectTokens.reportedText },
+  reported: { color: REPORTED_TEXT },
   addHit: { minHeight: 44, minWidth: 44, alignItems: 'flex-end', justifyContent: 'center' },
   link: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.tint },
   inlineError: { paddingLeft: 52, paddingBottom: 12 },
@@ -163,11 +163,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: connectTokens.softGold,
+    backgroundColor: colors.softGold,
     borderRadius: 20,
     padding: 16,
   },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: connectTokens.gold, alignSelf: 'flex-start', marginTop: 7 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.gold, alignSelf: 'flex-start', marginTop: 7 },
   noticeText: { flex: 1, gap: 2 },
   noticeTitle: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
   noticeBody: { fontSize: 16, lineHeight: 24, color: colors.label },

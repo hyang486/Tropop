@@ -10,7 +10,7 @@ import { isConnectApp, toConnectError } from '@/lib/connect-plan';
 
 import { useAddQrCode } from './add-flow';
 import { connectCopy as t } from './copy';
-import { connectTokens, QrImage } from './parts';
+import { QrImage } from './parts';
 
 /** spec §1 QR detail: the large image, "Added Nov 15", Replace, Remove; the reported notice on top. */
 export function MyCodeDetailScreen() {
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: connectTokens.softGold,
+    backgroundColor: colors.softGold,
     borderRadius: 20,
     padding: 16,
   },

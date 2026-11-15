@@ -6,6 +6,7 @@ import { AccessibilityInfo, ActivityIndicator, Pressable, RefreshControl, StyleS
 import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
+import { Pill } from '@/components/pill';
 import { QCaption, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import {
@@ -21,7 +22,6 @@ import {
 import { appNames, daysLeft, toConnectError } from '@/lib/connect-plan';
 
 import { connectCopy as t } from './copy';
-import { GoldBadge } from './parts';
 import { PlusSheet } from './sheets';
 
 type Data = { requests: ConnectRequest[]; connections: Connection[]; quota: ConnectionQuota };
@@ -114,7 +114,7 @@ export function ConnectionsScreen() {
             <Text style={styles.section} accessibilityRole="header">
               {t.requests}
             </Text>
-            <GoldBadge count={incoming.length} />
+            {incoming.length > 0 ? <Pill variant="count" text={incoming.length > 9 ? '9+' : String(incoming.length)} /> : null}
           </View>
           <View style={styles.card}>
             {incoming.map((r, i) => {
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   section: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.ink2, marginTop: 8 },
   card: { backgroundColor: colors.lift, borderRadius: 24, borderCurve: 'continuous', paddingHorizontal: 16 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.wash2, marginLeft: 56 },
+  divider: { height: 1, backgroundColor: colors.separator, marginLeft: 52 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingVertical: 12 },
   requestRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 16 },
   pressed: { opacity: 0.6 },

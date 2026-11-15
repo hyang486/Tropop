@@ -18,7 +18,7 @@ import { isRecentlyUpdated, opensFromLink, toConnectError, type ConnectApp } fro
 
 import { connectCopy as t } from './copy';
 import { openOrOfferStore } from './open-app';
-import { AppMark, connectTokens, QrImage } from './parts';
+import { AppMark, QrImage } from './parts';
 import { QrFullScreen, type FullScreenQr } from './qr-full-screen';
 import { ConfirmSheet } from './sheets';
 
@@ -194,10 +194,10 @@ const styles = StyleSheet.create({
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   appName: { flex: 1, fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label },
-  tag: { height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: connectTokens.softGold, justifyContent: 'center' },
+  tag: { height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: colors.softGold, justifyContent: 'center' },
   tagText: { fontSize: 12, fontWeight: '600', color: colors.label },
   qrPress: { alignSelf: 'center' },
-  notice: { backgroundColor: connectTokens.softGold, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
+  notice: { backgroundColor: colors.softGold, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
   noticeText: { fontSize: 14, lineHeight: 20, color: colors.label },
   footer: { alignItems: 'center', marginTop: 8 },
 });

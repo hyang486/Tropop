@@ -1539,7 +1539,7 @@ export const en = {
       notConnectable: "You can't connect with this person.",
       accountRequired: 'Create an account to connect.',
       notFound: 'This request is no longer available.',
-      badLink: 'This QR code can’t be used.',
+      badLink: "This QR code can't be used.",
       badImage: "We couldn't read this image. Try another screenshot.",
       tooLarge: 'This image is too large. Try a screenshot.',
       offline: 'No connection. Try again.',
