@@ -16,12 +16,16 @@ test('IosOnly: 140pt sticker hidden from AT, header-role title, 48pt secondary a
   assert.match(comp, /fontSize: 16, lineHeight: 22/);
   assert.match(comp, /height: 48/);
   assert.match(comp, /maxWidth: 360/);
+  assert.match(comp, /pressed && styles\.buttonPressed/);
+  assert.match(comp, /buttonPressed: \{ opacity: 0\.7 \}/);
+  assert.match(comp, /outlineColor: colors\.tint, outlineWidth: 2/);
 });
 
 test('map: meetup-04, goes back to chat', () => {
   assert.match(map, /sticker="meetup-04"/);
   assert.match(map, /Live map is on the phone/);
-  assert.match(map, /label: 'Back to chat', onPress: \(\) => router\.back\(\)/);
+  assert.match(map, /label: 'Back to chat'/);
+  assert.match(map, /router\.canGoBack\(\) \? router\.back\(\) : router\.replace\(`\/room\/\$\{id\}`\)/);
 });
 
 test('both scan routes: connection-01, Enter code -> /start/code', () => {
