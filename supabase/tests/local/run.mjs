@@ -19,7 +19,7 @@ for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
 console.log('migrations applied up to', upto);
 for (const f of extra) {
   let sql = fs.readFileSync(f, 'utf8');
-  sql = sql.replace(/^-- @@MIGRATION (\S+)@@$/m, (_, p) => fs.readFileSync(path.resolve(path.dirname(f), '../..', p), 'utf8'));
+  sql = sql.replace(/^-- @@MIGRATION (\S+)@@$/gm, (_, p) => fs.readFileSync(path.resolve(path.dirname(f), '../..', p), 'utf8'));
   try {
     const res = await db.exec(sql);
     for (const r of res) if (r.rows?.length && !('expect_true' in r.rows[0] || 'expect_ok' in r.rows[0] || 'expect_state' in r.rows[0])) console.log(f.split('/').pop(), JSON.stringify(r.rows));
