@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 import { noteMessageSent } from '@/features/recap/sent-signal';
 
 import type { Tables } from './database.types';
+import { stickerById } from './stickers';
 import { useRoomEvents } from './room-channel';
 import { supabase } from './supabase';
 
@@ -33,8 +34,9 @@ export async function fetchMessages(roomId: string, before?: string): Promise<Me
 }
 
 /** The id is generated on the client, so the realtime echo replaces the optimistic row instead of duplicating it. */
-async function insertMessage(row: { id: string; room_id: string; sender_id: string; body: string }) {
-  const { data, error } = await supabase.from('messages').insert({ ...row, kind: 'text' }).select().single();
+async function insertMessage(row: { id: string; room_id: string; sender_id: string; body: string; kind: 'text' | 'sticker' }) {
+  // B3 (0043): a sticker is a plain insert {kind:'sticker', body:<art id>, media_id:null}; there is no RPC.
+  const { data, error } = await supabase.from('messages').insert(row).select().single();
   if (error) throw error;
   return data;
 }
@@ -142,7 +144,7 @@ export function useChat(roomId: string, userId: string | undefined, onNewSender?
   const deliver = useCallback(
     async (item: ChatItem) => {
       try {
-        const row = await insertMessage({ id: item.id, room_id: item.room_id, sender_id: item.sender_id!, body: item.body! });
+        const row = await insertMessage({ id: item.id, room_id: item.room_id, sender_id: item.sender_id!, body: item.body!, kind: item.kind === 'sticker' ? 'sticker' : 'text' });
         apply((s) => ({ ...s, messages: merge(s.messages.filter((m) => m.id !== row.id), [row]) }));
         noteMessageSent(row.room_id);
       } catch {
@@ -175,6 +177,26 @@ export function useChat(roomId: string, userId: string | undefined, onNewSender?
     [roomId, userId, apply, deliver],
   );
 
+  /** B3: sends a sticker by art id (meetup-01.. / connection-01.. / usc-*); same optimistic path and retry as text. */
+  const sendSticker = useCallback(
+    (stickerId: string) => {
+      if (!userId || !stickerById(stickerId)) return;
+      const item: ChatItem = {
+        id: randomUUID(),
+        room_id: roomId,
+        sender_id: userId,
+        kind: 'sticker',
+        body: stickerId,
+        media_id: null,
+        created_at: new Date().toISOString(),
+        pending: 'sending',
+      };
+      apply((s) => ({ ...s, messages: [item, ...s.messages] }));
+      deliver(item);
+    },
+    [roomId, userId, apply, deliver],
+  );
+
   const retry = useCallback(
     (id: string) => {
       const item = messagesRef.current.find((m) => m.id === id && m.pending === 'failed');
@@ -190,5 +212,5 @@ export function useChat(roomId: string, userId: string | undefined, onNewSender?
     [apply],
   );
 
-  return { ...state, send, retry, discard, loadOlder, reload: refreshLatest };
+  return { ...state, send, sendSticker, retry, discard, loadOlder, reload: refreshLatest };
 }

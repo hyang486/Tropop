@@ -21,6 +21,7 @@ import { pruneRoomCaches } from '@/lib/media';
 import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room, type RoomWithCount } from '@/lib/rooms';
 import { chatLine } from '@/lib/chat-line';
+import { stickerPreview } from '@/lib/stickers';
 import { useNow } from '@/lib/use-now';
 import { acquireRoomChannel } from '@/lib/room-channel';
 import { createRoomsLive } from '@/features/event/rooms-live';
@@ -316,7 +317,7 @@ export default function Rooms() {
           }
           // UX3-A01: name / last item / Live + people + ends (or Starts …); time and unread pill trailing.
           const summary = summaries?.get(room.id);
-          const line = summaries ? lastItemLine(summary, uid, en, chatLine) : null;
+          const line = summaries ? lastItemLine(summary, uid, en, chatLine, stickerPreview) : null;
           const live = isLive(room, now);
           // rooms.visibility (0031) is not in the generated types yet; select('*') returns it.
           const meta = rowMetaLine(room as typeof room & { visibility?: string | null }, now, en, formatRemaining);
