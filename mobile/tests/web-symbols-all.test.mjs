@@ -44,6 +44,18 @@ for (const file of walk(SRC)) {
   for (const m of src.matchAll(new RegExp(String.raw`\b${PROP}\s*[:=]\s*\{?\s*(['"][a-z][a-z0-9.]*['"](?:\s*[?:]\s*['"][a-z][a-z0-9.]*['"])*)`, 'g'))) {
     for (const l of m[1].matchAll(LIT)) if (NAME.test(l[1]) && (l[1].includes('.') || /^(?:plus|xmark|eye|chevron|checkmark|doc|photo|camera|person|bell|gear|star|heart|trash|pencil|map|mappin|flag|clock|lock|house|globe|link|share|qrcode|scan|video|mic|bolt|moon|sun|leaf|diamond|triangle|play|sparkles|exclamationmark|questionmark|bubble|phone|calendar|tray|megaphone|figure|rectangle)/.test(l[1]))) add(l[1], rel);
   }
+  // 2b. constant maps/lists whose VALUES are symbol names (Record<K, SFSymbol>, SFSymbol[]) (e.g. `const ICON: Record<K, SymbolViewProps['name']> = { add: 'pencil' }`):
+  // every string value in the block is a symbol name.
+  for (const m of src.matchAll(/(?:Record<[^=;]*?(?:SymbolViewProps\['name'\]|\bSFSymbol)>|(?:SymbolViewProps\['name'\]|\bSFSymbol)\[\])\s*=\s*([{[])/g)) {
+    let depth = 0;
+    let i = m.index + m[0].length - 1;
+    const start = i;
+    for (; i < src.length; i++) {
+      if ('{['.includes(src[i])) depth++;
+      else if ('}]'.includes(src[i]) && --depth === 0) break;
+    }
+    for (const l of src.slice(start, i).matchAll(/:\s*['"]([a-z][a-z0-9.]*)['"]|[[,]\s*['"]([a-z][a-z0-9.]*)['"]/g)) add(l[1] ?? l[2], rel);
+  }
   // 3. any dotted SF-looking literal in a symbol file
   for (const m of src.matchAll(/['"]([a-z][a-z0-9]*(?:\.[a-z0-9]+)+)['"]/g)) {
     if (/^(?:[a-z]+\.(?:fill|slash|circle|badge|on|and|wave|right|left|up|down|portrait|viewfinder|text|bubble|triangle|square|dashed|min|max|crop|rectangle|arrow|shield|clockwise|counterclockwise|motion|stack|2|3|fill\.[a-z]+)|(?:person|figure|party|fork|mountain|music|exclamationmark|checkmark|xmark|chevron|doc|photo|qrcode|bubble|rectangle|sun|speaker|calendar|location|mappin|map|bell|lock|eye|hand|camera|video|mic|link|trash|square|arrow|clock|info|questionmark|face|key|star|heart|house|tray|paperplane|megaphone|flag|gear)\.[a-z0-9.]+)$/.test(m[1])) add(m[1], rel);
