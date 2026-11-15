@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Fragment, useCallback, useState } from 'react';
@@ -20,6 +19,7 @@ import {
   type ConnectRequest,
 } from '@/lib/connect';
 import { appNames, daysLeft, toConnectError } from '@/lib/connect-plan';
+import { haptics } from '@/lib/haptics';
 
 import { connectCopy as t } from './copy';
 import { PlusSheet } from './sheets';
@@ -80,7 +80,7 @@ export function ConnectionsScreen() {
       r.requestId,
       async () => {
         await respondToRequest(r.requestId, true);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptics.success();
       },
       t.connectedWith(name),
     );

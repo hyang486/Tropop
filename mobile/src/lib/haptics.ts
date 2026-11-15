@@ -7,7 +7,12 @@ import * as Haptics from 'expo-haptics';
  * (no haptic on a failed action), never on scroll or plain navigation. Failures are ignored: feedback is optional.
  */
 function fire(run: () => Promise<void>) {
-  run().catch(() => undefined);
+  // A missing native module (or any failure, sync or async) must never reach the caller's action.
+  try {
+    run().catch(() => undefined);
+  } catch {
+    // ignored
+  }
 }
 
 export const haptics = {

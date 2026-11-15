@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
@@ -11,6 +10,7 @@ import { InkSwitch } from '@/features/event/ink-switch';
 import { useAuth } from '@/lib/auth';
 import { prepareQrImage, saveQrCode } from '@/lib/connect';
 import { appForLink, toConnectError, type ConnectApp } from '@/lib/connect-plan';
+import { haptics } from '@/lib/haptics';
 
 import { connectCopy as t } from './copy';
 
@@ -84,7 +84,7 @@ export function useAddQrCode(onSaved: (app: ConnectApp) => void) {
         mimeType: useCrop ? 'image/png' : preview.fullMime,
         decoded: preview.decoded,
       });
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       const app = preview.app;
       setPreview(null);
       onSaved(app);

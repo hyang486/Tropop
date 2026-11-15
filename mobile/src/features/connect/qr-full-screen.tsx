@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { AccessibilityInfo, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -8,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, colors, Hint } from '@/components/ui';
 import { QrPhotosDeniedError, saveQrToPhotos } from '@/lib/connect';
 import { CONNECT_APP_SCHEME, toConnectError, type ConnectApp } from '@/lib/connect-plan';
+import { haptics } from '@/lib/haptics';
 
 import { connectCopy as t } from './copy';
 import { AppMark, QrImage } from './parts';
@@ -43,7 +43,7 @@ export function QrFullScreen({ qr, onClose }: { qr: FullScreenQr | null; onClose
     try {
       await saveQrToPhotos(qr.path);
       setSaved(true);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       AccessibilityInfo.announceForAccessibility(t.savedToPhotos);
     } catch (e) {
       if (e instanceof QrPhotosDeniedError) setDenied(true);

@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -17,6 +16,7 @@ import {
   type RoomConnectPerson,
 } from '@/lib/connect';
 import { appNames, personConnectBlock, toConnectError, type ConnectApp } from '@/lib/connect-plan';
+import { haptics } from '@/lib/haptics';
 
 import { connectCopy as t } from './copy';
 import { ConnectSheet, PlusContent } from './sheets';
@@ -104,7 +104,7 @@ export function PersonConnectSheet({
     setError(null);
     try {
       const r = await action();
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      haptics.press();
       if (announce) AccessibilityInfo.announceForAccessibility(announce(r));
       await load();
     } catch (e) {
