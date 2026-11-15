@@ -8,7 +8,8 @@ set -euo pipefail
 UDID="${1:?sim udid}"; APP="${2:?path to the .app}"; APP="${APP%/}"; KIND="${3:-}"
 case "$KIND" in ''|9k6|fake) ;; *) echo "kind must be 9k6 or fake, got: $KIND" >&2; exit 1 ;; esac
 BID=com.iyaproject.moment
-SIMCTL=${SIMCTL:-xcrun simctl}   # override only for dry-run fault injection
+SIMCTL="xcrun simctl"
+[ "${SIM_REINSTALL_FAULT_TEST:-}" = 1 ] && SIMCTL=${SIMCTL_FAULT:?}   # fault injection for dry runs only
 die() { echo "$*" >&2; exit 1; }
 
 # The executable is named after the app (Qrew before build 4, Tropop from build 4): read it from Info.plist.
@@ -93,6 +94,9 @@ d1=""
 for _ in $(seq 1 30); do d1=$(datadir) && break; sleep 1; done   # the data path also settles after boot
 [ -n "$d1" ] || die "cannot resolve the data container after reboot"
 after=$(kept "$d1") || die "cannot list the data container $d1"
+if [ -d "$d1/Library/SplashBoard/Snapshots" ] && [ -n "$(ls -A "$d1/Library/SplashBoard/Snapshots")" ]; then
+  echo "warning: $d1 still has launch snapshots; the wipe may have hit a settling path" >&2
+fi
 lost=$(comm -23 <(echo "$before") <(echo "$after") | grep -c . || true)
 [ "$lost" -eq 0 ] || die "data check FAILED: $lost file(s) from Documents/Application Support missing after install"
 echo "ok $UDID $want_name CFBundleVersion=$want_ver app-id=$new_id data=$(basename "$d1") kept=$(echo "$before" | grep -c . || true) files"
