@@ -34,7 +34,7 @@ test('UX3-A05: labels sit above the fields on Log in, Create account, Guest and 
   const q = src('components/q-screen.tsx');
   assert.match(q, /placeholder=\{labelAbove \? undefined : label\}/);
   assert.match(q, /secureTextEntry=\{secureTextEntry && !shown\}/);
-  assert.match(q, /fieldLabel: \{ fontSize: 13, fontWeight: '600', color: colors\.ink2 \}/);
+  assert.match(q, /fieldLabel: \{ fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors\.ink2 \}/);
   assert.match(q, /fieldBlock: \{ gap: 6 \}/);
   const form = src('components/host-account-form.tsx');
   assert.equal(form.match(/labelAbove/g)?.length, 3);

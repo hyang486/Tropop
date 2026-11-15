@@ -75,10 +75,10 @@ test('V1 QRowCard: standalone wash fill with no border; grouped drops its own fi
   assert.match(row, /\[styles\.card, grouped && styles\.grouped, pressed && \{ opacity: 0\.6 \}\]/);
 });
 
-test('V1 fields: wash fill, no border, radius 12; a 1.5 pt ink border only while focused (as the join-code box)', () => {
+test('B2 fields: wash fill, radius 16, 52 pt; a 2 pt Cardinal ring only while focused (as the join-code box)', () => {
   const q = src('components/q-screen.tsx');
-  assert.match(q, /field: \{\s*minHeight: 48,\s*borderWidth: 1\.5,\s*borderColor: 'transparent',\s*borderRadius: 12,/);
-  assert.match(q, /color: colors\.label,\s*backgroundColor: colors\.field,\s*\}/);
+  assert.match(q, /field: \{\s*minHeight: 52,\s*borderWidth: 2,\s*borderColor: 'transparent',\s*borderRadius: 16,/);
+  assert.match(q, /color: colors\.label,\s*backgroundColor: colors\.wash,\s*\}/);
   assert.match(q, /fieldFocused: \{ borderColor: colors\.tint \}/);
   assert.match(q, /fieldOnSheet: \{ backgroundColor: colors\.sheetField \}/);
   assert.match(q, /focused && styles\.fieldFocused/);
