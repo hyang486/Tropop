@@ -4,7 +4,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
-import { AccessibilityInfo, ActivityIndicator, AppState, Image, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -339,7 +339,9 @@ function RoomMap({
       const uid = pin.members[0].replace(/:stale$/, '');
       const choice = avatarChoice({ userId: uid, character: characters.get(uid) });
       if (choice.kind === 'character') {
-        const uri = Image.resolveAssetSource(CHARACTER_IMAGES[choice.id][72])?.uri;
+        // react-native-web has no Image.resolveAssetSource; require(png) is a URL string or an { uri } object there.
+        const src = CHARACTER_IMAGES[choice.id][72] as unknown;
+        const uri = typeof src === 'string' ? src : (src as { uri?: string } | null)?.uri;
         if (uri) return { id: pin.id, coordinates: pin.coordinates, iconUrl: uri, text: pin.face.text, backgroundColor: LABEL_BACKGROUND, textColor: LABEL_TEXT };
       }
     }
