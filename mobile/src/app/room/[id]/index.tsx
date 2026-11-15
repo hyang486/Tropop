@@ -158,7 +158,7 @@ export default function RoomScreen() {
   if (state.status === 'gone' || (state.status === 'ready' && (remainingMs <= 0 || state.room.deleted_at !== null))) {
     return (
       <>
-        <Stack.Screen options={{ title: '', headerTitle: '' }} />
+        <Stack.Screen options={{ title: '', headerTitle: '', headerRight: () => null }} />
         <RoomEnded room={state.status === 'ready' ? state.room : null} nowMs={now} reminder={from === 'reminder'} />
       </>
     );
