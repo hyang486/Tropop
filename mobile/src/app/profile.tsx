@@ -6,7 +6,8 @@ import { Avatar } from '@/components/avatar';
 import { QLink, QScreen } from '@/components/q-screen';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QRowCard } from '@/components/q-row-card';
-import { ProfileConnectRows } from '@/features/connect/profile-rows';
+import { connectCopy } from '@/features/connect/copy';
+import { useConnectSummary } from '@/features/connect/profile-rows';
 import { Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { deleteAccount, signOut, useAuth } from '@/lib/auth';
@@ -18,6 +19,7 @@ import { errorMessage } from '@/lib/errors';
  */
 export default function Profile() {
   const { session, profile, isGuest } = useAuth();
+  const connect = useConnectSummary(!isGuest);
   const [busy, setBusy] = useState<'signout' | 'delete' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const name = profile?.display_name ?? '';
@@ -97,7 +99,28 @@ export default function Profile() {
 
       <View style={styles.rows}>
         <QRowCard icon="globe" title={en.profile.language} value={en.profile.languageValue} />
-        {isGuest ? null : <ProfileConnectRows />}
+        {/* ux P1 (spec b2-pace §5): Connections, My QR codes, then Plus; direct rows, account holders only. */}
+        {isGuest ? null : (
+          <QRowCard
+            icon="person.2"
+            title={connectCopy.connectionsRow}
+            badge={connect.pending > 0 ? String(connect.pending) : undefined}
+            accessibilityLabel={
+              connect.pending > 0
+                ? `${connectCopy.connectionsRow}, ${connectCopy.pendingBadge(connect.pending)}`
+                : undefined
+            }
+            onPress={() => router.push('/connect')}
+          />
+        )}
+        {isGuest ? null : (
+          <QRowCard
+            icon="qrcode"
+            title={connectCopy.myCodesRow}
+            value={connect.codes == null ? undefined : connectCopy.myCodesValue(connect.codes)}
+            onPress={() => router.push('/connect/codes')}
+          />
+        )}
         {/* UX2-29: a guest can't create rooms, so no host-only Plus pitch; the row leads to a host account instead. */}
         {isGuest ? (
           <QRowCard icon="person.badge.plus" title={en.profile.guestHostRow} onPress={() => router.push('/upgrade')} />

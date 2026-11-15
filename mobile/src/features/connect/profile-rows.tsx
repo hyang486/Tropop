@@ -1,18 +1,19 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import { QRowCard } from '@/components/q-row-card';
 import { getConnectionQuota, listMyQrCodes } from '@/lib/connect';
 
-import { connectCopy as t } from './copy';
-
-/** spec §1 / §10: Profile → My QR codes and Connections (pending count; no push this pass). Account holders only. */
-export function ProfileConnectRows() {
+/**
+ * spec §1 / §10: counts for the Profile Connect rows (account holders only; no push this pass). The rows themselves
+ * are direct children of the Profile card (ux P1: a Card only draws dividers between its direct children).
+ */
+export function useConnectSummary(enabled: boolean): { codes: number | null; pending: number } {
   const [codes, setCodes] = useState<number | null>(null);
   const [pending, setPending] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
+      if (!enabled) return;
       let live = true;
       void Promise.all([listMyQrCodes(), getConnectionQuota()])
         .then(([mine, quota]) => {
@@ -24,23 +25,8 @@ export function ProfileConnectRows() {
       return () => {
         live = false;
       };
-    }, []),
+    }, [enabled]),
   );
 
-  return (
-    <>
-      <QRowCard
-        icon="qrcode"
-        title={t.myCodesRow}
-        value={codes == null ? undefined : t.myCodesValue(codes)}
-        onPress={() => router.push('/connect/codes')}
-      />
-      <QRowCard
-        icon="person.2"
-        title={t.connectionsRow}
-        value={pending > 0 ? t.pendingBadge(pending) : undefined}
-        onPress={() => router.push('/connect')}
-      />
-    </>
-  );
+  return { codes, pending };
 }

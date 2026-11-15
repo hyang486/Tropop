@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
 import { useInk } from '@/components/hand-title';
+import { Pill } from '@/components/pill';
 import { colors } from '@/components/ui';
 
 /**
@@ -24,6 +25,7 @@ export function QRowCard({
   expanded,
   action,
   grouped,
+  badge,
 }: {
   /** SF Symbol name for the leading icon. */
   icon?: string;
@@ -45,8 +47,19 @@ export function QRowCard({
   action?: boolean;
   /** V1: a row inside a Card (no fill, no radius; the Card draws the surface and the dividers). */
   grouped?: boolean;
+  /** ux P2: a gold count Pill just before the chevron (Connections pending requests). */
+  badge?: string;
 }) {
   const ink = useInk();
+  const chevron =
+    onPress && !action ? (
+      <SymbolView
+        name={expanded === undefined ? 'chevron.right' : expanded ? 'chevron.up' : 'chevron.down'}
+        size={14}
+        weight="semibold"
+        tintColor={colors.secondaryLabel}
+      />
+    ) : null;
   const body = (
     <>
       {leading ?? (icon ? <SymbolView name={icon as never} size={24} tintColor={ink} style={styles.icon} /> : null)}
@@ -63,16 +76,17 @@ export function QRowCard({
           {value}
         </Text>
       ) : null}
-      {busy ? (
+      {badge ? (
+        // ux P2: the Pill sits 8 pt before the chevron (the row's own gap is 14).
+        <View style={styles.trail}>
+          <Pill variant="count" text={badge} />
+          {chevron}
+        </View>
+      ) : busy ? (
         <ActivityIndicator />
-      ) : onPress && !action ? (
-        <SymbolView
-          name={expanded === undefined ? 'chevron.right' : expanded ? 'chevron.up' : 'chevron.down'}
-          size={14}
-          weight="semibold"
-          tintColor={colors.secondaryLabel}
-        />
-      ) : null}
+      ) : (
+        chevron
+      )}
     </>
   );
   if (!onPress) {
@@ -116,5 +130,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, color: colors.label },
   subtitle: { fontSize: 13, color: colors.ink2 },
   value: { fontSize: 17, color: colors.ink2 },
+  trail: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   valueTruncate: { fontSize: 15, flexShrink: 1, maxWidth: '65%' },
 });
