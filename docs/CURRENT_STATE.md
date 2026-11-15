@@ -1078,3 +1078,6 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
 - Guest 4 user 49f93ead-65ae-468b-84be-a273edcec5e3: human ordered deletion directly; 2 execute_sql prompts expired
   unanswered. DELETED 2026-11-07 ~23Z on the human's go (relayed by qa; the human had ordered it directly earlier):
   pre-check anonymous, no email, 0 memberships, 0 objects; delete by exact id; after: users/identities/sessions 0.
+- ~22:30 PST MERGED (supervisor go, qa single-account PASS + ux sign-off aa1f250): integ-connect aa1f250 → local main 30fc854
+  (parents 32c5ee0, aa1f250; carries 20261104000042_connect.sql, identical to b3-db's). tsc 0 (after typed-routes regen via a
+  short Metro start), lint 0, npm test 1146/1146. No push. F-CN1 open until build-3 first-save. Next: F-RCP1 (mine).
