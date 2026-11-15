@@ -102,3 +102,11 @@ test('dayCellLabel reads date, today, counts or no plans', () => {
   assert.equal(t.dayCellLabel('Thursday, November 19', false, 0, 0), 'Thursday, November 19, no plans');
   assert.equal(t.dayCellLabel('Friday, November 20', false, 2, 1), 'Friday, November 20, 2 rooms, 1 event');
 });
+
+test('rowLine: an empty Past row says "No rooms yet", an empty Upcoming row keeps "Nothing planned"', () => {
+  const none = { rooms: 0, events: 0, people: null, items: [] };
+  assert.equal(h.rowLine(none, true), 'No rooms yet');
+  assert.equal(h.rowLine(none, false), 'Nothing planned');
+  assert.equal(h.rowLine({ rooms: 2, events: 0, people: 5, items: [] }, true), '2 rooms · 5 new people');
+  assert.equal(h.rowLine({ rooms: 1, events: 1, people: null, items: [] }, false), '1 room · 1 event');
+});
