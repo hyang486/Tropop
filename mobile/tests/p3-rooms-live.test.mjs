@@ -129,7 +129,7 @@ test('rooms live: messages INSERT refetches once after the debounce; other event
   const live = createRoomsLive({ acquire: ch.acquire, refetch: () => (refetches += 1), ...t });
   live.setRooms(['a', 'b']);
 
-  client.emit('room:a', { table: 'member_status', op: 'UPDATE' });
+  client.emit('room:a', { table: 'media', op: 'INSERT' });
   client.emit('room:a', { table: 'messages', op: 'DELETE' });
   assert.equal(t.count(), 0);
 

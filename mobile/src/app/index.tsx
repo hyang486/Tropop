@@ -1,4 +1,5 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
@@ -23,7 +24,14 @@ import { createRoomsLive } from '@/features/event/rooms-live';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
 import { OpenChatSection } from '@/features/event/open-chat-section';
 import { groupBySection, roomSection } from '@/features/event/rooms-sections';
-import { fetchRoomSummaries } from '@/features/event/room-summary-api';
+import { fetchRoomEmergencies, fetchRoomSummaries } from '@/features/event/room-summary-api';
+import {
+  emergencyLine,
+  emergencyStartedAt,
+  sortEmergencyFirst,
+  type EmergencyLine,
+  type EmergencyPerson,
+} from '@/features/event/emergency-row';
 import {
   isLive,
   lastItemLine,
@@ -50,6 +58,8 @@ export default function Rooms() {
   const [rooms, setRooms] = useState<RoomWithCount[] | null>(null);
   // UX3-A01: last item and unread per room (0037); null while unknown or when the read failed.
   const [summaries, setSummaries] = useState<Map<string, RoomSummary> | null>(null);
+  // P3 Emergency row: who is in Emergency per open room; null when unknown or the read failed (normal rows).
+  const [emergencies, setEmergencies] = useState<Map<string, EmergencyPerson[]> | null>(null);
   const [error, setError] = useState<string | null>(null);
   // UX2-26: while Rooms already says offline, Open chat hides its own load error.
   const [offline, setOffline] = useState(false);
@@ -70,7 +80,13 @@ export default function Rooms() {
       const list = await listMyRooms();
       setRooms(list);
       setError(null);
-      setSummaries(await fetchRoomSummaries(list.filter((r) => r.deleted_at === null).map((r) => r.id)));
+      const openIds = list.filter((r) => r.deleted_at === null).map((r) => r.id);
+      const [nextSummaries, nextEmergencies] = await Promise.all([
+        fetchRoomSummaries(openIds),
+        fetchRoomEmergencies(openIds, en.rooms.someone),
+      ]);
+      setSummaries(nextSummaries);
+      setEmergencies(nextEmergencies);
       setOffline(false);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
@@ -124,9 +140,13 @@ export default function Rooms() {
       const current = createRoomsLive({
         acquire: acquireRoomChannel,
         refetch: () => {
-          void fetchRoomSummaries(splitKey(openKeyRef.current)).then((m) => {
+          const ids = splitKey(openKeyRef.current);
+          void fetchRoomSummaries(ids).then((m) => {
             // A failed read keeps the lines already shown.
             if (m) setSummaries(m);
+          });
+          void fetchRoomEmergencies(ids, en.rooms.someone).then((m) => {
+            if (m) setEmergencies(m);
           });
         },
       });
@@ -256,7 +276,10 @@ export default function Rooms() {
             </Text>
             {/* V2: one Card per section; rows sit inside it, split by its inset wash line. */}
             <Card>
-            {sortByLastItem(group.rows, (r) => summaries?.get(r.room.id)?.last_at).map(({ room, entry }) => {
+            {sortEmergencyFirst(
+              sortByLastItem(group.rows, (r) => summaries?.get(r.room.id)?.last_at),
+              (r) => (r.entry.kind === 'open' ? emergencyStartedAt(emergencies?.get(r.room.id)) : null),
+            ).map(({ room, entry }) => {
           // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
           // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.
           // UX P1-5: those ended rows are dimmed to 45% (UX3-A02: under Ending soon).
@@ -285,22 +308,41 @@ export default function Rooms() {
           const live = isLive(room, now);
           // rooms.visibility (0031) is not in the generated types yet; select('*') returns it.
           const meta = rowMetaLine(room as typeof room & { visibility?: string | null }, now, en, formatRemaining);
-          const time = rowTimeLabel(summary?.last_at ?? null, now, en);
+          // P3 Emergency row (ux): line 2, the time and the tile switch while anyone here is in Emergency.
+          const people = emergencies?.get(room.id);
+          const emergency = emergencyLine(people, uid);
+          const emergencyText = emergency ? emergencyCopy(emergency) : null;
+          const time = rowTimeLabel(emergency ? emergencyStartedAt(people) : (summary?.last_at ?? null), now, en);
           const unread = unreadLabel(summary?.unread);
+          const label = rowAccessibilityLabel(en, {
+            name: room.name,
+            live,
+            unread: summary?.unread,
+            // The Emergency text leads the label instead, so it is not spoken twice.
+            line: emergencyText ? null : (line?.text ?? null),
+            meta,
+          });
           return (
           <Pressable
             key={room.id}
             accessibilityRole="button"
-            accessibilityLabel={rowAccessibilityLabel(en, { name: room.name, live, unread: summary?.unread, line: line?.text ?? null, meta })}
+            accessibilityLabel={emergencyText ? `${en.home.row.emergencySpoken} ${emergencyText}. ${label}` : label}
             onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
           >
-            <RoomRing room={room} />
+            {emergency ? <EmergencyTile /> : <RoomRing room={room} />}
             <View style={styles.rowText}>
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {room.name}
               </Text>
-              {line ? (
+              {emergencyText ? (
+                <View style={styles.emergencyLine}>
+                  <SymbolView name="exclamationmark.triangle.fill" size={12} tintColor={colors.danger} />
+                  <Text style={styles.emergencyText} numberOfLines={1}>
+                    {emergencyText}
+                  </Text>
+                </View>
+              ) : line ? (
                 <Text style={[styles.rowLast, line.danger && styles.rowDanger]} numberOfLines={1}>
                   {line.text}
                 </Text>
@@ -364,6 +406,22 @@ function roomIcon(room: Room): string {
   return (room as Room & { public_icon?: string | null }).public_icon ?? defaultRoomIcon(room.type);
 }
 
+/** P3 Emergency row: line 2 copy. */
+function emergencyCopy(line: EmergencyLine) {
+  if (line.kind === 'own') return en.home.row.youAskedForHelp;
+  if (line.kind === 'one') return en.home.row.needsHelp(line.name);
+  return en.home.row.needsHelpMany(line.name, line.more);
+}
+
+/** P3 Emergency row (ux): the 48 pt tile on redwash with a danger "!" in place of the room art. */
+function EmergencyTile() {
+  return (
+    <View style={[styles.ring, styles.ringEmergency]}>
+      <SymbolView name="exclamationmark" size={22} weight="bold" tintColor={colors.danger} />
+    </View>
+  );
+}
+
 /** UX P1-5: the room's own ink icon (the Create room set). V2: on a 48 pt wash tile (radius 14), no ring. */
 function RoomRing({ room }: { room: Room }) {
   return (
@@ -408,6 +466,9 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
   rowLast: { fontSize: 15, color: colors.ink2 },
   rowDanger: { color: colors.danger },
+  ringEmergency: { backgroundColor: colors.redwash },
+  emergencyLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  emergencyText: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: colors.danger },
   metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   rowMeta: { flexShrink: 1, fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
   // Top-aligned: time, then 6 pt, then the unread pill.
