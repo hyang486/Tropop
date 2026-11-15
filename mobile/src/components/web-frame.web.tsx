@@ -24,7 +24,7 @@ export function WebFrame({ children }: { children: ReactNode }) {
         backgroundColor: '#ECE6DF',
       }}
     >
-      <div style={{ zoom: scale, width: SCREEN_W, height: SCREEN_H, flexShrink: 0 }}>
+      <div style={{ zoom: scale, width: SCREEN_W, height: SCREEN_H, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         <View style={{ flex: 1, overflow: 'hidden', borderRadius: 32, boxShadow: '0 0 24px rgba(0,0,0,0.12)' }}>{children}</View>
       </div>
       <WebDemoPanel />
