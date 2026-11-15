@@ -1,3 +1,4 @@
+import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { type ComponentRef, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, View } from 'react-native';
@@ -89,7 +90,7 @@ export function JoinCodeScreen() {
           {Array.from({ length: CODE_LENGTH }, (_, i) => {
             const active = focused && (i === code.length || (i === CODE_LENGTH - 1 && code.length === CODE_LENGTH));
             return (
-              <View key={i} style={[styles.box, active && styles.boxActive]}>
+              <View key={i} style={[styles.box, code[i] && styles.boxFilled, active && styles.boxActive]}>
                 <Text style={[styles.digit, !code[i] && styles.placeholder]}>{code[i] ?? '–'}</Text>
               </View>
             );
@@ -116,14 +117,16 @@ export function JoinCodeScreen() {
       {checking ? (
         <ActivityIndicator style={styles.caption} accessibilityLabel={en.join.checking} />
       ) : error ? (
-        <Text style={styles.error} accessibilityRole="alert">
-          {error}
-        </Text>
+        <View style={styles.errorRow} accessibilityRole="alert" accessible accessibilityLabel={error}>
+          <SymbolView name="exclamationmark.circle.fill" size={16} tintColor={colors.errorText} />
+          <Text style={styles.error}>{error}</Text>
+        </View>
       ) : null}
       <View style={styles.scan}>
         <Button
           title={en.join.scan}
           variant="secondary"
+          icon="qrcode.viewfinder"
           onPress={() => router.push(signedIn ? '/scan' : '/start/scan')}
         />
       </View>
@@ -133,25 +136,27 @@ export function JoinCodeScreen() {
 
 const styles = StyleSheet.create({
   boxesWrap: { marginVertical: 8 },
-  boxes: { flexDirection: 'row', gap: 8 },
+  boxes: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
   box: {
     flex: 1,
-    aspectRatio: 1,
-    maxHeight: 64,
-    borderRadius: 10,
+    maxWidth: 56,
+    height: 64,
+    borderRadius: 16,
     borderCurve: 'continuous',
-    backgroundColor: colors.field,
+    backgroundColor: colors.wash,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: 'transparent',
   },
-  boxActive: { borderColor: colors.tint },
-  digit: { fontSize: 24, color: colors.label, fontVariant: ['tabular-nums'] },
-  placeholder: { color: colors.secondaryLabel, fontSize: 18 },
+  boxFilled: { backgroundColor: colors.lift, borderWidth: 1, borderColor: colors.wash2 },
+  boxActive: { borderWidth: 2, borderColor: colors.tint },
+  digit: { fontSize: 28, lineHeight: 36, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
+  placeholder: { color: colors.secondaryLabel, fontSize: 20, fontWeight: '400' },
   // Covers the boxes so a tap focuses it and the system can offer autofill; drawn invisible.
   hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.02, color: 'transparent' },
   caption: { alignSelf: 'center' },
-  error: { fontSize: 15, color: colors.errorText },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  error: { flexShrink: 1, fontSize: 14, lineHeight: 20, color: colors.errorText },
   scan: { marginTop: 12 },
 });

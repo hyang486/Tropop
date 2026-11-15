@@ -5,7 +5,7 @@ import { Linking, StyleSheet, View } from 'react-native';
 
 import { InkArt } from '@/components/ink-art';
 import { QScreen } from '@/components/q-screen';
-import { Button, Hint } from '@/components/ui';
+import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { openInvite, parseInvite } from '@/lib/invite';
@@ -46,7 +46,7 @@ export function ScanScreen() {
       bottom={
         permission?.granted ? undefined : (
           <View style={styles.art} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <InkArt art="camera" width={160} />
+            <InkArt art="scan" width={160} />
           </View>
         )
       }
@@ -85,11 +85,11 @@ export function ScanScreen() {
 const MARK = 26;
 const styles = StyleSheet.create({
   art: { alignItems: 'center' },
-  camera: { aspectRatio: 0.93, borderRadius: 14, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: '#22231F' },
+  camera: { aspectRatio: 0.93, borderRadius: 24, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: '#22231F' },
   marks: { position: 'absolute', top: '22%', bottom: '22%', left: '20%', right: '20%' },
-  mark: { position: 'absolute', width: MARK, height: MARK, borderColor: 'white' },
-  tl: { top: 0, left: 0, borderTopWidth: 2.5, borderLeftWidth: 2.5 },
-  tr: { top: 0, right: 0, borderTopWidth: 2.5, borderRightWidth: 2.5 },
-  bl: { bottom: 0, left: 0, borderBottomWidth: 2.5, borderLeftWidth: 2.5 },
-  br: { bottom: 0, right: 0, borderBottomWidth: 2.5, borderRightWidth: 2.5 },
+  mark: { position: 'absolute', width: MARK, height: MARK, borderColor: colors.tint },
+  tl: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4 },
+  tr: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4 },
+  bl: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4 },
+  br: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4 },
 });
