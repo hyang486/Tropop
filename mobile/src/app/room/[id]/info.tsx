@@ -235,7 +235,7 @@ export default function RoomInfoScreen() {
               style={styles.member}
               disabled={isGuest || m.user_id === userId}
               accessibilityRole={isGuest || m.user_id === userId ? undefined : 'button'}
-              onPress={() => setPerson({ userId: m.user_id, name: m.display_name, avatarPath: m.avatar_path })}
+              onPress={() => setPerson({ userId: m.user_id, name: m.display_name, avatarPath: m.avatar_path, character: m.avatar_character })}
             >
               <PersonAvatar userId={m.user_id} name={m.display_name} path={m.avatar_path} character={m.avatar_character} size={32} />
               <Text style={styles.memberName} numberOfLines={1}>
