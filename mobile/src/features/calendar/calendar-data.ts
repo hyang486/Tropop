@@ -2,6 +2,7 @@
  * Trok Calendar data on the phone only (human: "폰에만 저장"). One versioned AsyncStorage key per user holds
  * room snapshots and personal events; the Plus preview flag has its own key. Pure: storage is passed in.
  */
+import { type HeroTopic, isHeroTopic, roomHero } from './room-hero';
 import { type CalItem, type DateKey, daysBetween, isDateKey, roomRange } from './calendar-plan';
 
 export const CALENDAR_VERSION = 1;
@@ -23,6 +24,8 @@ export type RoomSnapshot = {
   emoji: string;
   /** First-person recap lines, saved once the recap arrives; null when generation failed. */
   diary?: string[] | null;
+  /** Hero art, picked once at the first sync so renaming the room keeps it. Older snapshots get one on the next sync. */
+  hero?: HeroTopic;
 };
 
 /** UX3-A13: local 24 h "HH:MM". An event has both times or none (none = all day). */
@@ -62,7 +65,7 @@ function parseRoom(v: unknown): RoomSnapshot | null {
   const emoji = str(r.emoji, 16);
   if (!roomId || !name || !emoji || !isDateKey(r.start) || !isDateKey(r.end) || typeof r.endAt !== 'string') return null;
   const diary = Array.isArray(r.diary) ? cleanDiary(r.diary) : r.diary === null ? null : undefined;
-  return { roomId, name, type: typeof r.type === 'string' ? r.type : 'general', start: r.start, end: r.end, endAt: r.endAt, emoji, diary };
+  return { roomId, name, type: typeof r.type === 'string' ? r.type : 'general', start: r.start, end: r.end, endAt: r.endAt, emoji, diary, hero: isHeroTopic(r.hero) ? r.hero : undefined };
 }
 
 function parseEvent(v: unknown): PersonalEvent | null {
@@ -111,6 +114,7 @@ type RoomLike = {
   created_at: string;
   expires_at: string;
   deleted_at?: string | null;
+  location_allowed?: boolean;
 };
 
 /** Snapshot every listed room (current and future, plus grace); keeps an emoji and diary already saved. */
@@ -130,6 +134,7 @@ export function mergeRooms(doc: CalendarDoc, rooms: readonly RoomLike[], timeZon
       endAt,
       emoji: prev?.emoji ?? defaultEmoji(room.type),
       diary: prev?.diary,
+      hero: prev?.hero ?? roomHero(room),
     };
   }
   return next;
