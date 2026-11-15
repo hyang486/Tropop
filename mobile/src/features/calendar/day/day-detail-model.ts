@@ -3,6 +3,7 @@
  * "Add next" prefill. Pure; reads RoomSnapshot only. startsAt/placeName/people arrive with the data contract and
  * are optional here, so older snapshots still render.
  */
+import { en } from '../../../i18n/en';
 import { addDays, isPastRoom, type DateKey } from '../calendar-plan';
 import type { HeroTopic } from '../room-hero';
 
@@ -51,7 +52,7 @@ const clock = (iso: string, tz?: string) =>
 export function roomTime(r: Pick<DayRoom, 'startsAt' | 'endAt'>, tz?: string): string | null {
   const hasEnd = Number.isFinite(Date.parse(r.endAt));
   if (r.startsAt && Number.isFinite(Date.parse(r.startsAt))) return hasEnd ? `${clock(r.startsAt, tz)} – ${clock(r.endAt, tz)}` : clock(r.startsAt, tz);
-  return hasEnd ? `Ended ${clock(r.endAt, tz)}` : null;
+  return hasEnd ? en.calendar.endedAt(clock(r.endAt, tz)) : null;
 }
 /** Spoken form for the card label: "7:30 to 8:30 AM" is left to the screen reader, so keep the plain range. */
 export function roomTimeSpoken(r: Pick<DayRoom, 'startsAt' | 'endAt'>, tz?: string): string | null {
@@ -77,8 +78,7 @@ export function recapState(r: Pick<DayRoom, 'end' | 'endAt' | 'diary'>, now: num
 /** "You met 3 people" / "You met 1 person"; null (hide the row) under 2 people or unknown. people counts you. */
 export function metPeople(people: number | null | undefined): string | null {
   if (typeof people !== 'number' || !Number.isFinite(people) || people < 2) return null;
-  const n = people - 1;
-  return n === 1 ? 'You met 1 person' : `You met ${n} people`;
+  return en.calendar.metPeople(people - 1);
 }
 
 const NOUN: Record<HeroTopic, string | null> = {
@@ -86,8 +86,7 @@ const NOUN: Record<HeroTopic, string | null> = {
   hike: 'hike', music: 'jam', travel: 'trip', general: null,
 };
 export const addNextLabel = (hero: HeroTopic | undefined): string => {
-  const noun = NOUN[hero ?? 'general'];
-  return noun ? `Add next ${noun} to my calendar` : 'Add the next one to my calendar';
+  return en.calendar.addNext(NOUN[hero ?? 'general']);
 };
 
 const hhmm = (iso: string, tz?: string): string | null => {
@@ -112,7 +111,7 @@ export function addNextParams(r: DayRoom, emoji: string, tz?: string): Record<st
 
 /** "7:00 – 9:00 PM" style row meta for my events; "All day" without times. */
 export function eventTimeText(e: Pick<DayEvent, 'startTime' | 'endTime'>): string {
-  if (!e.startTime || !e.endTime) return 'All day';
+  if (!e.startTime || !e.endTime) return en.calendar.allDayLabel;
   const f = (t: string) => {
     const [h, m] = t.split(':').map(Number);
     return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
