@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { StyleSheet, Text, useColorScheme, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -22,8 +22,7 @@ export const connectTokens = {
 
 /**
  * App logos (ux "Logo compliance addendum", connect-spec.md): the publishers' brand-kit files from app-logos/40,
- * unaltered, one size (40 pt). No tile, radius, ring or tint; dark mode puts the logo on a 44 pt white rounded
- * square (WeChat needs a light ground). LinkedIn's [in] bug is not shipped while its licence is pending: an ink
+ * unaltered, one size (40 pt). No tile, radius, ring or tint (the app is light only). LinkedIn's [in] bug is not shipped while its licence is pending: an ink
  * SF Symbol `link` (24 pt) fills the 40 pt slot. Decorative: the app name is always the label next to it.
  */
 const LOGO: Record<Exclude<ConnectApp, 'linkedin'>, number> = {
@@ -34,7 +33,6 @@ const LOGO: Record<Exclude<ConnectApp, 'linkedin'>, number> = {
 };
 
 export function AppMark({ app }: { app: ConnectApp }) {
-  const dark = useColorScheme() === 'dark';
   if (app === 'linkedin') {
     return (
       <View style={styles.markSlot} accessible={false} importantForAccessibility="no-hide-descendants">
@@ -42,10 +40,9 @@ export function AppMark({ app }: { app: ConnectApp }) {
       </View>
     );
   }
-  const logo = <Image source={LOGO[app]} style={styles.mark} accessible={false} />;
   return (
-    <View style={dark ? styles.markGround : null} accessible={false} importantForAccessibility="no-hide-descendants">
-      {logo}
+    <View accessible={false} importantForAccessibility="no-hide-descendants">
+      <Image source={LOGO[app]} style={styles.mark} accessible={false} />
     </View>
   );
 }
@@ -94,15 +91,6 @@ export function GoldBadge({ count, label }: { count: number; label?: string }) {
 const styles = StyleSheet.create({
   mark: { width: 40, height: 40 },
   markSlot: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  markGround: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    borderCurve: 'continuous',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   qrBox: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
