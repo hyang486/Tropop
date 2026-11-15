@@ -1,6 +1,6 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { InkIcon } from '@/components/calendar/ink-icon';
 import { InkArt } from '@/components/ink-art';
@@ -17,6 +17,8 @@ import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room, type RoomWithCount } from '@/lib/rooms';
 import { chatLine } from '@/lib/chat-line';
 import { useNow } from '@/lib/use-now';
+import { acquireRoomChannel } from '@/lib/room-channel';
+import { createRoomsLive } from '@/features/event/rooms-live';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
 import { OpenChatSection } from '@/features/event/open-chat-section';
 import { groupBySection, roomSection } from '@/features/event/rooms-sections';
@@ -102,6 +104,45 @@ export default function Rooms() {
       load();
     }, [load, router]),
   );
+
+  // P3: while Rooms is focused, a new message in an open listed room (Emergency included) refreshes the last-item
+  // lines within about a second, through the shared room:<id> broadcast topics. Ended rooms are not joined.
+  const openKey = rows
+    .filter((r) => r.entry.kind === 'open' && r.room.deleted_at === null)
+    .map((r) => r.room.id)
+    .sort()
+    .join(',');
+  const openKeyRef = useRef(openKey);
+  useLayoutEffect(() => {
+    openKeyRef.current = openKey;
+  });
+  const live = useRef<ReturnType<typeof createRoomsLive> | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const current = createRoomsLive({
+        acquire: acquireRoomChannel,
+        refetch: () => {
+          void fetchRoomSummaries(splitKey(openKeyRef.current)).then((m) => {
+            // A failed read keeps the lines already shown.
+            if (m) setSummaries(m);
+          });
+        },
+      });
+      live.current = current;
+      current.setRooms(splitKey(openKeyRef.current));
+      const sub = AppState.addEventListener('change', (state) => {
+        if (state === 'active') void load();
+      });
+      return () => {
+        sub.remove();
+        current.stop();
+        if (live.current === current) live.current = null;
+      };
+    }, [load]),
+  );
+  useEffect(() => {
+    live.current?.setRooms(splitKey(openKey));
+  }, [openKey]);
 
   return (
     <>
@@ -279,6 +320,10 @@ export default function Rooms() {
 }
 
 /** Visible rows in server order (UX3-A02 sections replace sorting ended rows last). */
+function splitKey(key: string) {
+  return key === '' ? [] : key.split(',');
+}
+
 function visibleRows(rooms: RoomWithCount[], now: number) {
   return rooms.map((room) => ({ room, entry: roomListEntry(room, now) })).filter((r) => r.entry.kind !== 'hidden');
 }
