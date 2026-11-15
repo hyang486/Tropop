@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 
 import { HAND_FONTS } from '@/components/hand-title';
 import { HomeHeaderButton } from '@/components/home-header-button';
+import { WebFrame } from '@/components/web-frame';
 import { startSiriMirror } from '@/features/event/siri-mirror';
 // Trok Calendar: loaded at start so its SIGNED_OUT listener clears the phone-only calendar on sign-out.
 import '@/features/calendar/calendar-store';
@@ -141,8 +142,10 @@ export default function RootLayout() {
   // Spec 10.5: mirrors the access token and active room into the Keychain item the Siri intent reads.
   useEffect(() => startSiriMirror(), []);
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <WebFrame>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </WebFrame>
   );
 }

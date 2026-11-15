@@ -9,6 +9,8 @@ import { colors, Hint } from '@/components/ui';
 import { listMyQrCodes, type MyQrCode } from '@/lib/connect';
 import { CONNECT_APPS, toConnectError, type ConnectApp } from '@/lib/connect-plan';
 
+import { DropZone } from '@/components/drop-zone';
+
 import { useAddQrCode } from './add-flow';
 import { connectCopy as t } from './copy';
 import { AppMark, QrImage, REPORTED_TEXT } from './parts';
@@ -38,6 +40,7 @@ export function MyCodesScreen() {
   const reported = (codes ?? []).find((c) => c.reportedAt);
 
   return (
+    <DropZone accept="image" label="Drop a QR image" onFiles={(files) => void add.drop(files[0])}>
     <QScreen
       title={t.myCodesTitle}
       subtitle={t.myCodesSubtitle}
@@ -92,8 +95,10 @@ export function MyCodesScreen() {
         </View>
       ) : null}
       <QCaption>{t.myCodesFooter}</QCaption>
+      {add.dropError ? <Hint tone="error">{add.dropError}</Hint> : null}
       {add.previewSheet}
     </QScreen>
+    </DropZone>
   );
 }
 
