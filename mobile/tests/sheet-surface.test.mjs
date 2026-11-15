@@ -14,7 +14,7 @@ const SHEETS = [
 
 test('UX2-45: sheet, scrim and grabber tokens, light only (B1)', () => {
   const ui = src('components/ui.tsx');
-  assert.match(ui, /sheet: '#FFFFFF',\s*scrim: 'rgba\(48,43,40,0\.40\)',\s*grabber: 'rgba\(113,100,94,0\.4\)'/);
+  assert.match(ui, /sheet: '#FFFCF8',\s*scrim: 'rgba\(48,43,40,0\.40\)',\s*grabber: 'rgba\(113,100,94,0\.4\)'/);
   assert.match(ui, /sheet: themed\('sheet'\),\s*scrim: themed\('scrim'\),\s*grabber: themed\('grabber'\)/);
 });
 
