@@ -51,6 +51,7 @@ export const palette = {
     sheetCard: '#EDECE6',
     tileOnLift: '#EDECE6',
     onDanger: '#FFFFFF',
+    dangerSolid: '#D70015',
   },
   dark: {
     ink: '#EDEDE8',
@@ -70,6 +71,7 @@ export const palette = {
     sheetCard: '#1F1F1D',
     tileOnLift: '#2E2E2B',
     onDanger: '#121211',
+    dangerSolid: '#FF6961',
   },
 } as const;
 

@@ -4,7 +4,7 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
-import { colors, radius } from '@/components/ui';
+import { colors, radius, usePalette } from '@/components/ui';
 import { en } from '@/i18n/en';
 import type { StatusDefinition } from '@/lib/activity';
 import { statusSymbol } from '@/lib/chat-plan';
@@ -251,8 +251,9 @@ function Tile({
   disabled?: boolean;
   onPress: () => void;
 }) {
+  const pal = usePalette();
   const color = danger
-    ? selected ? colors.onDanger : colors.danger
+    ? selected ? pal.onDanger : colors.danger
     : selected ? colors.onTint : dimmed ? colors.secondaryLabel : colors.label;
   return (
     <Pressable
@@ -264,7 +265,7 @@ function Tile({
       style={({ pressed }) => [
         styles.tile,
         danger && styles.tileDanger,
-        selected && (danger ? styles.tileDangerSelected : styles.tileSelected),
+        selected && (danger ? { backgroundColor: pal.dangerSolid } : styles.tileSelected),
         pressed && { opacity: 0.6 },
       ]}
     >
@@ -314,7 +315,6 @@ const styles = StyleSheet.create({
   },
   tileDanger: { backgroundColor: colors.dangerField },
   tileSelected: { backgroundColor: colors.tint },
-  tileDangerSelected: { backgroundColor: colors.danger },
   tileText: { fontSize: 15 },
   // UX2-52: the Emergency bar's ink pill (36 pt in a 44 pt hit area) with its caption under it.
   okBlock: { gap: 8, alignItems: 'flex-start' },
