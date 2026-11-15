@@ -1093,3 +1093,13 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
   of Plus/guest row). Then cherry-pick -x 5bbbbb4 → 96eae01, 5f9380b → 05db223 (0043 migration, revert, tests).
   PGlite through 0042 + 0043 tests and rollback test PASSED; qrewing 84/84; tsc 0 (after typed-routes regen); lint 0;
   npm test 1162/1162. No push. ux checks merged Profile in the full walk.
+- qrewing v18 source: main lacks live v17's 315d53f+74bf020 (Emergency copy), so main is NOT the deploy source. Branch
+  qrewing-v18 9507942 = 74bf020 + F-RCP1 (prompts.ts conflict: keep RECAP_EMERGENCY_RULE + add CHAT_SCOPE_RULE); fn tests
+  86/86. Deploy waits on supervisor go (human decision logged, line 459). Main still needs 315d53f+74bf020 merged.
+- LIVE qrewing v18 (2026-11-14, human "배포해" + supervisor go): MCP deploy of 9507942 (index/core/prompts), ACTIVE, verify_jwt
+  false, ezbr 1c00bc89; byte check vs git: identical except the 3 known \u regex lines in core.ts. Rollback v17 = 74bf020.
+- main: 9137a87 (merge 74bf020, qrewing/ == v18) → 0bd35ae (F-WEL1, developer-pace) → 1405080 (rename Qrew→Tropop,
+  Qrewing→Trok, user-visible only; live DB texts still "Qrewing AI", mapped by serverCopyText) → 56fb4b2 buildNumber 4.
+  tsc 0, lint 0, 1163/1163, qrewing 86/86. Server prompt rename = v19, needs human OK. No push.
+- Build 4: prebuild --clean makes ios/Tropop.xcodeproj (target, executable and Pods-Tropop renamed; bundle id unchanged).
+  pod install needs LANG=en_US.UTF-8. Scripts read the executable from Info.plist now. Install only on qa's go.

@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Over-install a Qrew build on a simulator without bringing back a stale launch splash.
-# Usage: scripts/sim-reinstall-splash-safe.sh <sim-udid> <path/to/Qrew.app> [9k6|fake]
+# Over-install an app build on a simulator without bringing back a stale launch splash.
+# Usage: scripts/sim-reinstall-splash-safe.sh <sim-udid> <path/to/App.app> [9k6|fake]
 # 9k6 = build signed with team 9K6BKSS4U6 (host/spare); fake = FAKETEAMID build (guests).
 # Never uninstalls or erases: the data container (accounts) is kept.
 set -euo pipefail
-UDID="${1:?sim udid}"; APP="${2:?path to Qrew.app}"; KIND="${3:-}"
+UDID="${1:?sim udid}"; APP="${2:?path to the .app}"; KIND="${3:-}"
 BID=com.iyaproject.moment
 
-[ -f "${APP:?}/Qrew" ] || { echo "not an app bundle: $APP" >&2; exit 1; }
-new_fake=$(strings -a "$APP/Qrew" | grep -c FAKETEAMID || true)
+# The executable is named after the app (Qrew before build 4, Tropop from build 4): read it from Info.plist.
+exe() { echo "$1/$(/usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$1/Info.plist")"; }
+[ -f "$(exe "${APP:?}")" ] || { echo "not an app bundle: $APP" >&2; exit 1; }
+new_fake=$(strings -a "$(exe "$APP")" | grep -c FAKETEAMID || true)
 [ -z "$KIND" ] && { [ "$new_fake" -gt 0 ] && KIND=fake || KIND=9k6; }
 want_fake=0; [ "$KIND" = fake ] && want_fake=1
 [ $((new_fake>0)) -eq "$want_fake" ] || { echo "build is not the $KIND variant" >&2; exit 1; }
@@ -19,7 +21,7 @@ xcrun simctl bootstatus "$UDID" >/dev/null 2>&1
 
 old=$(xcrun simctl get_app_container "$UDID" "$BID" app 2>/dev/null || true)
 if [ -n "$old" ]; then
-  old_fake=$(strings -a "$old/Qrew" | grep -c FAKETEAMID || true)
+  old_fake=$(strings -a "$(exe "$old")" | grep -c FAKETEAMID || true)
   [ $((old_fake>0)) -eq "$want_fake" ] || { echo "installed app-id differs from the $KIND variant; ask before changing" >&2; exit 1; }
 fi
 

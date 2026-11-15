@@ -10,7 +10,7 @@ case "${1:?pre|post}" in
     echo "hidden module configs=$n, hidden files outside node_modules=$m"
     [ "$n" = 0 ] && [ "$m" = 0 ] || { echo "FAIL: chflags -R nohidden <real node_modules path> . and re-run" >&2; exit 1; } ;;
   post)
-    P="ios/Pods/Target Support Files/Pods-Qrew/ExpoModulesProvider.swift"
+    P=$(ls ios/Pods/Target\ Support\ Files/Pods-*/ExpoModulesProvider.swift | head -1)   # Pods-Qrew before build 4, Pods-Tropop after
     for k in Haptics SecureStore Device GlassEffect SystemUI ExpoUI RouterToolbar ExpoApplication ExpoAppIntents; do
       c=$(grep -c "$k" "$P" || true); echo "$k=$c"; [ "$c" -gt 0 ] || { echo "FAIL: $k not registered" >&2; exit 1; }
     done
