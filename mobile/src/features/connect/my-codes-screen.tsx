@@ -56,7 +56,7 @@ export function MyCodesScreen() {
         <View style={styles.notice}>
           <View style={styles.dot} />
           <View style={styles.noticeText}>
-            <Text style={styles.noticeTitle}>{t.reportedTitle(reported.reportedByName, reported.app)}</Text>
+            <Text style={styles.noticeTitle}>{t.reportedTitle(reported.app)}</Text>
             <Text style={styles.noticeBody}>{t.reportedBody(reported.app)}</Text>
           </View>
           <Pressable
