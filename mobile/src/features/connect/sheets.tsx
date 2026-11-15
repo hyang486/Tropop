@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { Modal } from '@/components/modal';
 import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SymbolView } from 'expo-symbols';
+import { STICKER_IMAGES } from '@/components/sticker-art';
 
 import { QLink } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
@@ -63,8 +63,7 @@ export function PlusSheet({
 export function PlusContent({ onClose, pendingFrom }: { onClose: () => void; pendingFrom?: string | null }) {
   return (
     <>
-      {/* The character trio of mock 04 waits for the B3 character art; an SF Symbol holds the slot. */}
-      <SymbolView name="person.2.fill" size={44} tintColor={colors.label} style={styles.hero} />
+      <Image source={STICKER_IMAGES['connection-01']} style={styles.hero} accessible={false} accessibilityIgnoresInvertColors />
       <Text style={styles.title} accessibilityRole="header">
         {t.plusTitle}
       </Text>
@@ -127,7 +126,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: colors.grabber, marginBottom: 16 },
-  hero: { alignSelf: 'center', width: 56, height: 56, marginBottom: 8 },
+  hero: { alignSelf: 'center', width: 96, height: 96, marginBottom: 8 },
   title: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label, textAlign: 'center' },
   body: { fontSize: 16, lineHeight: 24, color: colors.ink2, textAlign: 'center', marginTop: 8 },
   actions: { marginTop: 24, gap: 8, alignItems: 'stretch' },
