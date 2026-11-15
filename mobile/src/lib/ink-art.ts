@@ -2,7 +2,7 @@
 // components/ink-art, so this file has no React Native imports and is unit tested).
 import type { RoomTheme } from './room-theme';
 
-export type ArtKey = 'gathering' | 'gate' | 'paper' | 'run' | 'reference' | 'ended' | 'camera' | 'scan' | 'meetup' | 'hey' | 'sports' | 'imHere' | 'onMyWay';
+export type ArtKey = 'gathering' | 'gate' | 'paper' | 'run' | 'reference' | 'ended' | 'camera' | 'scan' | 'meetup' | 'hey' | 'sports' | 'imHere' | 'onMyWay' | 'fightOn';
 
 /** `hero`: the opaque crew photo, shown in a card. `sticker`: transparent art drawn straight on the paper. */
 export type ArtEntry = { kind: 'hero' | 'sticker'; key: ArtKey; aspect: number };
@@ -10,7 +10,7 @@ export type ArtEntry = { kind: 'hero' | 'sticker'; key: ArtKey; aspect: number }
 /** Sticker source is 280 px square at @2x; the crew hero is 3:2. */
 const KIND: Record<ArtKey, 'hero' | 'sticker'> = {
   gathering: 'hero', gate: 'sticker', paper: 'sticker', run: 'sticker', reference: 'sticker', ended: 'sticker',
-  camera: 'sticker', scan: 'sticker', meetup: 'sticker', hey: 'sticker', sports: 'sticker', imHere: 'sticker', onMyWay: 'sticker',
+  camera: 'sticker', scan: 'sticker', meetup: 'sticker', hey: 'sticker', sports: 'sticker', imHere: 'sticker', onMyWay: 'sticker', fightOn: 'sticker',
 };
 
 /** Theme → sticker (ux): run "Let's go!", hike "I'm here!", bike and motorcycle "On my way!", gathering "Hey, crew!". A theme not in the map falls back to the crew hero (gathering). */

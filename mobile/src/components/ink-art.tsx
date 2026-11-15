@@ -18,6 +18,7 @@ const IMAGES: Record<ArtKey, number> = {
   sports: require('@/assets/brand/stickers/meetup-10.png'),
   imHere: require('@/assets/brand/stickers/meetup-02.png'),
   onMyWay: require('@/assets/brand/stickers/meetup-01.png'),
+  fightOn: require('@/assets/brand/stickers/usc-fight-on.png'),
 };
 
 const HERO_GROUND = '#FBE8D0';
