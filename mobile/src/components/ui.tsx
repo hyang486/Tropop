@@ -352,7 +352,7 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
   );
 }
 
-/** V1 Tag ("Live", "Run on"): wash fill, radius 10, 12 pt semibold ink, an optional 6 pt ink dot. No outline. */
+/** B2 Tag ("Live", "Run on"): softGold pill, 12 pt semibold ink, an optional 6 pt Cardinal dot. No outline. */
 export function Tag({ label, dot }: { label: string; dot?: boolean }) {
   return (
     <View style={styles.tag}>
@@ -366,19 +366,19 @@ export function Tag({ label, dot }: { label: string; dot?: boolean }) {
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.lift, borderRadius: radius.card, borderCurve: 'continuous' },
-  cardDivider: { height: 1, marginHorizontal: 16, backgroundColor: colors.wash },
+  cardDivider: { height: 1, marginHorizontal: 16, backgroundColor: colors.separator },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: colors.wash,
+    backgroundColor: colors.softGold,
     borderRadius: radius.tag,
     borderCurve: 'continuous',
     paddingVertical: 3,
     paddingHorizontal: 8,
   },
-  tagDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.label },
+  tagDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.tint },
   tagText: { fontSize: 12, fontWeight: '600', color: colors.label },
   screen: { padding: 20, gap: 16 },
   fieldWrap: { gap: 6 },

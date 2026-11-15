@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, color: colors.ink2 },
   spacer: { flexGrow: 1 },
   caption: { fontSize: 13, color: colors.ink2, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
+  label: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.label, marginTop: 6 },
   card: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardOnSheet: { backgroundColor: colors.sheetField },

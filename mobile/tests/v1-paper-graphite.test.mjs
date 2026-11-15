@@ -44,9 +44,9 @@ test('V1 Button: pills, 17 pt semibold, no outline; B2 secondary lift with a 1.5
 
 test('V1 Card and Tag primitives, gutter 20, radii', () => {
   assert.match(ui, /card: \{ backgroundColor: colors\.lift, borderRadius: radius\.card, borderCurve: 'continuous' \}/);
-  assert.match(ui, /cardDivider: \{ height: 1, marginHorizontal: 16, backgroundColor: colors\.wash \}/);
+  assert.match(ui, /cardDivider: \{ height: 1, marginHorizontal: 16, backgroundColor: colors\.separator \}/);
   assert.match(ui, /export function Tag\(/);
-  assert.match(ui, /backgroundColor: colors\.wash,\s*borderRadius: radius\.tag,\s*borderCurve: 'continuous',\s*paddingVertical: 3,\s*paddingHorizontal: 8,/);
+  assert.match(ui, /backgroundColor: colors\.softGold,\s*borderRadius: radius\.tag,\s*borderCurve: 'continuous',\s*paddingVertical: 3,\s*paddingHorizontal: 8,/);
   assert.match(ui, /tagText: \{ fontSize: 12, fontWeight: '600', color: colors\.label \}/);
   assert.match(ui, /radius = \{ pill: 999, card: 24, tile: 16, tag: 999, field: 16 \}/);
   assert.match(ui, /gutter: 20,/);
