@@ -31,7 +31,7 @@ export function DayDetail({ date }: { date: DateKey }) {
   const empty = !!doc && rooms.length === 0 && events.length === 0;
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll} contentInsetAdjustmentBehavior="automatic">
+    <ScrollView style={styles.page} contentContainerStyle={styles.scroll} contentInsetAdjustmentBehavior="automatic">
       {rooms.map((r) => {
         const live = roomIsLive(r, now);
         const time = roomTime(r, undefined, now);
@@ -90,6 +90,7 @@ export function DayDetail({ date }: { date: DateKey }) {
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingVertical: 16, gap: 16 },
   group: { gap: 16 },
+  page: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   event: { minHeight: 64, borderRadius: 20, backgroundColor: '#F5EFE7', flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   pressed: { opacity: 0.7 },
