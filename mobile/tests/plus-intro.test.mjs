@@ -76,6 +76,9 @@ test('plus preview copy: price line, lead per source, 9 rows, Room Pass on host 
   assert.equal(p.showPrice(false, false), false);
   assert.equal(p.showPrice(true, true), false);
   assert.equal(p.showPrice(true, false), true);
+  // An anonymous guest has a uid (signInAnonymously) but is not an account: no Room Pass either, even from a host context.
+  assert.equal(p.showRoomPass('capacity', false), false);
+  assert.equal(p.showRoomPass('capacity', true), true);
   // Room Pass footnote: host contexts only.
   for (const f of ['capacity', 'more', 'storage', 'people']) assert.equal(p.showRoomPass(f), true, f);
   for (const f of ['ask', 'calendar', 'diary', 'room-ai', 'pace', 'meet', null]) assert.equal(p.showRoomPass(f), false, String(f));
@@ -91,6 +94,8 @@ test('plus preview copy: price line, lead per source, 9 rows, Room Pass on host 
   assert.ok(t.compare.slice(3).every((r) => r.free === null && r.plus === true));
   assert.equal(t.justForYou, 'Just for you');
   const s = readFileSync(new URL('../src/app/plan-preview.tsx', import.meta.url), 'utf8');
-  assert.match(s, /showPrice\(!!uid, isPlus\)/);
-  assert.match(s, /roomPass=\{showRoomPass\(from\)\}/);
+  assert.match(s, /const account = !!uid && !isGuest;/);
+  assert.match(s, /showPrice\(account, isPlus\)/);
+  assert.match(s, /account \? <Text style=\{styles\.note\}>\{t\.priceNote\}/);
+  assert.match(s, /roomPass=\{showRoomPass\(from, account\)\}/);
 });
