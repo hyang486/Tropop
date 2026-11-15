@@ -84,6 +84,11 @@ export const en = {
       unreadSpoken: (n: number) => `${n} unread`,
       endsIn: (remaining: string) => `ends in ${remaining}`,
       starts: (when: string) => `Starts ${when}`,
+      // P3 Emergency row (ux): line 2 while a member is in Emergency; VoiceOver starts with "Emergency."
+      needsHelp: (name: string) => `${name} needs help`,
+      needsHelpMany: (name: string, more: number) => `${name} and ${more} more need help`,
+      youAskedForHelp: 'You asked for help',
+      emergencySpoken: 'Emergency.',
     },
   },
   rooms: {

@@ -35,7 +35,8 @@ export function createRoomsLive(deps: RoomsLiveDeps) {
 
   const listener: Listener = {
     onEvent: (e) => {
-      if (e.table === 'messages' && e.op === 'INSERT') schedule();
+      // member_status: an Emergency can end with no message line (e.g. the member leaves the room).
+      if ((e.table === 'messages' && e.op === 'INSERT') || e.table === 'member_status') schedule();
     },
     onStatus: () => undefined,
   };
