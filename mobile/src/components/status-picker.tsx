@@ -251,7 +251,9 @@ function Tile({
   disabled?: boolean;
   onPress: () => void;
 }) {
-  const color = danger ? colors.danger : dimmed ? colors.secondaryLabel : colors.label;
+  const color = danger
+    ? selected ? colors.onDanger : colors.danger
+    : selected ? colors.onTint : dimmed ? colors.secondaryLabel : colors.label;
   return (
     <Pressable
       accessibilityRole="button"
@@ -261,8 +263,8 @@ function Tile({
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
-        selected && styles.tileSelected,
         danger && styles.tileDanger,
+        selected && (danger ? styles.tileDangerSelected : styles.tileSelected),
         pressed && { opacity: 0.6 },
       ]}
     >
@@ -302,8 +304,8 @@ const styles = StyleSheet.create({
     // Two columns (Q 03.02): half the row minus half the gap.
     width: '48.6%',
     minHeight: 64,
-    // V5b: tiles are wash on the lift sheet; the selected one is wash2 (no ring).
-    backgroundColor: colors.wash,
+    // V5b (ux): tileOnLift on the lift sheet; selected = ink fill (Emergency: danger fill), no ring.
+    backgroundColor: colors.tileOnLift,
     borderRadius: 12,
     borderCurve: 'continuous',
     padding: 12,
@@ -311,7 +313,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   tileDanger: { backgroundColor: colors.dangerField },
-  tileSelected: { backgroundColor: colors.wash2 },
+  tileSelected: { backgroundColor: colors.tint },
+  tileDangerSelected: { backgroundColor: colors.danger },
   tileText: { fontSize: 15 },
   // UX2-52: the Emergency bar's ink pill (36 pt in a 44 pt hit area) with its caption under it.
   okBlock: { gap: 8, alignItems: 'flex-start' },

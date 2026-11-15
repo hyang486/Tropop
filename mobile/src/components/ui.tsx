@@ -49,6 +49,8 @@ export const palette = {
     scrim: 'rgba(0,0,0,0.25)',
     grabber: 'rgba(94,94,88,0.4)',
     sheetCard: '#EDECE6',
+    tileOnLift: '#EDECE6',
+    onDanger: '#FFFFFF',
   },
   dark: {
     ink: '#EDEDE8',
@@ -66,6 +68,8 @@ export const palette = {
     scrim: 'rgba(0,0,0,0.5)',
     grabber: 'rgba(168,168,162,0.4)',
     sheetCard: '#1F1F1D',
+    tileOnLift: '#2E2E2B',
+    onDanger: '#121211',
   },
 } as const;
 
@@ -94,6 +98,10 @@ export const colors = {
   wash2: themed('wash2'),
   /** V1: cards you act on, others' bubbles, floating controls (with `useLift`). */
   lift: themed('lift'),
+  /** V5b: unselected status tiles on the lift sheet (wash in light; lighter than the sheet in dark). */
+  tileOnLift: themed('tileOnLift'),
+  /** V5b: text and icons on a selected Emergency (danger) fill. */
+  onDanger: themed('onDanger'),
   /** V1: Emergency surfaces and the destructive button. */
   redwash: themed('redwash'),
   separator: PlatformColor('separator'),
