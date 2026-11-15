@@ -597,6 +597,7 @@ function RoomMap({
               : []
           }
           properties={{ ...MAP_STYLE, isMyLocationEnabled: showsMyLocation }}
+          uiSettings={{ myLocationButtonEnabled: false }}
           onCameraMove={onCameraMove}
           onAnnotationClick={(event) => {
             const id = event.id ?? '';
