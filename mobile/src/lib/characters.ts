@@ -35,15 +35,17 @@ export function defaultCharacter(userId: string): number {
   return (hashString(userId) % DEFAULT_CHARACTER_COUNT) + 2;
 }
 
-/** Rooms list: a room's leading character, 02-12 from its id; a row never repeats the one above it (12 wraps to 2). */
-export function roomRingPicker(): (roomId: string) => number {
+/** Rooms list: each room's leading character (02-12) from its id, for rooms in display order; no row repeats the one above (12 wraps to 2). Pure. */
+export function roomRingIds(orderedRoomIds: readonly string[]): Map<string, number> {
+  const out = new Map<string, number>();
   let prev = 0;
-  return (roomId) => {
+  for (const roomId of orderedRoomIds) {
     let id = (hashString(roomId) % DEFAULT_CHARACTER_COUNT) + 2;
     if (id === prev) id = id === 12 ? 2 : id + 1;
+    out.set(roomId, id);
     prev = id;
-    return id;
-  };
+  }
+  return out;
 }
 
 export type AvatarChoice = { kind: 'photo'; path: string } | { kind: 'character'; id: number };

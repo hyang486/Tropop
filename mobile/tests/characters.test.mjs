@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { roomRingPicker, avatarChoice, characterA11y, CHARACTERS, defaultCharacter, hashString, isCharacterId } from '../src/lib/characters.ts';
+import { roomRingIds, avatarChoice, characterA11y, CHARACTERS, defaultCharacter, hashString, isCharacterId } from '../src/lib/characters.ts';
 
 test('twelve characters with ids 1-12', () => {
   assert.deepEqual(CHARACTERS.map((c) => c.id), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
@@ -67,17 +67,17 @@ test('first run: guest and sign-up set the flag before signing in and clear it o
 test('Rooms rows show a per-room character (72 asset) and no host-face lookup', () => {
   const idx = readFileSync(new URL('../src/app/(tabs)/index.tsx', import.meta.url), 'utf8');
   assert.match(idx, /CHARACTER_IMAGES\[characterId\]\[72\]/);
-  assert.match(idx, /<RoomRing characterId=\{nextRing\(room\.id\)\} \/>/);
+  assert.match(idx, /<RoomRing characterId=\{ringIds\.get\(room\.id\) \?\? 2\} \/>/);
   assert.doesNotMatch(idx, /fetchHostFaces|PersonAvatar/);
 });
 
-test('Rooms list art: 02-12 from the room id, never the same as the row above (12 wraps to 2)', () => {
-  const pick = roomRingPicker();
-  const ids = Array.from({ length: 40 }, (_, i) => pick(`room-${i}`));
+test('Rooms list art: 02-12 from the room id, never the same as the row above, same answer on every render', () => {
+  const order = Array.from({ length: 40 }, (_, i) => `room-${i}`);
+  const first = roomRingIds(order);
+  const ids = order.map((r) => first.get(r));
   assert.ok(ids.every((n) => n >= 2 && n <= 12));
   assert.ok(ids.every((n, i) => i === 0 || n !== ids[i - 1]));
   assert.ok(new Set(ids).size >= 8);
-  const same = roomRingPicker();
-  assert.equal(same('r'), roomRingPicker()('r'));
-  assert.notEqual(same('r'), same('r'));
+  assert.deepEqual([...roomRingIds(order)], [...first]); // a second render of the same list matches
+  assert.equal(roomRingIds(['a', 'a']).size, 1);
 });

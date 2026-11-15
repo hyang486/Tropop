@@ -12,7 +12,7 @@ import { Button, Card, colors, Hint, size, Tag, textRole } from '@/components/ui
 import { en } from '@/i18n/en';
 import { takeCharacterPrompt } from '@/features/characters/first-run';
 import { CHARACTER_IMAGES } from '@/features/characters/character-art';
-import { roomRingPicker } from '@/lib/characters';
+import { roomRingIds } from '@/lib/characters';
 import { useAuth } from '@/lib/auth';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
@@ -64,10 +64,17 @@ export default function Rooms() {
   // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
   const [refreshing, setRefreshing] = useState(false);
   const rows = visibleRows(rooms ?? [], now);
-  // Rooms list art: one picker per render, called in display order so no row repeats the one above it.
-  const nextRing = roomRingPicker();
   // UX3-A02: the empty layout only once the read answered with no rows (not while loading or on an error).
   const empty = rooms !== null && rows.length === 0 && !error;
+  // Rows in display order per section, then the Rooms-list art per room (pure: no row repeats the one above it).
+  const sections = groupBySection(rows, (r) => roomSection(r.room, r.entry.kind === 'grace', now)).map((group) => ({
+    group,
+    ordered: sortEmergencyFirst(
+      sortByLastItem(group.rows, (r) => summaries?.get(r.room.id)?.last_at),
+      (r) => (r.entry.kind === 'open' ? emergencyStartedAt(emergencies?.get(r.room.id)) : null),
+    ),
+  }));
+  const ringIds = roomRingIds(sections.flatMap((x) => x.ordered.map((r) => r.room.id)));
 
   // B3 first run: after sign-up or guest name entry, "Pick your character" opens once (flag set by those screens).
   useEffect(() => {
@@ -245,17 +252,14 @@ export default function Rooms() {
 
         {/* UX3-A02: Happening now / Coming up / Ending soon; a header shows only over rows that show (a grace row
             dropping out may leave none). */}
-        {groupBySection(rows, (r) => roomSection(r.room, r.entry.kind === 'grace', now)).map((group) => (
+        {sections.map(({ group, ordered }) => (
           <View key={group.section} style={styles.section}>
             <Text style={styles.sectionHeader} accessibilityRole="header">
               {en.home.sections[group.section]}
             </Text>
             {/* V2: one Card per section; rows sit inside it, split by its inset wash line. */}
             <Card>
-            {sortEmergencyFirst(
-              sortByLastItem(group.rows, (r) => summaries?.get(r.room.id)?.last_at),
-              (r) => (r.entry.kind === 'open' ? emergencyStartedAt(emergencies?.get(r.room.id)) : null),
-            ).map(({ room, entry }) => {
+            {ordered.map(({ room, entry }) => {
           // Spec 7.3: a room the host ended stays listed during its grace window and opens Room ended (the
           // chat route shows it for a host-ended room); once grace ends the row drops out before the next read.
           // UX P1-5: those ended rows are dimmed to 45% (UX3-A02: under Ending soon).
@@ -268,7 +272,7 @@ export default function Rooms() {
                 onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
                 style={({ pressed }) => [styles.row, styles.ended, pressed && { opacity: 0.3 }]}
               >
-                <RoomRing characterId={nextRing(room.id)} />
+                <RoomRing characterId={ringIds.get(room.id) ?? 2} />
                 <View style={styles.rowText}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {room.name}
@@ -306,7 +310,7 @@ export default function Rooms() {
             onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
           >
-            {emergency ? <EmergencyTile /> : <RoomRing characterId={nextRing(room.id)} />}
+            {emergency ? <EmergencyTile /> : <RoomRing characterId={ringIds.get(room.id) ?? 2} />}
             <View style={styles.rowText}>
               <Text style={styles.rowTitle} numberOfLines={2}>
                 {room.name}
