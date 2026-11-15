@@ -19,13 +19,11 @@ export function WebFrame({ children }: { children: ReactNode }) {
         overflow: 'auto', // scrolls only when the 0.6 floor is hit; the fixed panel never adds page height
         boxSizing: 'border-box',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         paddingLeft: panel,
         backgroundColor: '#ECE6DF',
       }}
     >
-      <div style={{ zoom: scale, width: SCREEN_W, height: SCREEN_H, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ zoom: scale, width: SCREEN_W, height: SCREEN_H, flexShrink: 0, margin: 'auto', display: 'flex', flexDirection: 'column' }}>
         <View style={{ flex: 1, overflow: 'hidden', borderRadius: 32, boxShadow: '0 0 24px rgba(0,0,0,0.12)' }}>{children}</View>
       </div>
       <WebDemoPanel />
