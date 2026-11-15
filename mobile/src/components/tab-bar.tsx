@@ -42,7 +42,8 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
   if (keyboardShown) return null;
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
-      <View style={styles.row} accessibilityRole="tabbar">
+      {/* Web has no `tabbar` role: the row is a tablist there (role=tab children carry aria-selected below). */}
+      <View style={styles.row} accessibilityRole={Platform.OS === 'web' ? 'tablist' : 'tabbar'}>
         {state.routes.map((route, index) => {
           const focused = index === state.index;
           const { options } = descriptors[route.key];
@@ -60,6 +61,8 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
               // tabs-spec §4.1: UIKit has no tab trait; VoiceOver says "tab, N of M" for buttons inside the tabbar row.
               accessibilityRole={Platform.OS === 'ios' ? 'button' : 'tab'}
               accessibilityState={{ selected: focused }}
+              // react-native-web ignores accessibilityState; aria-selected is what it renders (iOS reads it as selected too).
+              aria-selected={focused}
               accessibilityLabel={label}
               // The Pressable is the accessibility element, so the iOS large-content viewer is declared here.
               accessibilityShowsLargeContentViewer
