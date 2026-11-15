@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   section: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.ink2, marginTop: 8 },
   card: { backgroundColor: colors.lift, borderRadius: 24, borderCurve: 'continuous', paddingHorizontal: 16 },
-  divider: { height: 1, backgroundColor: colors.separator, marginLeft: 52 },
+  divider: { height: 1, backgroundColor: colors.separator, marginLeft: 56 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingVertical: 12 },
   requestRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 16 },
   pressed: { opacity: 0.6 },
