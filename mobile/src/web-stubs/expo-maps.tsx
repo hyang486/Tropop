@@ -153,6 +153,8 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
 const AppleMaps = {
   View: AppleMapsView,
   MapType: {},
+  // lib/map-pois.ts reads Object.values(AppleMaps.PointOfInterestCategory) at import; without it web crashed at startup.
+  PointOfInterestCategory: {},
   MapColorScheme: {},
   Emphasis: {},
   MapStyleElevation: { FLAT: 'FLAT', REALISTIC: 'REALISTIC', AUTOMATIC: 'AUTOMATIC' },
