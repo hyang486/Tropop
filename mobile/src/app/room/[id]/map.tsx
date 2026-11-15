@@ -4,7 +4,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
-import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, Text, useColorScheme, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
@@ -196,6 +196,7 @@ function RoomMap({
 }) {
   const { session } = useAuth();
   const router = useRouter();
+  const reduceTransparency = useReduceTransparency();
   const userId = session?.user.id;
   const isHost = room.host_id === userId;
   const now = useNow(15_000);
@@ -591,11 +592,29 @@ function RoomMap({
           headerShadowVisible: false,
           headerTitle: () => (
             <MapGlass style={styles.titlePill}>
-              <HandTitle style={styles.titleText} numberOfLines={1}>
-                {en.map.title}
-              </HandTitle>
+              <MapTitle />
             </MapGlass>
           ),
+          // F-RT1: with Reduce Transparency the native back button reads near-white in dark mode, so draw our own.
+          ...(reduceTransparency && router.canGoBack()
+            ? {
+                // iOS 26 wraps a header item in a shared bar-button background that turns opaque under RT (a second,
+                // wider pill around our circle); hidesSharedBackground removes it so only our circle shows.
+                unstable_headerLeftItems: () => [
+                  {
+                    type: 'custom' as const,
+                    hidesSharedBackground: true,
+                    element: (
+                      <Pressable accessibilityRole="button" accessibilityLabel={en.room.back} onPress={() => router.back()}>
+                        <MapGlass style={styles.circle}>
+                          <MapBackChevron />
+                        </MapGlass>
+                      </Pressable>
+                    ),
+                  },
+                ],
+              }
+            : {}),
         }}
       />
       {/* V4: the Emergency capsule (16 pt from the sides) and the host's route chips float under the header. */}
@@ -844,10 +863,30 @@ function useReduceTransparency(): boolean {
 function MapGlass({ children, style }: { children: ReactNode; style: StyleProp<ViewStyle> }) {
   const reduce = useReduceTransparency();
   const lift = useLift();
+  const dark = useColorScheme() === 'dark';
+  const pal = usePalette();
   if (Platform.OS === 'ios' && isLiquidGlassAvailable() && !reduce) {
     return <GlassView style={style}>{children}</GlassView>;
   }
-  return <View style={[style, { backgroundColor: colors.lift }, lift]}>{children}</View>;
+  // F-RT1 (ux): opaque lift fill from the JS scheme (the header hosts this view natively, where a dynamic color can
+  // resolve against the wrong appearance), a 0.5 pt hairline plus the lift shadow so it holds against the map.
+  const edge = { borderWidth: 0.5, borderColor: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)' };
+  return <View style={[style, { backgroundColor: pal.lift }, lift, edge]}>{children}</View>;
+}
+
+/** The Map title; its color comes from the JS scheme so it always matches the capsule fill. */
+function MapTitle() {
+  const pal = usePalette();
+  return (
+    <HandTitle style={[styles.titleText, { color: pal.ink }]} numberOfLines={1}>
+      {en.map.title}
+    </HandTitle>
+  );
+}
+
+function MapBackChevron() {
+  const pal = usePalette();
+  return <SymbolView name="chevron.left" size={18} weight="semibold" tintColor={pal.ink} />;
 }
 
 function gapLabel(gap: PersonGap): string {
