@@ -261,8 +261,8 @@ function Tile({
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
-        danger && styles.tileDanger,
         selected && styles.tileSelected,
+        danger && styles.tileDanger,
         pressed && { opacity: 0.6 },
       ]}
     >
@@ -302,8 +302,8 @@ const styles = StyleSheet.create({
     // Two columns (Q 03.02): half the row minus half the gap.
     width: '48.6%',
     minHeight: 64,
-    // UX2-45: tiles inside a sheet use cardStrong, so they show on the dark sheet surface.
-    backgroundColor: colors.fieldStrong,
+    // V5b: tiles are wash on the lift sheet; the selected one is wash2 (no ring).
+    backgroundColor: colors.wash,
     borderRadius: 12,
     borderCurve: 'continuous',
     padding: 12,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   tileDanger: { backgroundColor: colors.dangerField },
-  tileSelected: { borderWidth: 1.5, borderColor: colors.label },
+  tileSelected: { backgroundColor: colors.wash2 },
   tileText: { fontSize: 15 },
   // UX2-52: the Emergency bar's ink pill (36 pt in a 44 pt hit area) with its caption under it.
   okBlock: { gap: 8, alignItems: 'flex-start' },
@@ -337,8 +337,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
-    borderWidth: 1.5,
-    borderColor: colors.label,
+    backgroundColor: colors.wash,
   },
   failedButtonText: { fontSize: 15, fontWeight: '600', color: colors.label },
 });

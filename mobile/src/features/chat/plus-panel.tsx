@@ -223,8 +223,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 16,
     backgroundColor: colors.background,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.separator,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 },
   // Four per row, as in KakaoTalk's "+" grid.
