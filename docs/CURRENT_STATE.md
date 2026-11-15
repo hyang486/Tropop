@@ -1081,3 +1081,7 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
 - ~22:30 PST MERGED (supervisor go, qa single-account PASS + ux sign-off aa1f250): integ-connect aa1f250 → local main 30fc854
   (parents 32c5ee0, aa1f250; carries 20261104000042_connect.sql, identical to b3-db's). tsc 0 (after typed-routes regen via a
   short Metro start), lint 0, npm test 1146/1146. No push. F-CN1 open until build-3 first-save. Next: F-RCP1 (mine).
+- F-RCP1 fix-rcp1 (on main 84a99e9; worktree qrewing-merge, now on branch fix-rcp1): cause = first recap call ran before the
+  photo, refresh ignored new media, and Sora's text is excluded by consent so the model saw an empty chat. Fix: refresh also
+  fires on ready media created after the recap (counts only, no sender) + prompt rule against "no messages" claims.
+  qrewing node tests 84/84; strict tsc on the fn shows only 2 pre-existing errors (same on main). NOT deployed (needs OK).
