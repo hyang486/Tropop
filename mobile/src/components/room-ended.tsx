@@ -47,7 +47,7 @@ export function RoomEnded({
     <QScreen
       title={en.room.endedTitle}
       subtitle={closedLine}
-      bottom={<InkArt art="ended" width={200} />}
+      bottom={<InkArt art="ended" width={180} />}
       bottomAlign="center"
       actions={
         <>
@@ -88,5 +88,5 @@ const g = en.qrewing.grace;
 
 const styles = StyleSheet.create({
   until: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.label },
-  line: { fontSize: 15, lineHeight: 21, color: colors.ink2 },
+  line: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
 });

@@ -206,9 +206,9 @@ function RecapCardBody({
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  title: { fontSize: 17, fontWeight: '600', color: colors.label, marginBottom: 4 },
-  body: { fontSize: 15, lineHeight: 21, color: colors.label },
-  line: { fontSize: 15, lineHeight: 21, color: colors.ink2 },
+  title: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label, marginBottom: 4 },
+  body: { fontSize: 16, lineHeight: 24, color: colors.label },
+  line: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
   retry: {
     alignSelf: 'flex-start',
     minHeight: 36,
