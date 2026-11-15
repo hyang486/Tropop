@@ -28,10 +28,10 @@ test('tabs-spec §1: avatar on every tab root, wordmark on Today and Moments onl
 
 test('tabs-spec §2-3: bar tokens, a11y, haptic on change only, re-tap emits tabPress, hides on keyboard', () => {
   const b = src('components/tab-bar.tsx');
-  assert.match(b, /accessibilityRole="tabbar"/);
+  assert.match(b, /'tabbar'/);
   // §4.1: button on iOS (no UIKit tab trait), tab on web and Android.
   assert.match(b, /accessibilityRole=\{Platform\.OS === 'ios' \? 'button' : 'tab'\}\s+accessibilityState=\{\{ selected: focused \}\}/);
-  assert.doesNotMatch(b, /accessibilityRole="tabbar"[^>]*(accessible\b|onPress|accessibilityLabel)/);
+  assert.doesNotMatch(b, /'tabbar'\}[^>]*(accessible\b|onPress|accessibilityLabel)/);
   assert.match(b, /if \(focused \|\| event\.defaultPrevented\) return;\s+if \(Platform\.OS === 'ios'\) void Haptics\.selectionAsync\(\);/);
   assert.match(b, /if \(keyboardShown\) return null;/);
   assert.match(b, /pillActive: \{ backgroundColor: colors\.wash \}/);
@@ -46,4 +46,11 @@ test('tabs-spec §2-3: bar tokens, a11y, haptic on change only, re-tap emits tab
   assert.match(src('components/q-screen.tsx'), /useScrollToTop\(scrollRef\);/);
   for (const n of ['today', 'explore', 'qrews', 'moments'])
     for (const s of ['', '@2x', '@3x']) assert.ok(existsSync(new URL(`../assets/brand/tabs/${n}${s}.png`, import.meta.url)), `${n}${s}`);
+});
+
+test('web: the row is a tablist and each tab renders aria-selected (react-native-web ignores accessibilityState)', () => {
+  const src = readFileSync(new URL('../src/components/tab-bar.tsx', import.meta.url), 'utf8');
+  assert.match(src, /accessibilityRole=\{Platform\.OS === 'web' \? 'tablist' : 'tabbar'\}/);
+  assert.match(src, /accessibilityRole=\{Platform\.OS === 'ios' \? 'button' : 'tab'\}/);
+  assert.match(src, /aria-selected=\{focused\}/);
 });
