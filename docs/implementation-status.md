@@ -541,6 +541,9 @@ LS = docs/reviews/codex-final-qa-live-status.md (supervisor-owned). Evidence fil
 3. Anthropic API key: set by the human as the Edge Function secret ANTHROPIC_API_KEY (2026-11-12); verified only by
    qa's first real calls (LS af39a5c). Nobody has seen or logged the value.
 4. A physical iPhone for device checks (optional). Apple Developer Program, APNs and EAS login are not needed for this milestone (human decision 2026-11-04).
+5. Pre-launch (not a demo blocker): the web map stub (`mobile/src/web-stubs/expo-maps.tsx`, merged 5f62df13) uses keyless
+   CARTO Positron tiles. CARTO's free basemaps are not licensed for commercial use, so a licensed tile provider is needed
+   before a public web launch (supervisor review 2026-11-15).
 
 ## Not yet tested
 
