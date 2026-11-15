@@ -38,7 +38,10 @@ export default function PlanPreview() {
   const from = plusFrom(useLocalSearchParams<{ from?: string }>().from);
   const { preview, lines } = plusPitch(from);
   const router = useRouter();
-  const uid = useAuth().session?.user.id;
+  const { session, isGuest } = useAuth();
+  const uid = session?.user.id;
+  // A guest signs in anonymously and has a uid, but is not an account: no price, no Room Pass (l.366).
+  const account = !!uid && !isGuest;
   const on = usePlusPreview(uid);
   const ink = useInk();
   const [saving, setSaving] = useState(false);
@@ -61,7 +64,7 @@ export default function PlanPreview() {
     <>
       <Button title={t.tryCta} busy={saving} disabled={on === null} onPress={() => void toggle(true)} />
       {/* UX2-35: the link is its own Pressable so it gets a 44 pt target (a nested Text link can't). */}
-      {showPrice(!!uid, isPlus) ? (
+      {showPrice(account, isPlus) ? (
         <View style={styles.priceBox}>
           <Text style={styles.price}>{t.priceLine}</Text>
           <Text style={styles.fine}>{t.priceSub}</Text>
@@ -119,7 +122,7 @@ export default function PlanPreview() {
           </View>
         </>
       )}
-      <IncludedSheet visible={sheet} roomPass={showRoomPass(from)} onClose={() => setSheet(false)} />
+      <IncludedSheet visible={sheet} account={account} roomPass={showRoomPass(from, account)} onClose={() => setSheet(false)} />
     </QScreen>
   );
 }
@@ -208,7 +211,7 @@ function Preview({ kind }: { kind: PlusPreview }) {
 }
 
 /** "See what's included": the Free vs Plus table, Always free, and the prices note, as a page sheet. */
-function IncludedSheet({ visible, roomPass, onClose }: { visible: boolean; roomPass: boolean; onClose: () => void }) {
+function IncludedSheet({ visible, account, roomPass, onClose }: { visible: boolean; account: boolean; roomPass: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   // UX2-46: closes at once when a link or notification tap navigates.
   const instant = useDismissOnLink(visible ? onClose : null);
@@ -240,7 +243,7 @@ function IncludedSheet({ visible, roomPass, onClose }: { visible: boolean; roomP
               </View>
             ))}
           </View>
-          <Text style={styles.note}>{t.priceNote}</Text>
+          {account ? <Text style={styles.note}>{t.priceNote}</Text> : null}
           {roomPass ? (
             <Text style={styles.note}>
               {t.roomPassNote.map((p, i) =>

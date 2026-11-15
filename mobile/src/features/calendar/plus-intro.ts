@@ -64,7 +64,7 @@ export function leadKey(from: PlusFrom | null): 'ai' | 'aiAsk' | 'aiCalendar' {
 
 /** Sources that come from hosting a room: the only ones that see the Room Pass note (never ask, calendar, members). */
 export const ROOM_PASS_FROM = ['capacity', 'more', 'storage', 'people'] as const;
-export const showRoomPass = (from: PlusFrom | null) => from !== null && (ROOM_PASS_FROM as readonly string[]).includes(from);
+export const showRoomPass = (from: PlusFrom | null, account = true) => account && from !== null && (ROOM_PASS_FROM as readonly string[]).includes(from);
 
-/** The price line under the CTA: not for a guest (no account) and not once the preview is on. */
+/** The price line under the CTA: `signedIn` means a real account (an anonymous guest has a uid but is not one); not once the preview is on. */
 export const showPrice = (signedIn: boolean, isPlus: boolean) => signedIn && !isPlus;
