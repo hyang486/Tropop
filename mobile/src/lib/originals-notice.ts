@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 
 import { en } from '@/i18n/en';
 

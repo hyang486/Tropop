@@ -1,16 +1,7 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Keyboard,
-  AccessibilityInfo,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Keyboard, AccessibilityInfo, FlatList, KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

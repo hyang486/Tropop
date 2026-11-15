@@ -1,15 +1,8 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  Share,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 
 import { QrCode } from '@/components/qr-code';

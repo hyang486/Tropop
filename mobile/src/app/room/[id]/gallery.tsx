@@ -2,16 +2,8 @@ import { Image } from 'expo-image';
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

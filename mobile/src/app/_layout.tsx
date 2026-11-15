@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 
 import { HAND_FONTS } from '@/components/hand-title';
 import { HomeHeaderButton } from '@/components/home-header-button';
+import { WebDialogHost } from '@/components/web-dialog-host';
 import { WebFrame } from '@/components/web-frame';
 import { startSiriMirror } from '@/features/event/siri-mirror';
 // Trok Calendar: loaded at start so its SIGNED_OUT listener clears the phone-only calendar on sign-out.
@@ -147,6 +148,7 @@ export default function RootLayout() {
       <AuthProvider>
         <RootNavigator />
       </AuthProvider>
+      <WebDialogHost />
     </WebFrame>
   );
 }

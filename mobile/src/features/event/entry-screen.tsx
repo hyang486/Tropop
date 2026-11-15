@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { type ComponentRef, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 import { Text, TextInput } from '@/components/text';
 
 import { EmptyState } from '@/components/empty-state';

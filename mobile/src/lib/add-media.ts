@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 
 import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';

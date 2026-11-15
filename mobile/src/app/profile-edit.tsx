@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActionSheetIOS, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { ActionSheetIOS } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';

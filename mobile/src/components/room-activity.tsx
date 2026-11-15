@@ -1,18 +1,6 @@
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Alert,
-  AppState,
-  Pressable,
-  ScrollView,
-  type StyleProp,
-  StyleSheet,
-  useWindowDimensions,
-  Vibration,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Pressable, ScrollView, type StyleProp, StyleSheet, useWindowDimensions, Vibration, View, type ViewStyle } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
