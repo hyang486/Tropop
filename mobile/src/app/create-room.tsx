@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
   cardNote: { fontSize: 12, color: colors.ink2 },
   pinArea: { fontSize: 14, color: colors.label },
-  stepOff: { opacity: 0.3 },
+  stepOff: { opacity: 1 },
   clampRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   clampNote: { fontSize: 13, lineHeight: 18, color: colors.ink2 },
   clampLinkText: { fontWeight: '600', color: colors.tint },
