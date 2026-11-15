@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { STICKER_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
-import { colors, useLift } from '@/components/ui';
+import { colors, elevation, useLift } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 import { stickersIn, STICKER_TABS, type StickerTab } from '@/lib/stickers';
 
@@ -29,6 +29,7 @@ export function StickerSheet({ visible, onClose, onSend }: { visible: boolean; o
                 key={t}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: tab === t }}
+                hitSlop={{ top: 4, bottom: 4 }}
                 onPress={() => {
                   if (t !== tab) haptics.selection();
                   setTab(t);
@@ -69,9 +70,9 @@ const styles = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber },
   track: { flexDirection: 'row', backgroundColor: colors.wash, borderRadius: 12, padding: 3 },
   seg: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
-  segOn: { backgroundColor: colors.tint },
-  segText: { fontSize: 15, fontWeight: '600', color: colors.label },
-  segTextOn: { color: colors.onTint },
+  segOn: { backgroundColor: colors.lift, ...elevation.lift.light },
+  segText: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
+  segTextOn: { color: colors.label },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   cell: { width: '25%', minHeight: 76, alignItems: 'center', justifyContent: 'center' },
   art: { width: 64, height: 64 },
