@@ -13,8 +13,9 @@ test('heroLabel reads title, time, place and skips blanks', () => {
 
 test('hero spec §C numbers', () => {
   assert.deepEqual([m.HERO_HEIGHT, m.HERO_EMPTY_HEIGHT, m.HERO_EMPTY_OPACITY, m.HERO_RADIUS], [200, 160, 0.4, 24]);
-  assert.equal(m.SCRIM_FROM, 'rgba(48,43,40,0)');
-  assert.equal(m.SCRIM_TO, 'rgba(48,43,40,0.72)');
+  assert.equal(m.SCRIM_COLOR, '#302B28');
+  assert.equal(m.SCRIM_FROM, 0);
+  assert.equal(m.SCRIM_TO, 0.72);
 });
 
 test('card: image hidden from VoiceOver, cover, grows with minHeight, scrim is the bottom half', () => {

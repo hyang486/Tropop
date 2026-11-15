@@ -10,7 +10,7 @@ export default function CalendarDayScreen() {
   if (!isDateKey(date)) return <Stack.Screen options={{ title: en.calendar.title }} />;
   return (
     <>
-      <Stack.Screen options={{ title: dayTitle(date), headerShadowVisible: false }} />
+      <Stack.Screen options={{ title: dayTitle(date), headerBackTitle: en.tabs.moments, headerShadowVisible: false }} />
       <DayDetail date={date} />
     </>
   );
