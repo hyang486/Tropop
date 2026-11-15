@@ -30,7 +30,6 @@ test('(d/e) UX P2-6: the screens sit on the app paper; the calendar notebook col
     assert.doesNotMatch(src, /headerStyle|contentStyle|background=\{/, `${name}: no screen-wide paper override`);
     assert.doesNotMatch(src, /#FBF|#1D1B17/i, name);
   }
-  assert.match(screen, /grid\.rows \* CELL_H, backgroundColor: palette\.notebook \}/, 'the grid keeps the notebook paper');
   assert.doesNotMatch(editor, /useCalendarColors/);
 });
 

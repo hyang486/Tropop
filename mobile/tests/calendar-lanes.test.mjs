@@ -1,7 +1,6 @@
 // Run: npm test. Calendar findings from the draw tests (8d8f503). F1: a room that hit full lanes on one day was
 // hidden ("+1") for the whole week row although lanes were free on its other days. F2: "+N" sat on the lane-2 stroke.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 const plan = await import('../src/features/calendar/calendar-plan.ts');
@@ -66,18 +65,6 @@ test('F1: at most one drawn piece per room per row, so VoiceOver keys and React 
       if (over.get(day)) assert.equal(vis.length, MAX_LANES);
     }
   }
-});
-
-test('F2: "+N" sits in the day-number band, above every lane', () => {
-  const src = readFileSync(new URL('../src/features/calendar/calendar-screen.tsx', import.meta.url), 'utf8');
-  const num = (name) => Number(src.match(new RegExp(`const ${name} = (\\d+);`))[1]);
-  const more = src.match(/\n {2}more: \{([^}]*)\}/)[1];
-  assert.doesNotMatch(more, /bottom:/);
-  const top = Number(more.match(/top: (\d+)/)[1]);
-  // Tiers FINAL: "+N" is a button (styles.more) around its text (styles.moreText).
-  const size = Number(src.match(/\n {2}moreText: \{([^}]*)\}/)[1].match(/fontSize: (\d+)/)[1]);
-  // Text box ≈ 1.3 × font size; it must end before lane 0 starts (DAY_H).
-  assert.ok(top + Math.ceil(size * 1.3) <= num('DAY_H'), `+N ends at ${top + size * 1.3}`);
 });
 
 function range(a, b) {

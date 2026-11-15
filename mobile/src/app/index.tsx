@@ -108,7 +108,8 @@ export default function Rooms() {
       void purgeStaleAskHistories(list.filter((r) => r.deleted_at === null).map((r) => r.id));
       syncSiriRooms(list);
       // Trok Calendar: snapshot my rooms on this phone (kept after they end, for the month view and diary).
-      syncCalendarRooms(uid, list);
+      // Calendar v2 §C: place_name comes with '*'; people = the embedded member count (max kept on the phone).
+      syncCalendarRooms(uid, list.map((r) => ({ ...r, people: r.member_count })));
       // Local 24-hour reminders for every open room; cancels those of rooms no longer listed. Rooms the host
       // ended (listed only during their grace window, spec 7) get no reminder.
       // UX2-127: the Rooms list never shows a cold notification prompt; the room screen still asks.

@@ -1165,9 +1165,22 @@ export const en = {
     greeting: (name: string | null) => (name ? `Hi, ${name}` : 'Hi there'),
     weekTitle: 'Your week at a glance',
     summaryLabel: 'Trok summary',
-    summaryRooms: (n: number) => (n === 1 ? '1 room this week' : `${n} rooms this week`),
-    summaryPeople: (n: number) => (n === 1 ? '1 new person' : `${n} new people`),
-    summaryComing: (n: number) => `${n} coming up`,
+    // [emphasised, rest]: the number and its noun are Semibold Cardinal (§A3); joined "A, B, and C."
+    summaryRooms: (n: number): [string, string] => [n === 1 ? '1 room' : `${n} rooms`, ' this week'],
+    summaryPeople: (n: number): [string, string] => [n === 1 ? '1 new person' : `${n} new people`, ''],
+    summaryComing: (n: number): [string, string] => [`${n} coming up`, ''],
+    wordmark: 'Tropop',
+    addButton: 'Add',
+    addMenuCancel: 'Cancel',
+    rowRooms: (n: number) => (n === 1 ? '1 room' : `${n} rooms`),
+    rowEvents: (n: number) => (n === 1 ? '1 event' : `${n} events`),
+    rowPeople: (n: number) => (n === 1 ? '1 new person' : `${n} new people`),
+    rowSep: ' · ',
+    // §A5 VoiceOver: "Wednesday, November 18, today, 1 room" / "…, no plans".
+    dayCellLabel: (date: string, today: boolean, rooms: number, events: number) =>
+      [date, today ? 'today' : null, rooms ? (rooms === 1 ? '1 room' : `${rooms} rooms`) : null,
+        events ? (events === 1 ? '1 event' : `${events} events`) : null, rooms || events ? null : 'no plans']
+        .filter(Boolean).join(', '),
     summaryEmpty: 'Nothing on this week yet.',
     expandMonth: 'Show the whole month',
     collapseMonth: 'Show two weeks',
