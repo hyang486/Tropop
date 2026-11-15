@@ -953,6 +953,8 @@ export const en = {
     chooseCharacter: 'Choose a character',
     pickCharacterTitle: 'Pick your character',
     pickCharacterSkip: 'Skip',
+    pickCharacterHint: 'Your face in every room. Change it anytime in Profile.',
+    chooseAnotherPhoto: 'Choose another photo',
     /** UX2-63: the visible label above the name field (VoiceOver reads the field's own label). */
     nameHeading: 'Name',
     avatarOption: 'Picture',

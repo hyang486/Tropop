@@ -3,7 +3,8 @@ import { useState } from 'react';
 
 import { Avatar } from '@/components/avatar';
 import { QLink, QScreen } from '@/components/q-screen';
-import { Hint } from '@/components/ui';
+import { Text } from '@/components/text';
+import { Hint, textRole } from '@/components/ui';
 import { CharacterPicker } from '@/features/characters/character-picker';
 import { setProfileCharacter } from '@/features/characters/character-store';
 import { realPhotoPath } from '@/features/characters/person-avatar';
@@ -54,6 +55,7 @@ export default function PickCharacter() {
 
   return (
     <QScreen title={en.profile.pickCharacterTitle} actions={<QLink title={en.profile.pickCharacterSkip} onPress={() => router.back()} />}>
+      <Text style={textRole.secondary}>{en.profile.pickCharacterHint}</Text>
       <CharacterPicker
         selected={chosen ?? (photo ? 'photo' : defaultCharacter(userId))}
         onPickCharacter={pick}

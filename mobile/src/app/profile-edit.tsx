@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
@@ -43,6 +43,22 @@ export default function ProfileEdit() {
     } finally {
       setBusy(null);
     }
+  }
+
+  // Spec §1.5: tapping the Photo tile while a photo is set opens Choose another photo / Remove photo / Cancel.
+  function photoActions() {
+    if (busy !== null) return;
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [en.profile.chooseAnotherPhoto, en.profile.removePhoto, en.profile.deleteCancel],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 2,
+      },
+      (i) => {
+        if (i === 0) void changePhoto();
+        else if (i === 1) void clearPhoto();
+      },
+    );
   }
 
   async function changePhoto() {
@@ -109,10 +125,9 @@ export default function ProfileEdit() {
       <CharacterPicker
         selected={photo ? 'photo' : (profileCharacter(profile) ?? defaultCharacter(session?.user.id ?? ''))}
         onPickCharacter={chooseCharacter}
-        onPickPhoto={changePhoto}
+        onPickPhoto={photo ? photoActions : changePhoto}
         photoNode={photo ? <Avatar path={photo} name={profile?.display_name ?? '?'} size={72} /> : undefined}
       />
-      {photo && <Button variant="secondary" title={en.profile.removePhoto} onPress={clearPhoto} disabled={busy !== null} />}
       {/* UX2-63: a "Name" label above the field, styled like "Or choose a picture". */}
       <Text style={styles.pickLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {en.profile.nameHeading}
