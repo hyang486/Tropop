@@ -76,3 +76,14 @@ test('recapSpoken: the recap card reads as one sentence; upsell and wait stay of
   assert.equal(m.recapSpoken('upsell', 3, ['x']), null);
   assert.equal(m.recapSpoken('wait', null, null), null);
 });
+
+test('roomTime: a live room says when it ends from the device today; an ended room says Ended', () => {
+  const at = (iso) => Date.parse(iso);
+  const nov15 = at('2026-11-15T20:00:00Z'); // Nov 15 noon PST, the device's today
+  const r = (endAt) => room({ startsAt: null, endAt });
+  assert.equal(m.roomTime(r('2026-11-16T08:27:00Z'), TZ, nov15), 'Ends tomorrow at 12:27 AM'); // viewing Nov 14, ends Nov 16 00:27 PST
+  assert.equal(m.roomTime(r('2026-11-18T08:27:00Z'), TZ, nov15), 'Ends Nov 18 at 12:27 AM');
+  assert.equal(m.roomTime(r('2026-11-16T05:30:00Z'), TZ, at('2026-11-15T20:00:00Z')), 'Ends today at 9:30 PM');
+  assert.equal(m.roomTimeSpoken(r('2026-11-18T08:27:00Z'), TZ, nov15), 'Ends Nov 18 at 12:27 AM');
+  assert.equal(m.roomTime(r('2026-11-18T08:27:00Z'), TZ, at('2026-11-19T20:00:00Z')), 'Ended 12:27 AM');
+});
