@@ -1,6 +1,7 @@
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/components/ui';
+import { en } from '@/i18n/en';
 
 import { ReactionBar } from './reaction-bar';
 
@@ -8,7 +9,7 @@ import { ReactionBar } from './reaction-bar';
 export function ReactionPicker({ visible, onClose, onPick }: { visible: boolean; onClose: () => void; onPick: (reaction: number) => void }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} accessibilityRole="button" accessibilityLabel="Close reactions" onPress={onClose}>
+      <Pressable style={styles.scrim} accessibilityRole="button" accessibilityLabel={en.chat.closeReactions} onPress={onClose}>
         <View>
           <ReactionBar
             onPick={(id) => {

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STICKER_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
 import { colors, useLift } from '@/components/ui';
+import { en } from '@/i18n/en';
 import { haptics } from '@/lib/haptics';
 import { stickersIn, STICKER_TABS, type StickerTab } from '@/lib/stickers';
 
@@ -20,8 +21,8 @@ export function StickerSheet({ visible, onClose, onSend }: { visible: boolean; o
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close stickers" />
-        <View style={[styles.sheet, lift, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel="Stickers">
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={en.chat.closeStickers} />
+        <View style={[styles.sheet, lift, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel={en.chat.stickersTile}>
           <View style={styles.grabber} />
           <View style={styles.track} accessibilityRole="tablist">
             {STICKER_TABS.map((t) => (

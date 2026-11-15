@@ -47,8 +47,10 @@ export function ReactionGrid({ visible, onClose, onPick }: { visible: boolean; o
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.root}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close reactions" />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel="Reactions">
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={en.chat.closeReactions} />
+        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel={en.chat.reactionsTitle}>
+          <View style={styles.grabber} />
+          <Text style={styles.title}>{en.chat.reactionsTitle}</Text>
           <View style={styles.grid}>
             {REACTIONS.map((r) => (
               <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={en.chat.reactWith(r.label)} onPress={() => onPick(r.id)} style={styles.cell}>
@@ -72,6 +74,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: colors.scrim },
   sheet: { backgroundColor: colors.sheet, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderCurve: 'continuous', paddingHorizontal: 16, paddingTop: 20 },
+  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber, marginTop: -12, marginBottom: 12 },
+  title: { alignSelf: 'center', fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label, marginBottom: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: '33.33%', minHeight: 72, alignItems: 'center', justifyContent: 'center', gap: 4 },
   label: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: colors.label },

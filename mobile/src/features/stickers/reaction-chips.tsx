@@ -3,11 +3,12 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { REACTION_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
 import { colors } from '@/components/ui';
+import { en } from '@/i18n/en';
 import { chipLabel, groupReactions, type ReactionRow } from '@/lib/stickers';
 
 /**
  * B3 reaction chips under a bubble: up to 4 chips (most used first), then "+N". Yours = soft gold with a Cardinal
- * border. Tap toggles yours; long-press opens the who-reacted sheet. Mount: under the bubble, aligned to its side.
+ * border. Tap toggles yours; "+N" opens the picker. Mount: under the bubble, aligned to its side.
  */
 export function ReactionChips({
   rows,
@@ -32,6 +33,7 @@ export function ReactionChips({
           key={c.reaction}
           accessibilityRole="button"
           accessibilityLabel={chipLabel(c)}
+          hitSlop={{ top: 8, bottom: 8 }}
           onPress={() => onToggle(c.reaction)}
           style={[styles.chip, c.mine && styles.mine]}
         >
@@ -40,7 +42,7 @@ export function ReactionChips({
         </Pressable>
       ))}
       {more > 0 && (
-        <Pressable accessibilityRole="button" accessibilityLabel={`${more} more reactions`} onPress={onMore} style={styles.chip}>
+        <Pressable accessibilityRole="button" accessibilityLabel={en.chat.moreReactionsCount(more)} onPress={onMore} hitSlop={{ top: 8, bottom: 8 }} style={styles.chip}>
           <Text style={styles.count}>+{more}</Text>
         </Pressable>
       )}

@@ -489,6 +489,10 @@ export const en = {
     stickersTile: 'Stickers',
     reactWith: (name: string) => `React with ${name}`,
     moreReactions: 'More reactions',
+    moreReactionsCount: (n: number) => `${n} more reactions`,
+    closeReactions: 'Close reactions',
+    closeStickers: 'Close stickers',
+    reactionsTitle: 'Reactions',
   },
   media: {
     // UX2-37: the viewer's photo failed to load.
