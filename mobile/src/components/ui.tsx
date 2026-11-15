@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 8,
   },
-  tagDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.tint },
+  tagDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.label },
   tagText: { fontSize: 12, fontWeight: '600', color: colors.label },
   screen: { padding: 20, gap: 16 },
   fieldWrap: { gap: 6 },

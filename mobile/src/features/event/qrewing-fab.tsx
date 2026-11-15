@@ -15,7 +15,7 @@ import { probeQrewing, useQrewingRoom } from './qrewing-api';
 import { QREWING_OFFLINE_RETRY_MS } from './qrewing-plan';
 import type { QrewingError } from './types';
 
-const ART = require('../../../assets/images/icon.png');
+const ART = require('../../../assets/brand/qrewing/qrewing-mark.png');
 
 /**
  * The room's Qrewing switch, the probe (room AI and my plan, no model call) and my consent. `available` is false
@@ -121,7 +121,7 @@ export function useQrewingAskButton(roomId: string) {
 export function QrewingComposerMark() {
   return (
     <View style={styles.composerMark}>
-      <Image source={ART} style={styles.art} contentFit="cover" accessibilityIgnoresInvertColors />
+      <Image source={ART} style={styles.art} contentFit="contain" accessibilityIgnoresInvertColors />
       <View style={styles.ring} pointerEvents="none" />
     </View>
   );
@@ -129,7 +129,7 @@ export function QrewingComposerMark() {
 
 const styles = StyleSheet.create({
   composerMark: { width: 36, height: 36, borderRadius: 18 },
-  // A thin ink ring, so the cream art stays visible on the cream field (themed, no hard-coded shadow color).
-  ring: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 18, borderWidth: 1.5, borderColor: colors.label },
+  // A 1 pt separator ring, so the cream art stays visible on the cream field (themed, no hard-coded shadow color).
+  ring: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 18, borderWidth: 1, borderColor: colors.separator },
   art: { width: '100%', height: '100%', borderRadius: 999 },
 });

@@ -59,7 +59,7 @@ test('S3: menu, double-tap and pill wiring (ux decisions (a) and (b))', () => {
   assert.match(b, /withPill: \{ marginBottom: 10 \}/);
   assert.match(b, /height: 22,[\s\S]*paddingHorizontal: 8,[\s\S]*borderRadius: 11,\s*backgroundColor: colors\.fieldStrong,/);
   assert.doesNotMatch(b, /borderWidth|borderColor/, 'ux: the pill has no border');
-  assert.match(b, /pillMine: \{ backgroundColor: colors\.tint \}/);
+  assert.match(b, /pillMine: \{ backgroundColor: colors\.label \}/);
   assert.match(b, /tintColor=\{checked \? colors\.onTint : colors\.label\}/);
   assert.match(b, /pillCountMine: \{ color: colors\.onTint \}/);
   const h = src('features/chat/message-checks.ts');

@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.fieldStrong,
   },
   // ux 2026-11-14: no border; checked by me = ink fill with onTint content.
-  pillMine: { backgroundColor: colors.tint },
+  pillMine: { backgroundColor: colors.label },
   pillCount: { fontSize: 12, fontWeight: '600', color: colors.label },
   pillCountMine: { color: colors.onTint },
   list: { maxHeight: 360 },
