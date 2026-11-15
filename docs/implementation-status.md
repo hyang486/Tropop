@@ -2,6 +2,20 @@
 
 Updated: 2026-11-14 (America/Los_Angeles). Plan: `docs/plan/implementation-plan.md`.
 
+## 2026-11-15: demo all-Plus (0045 LIVE), web round pins, TS2882 guard (local main 57de694a, not pushed)
+
+- 0045 demo_all_plus LIVE as 20261115182456 (human "0045 yes" via qa ~10:35; supervisor code PASS 2a5926d4). One txn: trigger
+  on_auth_user_created_plus (after insert on auth.users, definer, search_path '', anon/authenticated no execute) → backfill
+  all users plus → DEMO-ONLY set_my_plan ('free' is a no-op, returns 'plus'; revert to the 0032 body after the demo) → open rooms
+  max_members 30. Baseline: 13 users (7 anon), plus 2 / free 1 / no row 10. After: 13/13 plus, 0 missing; trigger enabled.
+  Rolled-back probe as Mina, Sora, Master, master: get_my_plan plus, set_my_plan('free') plus, after plus. Rooms: USC Sunset Run
+  29→30 (expires_at 2026-11-15 20:19Z unchanged, AI on), USC Study Crew 6→30 (expires 11-17 unchanged, AI off). Security
+  advisors: no ERROR, the new private function is not listed. NOT verified: a live qrewing Ask/diary call without 402 (code
+  path reads user_plans via store.plan, core.ts:509/524/1069); a new-signup trigger fire (no test account without human OK).
+- web-round-pins e96654a8 merged --no-ff (9262e0a9). Fresh-worktree npm ci + tsc surfaced TS2882 (side-effect import
+  leaflet/dist/leaflet.css, web-stubs/expo-maps.tsx:3) that earlier tsc-0 reports on d0d638ce did not show; 71d31418
+  (developer-pace) adds mobile/src/css.d.ts `declare module '*.css'`. Gates on 71d31418: tsc 0, lint 0, tests 1241/1241.
+
 ## 2026-11-14: UX2-129 to UX2-139 merged on local main e2b16e7 (not pushed)
 
 - UX2-131 (1ede40f, c5a1264, 5202692): clamp line takes the Free at-max slot; copy "Set to N, the Free max.". qa PASS; ux closed at 5202692. UX2-132: no code change (Confirm email is OFF; see the UX2-131 / UX2-132 section below).
