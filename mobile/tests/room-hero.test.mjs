@@ -63,6 +63,6 @@ test('hero: an old snapshot without hero gets one on the next sync; parseDoc kee
   assert.equal(round.rooms.r1.hero, 'run');
   const bad = JSON.parse(JSON.stringify(round));
   bad.rooms.r1.hero = 'nope';
-  assert.equal(parseDoc(JSON.stringify(bad)).rooms.r1.hero, undefined);
+  assert.equal(parseDoc(JSON.stringify(bad)).rooms.r1.hero, 'run'); // an invalid value is re-picked from the name
   assert.ok(isHeroTopic('general') && !isHeroTopic('nope'));
 });

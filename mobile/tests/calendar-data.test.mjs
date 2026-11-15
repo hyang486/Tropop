@@ -159,3 +159,15 @@ test('Calendar v2 §C: startsAt, placeName, people are snapshotted; people keeps
   assert.ok(r);
   assert.deepEqual([r.startsAt, r.placeName, r.people], [null, null, null]);
 });
+
+test('parseDoc: a snapshot without a stored hero gets it from the room name, a stored hero is kept', () => {
+  const row = (id, name, extra = {}) => ({ roomId: id, name, type: 'general', start: '2026-11-15', end: '2026-11-15', endAt: 'x', emoji: '🏃', ...extra });
+  const doc = d.parseDoc(JSON.stringify({
+    version: 1,
+    rooms: { a: row('a', 'Audit Run Club'), b: row('b', 'Design Meetup Night'), c: row('c', 'Audit Run Club', { hero: 'party' }) },
+    events: [],
+  }));
+  assert.equal(doc.rooms.a.hero, 'run');
+  assert.equal(doc.rooms.b.hero, 'general');
+  assert.equal(doc.rooms.c.hero, 'party');
+});

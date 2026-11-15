@@ -75,7 +75,11 @@ function parseRoom(v: unknown): RoomSnapshot | null {
   const emoji = str(r.emoji, 16);
   if (!roomId || !name || !emoji || !isDateKey(r.start) || !isDateKey(r.end) || typeof r.endAt !== 'string') return null;
   const diary = Array.isArray(r.diary) ? cleanDiary(r.diary) : r.diary === null ? null : undefined;
-  return { roomId, name, type: typeof r.type === 'string' ? r.type : 'general', start: r.start, end: r.end, endAt: r.endAt, emoji, diary, hero: isHeroTopic(r.hero) ? r.hero : undefined,
+  const type = typeof r.type === 'string' ? r.type : 'general';
+  // A snapshot saved before the hero set (or by a build that did not store one) has no hero: pick it from the name now,
+  // so an ended room that the server no longer returns still gets its art instead of the general fallback.
+  const hero = isHeroTopic(r.hero) ? r.hero : roomHero({ name, type });
+  return { roomId, name, type, start: r.start, end: r.end, endAt: r.endAt, emoji, diary, hero,
     startsAt: typeof r.startsAt === 'string' ? r.startsAt : null, placeName: str(r.placeName, 120), people: count(r.people) };
 }
 
