@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: colors.field,
     borderLeftWidth: 4,
-    borderLeftColor: colors.tint,
+    borderLeftColor: colors.label,
     borderRadius: 12,
     borderCurve: 'continuous',
     paddingHorizontal: 12,

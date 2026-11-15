@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
+import { dismissEmergencyConfirmForEnd, EmergencyConfirmHost } from '@/components/emergency-confirm';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { QLink } from '@/components/q-screen';
@@ -97,6 +98,16 @@ const MAP_STYLE: MapProperties = {
 };
 
 export default function RoomMapScreen() {
+  // F-EMX8: the Emergency confirm lives above the map / ended switch so it can close when the room ends.
+  return (
+    <>
+      <RoomMapScreenBody />
+      <EmergencyConfirmHost />
+    </>
+  );
+}
+
+function RoomMapScreenBody() {
   // focus: an Emergency sender to center on (Q 04.04 "Open last shared location" from chat, Photos or Info).
   const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -150,6 +161,9 @@ export default function RoomMapScreen() {
 
   // G-U6-1: the room's end time passing while Map is open (the host's End arrives as a rooms notice above).
   const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+  useEffect(() => {
+    if (ended.over) dismissEmergencyConfirmForEnd();
+  }, [ended.over]);
   const noHeaderQ = <Stack.Screen options={{ headerRight: () => null }} />;
 
   if (state.status === 'loading') return <ActivityIndicator style={styles.loading} />;
@@ -646,7 +660,7 @@ function RoomMap({
                 hitSlop={OVERLAY_HIT_SLOP}
                 style={[styles.chip, styles.pen]}
               >
-                <SymbolView name="pencil.tip" size={18} tintColor={colors.tint} />
+                <SymbolView name="pencil.tip" size={18} tintColor={colors.label} />
                 <Text style={styles.link} numberOfLines={1} maxFontSizeMultiplier={MAP_OVERLAY_MAX_SCALE}>
                   {savedRoute.length > 0 ? en.map.editRoute : en.map.drawRoute}
                 </Text>
@@ -991,7 +1005,7 @@ const styles = StyleSheet.create({
   loading: { marginTop: 48 },
   center: { padding: 20, gap: 12, alignItems: 'center' },
   titlePill: { height: 40, paddingHorizontal: 18, borderRadius: radius.pill, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  titleText: { fontSize: 22, lineHeight: 26 },
+  titleText: { fontSize: 20, lineHeight: 28 },
   topOverlay: { position: 'absolute', left: 16, right: 16, gap: 8 },
   circles: { position: 'absolute', right: 16, gap: 12 },
   circle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -1014,7 +1028,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  chip: { backgroundColor: colors.field, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
+  chip: { backgroundColor: colors.lift, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
   pen: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   distanceChip: { flexShrink: 1, pointerEvents: 'none' },
   distance: { fontSize: 15, lineHeight: 22, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
@@ -1033,7 +1047,7 @@ const styles = StyleSheet.create({
   switchLabel: { fontSize: 17, color: colors.label, flexShrink: 1 },
   cardRow: { minHeight: 52, gap: 12 },
   pressed: { opacity: 0.6 },
-  link: { fontSize: 17, color: colors.tint },
+  link: { fontSize: 17, color: colors.label },
   preciseBar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12 },
   preciseText: { flexShrink: 1, fontSize: 13, lineHeight: 18, color: colors.ink2 },
   preciseLink: { minHeight: 44, justifyContent: 'center' },

@@ -409,9 +409,9 @@ export function useOnSheet() {
 }
 
 /** Pale card (Q #F6F6F2): rows, notes and settings on Q screens. */
-export function QCard({ children, row }: { children: ReactNode; row?: boolean }) {
+export function QCard({ children, row, lift }: { children: ReactNode; row?: boolean; lift?: boolean }) {
   const onSheet = use(OnSheet);
-  return <View style={[styles.card, row && styles.cardRow, onSheet && styles.cardOnSheet]}>{children}</View>;
+  return <View style={[styles.card, row && styles.cardRow, onSheet && styles.cardOnSheet, lift && { backgroundColor: colors.lift }]}>{children}</View>;
 }
 
 /**
@@ -523,27 +523,28 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, color: colors.ink2 },
   spacer: { flexGrow: 1 },
   caption: { fontSize: 13, color: colors.ink2, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  label: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 6 },
-  card: { backgroundColor: colors.field, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
+  label: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.label, marginTop: 6 },
+  card: { backgroundColor: colors.field, borderRadius: 24, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardOnSheet: { backgroundColor: colors.sheetField },
   fieldOnSheet: { backgroundColor: colors.sheetField },
   fieldFocused: { borderColor: colors.tint },
   fieldBlock: { gap: 6 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
+  fieldLabel: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.ink2 },
   fieldHelper: { fontSize: 13, color: colors.ink2 },
   fieldWithEye: { paddingRight: 48 },
   eye: { position: 'absolute', right: 2, top: 2, bottom: 2, width: 44, alignItems: 'center', justifyContent: 'center' },
   field: {
-    minHeight: 48,
-    borderWidth: 1.5,
+    minHeight: 52,
+    borderWidth: 2,
     borderColor: 'transparent',
-    borderRadius: 12,
+    borderRadius: 16,
     borderCurve: 'continuous',
     paddingHorizontal: 14,
-    fontSize: 17,
+    fontSize: 16,
+    lineHeight: 24,
     color: colors.label,
-    backgroundColor: colors.field,
+    backgroundColor: colors.wash,
   },
   link: { alignSelf: 'center', paddingVertical: 8 },
   linkText: { fontSize: 15, color: colors.label },

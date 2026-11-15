@@ -4,6 +4,7 @@ import { Text } from '@/components/text';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { openEmergencyConfirm } from '@/components/emergency-confirm';
 import { HandTitle } from '@/components/hand-title';
 import { colors, radius, usePalette } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -62,10 +63,8 @@ export function confirmEmergency(
       emergencyFailedAlert(cause, () => void attempt(), room?.onEnded);
     }
   }
-  Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [
-    { text: en.room.cancel, style: 'cancel' },
-    { text: en.activity.sendEmergency, style: 'destructive', onPress: () => void attempt() },
-  ]);
+  // F-EMX8: an in-app modal, so the room ending can close it (see components/emergency-confirm).
+  openEmergencyConfirm(() => void attempt(), room?.onEnded);
 }
 
 /**
@@ -255,7 +254,7 @@ function Tile({
   const pal = usePalette();
   const color = danger
     ? selected ? pal.onDanger : colors.danger
-    : selected ? colors.onTint : dimmed ? colors.secondaryLabel : colors.label;
+    : dimmed ? colors.secondaryLabel : colors.label;
   return (
     <Pressable
       accessibilityRole="button"
@@ -308,14 +307,17 @@ const styles = StyleSheet.create({
     minHeight: 64,
     // V5b (ux): tileOnLift on the lift sheet; selected = ink fill (Emergency: danger fill), no ring.
     backgroundColor: colors.tileOnLift,
-    borderRadius: 12,
+    borderRadius: 16,
     borderCurve: 'continuous',
+    borderWidth: 2,
+    borderColor: 'transparent',
     padding: 12,
     gap: 10,
     justifyContent: 'space-between',
   },
   tileDanger: { backgroundColor: colors.dangerField },
-  tileSelected: { backgroundColor: colors.tint },
+  // B2 (ux): selected ordinary = lift + 2 pt ink ring (red is Emergency only).
+  tileSelected: { backgroundColor: colors.lift, borderColor: colors.label },
   tileText: { fontSize: 15 },
   // UX2-52: the Emergency bar's ink pill (36 pt in a 44 pt hit area) with its caption under it.
   okBlock: { gap: 8, alignItems: 'flex-start' },
@@ -325,9 +327,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
-    backgroundColor: colors.tint,
+    backgroundColor: colors.label,
   },
-  okPillText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
+  okPillText: { fontSize: 15, fontWeight: '600', color: colors.lift },
   okCaption: { fontSize: 15, color: colors.ink2 },
   cancel: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 24 },
   cancelText: { fontSize: 15, color: colors.ink2 },

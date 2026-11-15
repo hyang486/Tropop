@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
 import { InkArt } from '@/components/ink-art';
@@ -47,7 +47,7 @@ export function RoomEnded({
     <QScreen
       title={en.room.endedTitle}
       subtitle={closedLine}
-      bottom={<InkArt art="ended" width={200} />}
+      bottom={<InkArt art="ended" width={180} />}
       bottomAlign="center"
       actions={
         <>
@@ -77,7 +77,12 @@ export function RoomEnded({
       ) : null}
       {/* E4: a stale reminder can open a room still in grace, where nothing is deleted yet. */}
       {reminder && !grace.grace ? <Text style={styles.line}>{en.room.reminderGoneHint}</Text> : null}
-      {!reminder && !grace.grace ? <Text style={styles.line}>{en.room.savedStay}</Text> : null}
+      {!reminder && !grace.grace ? (
+        <View style={styles.save}>
+          <Image source={require('@/assets/art/save-your-pics.png')} style={styles.saveArt} accessible={false} />
+          <Text style={styles.saveText}>{en.room.savedStay}</Text>
+        </View>
+      ) : null}
       {!reminder && closedMs === null ? <Text style={styles.line}>{en.room.goneHint}</Text> : null}
       {hasId ? <SavedRecapCard roomId={id} grace={grace.grace} /> : null}
     </QScreen>
@@ -88,5 +93,8 @@ const g = en.qrewing.grace;
 
 const styles = StyleSheet.create({
   until: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.label },
-  line: { fontSize: 15, lineHeight: 21, color: colors.ink2 },
+  save: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, borderCurve: 'continuous', backgroundColor: colors.softGold, paddingVertical: 10, paddingHorizontal: 14 },
+  saveArt: { width: 56, height: 56 },
+  saveText: { flex: 1, fontSize: 15, lineHeight: 20, color: colors.label },
+  line: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
 });

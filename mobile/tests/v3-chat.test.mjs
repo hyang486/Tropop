@@ -6,11 +6,11 @@ import { test } from 'node:test';
 const src = (p) => readFileSync(new URL(`../src/${p}`, import.meta.url), 'utf8');
 const block = (s, name) => s.match(new RegExp(`\\n  ${name}: \\{[^}]*\\}`))[0];
 
-test('V3 bubbles: radius 18; mine ink, tail bottom-right 6; others lift + lift shadow, tail bottom-left 6', () => {
+test('B2 bubbles: radius 20; mine softGold, tail bottom-right 6; others lift + lift shadow, tail bottom-left 6', () => {
   const c = src('app/room/[id]/index.tsx');
-  assert.match(c, /bubble: \{ borderRadius: 18,/);
-  assert.match(c, /mine: \{ backgroundColor: colors\.tint, borderBottomRightRadius: 6 \}/);
-  assert.match(c, /theirs: \{ backgroundColor: colors\.lift, borderBottomLeftRadius: 6 \}/);
+  assert.match(c, /bubble: \{ borderRadius: 20,/);
+  assert.match(c, /mine: \{ backgroundColor: colors\.softGold, borderBottomRightRadius: 6 \}/);
+  assert.match(c, /theirs: \{ backgroundColor: colors\.lift, borderBottomLeftRadius: 6, borderWidth: 1, borderColor: colors\.separator \}/);
   assert.match(c, /mine \? styles\.mine : \[styles\.theirs, lift\]/);
 });
 
@@ -51,7 +51,7 @@ test('V3 Emergency card: redwash, radius 22, lift, no frame; 40 pt danger disc w
   assert.match(disc, /width: 40,\s+height: 40,/);
   assert.match(disc, /backgroundColor: colors\.danger/);
   assert.match(disc, /boxShadow: '0 0 0 6px rgba\(255, 59, 48, 0\.2\)'/);
-  assert.match(r, /barTitle: \{ fontSize: 17, fontWeight: '600'/);
+  assert.match(r, /barTitle: \{ fontSize: 20, lineHeight: 28, fontWeight: '600'/);
   assert.match(r, /barLocationLink: \{ textDecorationLine: 'underline' \}/);
   assert.match(r, /pillSecondary: \{ backgroundColor: colors\.lift \}/);
 });

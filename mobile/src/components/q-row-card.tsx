@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     gap: 14,
     // V1: standalone is a wash fill with no border.
     backgroundColor: colors.wash,
-    borderRadius: 12,
+    borderRadius: 24,
     borderCurve: 'continuous',
     paddingHorizontal: 16,
     paddingVertical: 14,

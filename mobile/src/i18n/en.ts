@@ -391,6 +391,9 @@ export const en = {
     bodyLastHour: (name: string) => `${name} disappears in 1 hour. Download any photos and files you'd like to keep.`,
   },
   chat: {
+    // B2 chat header: the room-ends chip (last 60 min; last 10 min says what gets deleted).
+    endsChip: (min: number) => `Ends in ${min} min`,
+    endsChipDelete: (min: number) => `Ends in ${min} min · then photos are deleted`,
     // UX2-130 (R-C8): the in-chat reminder card, the only place the app asks for notifications.
     reminderCardTitle: 'Get a reminder a day before this room ends?',
     reminderCardTurnOn: 'Turn on',
@@ -621,7 +624,7 @@ export const en = {
     // F-EM-EXP: the Emergency alerts. Network failure and ended room have their own text.
     emergencyOfflineBody: 'Check your connection and try again.',
     emergencyEndedTitle: 'Room has ended',
-    emergencyEndedBody: "Your Emergency wasn't sent.",
+    emergencyEndedBody: "Your Emergency wasn't sent. If you need help now, call your local emergency number.",
     emergencyEndedOk: 'OK',
     arrived: 'Arrived',
     arrivedAt: (time: string) => `Arrived ${time}`,

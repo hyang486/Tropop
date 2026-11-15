@@ -55,7 +55,7 @@ function HeaderIcon({
   const pal = usePalette();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={rt ? 0 : 7} style={rt ? styles.rtIcon : styles.icon}>
-      <SymbolView name={symbol} size={22} tintColor={rt ? pal.ink : colors.tint} />
+      <SymbolView name={symbol} size={22} tintColor={rt ? pal.ink : colors.label} />
       {badge > 0 ? (
         <View style={styles.badge} importantForAccessibility="no-hide-descendants">
           <Text style={styles.badgeText} maxFontSizeMultiplier={1.2}>
@@ -208,11 +208,13 @@ const styles = StyleSheet.create({
     height: 17,
     paddingHorizontal: 4,
     borderRadius: 9,
-    backgroundColor: colors.tint,
+    backgroundColor: colors.gold,
+    borderWidth: 1.5,
+    borderColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { fontSize: 11, fontWeight: '700', color: colors.onTint, fontVariant: ['tabular-nums'] },
+  badgeText: { fontSize: 11, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] },
   ends: { fontSize: 14, color: colors.ink2, fontVariant: ['tabular-nums'], marginBottom: 4 },
   empty: { fontSize: 15, color: colors.ink2, paddingVertical: 12 },
   // MuteBar pads itself by 24; pulled in so its label lines up with the rows above.

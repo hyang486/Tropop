@@ -32,20 +32,21 @@ test('B1 lift shadow: one warm layer, light only', () => {
   assert.match(ui, /light: \{ boxShadow: '0 2px 8px rgba\(48,43,40,0\.08\)' \}/);
 });
 
-test('V1 Button: pills, 17 pt semibold, no outline; secondary wash (wash2 pressed), destructive redwash', () => {
-  assert.doesNotMatch(ui, /outlined|borderWidth: 1\.5/);
+test('V1 Button: pills, 17 pt semibold, no outline; B2 secondary lift with a 1.5 pt tint border (wash pressed), destructive redwash', () => {
+  assert.match(ui, /quiet && \{ borderWidth: 1\.5, borderColor: colors\.tint \}/);
   assert.match(ui, /buttonText: \{ fontSize: 17, fontWeight: '600' \}/);
   assert.match(ui, /minHeight: 52,\s*borderRadius: radius\.pill,/);
-  assert.match(ui, /secondary: colors\.wash,\s*destructive: colors\.redwash,/);
+  assert.match(ui, /secondary: colors\.lift,\s*destructive: colors\.redwash,/);
   assert.match(ui, /destructive: colors\.errorText,/);
-  assert.match(ui, /quiet && pressed && !disabled \? colors\.wash2 : fill/);
+  assert.match(ui, /secondary: colors\.tint,\s*destructive: colors\.errorText/);
+  assert.match(ui, /quiet && pressed && !disabled \? colors\.wash : fill/);
 });
 
 test('V1 Card and Tag primitives, gutter 20, radii', () => {
   assert.match(ui, /card: \{ backgroundColor: colors\.lift, borderRadius: radius\.card, borderCurve: 'continuous' \}/);
-  assert.match(ui, /cardDivider: \{ height: 1, marginHorizontal: 16, backgroundColor: colors\.wash \}/);
+  assert.match(ui, /cardDivider: \{ height: 1, marginHorizontal: 16, backgroundColor: colors\.separator \}/);
   assert.match(ui, /export function Tag\(/);
-  assert.match(ui, /backgroundColor: colors\.wash,\s*borderRadius: radius\.tag,\s*borderCurve: 'continuous',\s*paddingVertical: 3,\s*paddingHorizontal: 8,/);
+  assert.match(ui, /backgroundColor: colors\.softGold,\s*borderRadius: radius\.tag,\s*borderCurve: 'continuous',\s*paddingVertical: 3,\s*paddingHorizontal: 8,/);
   assert.match(ui, /tagText: \{ fontSize: 12, fontWeight: '600', color: colors\.label \}/);
   assert.match(ui, /radius = \{ pill: 999, card: 24, tile: 16, tag: 999, field: 16 \}/);
   assert.match(ui, /gutter: 20,/);
@@ -74,10 +75,10 @@ test('V1 QRowCard: standalone wash fill with no border; grouped drops its own fi
   assert.match(row, /\[styles\.card, grouped && styles\.grouped, pressed && \{ opacity: 0\.6 \}\]/);
 });
 
-test('V1 fields: wash fill, no border, radius 12; a 1.5 pt ink border only while focused (as the join-code box)', () => {
+test('B2 fields: wash fill, radius 16, 52 pt; a 2 pt Cardinal ring only while focused (as the join-code box)', () => {
   const q = src('components/q-screen.tsx');
-  assert.match(q, /field: \{\s*minHeight: 48,\s*borderWidth: 1\.5,\s*borderColor: 'transparent',\s*borderRadius: 12,/);
-  assert.match(q, /color: colors\.label,\s*backgroundColor: colors\.field,\s*\}/);
+  assert.match(q, /field: \{\s*minHeight: 52,\s*borderWidth: 2,\s*borderColor: 'transparent',\s*borderRadius: 16,/);
+  assert.match(q, /color: colors\.label,\s*backgroundColor: colors\.wash,\s*\}/);
   assert.match(q, /fieldFocused: \{ borderColor: colors\.tint \}/);
   assert.match(q, /fieldOnSheet: \{ backgroundColor: colors\.sheetField \}/);
   assert.match(q, /focused && styles\.fieldFocused/);

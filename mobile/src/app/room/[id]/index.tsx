@@ -15,6 +15,7 @@ import { Text } from '@/components/text';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { dismissEmergencyConfirmForEnd, EmergencyConfirmHost } from '@/components/emergency-confirm';
 import { HandTitle } from '@/components/hand-title';
 import { Avatar } from '@/components/avatar';
 import { Composer } from '@/components/composer';
@@ -39,6 +40,7 @@ import { canCheck, type CheckSummary } from '@/features/chat/message-checks-plan
 import { buildTimeline, resolvedCopy, type TimelineRow } from '@/features/chat/chat-timeline-plan';
 import { useMarkRoomRead } from '@/features/event/room-summary-api';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
+import { EndsChip } from '@/features/event/ends-chip';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
 import { cardsToAnswer } from '@/features/questions/question-plan';
 import { useQuestionCards, useRoomCards } from '@/features/questions/question-store';
@@ -76,6 +78,16 @@ type State =
   | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
 
 export default function RoomScreen() {
+  // F-EMX8: the Emergency confirm lives above the chat / ended switch so it can close when the room ends.
+  return (
+    <>
+      <RoomScreenBody />
+      <EmergencyConfirmHost />
+    </>
+  );
+}
+
+function RoomScreenBody() {
   const { id, from, aiNote } = useLocalSearchParams<{ id: string; from?: string; aiNote?: string }>();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -140,6 +152,7 @@ export default function RoomScreen() {
     state.status === 'gone' || (state.status === 'ready' && new Date(state.room.expires_at).getTime() <= now);
   useEffect(() => {
     if (!isGone) return;
+    dismissEmergencyConfirmForEnd();
     clearRoomCache(id);
     clearRoomNotices(id);
   }, [isGone, id]);
@@ -532,6 +545,7 @@ function ChatRoom({
               <Hint>{en.qrewing.create.aiSaveFailed}</Hint>
             </Pressable>
           ) : null}
+          <EndsChip expiresAt={room.expires_at} nowMs={nowMs} />
           {banner && bannerMessage ? (
             <PinnedNotice
               heading={banner.mention ? en.qrewing.mute.mentioned : en.qrewing.mute.banner(banner.reason ?? '')}
@@ -1030,19 +1044,19 @@ const styles = StyleSheet.create({
   avatarRing: { borderRadius: size.avatar / 2 + 2, borderWidth: 2, borderColor: 'transparent' },
   avatarRingHost: { borderColor: colors.label },
   nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { flexShrink: 1, fontSize: 13, fontWeight: '600', color: colors.label },
+  name: { flexShrink: 1, fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.ink2 },
   // UX P1-4: "Host" tag, 11 pt semibold, 1 pt ink outline, 4 pt radius.
   hostTag: { paddingHorizontal: 4, borderRadius: 4, borderWidth: 1, borderColor: colors.label },
   hostTagText: { fontSize: 11, fontWeight: '600', color: colors.label },
-  // V3: radius 18 with a 6 pt tail corner: own bubbles ink (paper text), tail bottom-right; others lift with the lift
-  // shadow (inline) and ink text, tail bottom-left.
-  bubble: { borderRadius: 18, borderCurve: 'continuous', paddingHorizontal: 13, paddingVertical: 9 },
-  mine: { backgroundColor: colors.tint, borderBottomRightRadius: 6 },
-  theirs: { backgroundColor: colors.lift, borderBottomLeftRadius: 6 },
+  // B2: radius 20 with a 6 pt tail corner, padding 10 x 14. Own bubbles softGold with ink text, no border, tail
+  // bottom-right; others lift with a 1 pt #E6DED7 edge (white on ivory needs one), tail bottom-left.
+  bubble: { borderRadius: 20, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
+  mine: { backgroundColor: colors.softGold, borderBottomRightRadius: 6 },
+  theirs: { backgroundColor: colors.lift, borderBottomLeftRadius: 6, borderWidth: 1, borderColor: colors.separator },
   failedBubble: { opacity: 0.6 },
-  body: { fontSize: 16, color: colors.label },
-  bodyMine: { color: colors.onTint },
-  meta: { fontSize: 12, color: colors.ink2 },
+  body: { fontSize: 16, lineHeight: 24, color: colors.label },
+  bodyMine: { color: colors.label },
+  meta: { fontSize: 12, lineHeight: 18, color: colors.ink2 },
   endedNote: { fontSize: 13, lineHeight: 18, color: colors.ink2, textAlign: 'center', paddingBottom: 6 },
   failedMeta: { color: colors.errorText },
   // V3 system lines: a wash capsule, radius 10, 4 x 10 pt padding, centred (13 pt ink2 text below).
@@ -1057,10 +1071,10 @@ const styles = StyleSheet.create({
   },
   // UX3-B04: day separator (12 pt semibold ink2, 12 above, 6 below; inverted list, so margins are flipped) and the
   // collapsed run's "Show" (13 pt semibold ink, 44 pt hit via hitSlop).
-  dayLabel: { alignSelf: 'center', fontSize: 12, fontWeight: '600', color: colors.ink2, marginTop: 12, marginBottom: 6 },
+  dayLabel: { alignSelf: 'center', fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.ink2, marginTop: 12, marginBottom: 6 },
   // UX2-56 follow-up: 44 pt tap target; less outer margin so the gap to its neighbours stays about the same.
   mediaRow: { minHeight: 44, justifyContent: 'center', marginVertical: 2 },
-  notice: { fontSize: 13, color: colors.ink2, textAlign: 'center' },
+  notice: { fontSize: 14, lineHeight: 20, color: colors.ink2, textAlign: 'center' },
   // V3 floating composer: dock over the list's bottom; the pill is lift, 54 pt, radius 27 (lift shadow added inline).
   composerDock: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12 },
   composerFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 110 },

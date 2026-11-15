@@ -24,13 +24,13 @@ test('slot: Qrewing while empty (if offered), send once typed or busy, nothing o
   assert.equal(plan.composerFadeMs(false), 150);
 });
 
-test('composer: 36 pt round Q with a 1.5 pt ink outline, 44 pt hit, label and hint from the caller', () => {
+test('composer: 36 pt round Q with a 1 pt separator ring, 44 pt hit, label and hint from the caller', () => {
   assert.match(composer, /slot: \{ width: 36, height: 36/);
   assert.match(composer, /hitSlop=\{4\}/);
   assert.match(composer, /accessibilityLabel=\{idleAction\.label\}/);
   assert.match(composer, /accessibilityHint=\{idleAction\.hint\}/);
   assert.match(fab, /composerMark: \{[^}]*width: 36, height: 36/);
-  assert.match(fab, /borderWidth: 1\.5, borderColor: colors\.label/);
+  assert.match(fab, /borderWidth: 1, borderColor: colors\.separator/);
   assert.match(en, /composerLabel: 'Qrewing'/);
   assert.match(en, /composerHint: 'Opens Qrewing AI\.'/);
 });

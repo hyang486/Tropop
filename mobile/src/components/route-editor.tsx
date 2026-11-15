@@ -316,12 +316,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: colors.tint,
+    backgroundColor: colors.lift,
+    shadowColor: '#302B28',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
     borderRadius: radius.pill,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  distance: { fontSize: 15, fontWeight: '600', color: colors.onTint, fontVariant: ['tabular-nums'] },
+  distance: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: colors.label, fontVariant: ['tabular-nums'] },
   // Three equal pills (Q 04.01); Draw is filled while it is on.
   tools: { flexDirection: 'row', gap: 8 },
   tool: {
