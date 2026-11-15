@@ -206,13 +206,20 @@ function CalendarMonth({ uid }: { uid: string }) {
                     pointerEvents="box-none"
                     style={[styles.cell, { left: col * cellW, top: row * CELL_H, width: cellW, height: CELL_H }]}
                   >
-                    <Text
-                      style={[styles.dayNum, { color: palette.ink }, handNum, key === today && styles.today]}
-                      accessibilityElementsHidden
-                      importantForAccessibility="no"
-                    >
-                      {day}
-                    </Text>
+                    <View style={key === today ? styles.todayRing : undefined}>
+                      <Text
+                        style={[
+                          styles.dayNum,
+                          { color: palette.ink },
+                          handNum,
+                          key === today && { color: colors.tint, fontWeight: '600' },
+                        ]}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no"
+                      >
+                        {day}
+                      </Text>
+                    </View>
                     {more > 0 ? (
                       <Pressable
                         accessibilityRole="button"
@@ -429,7 +436,20 @@ const styles = StyleSheet.create({
   grid: { position: 'relative', borderRadius: 8 },
   cell: { position: 'absolute', paddingTop: 2, paddingHorizontal: 4 },
   dayNum: { fontSize: 16, lineHeight: 18 },
-  today: { borderWidth: 2, borderColor: colors.tint, borderRadius: 14, minWidth: 28, height: 28, lineHeight: 24, textAlign: 'center', overflow: 'hidden' },
+  // ux: the ring hugs the number (22 pt, a slight pill for two digits); its bottom stays at y=20, clear of the lanes.
+  todayRing: {
+    alignSelf: 'flex-start',
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 2,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: colors.tint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -2,
+    marginLeft: -3,
+  },
   more: { position: 'absolute', right: 2, top: 0, minWidth: 24, alignItems: 'flex-end', paddingHorizontal: 2 },
   moreText: { fontSize: 13, lineHeight: 18 },
   fab: { position: 'absolute', width: FAB, height: FAB, borderRadius: FAB / 2 },

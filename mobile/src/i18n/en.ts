@@ -500,6 +500,15 @@ export const en = {
     pinnedDismiss: 'Hide the notice',
     // Spec 11 A14: the tag next to the host's name.
     hostTag: 'Host',
+    // B3: the long-press menu item and the plus-panel tile.
+    react: 'React',
+    stickersTile: 'Stickers',
+    reactWith: (name: string) => `React with ${name}`,
+    moreReactions: 'More reactions',
+    moreReactionsCount: (n: number) => `${n} more reactions`,
+    closeReactions: 'Close reactions',
+    closeStickers: 'Close stickers',
+    reactionsTitle: 'Reactions',
   },
   media: {
     // UX2-37: the viewer's photo failed to load.
@@ -966,6 +975,11 @@ export const en = {
     save: 'Save name',
     saved: 'Saved',
     chooseAvatar: 'Or choose a picture',
+    chooseCharacter: 'Choose a character',
+    pickCharacterTitle: 'Pick your character',
+    pickCharacterSkip: 'Skip',
+    pickCharacterHint: 'Your face in every room. Change it anytime in Profile.',
+    chooseAnotherPhoto: 'Choose another photo',
     /** UX2-63: the visible label above the name field (VoiceOver reads the field's own label). */
     nameHeading: 'Name',
     avatarOption: 'Picture',
@@ -1001,6 +1015,13 @@ export const en = {
     account: 'Account',
     editProfile: 'Edit profile',
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
+    editProfileButtonHint: 'Change your name and picture.',
+    // B2 Profile (ux spec section 5): header meta, the Edit text button and the two card headings.
+    roleHost: 'Host',
+    roleGuest: 'Guest',
+    edit: 'Edit',
+    sectionYou: 'You',
+    sectionSettings: 'Settings',
   },
   planPreview: {
     // C14: a Plus gate never guesses Free; offline with no cached plan it says so (shared by every Plus gate).

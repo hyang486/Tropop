@@ -21,7 +21,7 @@ test('People and room chat use the shared EmptyState, with no local copy', () =>
 
 test('Rooms, Photos and entry use the shared EmptyState with existing ink art', () => {
   // UX3-A02: Rooms' empty layout is the gathering art and one line above the buttons (no EmptyState title).
-  assert.match(read('app/index.tsx'), /<InkArt art="gathering" width=\{240\} \/>\n\s+<Text style=\{styles\.emptyLine\}>\{en\.home\.emptyLine\}/);
+  assert.match(read('app/index.tsx'), /<InkArt art="gathering" \/>\n\s+<Text style=\{styles\.emptyLine\}>\{en\.home\.emptyLine\}/);
   const gallery = read('app/room/[id]/gallery.tsx');
   assert.match(gallery, /<EmptyState art="camera" title=\{emptyText\} body=\{en\.media\.emptyHint\} \/>/);
   assert.match(gallery, /<EmptyState title=\{en\.media\.loadError\} action=\{\{ title: en\.home\.retry, onPress: media\.reload \}\} \/>/);

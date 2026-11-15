@@ -33,6 +33,10 @@ import { useSmallTalk } from '@/features/event/use-small-talk';
 import { useRecapTriggers } from '@/features/recap/use-recap-triggers';
 import { ChatHeaderButtons, NoticesSheet, SettingsSheet, useChatNoticeProducers } from '@/features/chat/chat-header';
 import { CheckBlock, CheckedBySheet } from '@/features/chat/check-block';
+import { ReactionChips } from '@/features/stickers/reaction-chips';
+import { ReactionPicker } from '@/features/stickers/reaction-picker';
+import { StickerBubble } from '@/features/stickers/sticker-bubble';
+import { StickerSheet } from '@/features/stickers/sticker-sheet';
 import { ChatMedia } from '@/features/chat/chat-media';
 import { mediaForLines } from '@/features/chat/chat-media-plan';
 import { useMessageChecks } from '@/features/chat/message-checks';
@@ -246,6 +250,9 @@ function ChatRoom({
   // UX3-B09 (S3): one ink check per message; the pill opens "Checked by".
   const messageChecks = useMessageChecks(room.id, userId);
   const [checkedByFor, setCheckedByFor] = useState<string | null>(null);
+  // B3: the reaction picker's target message and the sticker sheet.
+  const [reactFor, setReactFor] = useState<string | null>(null);
+  const [stickersOpen, setStickersOpen] = useState(false);
   const checkedBy = checkedByFor
     ? (messageChecks.checks.get(checkedByFor)?.userIds ?? []).map((uid) => ({
         id: uid,
@@ -471,6 +478,7 @@ function ChatRoom({
       danger: uploadSummary.failed > 0,
       onPress: () => go('/room/[id]/gallery'),
     },
+    { key: 'stickers', symbol: 'face.smiling', label: en.chat.stickersTile, onPress: () => { setPlusOpen(false); setStickersOpen(true); } },
     ...(room.location_allowed || room.host_id === userId
       ? [{ key: 'map', symbol: 'map', label: en.map.headerLink, onPress: () => go('/room/[id]/map') } satisfies PlusTile]
       : []),
@@ -666,6 +674,10 @@ function ChatRoom({
                       check={messageChecks.checks.get(item.id)}
                       onToggleCheck={(viaDoubleTap) => void messageChecks.toggle(item.id, viaDoubleTap)}
                       onShowCheckedBy={() => setCheckedByFor(item.id)}
+                      me={userId}
+                      reactions={messageChecks.reactions.get(item.id)}
+                      onReact={() => setReactFor(item.id)}
+                      onToggleReaction={(reaction) => void messageChecks.react(item.id, reaction)}
                       onOpenMedia={(mediaId) =>
                         router.push({ pathname: '/room/[id]/media/[mediaId]', params: { id: room.id, mediaId } })
                       }
@@ -748,6 +760,12 @@ function ChatRoom({
           ) : null}
         </View>
       </KeyboardAvoidingView>
+      <StickerSheet visible={stickersOpen} onClose={() => setStickersOpen(false)} onSend={chat.sendSticker} />
+      <ReactionPicker
+        visible={reactFor != null}
+        onClose={() => setReactFor(null)}
+        onPick={(reaction) => reactFor && void messageChecks.react(reactFor, reaction)}
+      />
       <NoticesSheet
         roomId={room.id}
         visible={sheet === 'notices'}
@@ -829,6 +847,10 @@ function MessageRow({
   check,
   onToggleCheck,
   onShowCheckedBy,
+  me,
+  reactions,
+  onReact,
+  onToggleReaction,
 }: {
   item: ChatItem;
   mine: boolean;
@@ -849,6 +871,11 @@ function MessageRow({
   check?: CheckSummary;
   onToggleCheck: (viaDoubleTap: boolean) => void;
   onShowCheckedBy: () => void;
+  /** B3: the viewer, this message's reactions (not the check), the picker opener and the chip toggle. */
+  me: string | null | undefined;
+  reactions?: { user_id: string; reaction: number }[];
+  onReact: () => void;
+  onToggleReaction: (reaction: number) => void;
 }) {
   const lift = useLift();
   const time = useMemo(
@@ -950,7 +977,10 @@ function MessageRow({
   // UX P1-3: others show "Jay · 8:48 AM" above the bubble; your own time sits under it. Sending and failed replace the time.
   const failed = item.pending === 'failed';
   const when = item.pending === 'sending' ? en.chat.sending : failed ? en.chat.failed : time;
-  const plain = (
+  const isSticker = item.kind === 'sticker';
+  const plain = isSticker ? (
+    <StickerBubble stickerId={item.body ?? ''} senderName={mine ? en.chat.you : name} />
+  ) : (
     <View style={[styles.bubble, mine ? styles.mine : [styles.theirs, lift], failed && styles.failedBubble]}>
       <Text selectable={!(checksReady && canCheck(item, false))} style={[styles.body, mine && styles.bodyMine]}>
         {item.body}
@@ -962,10 +992,11 @@ function MessageRow({
     <CheckBlock
       mine={mine}
       check={check}
-      copyText={item.body ?? ''}
-      doubleTap
+      copyText={isSticker ? undefined : (item.body ?? '')}
+      doubleTap={!isSticker}
       onToggle={onToggleCheck}
       onShowCheckedBy={onShowCheckedBy}
+      onReact={onReact}
     >
       {plain}
     </CheckBlock>
@@ -973,6 +1004,9 @@ function MessageRow({
     plain
   );
 
+  const chips = reactions?.length ? (
+    <ReactionChips rows={reactions} me={me ?? undefined} align={mine ? 'flex-end' : 'flex-start'} onToggle={onToggleReaction} onMore={onReact} />
+  ) : null;
   if (mine) {
     return (
       <View style={[styles.row, styles.rowMine]}>
@@ -983,6 +1017,7 @@ function MessageRow({
         ) : (
           bubble
         )}
+        {chips}
         <Text style={[styles.meta, failed && styles.failedMeta]} accessibilityLabel={`${en.chat.you}, ${when}`}>
           {when}
         </Text>
@@ -1011,6 +1046,7 @@ function MessageRow({
           <Text style={styles.meta}>{when}</Text>
         </View>
         {bubble}
+        {chips}
       </View>
     </View>
   );

@@ -5,7 +5,7 @@ import { colors } from '@/components/ui';
 
 /**
  * Shared pill (ux rule, 2026-11-14: borders and fills live in shared components so a restyle changes them once).
- * - `count`: ink fill, paper 13 pt semibold text, 22 pt high, min 22 pt wide (the Rooms unread pill, UX3-A01).
+ * - `count`: gold fill, ink 13 pt bold text, 22 pt high, min 22 pt wide (the Rooms unread pill, UX3-A01).
  * - `tag`: 1.2 pt ink outline, radius 8, 12 pt semibold, 6 pt horizontal padding (the Rooms "Live" tag).
  * Decorative for VoiceOver: the row that holds it speaks the value.
  */
@@ -29,11 +29,11 @@ const styles = StyleSheet.create({
     minWidth: 22,
     borderRadius: 11,
     paddingHorizontal: 6,
-    backgroundColor: colors.tint,
+    backgroundColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  countText: { fontSize: 13, fontWeight: '600', color: colors.onTint, fontVariant: ['tabular-nums'] },
+  countText: { fontSize: 13, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] },
   tag: {
     borderWidth: 1.2,
     borderColor: colors.label,

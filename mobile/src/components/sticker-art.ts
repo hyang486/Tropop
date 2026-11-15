@@ -1,0 +1,47 @@
+import type { ImageSourcePropType } from 'react-native';
+
+// Generated from assets/brand/manifest.json: literal require() paths so Metro bundles every sticker and reaction.
+export const STICKER_IMAGES: Record<string, ImageSourcePropType> = {
+  'usc-fight-on': require('@/assets/brand/stickers/usc-fight-on.png'),
+  'usc-lets-go': require('@/assets/brand/stickers/usc-lets-go.png'),
+  'usc-made-it': require('@/assets/brand/stickers/usc-made-it.png'),
+  'meetup-01': require('@/assets/brand/stickers/meetup-01.png'),
+  'meetup-02': require('@/assets/brand/stickers/meetup-02.png'),
+  'meetup-03': require('@/assets/brand/stickers/meetup-03.png'),
+  'meetup-04': require('@/assets/brand/stickers/meetup-04.png'),
+  'meetup-05': require('@/assets/brand/stickers/meetup-05.png'),
+  'meetup-06': require('@/assets/brand/stickers/meetup-06.png'),
+  'meetup-07': require('@/assets/brand/stickers/meetup-07.png'),
+  'meetup-08': require('@/assets/brand/stickers/meetup-08.png'),
+  'meetup-09': require('@/assets/brand/stickers/meetup-09.png'),
+  'meetup-10': require('@/assets/brand/stickers/meetup-10.png'),
+  'meetup-11': require('@/assets/brand/stickers/meetup-11.png'),
+  'meetup-12': require('@/assets/brand/stickers/meetup-12.png'),
+  'connection-01': require('@/assets/brand/stickers/connection-01.png'),
+  'connection-02': require('@/assets/brand/stickers/connection-02.png'),
+  'connection-03': require('@/assets/brand/stickers/connection-03.png'),
+  'connection-04': require('@/assets/brand/stickers/connection-04.png'),
+  'connection-05': require('@/assets/brand/stickers/connection-05.png'),
+  'connection-06': require('@/assets/brand/stickers/connection-06.png'),
+  'connection-07': require('@/assets/brand/stickers/connection-07.png'),
+  'connection-08': require('@/assets/brand/stickers/connection-08.png'),
+  'connection-09': require('@/assets/brand/stickers/connection-09.png'),
+  'connection-10': require('@/assets/brand/stickers/connection-10.png'),
+  'connection-11': require('@/assets/brand/stickers/connection-11.png'),
+  'connection-12': require('@/assets/brand/stickers/connection-12.png'),
+};
+
+export const REACTION_IMAGES: Record<number, { 20: ImageSourcePropType; 28: ImageSourcePropType }> = {
+  1: { 20: require('@/assets/brand/reactions/r01-20.png'), 28: require('@/assets/brand/reactions/r01-28.png') },
+  2: { 20: require('@/assets/brand/reactions/r02-20.png'), 28: require('@/assets/brand/reactions/r02-28.png') },
+  3: { 20: require('@/assets/brand/reactions/r03-20.png'), 28: require('@/assets/brand/reactions/r03-28.png') },
+  4: { 20: require('@/assets/brand/reactions/r04-20.png'), 28: require('@/assets/brand/reactions/r04-28.png') },
+  5: { 20: require('@/assets/brand/reactions/r05-20.png'), 28: require('@/assets/brand/reactions/r05-28.png') },
+  6: { 20: require('@/assets/brand/reactions/r06-20.png'), 28: require('@/assets/brand/reactions/r06-28.png') },
+  7: { 20: require('@/assets/brand/reactions/r07-20.png'), 28: require('@/assets/brand/reactions/r07-28.png') },
+  8: { 20: require('@/assets/brand/reactions/r08-20.png'), 28: require('@/assets/brand/reactions/r08-28.png') },
+  9: { 20: require('@/assets/brand/reactions/r09-20.png'), 28: require('@/assets/brand/reactions/r09-28.png') },
+  10: { 20: require('@/assets/brand/reactions/r10-20.png'), 28: require('@/assets/brand/reactions/r10-28.png') },
+  11: { 20: require('@/assets/brand/reactions/r11-20.png'), 28: require('@/assets/brand/reactions/r11-28.png') },
+  12: { 20: require('@/assets/brand/reactions/r12-20.png'), 28: require('@/assets/brand/reactions/r12-28.png') },
+};

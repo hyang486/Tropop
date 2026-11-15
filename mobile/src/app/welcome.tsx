@@ -1,10 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { HandTitle } from '@/components/hand-title';
 import { InkArt } from '@/components/ink-art';
 import { QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint, textRole } from '@/components/ui';
@@ -57,18 +56,19 @@ export default function Welcome() {
           </View>
         </View>
       ) : null}
+      <Image source={require('@/assets/brand/logo/app-logo.png')} style={styles.logo} accessibilityIgnoresInvertColors accessible={false} />
       <View style={styles.art}>
-        <InkArt art="gathering" width={300} />
+        <InkArt art="gathering" />
       </View>
-      <HandTitle style={styles.headline}>{en.welcome.headline}</HandTitle>
+      <Text accessibilityRole="header" style={styles.headline}>{en.welcome.headline}</Text>
       <View style={styles.values}>
         {VALUES.map((v) => (
           <View key={v.icon} style={styles.value} accessible>
             <View style={styles.valueIcon}>
-              <SymbolView name={v.icon} size={18} tintColor={colors.label} />
+              <SymbolView name={v.icon} size={22} tintColor={colors.label} />
             </View>
             <View style={styles.valueText}>
-              <Text style={textRole.bodyStrong}>{v.title}</Text>
+              <Text style={styles.valueTitle}>{v.title}</Text>
               <Text style={textRole.secondary}>{v.line}</Text>
             </View>
           </View>
@@ -78,7 +78,7 @@ export default function Welcome() {
   );
 }
 
-// UX3-A03 value rows: a 28 pt ink-outline icon box, a 17 pt semibold title and a 15 pt ink2 line, 14 pt apart.
+// B2 value rows: an ink icon in a 40 pt softGold circle, a 16/24 600 title and a 14/20 ink2 line, 16 pt apart.
 const VALUES = [
   { icon: 'qrcode', title: en.welcome.valueJoinTitle, line: en.welcome.valueJoinLine },
   { icon: 'face.smiling', title: en.welcome.valuePhotosTitle, line: en.welcome.valuePhotosLine },
@@ -86,19 +86,20 @@ const VALUES = [
 ] as const;
 
 const styles = StyleSheet.create({
-  art: { alignItems: 'center', marginTop: 16 },
-  headline: { fontSize: 36, lineHeight: 40, marginTop: 20 },
-  values: { gap: 14 },
-  value: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  logo: { width: 72, height: 72, borderRadius: 18, borderCurve: 'continuous', marginTop: 24, alignSelf: 'flex-start' },
+  art: { marginTop: 16 },
+  headline: { fontSize: 32, lineHeight: 40, fontWeight: '700', color: colors.label, marginTop: 24 },
+  values: { gap: 16, marginTop: 24 },
+  value: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   valueIcon: {
-    width: 28,
-    height: 28,
-    marginTop: 2,
-    borderRadius: 7,
-    backgroundColor: colors.wash,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.softGold,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  valueTitle: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
   valueText: { flex: 1, gap: 2 },
   // sweep4 P1-3: a filled notice above the art (colors.field; becomes wash after V1).
   note: {

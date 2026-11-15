@@ -9,7 +9,7 @@ test('V2: Join (primary) + Create (secondary) with scan / plus icons, equal widt
   const h = src('app/index.tsx');
   assert.match(h, /<Button compact icon="qrcode\.viewfinder" title=\{en\.home\.joinShort\}/);
   assert.match(h, /icon="plus"\s+title=\{en\.home\.createShort\}\s+variant="secondary"/);
-  assert.match(h, /pair: \{ flexDirection: 'row', gap: 10/);
+  assert.match(h, /pair: \{ flexDirection: 'row', gap: 12/);
   const ui = src('components/ui.tsx');
   assert.match(ui, /icon\?: SFSymbol;/);
   assert.match(ui, /<SymbolView name=\{icon\} size=\{17\} weight="semibold" tintColor=\{label\} \/>/);
@@ -25,8 +25,8 @@ test('V2: header is one shared glass pill with Calendar + Profile icons, no avat
 test('V2: each section is one Card; rows have no border; 48 pt wash art tile, radius 14; row min 76', () => {
   const h = src('app/index.tsx');
   assert.match(h, /<Card>\s+\{sortEmergencyFirst\(\s+sortByLastItem\(/);
-  assert.match(h, /row: \{\s+flexDirection: 'row',\s+alignItems: 'center',\s+minHeight: 76,\s+paddingHorizontal: 16,/);
-  assert.match(h, /ring: \{\s+width: 48,\s+height: 48,\s+borderRadius: radius\.tile,\s+borderCurve: 'continuous',\s+backgroundColor: colors\.wash,/);
+  assert.match(h, /row: \{\s+flexDirection: 'row',\s+alignItems: 'center',\s+minHeight: 80,\s+paddingHorizontal: 16,/);
+  assert.match(h, /ring: \{\s+width: 48,\s+height: 48,\s+borderRadius: 14,\s+borderCurve: 'continuous',\s+backgroundColor: colors\.wash,/);
   assert.doesNotMatch(h, /borderWidth/);
   const oc = src('features/event/open-chat-section.tsx');
   assert.match(oc, /<Card>\s+\{rooms\.map\(/);

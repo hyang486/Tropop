@@ -65,7 +65,7 @@ test('non-join links have no join href', () => {
 });
 
 test('hasOpenModal looks at the active root routes only', () => {
-  assert.deepEqual([...MODAL_ROUTES], ['upgrade', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions']);
+  assert.deepEqual([...MODAL_ROUTES], ['upgrade', 'pick-character', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions']);
   assert.equal(hasOpenModal(undefined), false);
   assert.equal(hasOpenModal({ index: 0, routes: [{ name: 'index' }] }), false);
   assert.equal(hasOpenModal({ index: 2, routes: [{ name: 'index' }, { name: 'room/[id]/index' }, { name: 'room/[id]/info' }] }), false);
@@ -170,7 +170,7 @@ test('UX2-136: room link forms map to their href; with a modal open (any of the 
   for (const p of ['/room', '/room/', '/rooms/abc', '/join/abc', 'https://example.com/room/abc', 'moment:room/abc']) {
     assert.equal(roomLinkHref(p), null, p);
   }
-  for (const name of ['upgrade', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions']) {
+  for (const name of ['upgrade', 'pick-character', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions']) {
     const state = { index: 2, routes: [{ name: 'index' }, { name: 'room/[id]/index' }, { name }] };
     assert.equal(hasOpenModal(state), true, name);
   }

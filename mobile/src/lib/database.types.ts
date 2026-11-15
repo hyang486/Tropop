@@ -76,20 +76,90 @@ export type Database = {
         }
         Relationships: []
       }
+      connect_requests: {
+        Row: {
+          created_at: string
+          from_user: string
+          id: string
+          room_id: string | null
+          status: string
+          to_user: string
+        }
+        Insert: {
+          created_at?: string
+          from_user: string
+          id?: string
+          room_id?: string | null
+          status?: string
+          to_user: string
+        }
+        Update: {
+          created_at?: string
+          from_user?: string
+          id?: string
+          room_id?: string | null
+          status?: string
+          to_user?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connect_requests_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connections: {
+        Row: {
+          created_at: string
+          room_id: string | null
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          room_id?: string | null
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          room_id?: string | null
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emergency_acks: {
         Row: {
           acked_at: string
           event_id: string
+          on_way: boolean
+          on_way_at: string | null
           user_id: string
         }
         Insert: {
           acked_at?: string
           event_id: string
+          on_way?: boolean
+          on_way_at?: string | null
           user_id: string
         }
         Update: {
           acked_at?: string
           event_id?: string
+          on_way?: boolean
+          on_way_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -139,6 +209,7 @@ export type Database = {
       }
       entry_profiles: {
         Row: {
+          answers: Json
           headline: string
           interests: string
           links: string[]
@@ -148,6 +219,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          answers?: Json
           headline: string
           interests?: string
           links?: string[]
@@ -157,6 +229,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          answers?: Json
           headline?: string
           interests?: string
           links?: string[]
@@ -172,6 +245,44 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "room_members"
             referencedColumns: ["room_id", "user_id"]
+          },
+        ]
+      }
+      entry_questions: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          position: number
+          prompt: string
+          required: boolean
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          position: number
+          prompt: string
+          required?: boolean
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          position?: number
+          prompt?: string
+          required?: boolean
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_questions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -501,6 +612,45 @@ export type Database = {
           },
         ]
       }
+      message_reactions: {
+        Row: {
+          created_at: string
+          message_id: string
+          reaction: number
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          message_id: string
+          reaction: number
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          message_id?: string
+          reaction?: number
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_triage: {
         Row: {
           created_at: string
@@ -594,44 +744,9 @@ export type Database = {
           },
         ]
       }
-      message_reactions: {
-        Row: {
-          created_at: string
-          message_id: string
-          room_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          message_id: string
-          room_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          message_id?: string
-          room_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_reactions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_reactions_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
+          avatar_character: number | null
           avatar_path: string | null
           created_at: string
           display_name: string
@@ -639,6 +754,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_character?: number | null
           avatar_path?: string | null
           created_at?: string
           display_name?: string
@@ -646,6 +762,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_character?: number | null
           avatar_path?: string | null
           created_at?: string
           display_name?: string
@@ -672,6 +789,36 @@ export type Database = {
           token?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      qr_codes: {
+        Row: {
+          app: string
+          image_path: string
+          link: string | null
+          owner_id: string
+          reported_at: string | null
+          reported_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          app: string
+          image_path: string
+          link?: string | null
+          owner_id: string
+          reported_at?: string | null
+          reported_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          app?: string
+          image_path?: string
+          link?: string | null
+          owner_id?: string
+          reported_at?: string | null
+          reported_by?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -768,9 +915,60 @@ export type Database = {
           },
         ]
       }
+      question_cards: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          answerer_id: string
+          asker_id: string
+          created_at: string
+          id: string
+          posted_as_notice: boolean
+          question: string
+          room_id: string
+          status: string
+          timeout_at: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          answerer_id: string
+          asker_id: string
+          created_at?: string
+          id?: string
+          posted_as_notice?: boolean
+          question: string
+          room_id: string
+          status?: string
+          timeout_at?: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          answerer_id?: string
+          asker_id?: string
+          created_at?: string
+          id?: string
+          posted_as_notice?: boolean
+          question?: string
+          room_id?: string
+          status?: string
+          timeout_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_cards_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_members: {
         Row: {
           joined_at: string
+          last_read_at: string
           role: string
           room_id: string
           share_location: boolean
@@ -778,6 +976,7 @@ export type Database = {
         }
         Insert: {
           joined_at?: string
+          last_read_at?: string
           role?: string
           room_id: string
           share_location?: boolean
@@ -785,6 +984,7 @@ export type Database = {
         }
         Update: {
           joined_at?: string
+          last_read_at?: string
           role?: string
           room_id?: string
           share_location?: boolean
@@ -859,12 +1059,19 @@ export type Database = {
           location_allowed: boolean
           max_members: number
           name: string
+          no_limit: boolean
+          notice_set_at: string | null
+          notice_set_by: string | null
+          notice_text: string | null
           place_lat: number | null
           place_lng: number | null
           place_name: string | null
+          public_icon: string | null
+          public_location: string | null
           route: Json
           starts_at: string | null
           type: string
+          visibility: string
         }
         Insert: {
           activity_ended_at?: string | null
@@ -883,12 +1090,19 @@ export type Database = {
           location_allowed?: boolean
           max_members?: number
           name: string
+          no_limit?: boolean
+          notice_set_at?: string | null
+          notice_set_by?: string | null
+          notice_text?: string | null
           place_lat?: number | null
           place_lng?: number | null
           place_name?: string | null
+          public_icon?: string | null
+          public_location?: string | null
           route?: Json
           starts_at?: string | null
           type?: string
+          visibility?: string
         }
         Update: {
           activity_ended_at?: string | null
@@ -907,12 +1121,19 @@ export type Database = {
           location_allowed?: boolean
           max_members?: number
           name?: string
+          no_limit?: boolean
+          notice_set_at?: string | null
+          notice_set_by?: string | null
+          notice_text?: string | null
           place_lat?: number | null
           place_lng?: number | null
           place_name?: string | null
+          public_icon?: string | null
+          public_location?: string | null
           route?: Json
           starts_at?: string | null
           type?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -948,24 +1169,109 @@ export type Database = {
           },
         ]
       }
+      user_plans: {
+        Row: {
+          plan: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          plan: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          plan?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       ack_emergency: { Args: { p_event_id: string }; Returns: undefined }
+      answer_question_card: {
+        Args: {
+          p_answer: string
+          p_card_id: string
+          p_post_as_notice?: boolean
+        }
+        Returns: {
+          answer: string | null
+          answered_at: string | null
+          answerer_id: string
+          asker_id: string
+          created_at: string
+          id: string
+          posted_as_notice: boolean
+          question: string
+          room_id: string
+          status: string
+          timeout_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "question_cards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ask_question_in_chat: {
+        Args: { p_card_id: string }
+        Returns: {
+          answer: string | null
+          answered_at: string | null
+          answerer_id: string
+          asker_id: string
+          created_at: string
+          id: string
+          posted_as_notice: boolean
+          question: string
+          room_id: string
+          status: string
+          timeout_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "question_cards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      cancel_connect_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
       clear_my_status: { Args: { p_room_id: string }; Returns: undefined }
+      connection_qr_codes: {
+        Args: { p_other: string }
+        Returns: {
+          app: string
+          image_path: string
+          link: string
+          reported_by_me: boolean
+          updated_at: string
+        }[]
+      }
       create_room: {
         Args: {
           p_expires_at: string
           p_location_allowed: boolean
+          p_max_members?: number
           p_name: string
+          p_no_limit?: boolean
           p_place_lat?: number
           p_place_lng?: number
           p_place_name?: string
+          p_public_icon?: string
+          p_public_location?: string
           p_starts_at?: string
           p_statuses?: string[]
           p_type: string
+          p_visibility?: string
         }
         Returns: {
           activity_ended_at: string | null
@@ -984,12 +1290,19 @@ export type Database = {
           location_allowed: boolean
           max_members: number
           name: string
+          no_limit: boolean
+          notice_set_at: string | null
+          notice_set_by: string | null
+          notice_text: string | null
           place_lat: number | null
           place_lng: number | null
           place_name: string | null
+          public_icon: string | null
+          public_location: string | null
           route: Json
           starts_at: string | null
           type: string
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -998,11 +1311,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_qr_code: { Args: { p_app: string }; Returns: undefined }
       end_room: { Args: { p_room_id: string }; Returns: undefined }
       enroll_face: {
         Args: { p_ref_path: string; p_room_id: string }
         Returns: string
       }
+      get_my_plan: { Args: never; Returns: string }
       janitor_detect_objects: {
         Args: { p_limit?: number }
         Returns: {
@@ -1011,11 +1326,26 @@ export type Database = {
         }[]
       }
       janitor_secret_ok: { Args: { p_secret: string }; Returns: boolean }
+      join_open_room: { Args: { p_room_id: string }; Returns: string }
       join_room: {
         Args: { p_code?: string; p_token?: string }
         Returns: string
       }
       leave_room: { Args: { p_room_id: string }; Returns: undefined }
+      list_open_rooms: {
+        Args: { p_limit?: number }
+        Returns: {
+          already_member: boolean
+          expires_at: string
+          max_members: number
+          member_count: number
+          name: string
+          public_icon: string
+          public_location: string
+          room_id: string
+          type: string
+        }[]
+      }
       log_qrewing_usage: {
         Args: {
           p_action: string
@@ -1023,10 +1353,61 @@ export type Database = {
           p_model: string
           p_output_tokens: number
           p_room_id: string
+          p_user_id?: string
         }
         Returns: undefined
       }
       mark_arrived: { Args: { p_room_id: string }; Returns: string }
+      mark_room_read: { Args: { p_room_id: string }; Returns: string }
+      my_connect_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          direction: string
+          expires_at: string
+          other_apps: string[]
+          other_avatar_path: string
+          other_id: string
+          other_name: string
+          request_id: string
+          room_id: string
+          room_name: string
+        }[]
+      }
+      my_connection_quota: {
+        Args: never
+        Returns: {
+          can_add: boolean
+          max_connections: number
+          pending_incoming: number
+          plan: string
+          used: number
+        }[]
+      }
+      my_connections: {
+        Args: never
+        Returns: {
+          created_at: string
+          other_apps: string[]
+          other_avatar_path: string
+          other_id: string
+          other_name: string
+          room_id: string
+          room_name: string
+        }[]
+      }
+      my_qr_codes: {
+        Args: never
+        Returns: {
+          app: string
+          image_path: string
+          link: string
+          reported_at: string
+          reported_by: string
+          reported_by_name: string
+          updated_at: string
+        }[]
+      }
       prepare_account_deletion: { Args: { p_user_id: string }; Returns: Json }
       preview_room: {
         Args: { p_code?: string; p_token?: string }
@@ -1044,10 +1425,20 @@ export type Database = {
           type: string
         }[]
       }
+      qrewing_usage_count: {
+        Args: {
+          p_action: string
+          p_room_id: string
+          p_since: string
+          p_user_id?: string
+        }
+        Returns: number
+      }
       register_push_token: {
         Args: { p_platform?: string; p_token: string }
         Returns: undefined
       }
+      remove_connection: { Args: { p_other: string }; Returns: undefined }
       remove_face_enrollment: {
         Args: { p_room_id: string }
         Returns: undefined
@@ -1063,6 +1454,40 @@ export type Database = {
         }
         Returns: boolean
       }
+      report_qr_code: {
+        Args: { p_app: string; p_owner: string }
+        Returns: undefined
+      }
+      request_connection: {
+        Args: { p_room_id: string; p_to: string }
+        Returns: string
+      }
+      respond_connection: {
+        Args: { p_accept: boolean; p_request_id: string }
+        Returns: string
+      }
+      room_connect_people: {
+        Args: { p_room_id: string }
+        Returns: {
+          apps: string[]
+          can_connect: boolean
+          request_id: string
+          state: string
+          user_id: string
+        }[]
+      }
+      room_list_summaries: {
+        Args: { p_room_ids?: string[] }
+        Returns: {
+          last_at: string
+          last_body: string
+          last_kind: string
+          last_sender_id: string
+          last_sender_name: string
+          room_id: string
+          unread: number
+        }[]
+      }
       rotate_invite: {
         Args: { p_room_id: string }
         Returns: {
@@ -1074,10 +1499,45 @@ export type Database = {
         Args: { p_room_id: string; p_state: string }
         Returns: undefined
       }
+      set_emergency_on_way: {
+        Args: { p_event_id: string; p_on: boolean }
+        Returns: {
+          acked_at: string
+          event_id: string
+          on_way: boolean
+          on_way_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "emergency_acks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_entry_questions: {
+        Args: { p_questions: Json; p_room_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          kind: string
+          position: number
+          prompt: string
+          required: boolean
+          room_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "entry_questions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       set_location_allowed: {
         Args: { p_allowed: boolean; p_room_id: string }
         Returns: undefined
       }
+      set_my_plan: { Args: { p_plan: string }; Returns: string }
       set_my_status: {
         Args: { p_room_id: string; p_status_id: string }
         Returns: string
@@ -1117,6 +1577,46 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_room_notice: {
+        Args: { p_room_id: string; p_text: string }
+        Returns: {
+          activity_ended_at: string | null
+          activity_seq: number
+          activity_started_at: string | null
+          activity_state: string
+          code: string
+          created_at: string
+          deleted_at: string | null
+          expires_at: string
+          expiry_version: number
+          grace_until: string | null
+          host_id: string
+          id: string
+          invite_token: string
+          location_allowed: boolean
+          max_members: number
+          name: string
+          no_limit: boolean
+          notice_set_at: string | null
+          notice_set_by: string | null
+          notice_text: string | null
+          place_lat: number | null
+          place_lng: number | null
+          place_name: string | null
+          public_icon: string | null
+          public_location: string | null
+          route: Json
+          starts_at: string | null
+          type: string
+          visibility: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_route: {
         Args: { p_room_id: string; p_route: Json }
         Returns: undefined
@@ -1131,6 +1631,10 @@ export type Database = {
       }
       stop_my_location: { Args: never; Returns: undefined }
       toggle_message_check: { Args: { p_message_id: string }; Returns: boolean }
+      toggle_message_reaction: {
+        Args: { p_message_id: string; p_reaction: number }
+        Returns: boolean
+      }
       unregister_push_token: { Args: { p_token: string }; Returns: undefined }
       update_room_expiry: {
         Args: { p_expires_at: string; p_room_id: string }
@@ -1151,12 +1655,19 @@ export type Database = {
           location_allowed: boolean
           max_members: number
           name: string
+          no_limit: boolean
+          notice_set_at: string | null
+          notice_set_by: string | null
+          notice_text: string | null
           place_lat: number | null
           place_lng: number | null
           place_name: string | null
+          public_icon: string | null
+          public_location: string | null
           route: Json
           starts_at: string | null
           type: string
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -1165,15 +1676,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      upsert_entry_profile: {
-        Args: {
-          p_headline: string
-          p_interests: string
-          p_links: string[]
-          p_looking_for: string
-          p_room_id: string
-        }
+      upsert_entry_answers: {
+        Args: { p_answers: Json; p_room_id: string }
         Returns: {
+          answers: Json
           headline: string
           interests: string
           links: string[]
@@ -1188,6 +1694,35 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      upsert_entry_profile: {
+        Args: {
+          p_headline: string
+          p_interests: string
+          p_links: string[]
+          p_looking_for: string
+          p_room_id: string
+        }
+        Returns: {
+          answers: Json
+          headline: string
+          interests: string
+          links: string[]
+          looking_for: string
+          room_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "entry_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_qr_code: {
+        Args: { p_app: string; p_image_path: string; p_link: string }
+        Returns: undefined
       }
     }
     Enums: {
