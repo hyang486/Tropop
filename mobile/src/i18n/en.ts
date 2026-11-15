@@ -1433,8 +1433,8 @@ export const en = {
       notMemberOk: 'OK',
       refresh: 'Refresh',
       loading: 'Trok is reading entry info…',
-      emptyTitle: 'No suggestions yet',
-      empty: 'No one else has shared entry info yet. Check back after more people join.',
+      emptyTitle: 'No one to suggest yet',
+      empty: 'Trok didn’t find a match for you right now. Tap Refresh after more people join.',
       noQuestionsTitle: 'No intros in this room',
       noQuestions: "The host didn't add entry questions, so Trok can't suggest people to meet here.",
       // UX2-137: the host sees it about themselves.
