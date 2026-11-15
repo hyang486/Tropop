@@ -15,8 +15,8 @@ import { dismissEmergencyConfirmForEnd, EmergencyConfirmHost } from '@/component
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { QLink } from '@/components/q-screen';
-import { Button, colors, Hint, radius, useLift, usePalette } from '@/components/ui';
 import { RT_HAIRLINE } from '@/components/rt-header';
+import { Button, colors, Hint, palette, radius, useLift, usePalette } from '@/components/ui';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { PaceCard } from '@/features/pace/pace-card';
 import { type PersonGap, personGap } from '@/features/pace/pace-core';
@@ -80,9 +80,9 @@ type State =
   | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
 
 // P2: the member label pill. Fixed light colors (not the app theme) so it reads the same on light and dark maps.
-const LABEL_BACKGROUND = '#FFFFFF';
-const LABEL_TEXT = '#000000';
-const LABEL_STALE_TEXT = '#6C6C70';
+const LABEL_BACKGROUND = palette.light.lift;
+const LABEL_TEXT = palette.light.ink;
+const LABEL_STALE_TEXT = palette.light.ink2;
 // UX2-35: the 34 pt overlay buttons reach 44 pt tall without growing.
 const OVERLAY_HIT_SLOP = { top: 5, bottom: 5 };
 // #1: an Emergency sender's pin and pill (fixed system red, readable on light and dark maps).
