@@ -314,7 +314,7 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
   }, []);
 
   const reveal = useCallback(() => {
-    const field = RNTextInput.State.currentlyFocusedInput();
+    const field = RNTextInput.State.currentlyFocusedInput?.() ?? null;
     if (keyboardUp.current && field) scrollIntoView(field, keepRef.current?.current ?? null);
     else if (pending.current && Date.now() < pending.current.until) scrollIntoView(pending.current.target, pending.current.extra);
   }, [scrollIntoView]);
