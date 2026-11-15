@@ -4,7 +4,7 @@ import { AccessibilityInfo, ActivityIndicator, Pressable, RefreshControl, StyleS
 import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, elevation, Hint } from '@/components/ui';
 import {
@@ -112,7 +112,7 @@ export function ConnectionScreen() {
       {data === undefined && !error ? <ActivityIndicator style={styles.loading} /> : null}
       {person ? (
         <View style={styles.header}>
-          <Avatar path={person.otherAvatarPath} name={name} size={72} />
+          <PersonAvatar userId={person.otherId} path={person.otherAvatarPath} character={person.otherCharacter} name={name} size={72} />
           <View style={styles.headerText}>
             <Text style={styles.name} accessibilityRole="header" numberOfLines={2}>
               {name}

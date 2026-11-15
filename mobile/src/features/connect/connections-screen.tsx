@@ -5,7 +5,7 @@ import { AccessibilityInfo, ActivityIndicator, Image, Pressable, RefreshControl,
 import { STICKER_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { Pill } from '@/components/pill';
 import { QCaption, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
@@ -127,7 +127,7 @@ export function ConnectionsScreen() {
                 <Fragment key={r.requestId}>
                   {i > 0 ? <View style={styles.divider} /> : null}
                   <View style={styles.requestRow}>
-                    <Avatar path={r.otherAvatarPath} name={name} size={44} />
+                    <PersonAvatar userId={r.otherId} path={r.otherAvatarPath} character={r.otherCharacter} name={name} size={44} />
                     <View style={styles.rowText}>
                       <Text style={styles.name}>{name}</Text>
                       <Text style={styles.meta}>{meta}</Text>
@@ -173,7 +173,7 @@ export function ConnectionsScreen() {
                 <Fragment key={r.requestId}>
                   {i > 0 ? <View style={styles.divider} /> : null}
                   <View style={styles.row}>
-                    <Avatar path={r.otherAvatarPath} name={name} size={44} />
+                    <PersonAvatar userId={r.otherId} path={r.otherAvatarPath} character={r.otherCharacter} name={name} size={44} />
                     <View style={styles.rowText}>
                       <Text style={styles.name}>{name}</Text>
                       <Text style={styles.meta}>{t.requestedOn(r.createdAt)}</Text>
@@ -217,7 +217,7 @@ export function ConnectionsScreen() {
                     onPress={() => router.push({ pathname: '/connect/person/[userId]', params: { userId: c.otherId } })}
                     style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                   >
-                    <Avatar path={c.otherAvatarPath} name={name} size={44} />
+                    <PersonAvatar userId={c.otherId} path={c.otherAvatarPath} character={c.otherCharacter} name={name} size={44} />
                     <View style={styles.rowText}>
                       <Text style={styles.name}>{name}</Text>
                       {/* ux logo addendum: compact rows show app names only, no logos. */}

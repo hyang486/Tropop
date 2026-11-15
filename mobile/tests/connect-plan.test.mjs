@@ -6,6 +6,7 @@ import {
   appForLink,
   connectErrorKind,
   ConnectError,
+  otherCharacterOf,
   qrImagePath,
   qrImageType,
   qrLinkFor,
@@ -160,4 +161,10 @@ test('qrCropCandidates: bottom-left first, 12% margin, clamped, deduped', () => 
   });
   assert.deepEqual(qrCropCandidates(null, 10, 10), []);
   assert.deepEqual(qrCropCandidates({ origin: { x: 0, y: 0 }, size: { width: 0, height: 5 } }, 10, 10), []);
+});
+
+test('otherCharacterOf keeps 1-12 integers and maps everything else to the default (null)', () => {
+  assert.equal(otherCharacterOf(1), 1);
+  assert.equal(otherCharacterOf(12), 12);
+  for (const v of [null, undefined, 0, 13, -1, 1.5, '3', NaN]) assert.equal(otherCharacterOf(v), null);
 });
