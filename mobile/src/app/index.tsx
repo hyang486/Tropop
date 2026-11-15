@@ -4,13 +4,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { InkIcon } from '@/components/calendar/ink-icon';
-import { InkArt } from '@/components/ink-art';
+import { InkArt, ThemeSticker } from '@/components/ink-art';
 import { Pill } from '@/components/pill';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QScreen } from '@/components/q-screen';
 import { RtIconButton, rtRightOptions } from '@/components/rt-header';
-import { Button, Card, colors, Hint, radius, size, Tag, textRole, useReduceTransparency } from '@/components/ui';
+import { Button, Card, colors, Hint, size, Tag, textRole, useReduceTransparency } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
@@ -43,7 +42,6 @@ import {
   unreadLabel,
   type RoomSummary,
 } from '@/features/event/room-summary';
-import { defaultRoomIcon, iconEmoji } from '@/features/event/open-room-plan';
 import { Snackbar } from '@/features/event/snackbar';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
 import { syncCalendarRooms } from '@/features/calendar/calendar-store';
@@ -213,7 +211,7 @@ export default function Rooms() {
         {empty ? (
           <>
             <View style={styles.empty}>
-              <InkArt art="gathering" width={240} />
+              <InkArt art="gathering" />
               <Text style={styles.emptyLine}>{en.home.emptyLine}</Text>
             </View>
             <Button title={en.home.join} onPress={() => router.push('/join')} />
@@ -332,7 +330,7 @@ export default function Rooms() {
           >
             {emergency ? <EmergencyTile /> : <RoomRing room={room} />}
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
+              <Text style={styles.rowTitle} numberOfLines={2}>
                 {room.name}
               </Text>
               {emergencyText ? (
@@ -401,11 +399,6 @@ function GuestCreateLink() {
   );
 }
 
-/** A public room's chosen icon (0031; not in the generated types yet), else the default for its type. */
-function roomIcon(room: Room): string {
-  return (room as Room & { public_icon?: string | null }).public_icon ?? defaultRoomIcon(room.type);
-}
-
 /** P3 Emergency row: line 2 copy. */
 function emergencyCopy(line: EmergencyLine) {
   if (line.kind === 'own') return en.home.row.youAskedForHelp;
@@ -422,11 +415,11 @@ function EmergencyTile() {
   );
 }
 
-/** UX P1-5: the room's own ink icon (the Create room set). V2: on a 48 pt wash tile (radius 14), no ring. */
+/** B2: the room-type sticker (40 pt) on a 48 pt wash tile, radius 14. B3 swaps it to the host's character. */
 function RoomRing({ room }: { room: Room }) {
   return (
     <View style={styles.ring}>
-      <InkIcon emoji={iconEmoji(roomIcon(room))} size={22} />
+      <ThemeSticker roomName={room.name} size={40} />
     </View>
   );
 }
@@ -435,8 +428,8 @@ const styles = StyleSheet.create({
   loading: { marginTop: 24 },
   flex: { flex: 1 },
   // V2: 10 pt between the pair, about 16 pt under the title underline (the title block's 6 + body gap 12, less 2).
-  pair: { flexDirection: 'row', gap: 10, marginTop: -2 },
-  empty: { alignItems: 'center', gap: 16, marginVertical: 8 },
+  pair: { flexDirection: 'row', gap: 12, marginTop: -2 },
+  empty: { gap: 16, marginVertical: 8 },
   emptyLine: { ...textRole.secondary, textAlign: 'center' },
   // Section header 13 pt semibold ink2, 22 pt above (10 + body gap 12) and 8 pt below.
   section: { gap: 12 },
@@ -447,7 +440,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 76,
+    minHeight: 80,
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 12,
@@ -456,21 +449,21 @@ const styles = StyleSheet.create({
   ring: {
     width: 48,
     height: 48,
-    borderRadius: radius.tile,
+    borderRadius: 14,
     borderCurve: 'continuous',
     backgroundColor: colors.wash,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
-  rowLast: { fontSize: 15, color: colors.ink2 },
+  rowTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label },
+  rowLast: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
   rowDanger: { color: colors.danger },
   ringEmergency: { backgroundColor: colors.redwash },
   emergencyLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  emergencyText: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: colors.danger },
+  emergencyText: { flexShrink: 1, fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.danger },
   metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rowMeta: { flexShrink: 1, fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
+  rowMeta: { flexShrink: 1, fontSize: 12, lineHeight: 18, color: colors.ink2, fontVariant: ['tabular-nums'] },
   // Top-aligned: time, then 6 pt, then the unread pill.
   trailing: { alignSelf: 'flex-start', alignItems: 'flex-end', gap: 6 },
 });

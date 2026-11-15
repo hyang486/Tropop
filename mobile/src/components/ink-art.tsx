@@ -48,6 +48,12 @@ export function InkArt({ art, roomName, width = 180 }: { art?: ArtKey; roomName?
   );
 }
 
+/** A small themed sticker (Rooms row tile): the room theme's sticker at `size` points. Decorative. */
+export function ThemeSticker({ roomName, size }: { roomName?: string; size: number }) {
+  const entry = themeArt(roomTheme(roomName));
+  return <Image source={IMAGES[entry.key]} style={{ width: size, height: size }} resizeMode="contain" accessibilityElementsHidden />;
+}
+
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center' },
   heroWrap: { alignSelf: 'stretch' },
