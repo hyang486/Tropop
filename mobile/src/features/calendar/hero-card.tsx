@@ -6,7 +6,7 @@ import { Text } from '@/components/text';
 import { colors } from '@/components/ui';
 
 import {
-  HERO_EMPTY_HEIGHT, HERO_EMPTY_OPACITY, HERO_HEIGHT, HERO_RADIUS, SCRIM_FROM, SCRIM_HEIGHT, SCRIM_TO, TOPIC_SYMBOL, heroLabel,
+  HERO_EMPTY_HEIGHT, HERO_EMPTY_OPACITY, HERO_HEIGHT, HERO_RADIUS, SCRIM_COLOR, SCRIM_FROM, SCRIM_HEIGHT, SCRIM_TO, TOPIC_SYMBOL, heroLabel,
 } from './hero-card-model';
 import { HERO_IMAGES } from './room-hero-images';
 import type { HeroTopic } from './room-hero';
@@ -33,8 +33,8 @@ export function HeroCard({
         <Svg width="100%" height="100%" preserveAspectRatio="none">
           <Defs>
             <LinearGradient id="s" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={SCRIM_FROM} />
-              <Stop offset="1" stopColor={SCRIM_TO} />
+              <Stop offset="0" stopColor={SCRIM_COLOR} stopOpacity={SCRIM_FROM} />
+              <Stop offset="1" stopColor={SCRIM_COLOR} stopOpacity={SCRIM_TO} />
             </LinearGradient>
           </Defs>
           <Rect width="100%" height="100%" fill="url(#s)" />

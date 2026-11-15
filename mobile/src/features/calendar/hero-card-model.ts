@@ -3,8 +3,9 @@ export const HERO_HEIGHT = 200;
 export const HERO_EMPTY_HEIGHT = 160;
 export const HERO_EMPTY_OPACITY = 0.4;
 export const HERO_RADIUS = 24;
-export const SCRIM_FROM = 'rgba(48,43,40,0)';
-export const SCRIM_TO = 'rgba(48,43,40,0.72)';
+export const SCRIM_COLOR = '#302B28';
+export const SCRIM_FROM = 0;
+export const SCRIM_TO = 0.72;
 /** Scrim covers the lower 65% (calendar-v2-spec §B1, ux decision). */
 export const SCRIM_HEIGHT = '65%';
 
