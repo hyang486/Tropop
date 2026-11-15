@@ -148,7 +148,7 @@ export function PersonConnectSheet({
   }
 
   const shareLine = data && data.myApps.length > 0 ? t.youllShare(appNames(data.myApps), name) : null;
-  const acceptLine = data && data.myApps.length > 0 ? t.youllShareOnAccept(appNames(data.myApps), name) : null;
+  const acceptLine = data && data.myApps.length > 0 ? t.youllShareOnAccept(appNames(data.myApps)) : null;
 
   return (
     <ConnectSheet visible={visible} onClose={onClose}>
