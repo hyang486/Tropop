@@ -1,4 +1,4 @@
-// Run: npm test. qa re-record 2026-11-13: (3) the event form read "Starts Starts" / "Ends Ends"; (4) Mina's Qrewing AI
+// Run: npm test. qa re-record 2026-11-13: (3) the event form read "Starts Starts" / "Ends Ends"; (4) Mina's Trok AI
 // consent sheet was invisible but took taps until Agree, after reopening the room (presented during the push).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

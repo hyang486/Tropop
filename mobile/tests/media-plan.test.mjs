@@ -1,4 +1,4 @@
-// Run: npm test. Qrew unit 5 (Q 05.03, 05.04): media title and the one-time "Original saved" card.
+// Run: npm test. Tropop unit 5 (Q 05.03, 05.04): media title and the one-time "Original saved" card.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

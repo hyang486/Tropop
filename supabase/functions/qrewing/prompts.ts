@@ -83,7 +83,7 @@ const RECAP_EMERGENCY_RULE = [
 ].join(' ');
 
 const CHAT_SCOPE_RULE =
-  'The chat holds only messages from members who turned on Qrewing AI; other members may have chatted too, and' +
+  'The chat holds only messages from members who turned on Trok AI; other members may have chatted too, and' +
   ' <shared_media> counts everything shared by anyone. Never say that no messages were sent or that nothing was' +
   ' shared unless the chat is empty and every <shared_media> count is 0; when the chat is empty, write a short recap' +
   ' from the room details and the media counts instead.';
@@ -234,7 +234,7 @@ export function matchUser(questions: MatchQuestion[], me: Omit<MatchPerson, 'id'
   return `<questions>\n${legend}\n</questions>\n<requesting_person>${p(me)}</requesting_person>\n<attendees>\n${list}\n</attendees>`;
 }
 
-// ---- ask (Qrewing bot, spec 10.3) ----
+// ---- ask (Trok bot, spec 10.3) ----
 
 export const ASK_MODEL = 'claude-haiku-5-5';
 
@@ -246,7 +246,7 @@ export const ASK_SCHEMA = {
 } as const;
 
 export const ASK_SYSTEM = [
-  'You are Qrewing, the assistant inside a temporary group room (an event, a group run or ride, a trip).',
+  'You are Trok, the assistant inside a temporary group room (an event, a group run or ride, a trip).',
   'One member (<asker>) asks you a question privately; only they see your answer.',
   'Answer in 1 to 3 short sentences of plain text, in the language of the question (Korean or English), using only',
   'the room data given: the room facts, the asker\'s own snapshot (<me>) if any, the host\'s entry questions with',
@@ -398,7 +398,7 @@ export function askUser(a: AskInput): string {
   ].filter(Boolean).join('\n');
 }
 
-// ---- Qrewing Calendar (Plus): recap diary and calendar_add ----
+// ---- Trok Calendar (Plus): recap diary and calendar_add ----
 
 export const DIARY_MODEL = 'claude-haiku-5-5';
 

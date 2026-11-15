@@ -1,6 +1,6 @@
-// Ask Qrewing (spec 10.1, UX3-B05): a 36 pt button in the chat composer while the field is empty; only when the
-// room has Qrewing AI on and the probe answers ok, or AI is off and the asker is on Plus (askMode). With AI on, a
-// tap shows consent before the asker agrees to Qrewing AI here; the personal (AI off) mode needs no consent.
+// Ask Trok (spec 10.1, UX3-B05): a 36 pt button in the chat composer while the field is empty; only when the
+// room has Trok AI on and the probe answers ok, or AI is off and the asker is on Plus (askMode). With AI on, a
+// tap shows consent before the asker agrees to Trok AI here; the personal (AI off) mode needs no consent.
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -18,7 +18,7 @@ import type { QrewingError } from './types';
 const ART = require('../../../assets/brand/qrewing/qrewing-mark.png');
 
 /**
- * The room's Qrewing switch, the probe (room AI and my plan, no model call) and my consent. `available` is false
+ * The room's Trok switch, the probe (room AI and my plan, no model call) and my consent. `available` is false
  * until the probe answers; it runs again when the switch changes. The personal mode counts as agreed (no consent).
  */
 export function useQrewingAsk(roomId: string) {
@@ -61,7 +61,7 @@ export function useQrewingAsk(roomId: string) {
 }
 
 /**
- * The Ask Qrewing tap with its consent step, for the composer button. `open` pushes the ask
+ * The Ask Trok tap with its consent step, for the composer button. `open` pushes the ask
  * screen, or shows the consent sheet first; render `sheet` once in the screen body. Use it only on a live room
  * (never in grace or on Room ended).
  */
@@ -117,7 +117,7 @@ export function useQrewingAskButton(roomId: string) {
   return { available, open, sheet };
 }
 
-/** UX3-B05: the Qrewing mark for the composer slot, 36 pt round with a 1.5 pt ink outline (the Composer owns the tap). */
+/** UX3-B05: the Trok mark for the composer slot, 36 pt round with a 1.5 pt ink outline (the Composer owns the tap). */
 export function QrewingComposerMark() {
   return (
     <View style={styles.composerMark}>

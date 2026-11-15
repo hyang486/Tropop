@@ -39,7 +39,7 @@ type State =
   | { status: 'ready'; room: Room; members: RoomMember[]; arrived: string[] | null };
 
 /**
- * Members, room details and Leave/End. Reached from the room chat header. Qrew unit 5 (Q 03.03): title and cards;
+ * Members, room details and Leave/End. Reached from the room chat header. Tropop unit 5 (Q 03.03): title and cards;
  * members under View participants, status editing under Edit status options (host), and the red End room (host)
  * or Leave room (guest) text button at the bottom.
  */
@@ -141,7 +141,7 @@ export default function RoomInfoScreen() {
   const placeTime = placeTimeOf(room);
 
   function confirmLeave() {
-    // Qrew unit 4: the host's End room is a confirm screen that states the effects; guests keep the Leave alert.
+    // Tropop unit 4: the host's End room is a confirm screen that states the effects; guests keep the Leave alert.
     if (isHost) {
       router.push({ pathname: '/room/[id]/end-room', params: { id: room.id } });
       return;

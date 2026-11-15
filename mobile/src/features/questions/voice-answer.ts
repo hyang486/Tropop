@@ -1,5 +1,5 @@
 /**
- * Voice answers (Spec 11 C): after a question card is read aloud while I am moving, Qrewing listens once and keeps
+ * Voice answers (Spec 11 C): after a question card is read aloud while I am moving, Trok listens once and keeps
  * the transcript as that card's draft. Nothing is sent by voice: the Questions screen shows the draft and I tap Send.
  * Recognition runs on the device when it can; audio is never saved or logged. Typing stays the fallback (no
  * permission, no recognizer, an error, or not moving). Module store read through useSyncExternalStore.

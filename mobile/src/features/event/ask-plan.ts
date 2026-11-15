@@ -1,8 +1,8 @@
-// Pure rules for the private Qrewing chat (planning/QREWING_AI_SPEC_EN.md 10.1, 10.3, 10.4): the on-device history,
+// Pure rules for the private Trok chat (planning/QREWING_AI_SPEC_EN.md 10.1, 10.3, 10.4): the on-device history,
 // the `ask` request body and the errors the ask screen shows. No React Native imports (tested in node).
 
 /** One question and its answer, kept on this device only. `at` is ms since epoch. */
-/** `cardId`: the question card Qrewing created when it passed this question on to a person (UX2-47). */
+/** `cardId`: the question card Trok created when it passed this question on to a person (UX2-47). */
 export type AskTurn = { q: string; a: string; at: number; cardId?: string };
 
 /**
@@ -15,8 +15,8 @@ export type AskMe = { elapsedSec: number; distanceM: number; paceSecPerKm: numbe
 export type AskProbe = { roomId: string; ok: boolean; roomAi?: boolean; plan?: 'free' | 'plus' };
 
 /**
- * How Ask Qrewing works in this room, or null for no button (capacity B item 4, qrewing caller-plan contract).
- * room: the room has Qrewing AI on (client read and probe agree) and the asker is on Plus (or the probe sent no plan):
+ * How Ask Trok works in this room, or null for no button (capacity B item 4, qrewing caller-plan contract).
+ * room: the room has Trok AI on (client read and probe agree) and the asker is on Plus (or the probe sent no plan):
  * consent first. plus: the same room and the probe says Free; the button opens the Plus intro directly, never consent
  * for something a Free asker cannot use (qa v15). personal: AI is off and the asker is on Plus; the answer uses room
  * details only, so there is no consent step and no relayed question cards. AI off on Free → none.
@@ -155,7 +155,7 @@ export function parseAskAnswer(
 export const THREAD_MATCH_MS = 120_000;
 
 /**
- * UX2-47: one thread per question. Each turn gets the card Qrewing created for it: by cardId, else (history saved
+ * UX2-47: one thread per question. Each turn gets the card Trok created for it: by cardId, else (history saved
  * before cardId) the unused card with the same question created within THREAD_MATCH_MS of the turn. `rest`: my
  * cards no turn claims (history trimmed or cleared), shown as threads of their own.
  */

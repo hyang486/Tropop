@@ -8,7 +8,7 @@ import { Pill } from '@/components/pill';
 import { colors } from '@/components/ui';
 
 /**
- * Qrew unit 5: a pale card with a leading icon, a title and a small gray line (Q 07.01 "Mia Chen / Display name",
+ * Tropop unit 5: a pale card with a leading icon, a title and a small gray line (Q 07.01 "Mia Chen / Display name",
  * Q 03.03 "12 people / 8 arrived · View participants ›"). With onPress it is a button with a chevron.
  */
 export function QRowCard({

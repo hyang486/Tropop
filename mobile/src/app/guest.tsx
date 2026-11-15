@@ -9,7 +9,7 @@ import { en } from '@/i18n/en';
 import { startAsGuest } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 
-// Qrew Q 02.01: "What's your name?", the display name field, who sees it, the gate art, and Join as guest
+// Tropop Q 02.01: "What's your name?", the display name field, who sees it, the gate art, and Join as guest
 // pinned at the bottom (above the keyboard while typing). The name rule is unchanged (startAsGuest).
 export default function Guest() {
   const [name, setName] = useState('');

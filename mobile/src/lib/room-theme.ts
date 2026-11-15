@@ -1,4 +1,4 @@
-// Qrew redesign R1 (supervisor ruling, 2026-11-09): which ink art a room shows, from its name only.
+// Tropop redesign R1 (supervisor ruling, 2026-11-09): which ink art a room shows, from its name only.
 // Pure (no React Native imports): unit tested. No DB field: preview_room and rooms already return `name`,
 // so old rooms get a theme too. There is no picker or override (human decision).
 

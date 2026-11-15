@@ -17,7 +17,7 @@ import { en } from '@/i18n/en';
 const s = en.qrewing.info;
 
 /**
- * Room info "Qrewing AI" section (spec 3.2). Host: the room switches (also the retry path when the switch failed
+ * Room info "Trok AI" section (spec 3.2). Host: the room switches (also the retry path when the switch failed
  * at create time). Members of an AI room: include/stop including my messages, my entry info and People to meet
  * (event rooms).
  */
@@ -69,7 +69,7 @@ export function QrewingInfoSection({ roomId, roomType, isHost }: { roomId: strin
   if (!isHost && !q.aiEnabled) return null;
   const aiOk = q.me?.aiOk ?? false;
 
-  // UX2-53: the host's switch row already says "Qrewing AI", so no header for the host. Members have no switch
+  // UX2-53: the host's switch row already says "Trok AI", so no header for the host. Members have no switch
   // row, so the header still names their rows (as does the offline state above).
   return (
     <View style={styles.section}>

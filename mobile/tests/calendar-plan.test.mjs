@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing Calendar date math: month grid, clipping, week wrapping, lanes, time zones, DST.
+// Run: npm test. Trok Calendar date math: month grid, clipping, week wrapping, lanes, time zones, DST.
 import './ts-resolve.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

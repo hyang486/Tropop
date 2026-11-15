@@ -18,6 +18,22 @@ function isOfflineError(error: unknown): boolean {
  * whatever their errcode. Internal ones (Invalid value, Unknown status, paths, plan_limit, ...) are not listed and map
  * by kind. 'This room has ended.', 'This room is full.' and the throttle text map by kind to the same meaning.
  */
+/**
+ * Rename (human, 2026-11-14): the AI is "Trok" in the app, but the live DB still raises these texts with the old name
+ * (migrations 0027/0028/0035). Match the exact server text; show the renamed copy.
+ */
+const SERVER_COPY_RENAMED: ReadonlyMap<string, string> = new Map([
+  ['Entry info can be required only in an event room with Qrewing AI on', 'Entry info can be required only in an event room with Trok AI on'],
+  ['Mute small talk needs Qrewing AI consent', 'Mute small talk needs Trok AI consent'],
+  ['Only the host of an open room can change Qrewing AI', 'Only the host of an open room can change Trok AI'],
+  ['Qrewing AI is off in this room', 'Trok AI is off in this room'],
+]);
+
+/** The text to show for an 'asIs' server message: the renamed copy when the server still uses the old name. */
+export function serverCopyText(text: string): string {
+  return SERVER_COPY_RENAMED.get(text) ?? text;
+}
+
 export const SERVER_COPY: ReadonlySet<string> = new Set([
   'A notice is at most 1000 characters',
   'A pin needs a place name',
@@ -33,7 +49,6 @@ export const SERVER_COPY: ReadonlySet<string> = new Set([
   'Capacity must be between 2 and 30',
   'Declared size must be 1 byte to 50 MB',
   'Each question needs 1 to 120 characters',
-  'Entry info can be required only in an event room with Qrewing AI on',
   'Entry questions are only for event rooms',
   'Expiration must be between 5 minutes and 7 days from now',
   'Headline must be 1 to 80 characters',
@@ -41,7 +56,6 @@ export const SERVER_COPY: ReadonlySet<string> = new Set([
   'Icon and location are only for public rooms',
   'Interests and looking for must be at most 300 characters each',
   'Location sharing is not allowed in this room.',
-  'Mute small talk needs Qrewing AI consent',
   'Only the host can change location sharing.',
   'Only the host can change the expiration.',
   'Only the host can edit statuses.',
@@ -49,10 +63,8 @@ export const SERVER_COPY: ReadonlySet<string> = new Set([
   'Only the host can end this room.',
   'Only the host can reissue the invite.',
   'Only the host can start or end the activity.',
-  'Only the host of an open room can change Qrewing AI',
   'Only the host of an open room can set entry questions',
   'Place name must be at most 80 characters',
-  'Qrewing AI is off in this room',
   'Questions are locked after the first answer',
   'Sign in first',
   'Sign in required',
@@ -81,7 +93,7 @@ export function errorKind(error: unknown): ErrorKind {
   if (!error || typeof error !== 'object') return 'generic';
   const { code, message, status } = error as { code?: unknown; message?: unknown; status?: unknown };
   const text = typeof message === 'string' ? message : '';
-  if (SERVER_COPY.has(text)) return 'asIs';
+  if (SERVER_COPY.has(text) || SERVER_COPY_RENAMED.has(text)) return 'asIs';
   if (code === 'PT409' || /room is full/i.test(text)) return 'full';
   if (code === 'PT429' || /too many attempts/i.test(text)) return 'throttled';
   if (code === 'P0002' || /room has ended|not a member of an open room|room (has )?expired/i.test(text)) return 'ended';

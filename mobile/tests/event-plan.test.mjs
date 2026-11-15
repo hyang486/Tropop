@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing AI event features: entry limits, consent/entry gates, mentions, Mute small talk.
+// Run: npm test. Trok AI event features: entry limits, consent/entry gates, mentions, Mute small talk.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

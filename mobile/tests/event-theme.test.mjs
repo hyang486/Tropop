@@ -1,4 +1,4 @@
-// Dark mode guard for the Qrewing event screens (code check, not a device check): colors come from theme tokens
+// Dark mode guard for the Trok event screens (code check, not a device check): colors come from theme tokens
 // only, and every <Text> style sets a color (an unset color stays black in dark mode).
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';

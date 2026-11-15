@@ -2,14 +2,14 @@ import AppIntents
 import Foundation
 import Security
 
-/// Spec 10.5: "Hey Siri, ask Qrew". Asks for a question, sends it to the `qrewing` Edge Function `ask` action
+/// Spec 10.5: "Hey Siri, ask Tropop". Asks for a question, sends it to the `qrewing` Edge Function `ask` action
 /// for the user's active room, and speaks the answer. Runs in the background; no JavaScript runs here.
 ///
 /// Auth comes from the Keychain mirror that JS writes (see `SiriMirror`). Swift never refreshes the session:
 /// Supabase refresh tokens are single-use, so a second refresher could sign the user out.
 struct AskQrewIntent: AppIntent {
-  static let title: LocalizedStringResource = "Ask Qrewing"
-  static let description = IntentDescription("Ask Qrewing a question about the room you are in.")
+  static let title: LocalizedStringResource = "Ask Trok"
+  static let description = IntentDescription("Ask Trok a question about the room you are in.")
 
   /// iOS 16.4–25. Deprecated from iOS 26, where `supportedModes` below takes over.
   static let openAppWhenRun: Bool = false
@@ -58,10 +58,10 @@ struct SiriMirror: Decodable {
 }
 
 enum QrewingAsk {
-  static let signIn = "Open Qrew and sign in first."
-  static let reopen = "Open Qrew once, then ask again."
-  static let noRoom = "Join a room in Qrew first."
-  static let failed = "Qrewing couldn't answer right now. Try again in the app."
+  static let signIn = "Open Tropop and sign in first."
+  static let reopen = "Open Tropop once, then ask again."
+  static let noRoom = "Join a room in Tropop first."
+  static let failed = "Trok couldn't answer right now. Try again in the app."
 
   /// Always returns a line to speak; never throws, so Siri never shows a generic error.
   static func answer(_ raw: String, now: Date = Date()) async -> String {
@@ -97,8 +97,8 @@ enum QrewingAsk {
     switch (status, error) {
     case (401, _): return reopen
     case (_, "not_member"): return "That room has ended or you are no longer in it. " + noRoom
-    case (_, "ai_off"): return "Qrewing AI is off in this room."
-    case (_, "not_consented"): return "Turn on Qrewing AI for this room in Qrew first."
+    case (_, "ai_off"): return "Trok AI is off in this room."
+    case (_, "not_consented"): return "Turn on Trok AI for this room in Tropop first."
     case (_, "ask_limit"): return "You've reached today's question limit for this room."
     default: return failed
     }

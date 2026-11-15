@@ -20,7 +20,7 @@ const CODE_LENGTH = 5;
 // itself after the 5th digit (no See room button, no QR note card). Signed in, the code is checked first
 // (preview_room): a wrong code shakes the boxes (none under Reduce Motion), plays the Error haptic and shows a red
 // line under them. Signed out, preview_room is not open to anon, so the code goes straight to the name step and is
-// checked on Preview. Before: Qrew Q 02.03 "Find your room", five code boxes, the QR note card, See room / Scan QR
+// checked on Preview. Before: Tropop Q 02.03 "Find your room", five code boxes, the QR note card, See room / Scan QR
 // code pinned at the bottom. One real text field sits over the boxes, so typing, paste and one-time-code
 // autofill work as before. Signed in, See room opens the preview; signed out (route start/code, item 10), the
 // code is held and the name step opens first (openInvite).

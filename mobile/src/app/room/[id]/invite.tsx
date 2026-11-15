@@ -144,7 +144,7 @@ export default function Invite() {
   const isHost = room.host_id === session?.user.id;
   const url = inviteUrl(room.invite_token);
 
-  // Qrew unit 5 (Q 02.04): title and room name, the QR on a pale card, the code, then Share invite and Copy code
+  // Tropop unit 5 (Q 02.04): title and room name, the QR on a pale card, the code, then Share invite and Copy code
   // (expo-clipboard, rebuild unit). The code also stays selectable by long press. Reissue (not in Q) is a text
   // button under Copy code, with its confirmation.
   return (

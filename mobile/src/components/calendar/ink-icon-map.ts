@@ -1,5 +1,5 @@
 /**
- * Qrewing Calendar look (human final 2026-11-13 ~10:50): room and event marks are black-ink line icons in the
+ * Trok Calendar look (human final 2026-11-13 ~10:50): room and event marks are black-ink line icons in the
  * assets/art pen style, not color emoji. Items still store an emoji (server recap, editor grid); this maps it to a
  * line icon on the client, with a pin for anything unknown. Paths are drawn in a 24-unit box, stroked, unfilled.
  */

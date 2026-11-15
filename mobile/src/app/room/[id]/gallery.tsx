@@ -74,7 +74,7 @@ const FOOTER_FONT_CAP = 1.5;
 const timeOf = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
 /**
- * Qrew unit 5 (Q 05.01, 05.02, 05.04, 06.03): handwritten "Photos & files" with the room name, the filters as
+ * Tropop unit 5 (Q 05.01, 05.02, 05.04, 06.03): handwritten "Photos & files" with the room name, the filters as
  * pills, upload progress under them, then the grid. "+" and the pinned "Add photos or files" open the "Add to
  * the room" sheet. The pinned line says until when originals can be saved; in the room's last hour a card
  * says when it closes. After "Save original" on a detail, an "Original saved" card shows once here.

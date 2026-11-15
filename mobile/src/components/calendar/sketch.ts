@@ -1,4 +1,4 @@
-// Qrewing Calendar: pure geometry for the hand-drawn pieces (unit tested in tests/calendar-sketch.test.mjs).
+// Trok Calendar: pure geometry for the hand-drawn pieces (unit tested in tests/calendar-sketch.test.mjs).
 // Every texture variation comes from a seeded generator, so the same seed draws the same path on every render.
 
 export type Cap = 'round' | 'flat';

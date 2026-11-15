@@ -104,10 +104,10 @@ export default function Rooms() {
       setOffline(false);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
-      // Spec 10.4: Ask Qrewing history goes once a room ended (grace counts as ended), expired or was left.
+      // Spec 10.4: Ask Trok history goes once a room ended (grace counts as ended), expired or was left.
       void purgeStaleAskHistories(list.filter((r) => r.deleted_at === null).map((r) => r.id));
       syncSiriRooms(list);
-      // Qrewing Calendar: snapshot my rooms on this phone (kept after they end, for the month view and diary).
+      // Trok Calendar: snapshot my rooms on this phone (kept after they end, for the month view and diary).
       syncCalendarRooms(uid, list);
       // Local 24-hour reminders for every open room; cancels those of rooms no longer listed. Rooms the host
       // ended (listed only during their grace window, spec 7) get no reminder.
@@ -195,7 +195,7 @@ export default function Rooms() {
         />
       ) : (
         <Stack.Toolbar placement="right">
-          {/* Qrewing Calendar (Plus preview); the screen shows the upsell without it. */}
+          {/* Trok Calendar (Plus preview); the screen shows the upsell without it. */}
           <Stack.Toolbar.Button
             icon="calendar"
             accessibilityLabel={en.calendar.openLabel}

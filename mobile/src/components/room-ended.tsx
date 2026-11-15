@@ -12,7 +12,7 @@ import { en } from '@/i18n/en';
 import { type EndedRoomFields, roomClosedAtMs, sameLocalDay } from '@/lib/room-ended';
 
 /**
- * Qrew unit 5 (Q 06.04): one "This room has ended" screen for every room screen that finds the room closed.
+ * Tropop unit 5 (Q 06.04): one "This room has ended" screen for every room screen that finds the room closed.
  * "<Room> closed at <time>." only when the time is known (the loaded row's end time; never guessed once the row
  * is gone). `reminder`: opened from the expiry reminder, which also says the server copies were deleted.
  * "Back to rooms" returns to the rooms list as before (dismissTo '/').

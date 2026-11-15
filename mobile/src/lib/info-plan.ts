@@ -1,4 +1,4 @@
-// Pure helpers for Room info (Qrew unit 5, Q 03.03 "12 people · 8 arrived"). No React Native imports, so
+// Pure helpers for Room info (Tropop unit 5, Q 03.03 "12 people · 8 arrived"). No React Native imports, so
 // `npm test` can load them.
 
 /**

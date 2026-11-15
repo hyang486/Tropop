@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing Calendar: a room that spans several week rows is ONE VoiceOver element (2026-11-13).
+// Run: npm test. Trok Calendar: a room that spans several week rows is ONE VoiceOver element (2026-11-13).
 import './ts-resolve.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

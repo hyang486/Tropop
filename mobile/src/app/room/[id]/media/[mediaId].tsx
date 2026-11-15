@@ -148,7 +148,7 @@ export default function MediaScreen() {
 }
 
 /**
- * Qrew unit 5 (Q 05.03): the title is what the item is (Video, Photo, or a file's own name: the app has no
+ * Tropop unit 5 (Q 05.03): the title is what the item is (Video, Photo, or a file's own name: the app has no
  * titles), "Shared by <name> · <age>" under it, the media, then pinned "Save original" (download, verify size and
  * SHA-256, save: unchanged) and "Share" (the same verified download, then the share sheet). After a save the
  * "Original saved" card shows here and once on the gallery (Q 05.04).

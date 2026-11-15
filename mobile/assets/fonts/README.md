@@ -1,4 +1,4 @@
-# Qrew fonts
+# Tropop fonts
 
 Source Sans 3 (Adobe, SIL Open Font License 1.1; full text in SourceSans3-OFL.txt), the one typeface of the app
 (B1, phase1 spec section 4). Source: github.com/adobe-fonts/source-sans release 3.052R (TTF).

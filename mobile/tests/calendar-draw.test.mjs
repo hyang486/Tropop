@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing Calendar drawing: stacked lanes, "+N" overflow, month-boundary strokes, dark-mode colors.
+// Run: npm test. Trok Calendar drawing: stacked lanes, "+N" overflow, month-boundary strokes, dark-mode colors.
 import './ts-resolve.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

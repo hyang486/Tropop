@@ -192,7 +192,7 @@ export function RouteEditor({
     <Modal visible animationType={instant ? 'none' : 'slide'} presentationStyle="fullScreen" onRequestClose={onCancel}>
       {/* A Modal is its own native root: gesture-handler needs a root view inside it. */}
       <GestureHandlerRootView style={styles.root}>
-        {/* Qrew unit 4 F2 (Q 04.01): back arrow (= Cancel), handwritten title and room name, the map as a card,
+        {/* Tropop unit 4 F2 (Q 04.01): back arrow (= Cancel), handwritten title and room name, the map as a card,
             Draw / Undo / Clear pills, the hint line, and Save route (= Done) pinned at the bottom. */}
         <View style={[styles.page, { paddingTop: insets.top + 8 }]}>
           <Pressable

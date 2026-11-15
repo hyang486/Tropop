@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing Calendar look (human final 2026-11-13 ~10:50): ink line icons instead of color emoji.
+// Run: npm test. Trok Calendar look (human final 2026-11-13 ~10:50): ink line icons instead of color emoji.
 import './ts-resolve.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

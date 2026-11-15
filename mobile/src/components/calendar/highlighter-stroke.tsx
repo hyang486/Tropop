@@ -9,7 +9,7 @@ import { useCalendarColors } from './tokens';
 const MIN_TARGET = 44;
 
 /**
- * Qrewing Calendar: one week-row segment of a room's translucent marker: a straight bar with marker grain. A
+ * Trok Calendar: one week-row segment of a room's translucent marker: a straight bar with marker grain. A
  * slanted chisel tip only at the range's real start and end ('round' cap); a straight cut where it wraps to another
  * row or the month ends ('flat'). An optional emoji sits in the middle. Tappable (44 pt hit
  * area through hitSlop) only when onPress is given; otherwise it takes no touches.

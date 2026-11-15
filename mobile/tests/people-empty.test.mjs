@@ -13,7 +13,7 @@ test('no entry questions: "No intros in this room" for both no_entry and an empt
   assert.equal(peopleEmpty({ ...base, status: 'ready', error: null, questions: none }), 'noQuestions');
 });
 
-test('a room with questions keeps "Tell Qrewing about you" and the no-matches state', () => {
+test('a room with questions keeps "Tell Trok about you" and the no-matches state', () => {
   assert.equal(peopleEmpty({ ...base, questions: some }), 'noEntry');
   assert.equal(peopleEmpty({ ...base, status: 'ready', error: null, questions: some }), 'noMatches');
   // Questions not read yet or the read failed: never claim there are none.
@@ -48,10 +48,10 @@ test('UX2-09: ai_off, ai_not_configured and not_member are dead ends, not a red 
   assert.equal(peopleGate({ plus: true, error: 'ai_failed', notConsented: false }), null);
 });
 
-test('UX2-49 + UX2-137: the no-consent empty state is "Find who to meet" with what Qrewing does, then Agree', async () => {
+test('UX2-49 + UX2-137: the no-consent empty state is "Find who to meet" with what Trok does, then Agree', async () => {
   const { en } = await import('../src/i18n/en.ts');
   const s = en.qrewing.people;
   assert.equal(s.consentTitle, 'Find who to meet');
-  assert.equal(s.notConsented, 'Qrewing suggests people here you might get along with. Agree to Qrewing AI first.');
+  assert.equal(s.notConsented, 'Trok suggests people here you might get along with. Agree to Trok AI first.');
   assert.equal(s.agree, 'Agree');
 });

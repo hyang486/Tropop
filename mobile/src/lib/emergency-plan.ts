@@ -123,7 +123,7 @@ export function locationLineState(o: {
 }
 
 /**
- * UX2-110: the Qrewing AI disclosure sheet waits while any Emergency is open or the area is failed (or not read
+ * UX2-110: the Trok AI disclosure sheet waits while any Emergency is open or the area is failed (or not read
  * yet, so it can't cover one that is about to show). It shows once the Emergency ends, or on the next open.
  * ux guard: if the first read took over 3 s (`slow`, which stays set for the visit), skip it for this visit so it
  * never pops up late.

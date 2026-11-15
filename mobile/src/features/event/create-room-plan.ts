@@ -49,7 +49,7 @@ export function selectedPreset(choice: EndChoice): number | 'more' | null {
 }
 
 /**
- * The Qrewing AI switch on Create room: Plus toggles; a Free host turning it on opens the Plus screen instead (never a
+ * The Trok AI switch on Create room: Plus toggles; a Free host turning it on opens the Plus screen instead (never a
  * grey switch with no reason). Turning it off always works; nothing happens while the plan loads.
  */
 export function aiSwitchAction(plus: boolean | null, next: boolean): 'toggle' | 'upgrade' | null {

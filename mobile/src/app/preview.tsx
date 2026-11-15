@@ -85,7 +85,7 @@ export default function Preview() {
   const ended = useRoomOver(preview ? { deleted_at: null, expires_at: preview.expires_at } : null);
   const unavailable = ended.over ? en.rooms.errors.invalid : (joinDeadEnd ?? (preview ? null : error));
 
-  // Qrew Q 07.03: an invite that can't be previewed (invalid, ended, rotated, full, throttled) gets its own
+  // Tropop Q 07.03: an invite that can't be previewed (invalid, ended, rotated, full, throttled) gets its own
   // screen: "Invite unavailable", the same cause message as before, the paper art, then Enter a room code /
   // Back to rooms. While loading, only a spinner.
   if (!preview && offline && !ended.over) {

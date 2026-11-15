@@ -1,4 +1,4 @@
-// Spec 11 C, in Ask Qrewing: questions Qrewing passed on to a person. Waiting, the answer (only I see it), or after
+// Spec 11 C, in Ask Trok: questions Trok passed on to a person. Waiting, the answer (only I see it), or after
 // ~3 minutes with no answer the offer to ask in the room chat instead (the server posts it as my chat message).
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -15,7 +15,7 @@ import { askInChat, loadCards, useRoomCards } from './question-store';
 const s = en.questions;
 
 /**
- * UX2-47: my cards in this room (refetched when `refreshKey` changes, after each answer from Qrewing), member names,
+ * UX2-47: my cards in this room (refetched when `refreshKey` changes, after each answer from Trok), member names,
  * and a clock that wakes when the next ask-in-chat offer is due. The ask screen threads them under its turns.
  */
 export function useMyRelayCards(roomId: string, refreshKey: number, enabled: boolean) {
@@ -98,7 +98,7 @@ export function AnsweredCard({ card, answerer, onSheet }: { card: QuestionCard; 
 }
 
 /**
- * UX2-47: what happened to a question Qrewing passed on, shown under Qrewing's reply in the same thread: a caption
+ * UX2-47: what happened to a question Trok passed on, shown under Trok's reply in the same thread: a caption
  * while waiting, the person's answer as its own bubble, the ask-in-chat offer, or the moved-to-chat note.
  */
 export function RelayState({ card, answerer, now }: { card: QuestionCard; answerer: string; now: number }) {

@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { HAND_FONTS } from '@/components/hand-title';
 import { HomeHeaderButton } from '@/components/home-header-button';
 import { startSiriMirror } from '@/features/event/siri-mirror';
-// Qrewing Calendar: loaded at start so its SIGNED_OUT listener clears the phone-only calendar on sign-out.
+// Trok Calendar: loaded at start so its SIGNED_OUT listener clears the phone-only calendar on sign-out.
 import '@/features/calendar/calendar-store';
 import { LocationReporters } from '@/components/location-reporters';
 import { en } from '@/i18n/en';
@@ -29,7 +29,7 @@ function RootNavigator() {
   const signedIn = !!session;
   // A11y sweep: with Reduce Motion on, the media viewer cross-fades in instead of sliding.
   const reduceMotion = useReduceMotion();
-  // Qrew: the bundled title fonts load from assets at runtime (no rebuild). The splash waits for them so the
+  // Tropop: the bundled title fonts load from assets at runtime (no rebuild). The splash waits for them so the
   // first title is not drawn in the system font; a failed load just keeps the system font.
   const [fontsLoaded, fontError] = useFonts(HAND_FONTS);
   const fontsReady = fontsLoaded || !!fontError;
@@ -103,7 +103,7 @@ function RootNavigator() {
         <Stack.Screen name="create-room" options={{ title: en.createRoom.title, headerTitle: '' }} />
         <Stack.Screen name="join/index" options={{ title: en.join.title, headerTitle: '' }} />
         <Stack.Screen name="scan" options={{ title: en.scan.title, headerTitle: '' }} />
-        {/* Qrew: the handwritten title is in the content (QScreen); the nav bar keeps only Back. */}
+        {/* Tropop: the handwritten title is in the content (QScreen); the nav bar keeps only Back. */}
         <Stack.Screen name="preview" options={{ title: en.preview.title, headerTitle: '' }} />
         <Stack.Screen name="room/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="room/[id]/info" options={{ title: en.room.info, headerTitle: '' }} />
@@ -115,7 +115,7 @@ function RootNavigator() {
         <Stack.Screen name="room/[id]/face" options={{ title: en.face.title }} />
         <Stack.Screen name="room/[id]/media/[mediaId]" options={{ title: '', animation: reduceMotion ? 'fade' : 'default' }} />
         <Stack.Screen name="room/[id]/invite" options={{ title: en.invite.title, presentation: 'modal' }} />
-        {/* Spec 10.4: the private Ask Qrewing chat opens as a sheet over the room. */}
+        {/* Spec 10.4: the private Ask Trok chat opens as a sheet over the room. */}
         <Stack.Screen name="room/[id]/ask" options={{ title: en.qrewing.ask.title, presentation: 'modal' }} />
         <Stack.Screen name="room/[id]/questions" options={{ title: en.questions.title, presentation: 'modal' }} />
       </Stack.Protected>

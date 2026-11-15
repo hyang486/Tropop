@@ -1,4 +1,4 @@
-// Pure helpers for the Qrew chat screen (unit 3; no React Native imports, so `npm test` can load them).
+// Pure helpers for the Tropop chat screen (unit 3; no React Native imports, so `npm test` can load them).
 
 import type { LatLng } from './location-plan';
 

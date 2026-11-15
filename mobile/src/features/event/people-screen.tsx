@@ -59,7 +59,7 @@ async function load(roomId: string, last: MatchResult | null, isRetry: boolean):
 }
 
 /**
- * People to meet (spec 3.2): Qrewing's suggestions from entry info, with each person's headline, the reason and
+ * People to meet (spec 3.2): Trok's suggestions from entry info, with each person's headline, the reason and
  * their links. Refresh asks again; the server reuses a list younger than 10 minutes and marks it stale.
  */
 export function PeopleScreen() {
@@ -134,7 +134,7 @@ export function PeopleScreen() {
 
   const notConsented = q.me !== null && !q.me.aiOk;
   const noQuestionsBody = !!uid && hostId === uid ? s.noQuestionsHost : s.noQuestions;
-  // A failed re-ask on a kept list counts too: if Qrewing went off or I left, the old list must not stay up.
+  // A failed re-ask on a kept list counts too: if Trok went off or I left, the old list must not stay up.
   const gate = peopleGate({
     plus: plan === 'free' ? false : plan === 'plus' ? true : null,
     error: state.status === 'error' || state.status === 'ready' ? state.error : null,

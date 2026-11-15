@@ -1,4 +1,4 @@
-// On-device history of the private Qrewing chat (spec 10.1): AsyncStorage `qrewing.ask.v1.<roomId>`, last 30 turns,
+// On-device history of the private Trok chat (spec 10.1): AsyncStorage `qrewing.ask.v1.<roomId>`, last 30 turns,
 // deleted when the room ends, expires or the user leaves. The server keeps no question or answer text.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

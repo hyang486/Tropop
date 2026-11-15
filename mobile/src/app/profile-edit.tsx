@@ -14,7 +14,7 @@ import { pickAvatar, removeProfilePhoto, setProfilePhoto } from '@/lib/avatar';
 import { defaultCharacter } from '@/lib/characters';
 import { errorMessage } from '@/lib/errors';
 
-/** Qrew unit 5 (Q 07.01 Edit profile): profile photo and display name, moved here from Profile unchanged. */
+/** Tropop unit 5 (Q 07.01 Edit profile): profile photo and display name, moved here from Profile unchanged. */
 export default function ProfileEdit() {
   const { session, profile, refreshProfile } = useAuth();
   // null until the user edits the field; until then it shows the stored name.

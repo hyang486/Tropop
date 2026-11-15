@@ -1,5 +1,5 @@
 /**
- * Qrewing Calendar storage: the per-user calendar doc (phone only) and the Plus flag (server user_plans, cached) in AsyncStorage,
+ * Trok Calendar storage: the per-user calendar doc (phone only) and the Plus flag (server user_plans, cached) in AsyncStorage,
  * with an in-memory copy and listeners so every screen sees one state. Writes are serialized per key.
  * Both keys are removed when the user signs out or the account is deleted (both end in SIGNED_OUT).
  */

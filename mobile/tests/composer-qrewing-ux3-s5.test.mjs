@@ -1,4 +1,4 @@
-// Run: npm test. UX3-B05 (S5, D4): Qrewing sits in the composer's trailing slot while the field is empty; typing turns
+// Run: npm test. UX3-B05 (S5, D4): Trok sits in the composer's trailing slot while the field is empty; typing turns
 // the slot into the send arrow (150 ms cross-fade, instant with Reduce Motion). The chat FAB and the header Q on
 // Map, Photos & files, Room info and People to meet are gone.
 import assert from 'node:assert/strict';
@@ -12,7 +12,7 @@ const fab = read('features/event/qrewing-fab.tsx');
 const chat = read('app/room/[id]/index.tsx');
 const en = read('i18n/en.ts');
 
-test('slot: Qrewing while empty (if offered), send once typed or busy, nothing otherwise', () => {
+test('slot: Trok while empty (if offered), send once typed or busy, nothing otherwise', () => {
   assert.equal(plan.composerSlot('', false, true), 'idle');
   assert.equal(plan.composerSlot('   ', false, true), 'idle');
   assert.equal(plan.composerSlot('hi', false, true), 'send');
@@ -31,8 +31,8 @@ test('composer: 36 pt round Q with a 1 pt separator ring, 44 pt hit, label and h
   assert.match(composer, /accessibilityHint=\{idleAction\.hint\}/);
   assert.match(fab, /composerMark: \{[^}]*width: 36, height: 36/);
   assert.match(fab, /borderWidth: 1, borderColor: colors\.separator/);
-  assert.match(en, /composerLabel: 'Qrewing'/);
-  assert.match(en, /composerHint: 'Opens Qrewing AI\.'/);
+  assert.match(en, /composerLabel: 'Trok'/);
+  assert.match(en, /composerHint: 'Opens Trok AI\.'/);
 });
 
 test('chat passes the one Ask button to the composer only when available; no FAB or FAB padding', () => {

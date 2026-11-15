@@ -13,7 +13,7 @@ const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 export const en = {
-  appName: 'Qrew',
+  appName: 'Tropop',
   welcome: {
     // Q 01.01
     // UX3-A03: headline and three value rows.
@@ -228,10 +228,10 @@ export const en = {
     title: 'Scan an invite',
     subtitle: "Point the camera at your host's QR code.",
     enterCode: 'Enter code instead',
-    permissionHint: 'Qrew uses the camera only to read the room QR code.',
+    permissionHint: 'Tropop uses the camera only to read the room QR code.',
     allow: 'Allow camera',
     openSettings: 'Open Settings',
-    notInvite: 'That QR code is not a Qrew invite.',
+    notInvite: 'That QR code is not a Tropop invite.',
   },
   preview: {
     // UX2-42: the spinner's VoiceOver label.
@@ -263,7 +263,7 @@ export const en = {
     invite: 'Invite',
     endsIn: (remaining: string) => `Ends in ${remaining}`,
     endsAt: (when: string) => `Ends ${when}`,
-    // Qrew unit 3 (Q 03.01): "Ends today at 10:00 PM" under the room name in chat.
+    // Tropop unit 3 (Q 03.01): "Ends today at 10:00 PM" under the room name in chat.
     endsOn: (day: 'today' | 'tomorrow' | 'later', date: string, time: string) =>
       day === 'today' ? `Ends today at ${time}` : day === 'tomorrow' ? `Ends tomorrow at ${time}` : `Ends ${date} at ${time}`,
     reminderTitle: 'Room ends soon',
@@ -284,7 +284,7 @@ export const en = {
     leaveConfirmTitle: 'Leave this room?',
     leaveConfirmBody: 'You will lose access to its chat and photos. You can rejoin with the invite while the room is open.',
     end: 'End room for everyone',
-    // Qrew unit 5 (Q 03.03): Room info cards.
+    // Tropop unit 5 (Q 03.03): Room info cards.
     infoSubtitle: (isHost: boolean) => (isHost ? 'Room info · Host' : 'Room info'),
     people: (n: number) => (n === 1 ? '1 person' : `${n} people`),
     arrived: (n: number) => `${n} arrived`,
@@ -304,7 +304,7 @@ export const en = {
     backToRooms: 'Back to rooms',
     openFailedTitle: "Couldn't open this room",
     openFailedBody: 'Check your connection and try again.',
-    // Qrew unit 5 (Q 06.04): the shared ended screen. closedAt only when the client knows the time (lib/room-ended).
+    // Tropop unit 5 (Q 06.04): the shared ended screen. closedAt only when the client knows the time (lib/room-ended).
     endedTitle: 'This room has ended',
     closedAt: (name: string, when: string) => `${name} closed at ${when}.`,
     savedStay: 'Saved originals stay on your device.',
@@ -365,10 +365,10 @@ export const en = {
     cancel: 'Cancel',
     setUp: 'Set up photos of me',
     manage: 'Manage',
-    // Qrew unit 5 (Q 06.01): the Me filter before setup.
+    // Tropop unit 5 (Q 06.01): the Me filter before setup.
     intro: 'Find your photos in this room.',
     introMeta: 'Optional · One reference photo',
-    // Qrew unit 5 (Q 06.02): the review screen. The consent points above stay in full on it (not Q's short text).
+    // Tropop unit 5 (Q 06.02): the review screen. The consent points above stay in full on it (not Q's short text).
     reviewTitle: 'Review your reference',
     // UX P2-2: before a photo is picked; two short lines, the full consent points behind `details`.
     addTitle: 'Add a photo of you',
@@ -420,7 +420,7 @@ export const en = {
     checkedByTitle: 'Checked by',
     checkedByHint: 'Shows who checked this',
     checkFailed: 'Your check could not be saved. Try again.',
-    // Qrew unit 3 (Q 03.01): nav title and the room's tab row.
+    // Tropop unit 3 (Q 03.01): nav title and the room's tab row.
     title: 'Chat',
     tabs: 'Room sections',
     tabChat: 'Chat',
@@ -574,11 +574,11 @@ export const en = {
     notFound: 'This item is no longer available.',
     removed: 'This item was removed.',
     backToPhotos: 'Back to Photos',
-    photosOff: "Qrew can't save to Photos.",
+    photosOff: "Tropop can't save to Photos.",
     openSettings: 'Open Settings',
     video: 'Video',
     file: 'File',
-    // Qrew unit 5 (Q 05.01-05.04, 06.03)
+    // Tropop unit 5 (Q 05.01-05.04, 06.03)
     photo: 'Photo',
     addButton: 'Add photos or files',
     addSheetTitle: 'Add to the room',
@@ -613,7 +613,7 @@ export const en = {
     ageAgo: (n: number, unit: 'sec' | 'min' | 'hr' | 'day') =>
       `${unit === 'day' ? `${n} ${n === 1 ? 'day' : 'days'}` : `${n} ${unit === 'hr' ? 'h' : unit}`} ago`,
   },
-  // Qrew unit 5 (Q 07.04): shown instead of an alert when camera access is off for Take a photo.
+  // Tropop unit 5 (Q 07.04): shown instead of an alert when camera access is off for Take a photo.
   cameraOff: {
     title: 'Camera access is off',
     body: 'Allow access in Settings to take a photo.',
@@ -653,7 +653,7 @@ export const en = {
     status: 'Status',
     statusValue: (label: string) => `Status: ${label}`,
     chooseStatus: 'Set your status',
-    // Qrew unit 3 (Q 03.01, 04.03)
+    // Tropop unit 3 (Q 03.01, 04.03)
     setStatus: 'Set status',
     helpRequested: 'Help requested',
     waitingSeen: 'Waiting for someone to see it.',
@@ -721,13 +721,13 @@ export const en = {
   // Pace maker (sports rooms, Map tab; spec 3). Cues are spoken when voice is available, else a vibration and the banner.
   pace: {
     title: 'Pace maker',
-    switchHint: 'Qrewing coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
+    switchHint: 'Trok coaches your pace on this phone from your shared location. Your pace history stays on this phone.',
     // UX2-95: matches the switch label (map.shareMine).
     needsSharing: 'Turn on Share my live location to use the pace maker.',
     // UX2-125: cues run only while Map is in front (background cues are a held product question).
     mapOnly: 'Cues play while Map is open.',
     // capacity B item 4: the pace maker follows your own plan, also in a Free host's room.
-    plusOnly: 'Pace maker is part of Qrew Plus.',
+    plusOnly: 'Pace maker is part of Tropop Plus.',
     needsActivity: 'Cues start when the host starts the activity.',
     target: 'Target',
     targetUsual: (pace: string | null) => (pace ? `My usual pace (${pace} per km)` : 'My usual pace (no runs yet)'),
@@ -759,7 +759,7 @@ export const en = {
     // UX2-118
     waitingConnection: 'Pace maker is waiting for a connection.',
     stillFinding: 'Still looking for GPS. Moving outside can help.',
-    locationOff: 'Location is off for Qrew.',
+    locationOff: 'Location is off for Tropop.',
     openSettings: 'Open Settings',
     // The recap's pace line (features/recap shows it under my part; spec 3.3).
     recap: (distanceM: number, moving: string, total: string, pace: string) =>
@@ -816,7 +816,7 @@ export const en = {
     /** P0 (ux): under the switch while I'm in Emergency with sharing off. */
     shareInEmergency: 'Turn it on so others can find you.',
     shareMineHint: 'Only while the app is open. Nobody can turn this on for you.',
-    permissionDenied: 'Location access is off for Qrew. Turn it on in Settings to share.',
+    permissionDenied: 'Location access is off for Tropop. Turn it on in Settings to share.',
     openSettings: 'Open Settings',
     preciseOff: 'Precise location is off. Pace and arrival may be wrong.',
     reporter: {
@@ -839,7 +839,7 @@ export const en = {
     // UX2-117: a refetch failed while rows were already on screen.
     presenceStale: 'Couldn’t refresh. Showing the last update.',
     // UX2-87: under the Share switch, for sharing and the pace maker.
-    locationOffShare: 'Location is off for Qrew. Turn it on to share and use the pace maker.',
+    locationOffShare: 'Location is off for Tropop. Turn it on to share and use the pace maker.',
     // UX2-91
     actionFailedTitle: 'Didn’t go through',
     // UX2-89
@@ -887,11 +887,11 @@ export const en = {
     showMine: 'Show my location',
     showMineHint: 'Only on your phone. This does not share your location.',
     locating: 'Finding you…',
-    locateDenied: 'Location access is off for Qrew.',
-    locateDeniedSettings: 'Location access is off for Qrew. Turn it on in Settings to see yourself on the map.',
+    locateDenied: 'Location access is off for Tropop.',
+    locateDeniedSettings: 'Location access is off for Tropop. Turn it on in Settings to see yourself on the map.',
     locateUnavailable: 'Could not find your position. Try again.',
   },
-  // Qrew unit 4 (Q 03.04): confirm screens. Each line states only what the server does (see lib/end-plan.ts
+  // Tropop unit 4 (Q 03.04): confirm screens. Each line states only what the server does (see lib/end-plan.ts
   // callers): set_activity_state('ended') removes all live positions and turns sharing off for every member and
   // touches no photos or the room's end time; end_room sets deleted_at and grace_until = now + 30 min: chat and every
   // room feature close at once; only the recap, Photos of me and downloads stay readable until grace ends, then the
@@ -922,7 +922,7 @@ export const en = {
       'Chat closes now. The recap and photos stay available for 30 minutes, then messages, photos and files are deleted from the server. Anything already saved to a phone stays there.',
     effects: 'Closes now · Deleted after 30 min',
     effectsLabel: 'The room closes now. The recap and photos stay for 30 minutes, then everything is deleted.',
-    // Qrewing AI off (or unknown): no recap is written, so the copy names photos only.
+    // Trok AI off (or unknown): no recap is written, so the copy names photos only.
     deletedNoRecap:
       'Chat closes now. Photos stay available for 30 minutes, then messages, photos and files are deleted from the server. Anything already saved to a phone stays there.',
     effectsLabelNoRecap: 'The room closes now. Photos stay for 30 minutes, then everything is deleted.',
@@ -949,7 +949,7 @@ export const en = {
   invite: {
     title: 'Invite',
     done: 'Done',
-    hint: 'Scan with the Qrew app, or enter the code.',
+    hint: 'Scan with the Tropop app, or enter the code.',
     // UX2-15: under the QR when the room is at its member limit.
     full: "This room is full. New people can't join.",
     code: 'Code',
@@ -961,9 +961,9 @@ export const en = {
     reissueConfirmBody: 'The current QR code, link, and code stop working. People already in the room stay.',
     reissued: 'New invite created.',
     shareMessage: (name: string, code: string, url: string) =>
-      `Join "${name}" on Qrew. Code: ${code}\n${url}`,
+      `Join "${name}" on Tropop. Code: ${code}\n${url}`,
     qrLabel: 'Room invite QR code',
-    // Qrew unit 5 (Q 02.04).
+    // Tropop unit 5 (Q 02.04).
     heading: 'Invite your group',
     inviteCode: 'Invite code',
   },
@@ -1010,7 +1010,7 @@ export const en = {
     deleteConfirmAction: 'Delete',
     deleteCancel: 'Cancel',
     deleteFailed: 'Your account was not deleted. Check your connection and try again.',
-    // Qrew unit 5 (Q 07.01).
+    // Tropop unit 5 (Q 07.01).
     guestAccount: 'Guest on this phone',
     account: 'Account',
     editProfile: 'Edit profile',
@@ -1032,12 +1032,12 @@ export const en = {
     /** capacity B item 4: the link from a personal Plus feature to the Plus intro. */
     seePlus: 'See Plus',
     // v2 paywall, built to docs/evidence/plus-page-mockup/v2.html (v2 approved by the human, relayed by qa).
-    title: 'Qrew Plus',
-    pill: 'Qrew Plus',
+    title: 'Tropop Plus',
+    pill: 'Tropop Plus',
     close: 'Close',
     // Headline (hand font, ≤2 lines) and one sub line per preview (features/calendar/plus-intro.ts plusPitch).
     pitch: {
-      diary: { heading: 'Every meetup,\na page in your diary', sub: 'Qrewing writes it for you when the room ends.' },
+      diary: { heading: 'Every meetup,\na page in your diary', sub: 'Trok writes it for you when the room ends.' },
       chat: { heading: 'Your room,\nwith a helper', sub: 'Answers from the chat, asks the host when it isn’t sure.' },
       trip: { heading: 'Keep the whole\ntrip in one room', sub: 'Up to 7 days and 30 people. Free rooms stop at 2 days and 6.' },
     },
@@ -1047,7 +1047,7 @@ export const en = {
       diaryDate: 'Nov 14',
       diaryLines: ['Ran the lake with Jun and Sora.', '6:00 first lap, then we pushed.', 'Pastries after. Good morning.'],
       ask: 'Where do we meet if it rains?',
-      qrewing: 'Qrewing',
+      qrewing: 'Trok',
       asked: 'The chat doesn’t say yet. I asked Mina (host) for you.',
       answered: 'Mina: under the boathouse roof, same time.',
       endsAfter: 'Ends after',
@@ -1060,9 +1060,9 @@ export const en = {
     },
     // One-line benefits, the same on the Free and the Plus page (UX2-64); odd-index parts are bold.
     lines: {
-      ai: ['', 'Qrewing', ' in every room you host'],
+      ai: ['', 'Trok', ' in every room you host'],
       rooms: ['Rooms up to ', '30 people', ' and ', '7 days', ''],
-      add: ['', 'Add with Qrewing', ': just say the plan'],
+      add: ['', 'Add with Trok', ': just say the plan'],
     },
     tryCta: 'Try Plus free',
     fine: 'Preview · no payment · ',
@@ -1074,8 +1074,8 @@ export const en = {
     compare: [
       { label: 'People per room', free: '6', plus: '30' },
       { label: 'Room length', free: '2 days', plus: '7 days' },
-      { label: 'Qrewing in rooms', free: null, plus: true },
-      { label: 'Add with Qrewing', free: null, plus: true },
+      { label: 'Trok in rooms', free: null, plus: true },
+      { label: 'Add with Trok', free: null, plus: true },
       { label: 'Calendar diary', free: null, plus: true },
     ],
     alwaysFree: 'Always free: rooms, chat, original photos, Photos of me, map and arrival, Emergency, and your own calendar events.',
@@ -1093,13 +1093,13 @@ export const en = {
     saveFailedBody: 'Check your connection and try again.',
   },
   calendar: {
-    title: 'Qrewing Calendar',
+    title: 'Trok Calendar',
     open: 'Calendar',
-    openLabel: 'Open Qrewing Calendar',
+    openLabel: 'Open Trok Calendar',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
     add: 'Add event',
-    ask: 'Add with Qrewing',
+    ask: 'Add with Trok',
     // UX2-124
     loading: 'Loading calendar',
     loadFailed: 'Couldn’t load your calendar.',
@@ -1115,7 +1115,7 @@ export const en = {
     emptyMonth: 'Nothing planned this month.',
     moreLabel: (n: number, day: string) => `${n} more on ${day}`,
     diaryLater: 'Your diary appears after this room ends.',
-    upsellCardTitle: 'The Qrewing diary is a Plus feature',
+    upsellCardTitle: 'The Trok diary is a Plus feature',
     upsellCardBody: 'Plus keeps a short diary of each room you were in. Try it with the Plus preview.',
     upsellSeePlus: 'See Plus',
     upsellClose: 'Not now',
@@ -1149,17 +1149,17 @@ export const en = {
       span: 'An event can span at most a year.',
       emoji: 'Pick an emoji.',
     },
-    askTitle: 'Add with Qrewing',
+    askTitle: 'Add with Trok',
     askPlaceholder: 'e.g. Dinner with Jun next Friday',
     askSend: 'Add',
-    askBusy: 'Qrewing is reading that…',
+    askBusy: 'Trok is reading that…',
     askConfirm: 'Check the event, then save it.',
     askErrors: {
-      unclear: "Qrewing couldn't tell the date. Try with a day, like \"next Friday\".",
+      unclear: "Trok couldn't tell the date. Try with a day, like \"next Friday\".",
       rate_limited: 'Too many requests. Try again in a little while.',
       // UX2-94
       network: "You're offline. Try again when you're back.",
-      other: "Qrewing couldn't add that right now. You can add it yourself with Add event (+).",
+      other: "Trok couldn't add that right now. You can add it yourself with Add event (+).",
     },
   },
   auth: {
@@ -1181,9 +1181,9 @@ export const en = {
     fileGone: 'The selected file is no longer available. Choose it again.',
     downloadIncomplete: 'The download did not finish.',
     downloadMismatch: 'The downloaded file does not match the original. Try again.',
-    photosPermission: 'Allow Qrew to add to Photos in Settings to save originals.',
+    photosPermission: 'Allow Tropop to add to Photos in Settings to save originals.',
   },
-  // Spec 11 C: Qrewing question cards (relay to a person who can answer).
+  // Spec 11 C: Trok question cards (relay to a person who can answer).
   questions: {
     title: 'Question cards',
     // UX2-11: a failed first load (pattern E).
@@ -1197,7 +1197,7 @@ export const en = {
     spoken: (name: string, q: string) => `Question from ${name}. ${q}`,
     heardSpoken: 'Got it. Check your answer on screen, then tap Send.',
     heardHint: 'Heard by voice. Check it, then send.',
-    intro: "Qrewing couldn't answer these, so it asked you. Only the asker sees your answer unless you post it as a notice.",
+    intro: "Trok couldn't answer these, so it asked you. Only the asker sees your answer unless you post it as a notice.",
     empty: 'No questions for you right now.',
     asker: (name: string) => `From ${name}`,
     answerLabel: 'Your answer',
@@ -1207,17 +1207,17 @@ export const en = {
     sent: 'Answer sent.',
     yourAnswers: 'You answered',
     noticeTooLong: 'A notice can be up to 1000 characters.',
-    // Ask Qrewing, UX2-47: a question Qrewing passed on stays in its own thread.
+    // Ask Trok, UX2-47: a question Trok passed on stays in its own thread.
     askedReply: (name: string) => `I couldn't find a clear answer, so I asked ${name}.`,
     askedWaiting: (name: string) => `Asked ${name} · waiting`,
     answerFrom: (name: string) => `${name} answered`,
-    // UX2-04b: an answer to my question is mine to read on any plan; only asking Qrewing more is Plus.
+    // UX2-04b: an answer to my question is mine to read on any plan; only asking Trok more is Plus.
     youAsked: (q: string) => `You asked: ${q}`,
     answerLine: (name: string, a: string) => `${name}: ${a}`,
     answeredLabel: (name: string, a: string) => `${name} answered your question: ${a}`,
     answerBy: (name: string, time: string) => `${name} · ${time}`,
     yourQuestion: 'Your question',
-    askMoreIsPlus: 'Asking Qrewing more is part of Qrew Plus.',
+    askMoreIsPlus: 'Asking Trok more is part of Tropop Plus.',
     // UX2-109: the answer sheet before the card is in the cache (spoken without the ellipsis).
     answerLoading: 'Loading the answer…',
     answerLoadingSpoken: 'Loading the answer.',
@@ -1238,11 +1238,11 @@ export const en = {
   },
   qrewing: {
     create: {
-      aiLabel: 'Qrewing AI',
-      aiHint: 'Qrewing flags key messages and writes the recap.',
+      aiLabel: 'Trok AI',
+      aiHint: 'Trok flags key messages and writes the recap.',
       entryLabel: 'Ask attendees for entry info',
       entryHint: 'Attendees fill in a short intro (what they do, interests, links) before they chat.',
-      aiSaveFailed: 'The room was created, but Qrewing AI could not be turned on. You can try again from Room info.',
+      aiSaveFailed: 'The room was created, but Trok AI could not be turned on. You can try again from Room info.',
       aiSaveFailedHint: 'Dismisses this note.',
       questionsTitle: 'Entry questions',
       questionsHint: 'Attendees answer these before they chat. You cannot change them after the first answer.',
@@ -1264,53 +1264,53 @@ export const en = {
       questionsSaveFailed: 'The room was created, but the entry questions could not be saved, so entry info is off for this room.',
     },
     disclosure: {
-      title: 'Qrewing AI is on in this room',
+      title: 'Trok AI is on in this room',
       // UX P1-7: three short lines; the full text sits behind `more`.
       summary: [
-        'Qrewing reads chat and entry info to flag key messages and write the recap.',
+        'Trok reads chat and entry info to flag key messages and write the recap.',
         'Host and @everyone messages are flagged without AI.',
         'Everything is deleted when the room ends.',
       ],
-      more: 'How Qrewing uses your messages ›',
+      more: 'How Trok uses your messages ›',
       less: 'Hide details',
       body: [
         'In this room, your messages and entry info are sent to Anthropic’s Claude to flag important messages, suggest people to meet and write a recap.',
-        'Host messages and messages with @everyone, @all or @here are highlighted by simple rules in Qrew, without AI. Only other messages, and only from members who agreed, are sent to the AI.',
-        'Qrew deletes them, along with everything Qrewing made from them, when the room ends, or 30 minutes after the host ends it early.',
-        'If you choose Not now, your messages stay out of every Qrewing request. You can agree later from Room info.',
+        'Host messages and messages with @everyone, @all or @here are highlighted by simple rules in Tropop, without AI. Only other messages, and only from members who agreed, are sent to the AI.',
+        'Tropop deletes them, along with everything Trok made from them, when the room ends, or 30 minutes after the host ends it early.',
+        'If you choose Not now, your messages stay out of every Trok request. You can agree later from Room info.',
       ],
       agree: 'Agree',
       notNow: 'Not now',
       failed: 'Could not save your choice. Try again.',
       // UX2-112: Agree saved, but the read after it failed (or still shows no consent).
-      turnOnFailed: "Couldn't turn on Qrewing AI. Try again.",
+      turnOnFailed: "Couldn't turn on Trok AI. Try again.",
     },
     ask: {
-      // UX3-B05: the composer's Qrewing button.
-      composerLabel: 'Qrewing',
-      composerHint: 'Opens Qrewing AI.',
+      // UX3-B05: the composer's Trok button.
+      composerLabel: 'Trok',
+      composerHint: 'Opens Trok AI.',
       // UX2-129: not_member alert before the screen closes.
       notMemberTitle: "You're not in this room anymore",
       notMemberMessage: "The room ended or you left it. Your question wasn't sent.",
       notMemberOk: 'OK',
       done: 'Done',
-      doneLabel: 'Close Ask Qrewing',
-      title: 'Ask Qrewing',
+      doneLabel: 'Close Ask Trok',
+      title: 'Ask Trok',
       intro: 'Only you see these questions and answers. They stay on this phone and are deleted when the room ends or you leave.',
       empty: 'Ask about this room: the plan, the route, or what people said in the chat.',
       placeholder: 'Ask a question',
       send: 'Send',
-      thinking: 'Qrewing is thinking…',
+      thinking: 'Trok is thinking…',
       you: 'You',
-      bot: 'Qrewing',
-      reviewConsent: 'Review Qrewing AI',
+      bot: 'Trok',
+      reviewConsent: 'Review Trok AI',
       // UX2-10: the daily cap is a dead end (ink2, Send off); the burst limit is a fixable error.
       limitReached: "You've used today's questions. Ask again tomorrow.",
       rateLimited: 'Too many questions at once. Try again in a minute.',
       // UX2-04: a Free asker whose ask came back plan_limit (402); See Plus takes the composer's place.
-      plusTitle: 'Ask Qrewing about this room',
-      plusBody: "Qrewing answers from the chat and the plan. It's part of Qrew Plus.",
-      seePlusHint: 'Opens the Qrew Plus page',
+      plusTitle: 'Ask Trok about this room',
+      plusBody: "Trok answers from the chat and the plan. It's part of Tropop Plus.",
+      seePlusHint: 'Opens the Tropop Plus page',
     },
     entry: {
       title: 'Introduce yourself',
@@ -1320,7 +1320,7 @@ export const en = {
       addMyInfo: 'Add my info',
       // UX2-138: short; Room info explains the 30-minute grace.
       intro: "Everyone in this room can see your intro. It's deleted when the room ends.",
-      linksNote: 'Links are shown to attendees only. Qrewing does not open them.',
+      linksNote: 'Links are shown to attendees only. Trok does not open them.',
       save: 'Save',
       tooLong: (field: string, max: number) => `${field} can be up to ${max} characters.`,
       linkInvalid: 'Each link must start with https:// and be up to 200 characters.',
@@ -1341,7 +1341,7 @@ export const en = {
       keepEditing: 'Keep editing',
     },
     info: {
-      section: 'Qrewing AI',
+      section: 'Trok AI',
       consentOn: 'Your messages are included',
       consentOff: 'Your messages are not included',
       agree: 'Include my messages',
@@ -1350,8 +1350,8 @@ export const en = {
       addEntry: 'Add my entry info',
       peopleToMeet: 'People to meet',
       /** UX2-01 / UX2-03: the subtitle on a Plus-only row for a Free user (the tap opens the Plus page). */
-      partOfPlus: 'Part of Qrew Plus',
-      loadFailed: 'Could not load Qrewing settings. Try again.',
+      partOfPlus: 'Part of Tropop Plus',
+      loadFailed: 'Could not load Trok settings. Try again.',
       saveFailed: 'Could not save this change. Try again.',
       retry: 'Try again',
     },
@@ -1363,7 +1363,7 @@ export const en = {
       banner: (reason: string) => `Important: ${reason}`,
       mentioned: 'You were mentioned',
       dismiss: 'Dismiss',
-      unavailable: 'Qrewing is not available right now. All messages are shown.',
+      unavailable: 'Trok is not available right now. All messages are shown.',
       saveFailed: 'Could not change Mute small talk. Try again.',
     },
     people: {
@@ -1373,38 +1373,38 @@ export const en = {
       notMemberMessage: 'The room ended or you left it.',
       notMemberOk: 'OK',
       refresh: 'Refresh',
-      loading: 'Qrewing is reading entry info…',
+      loading: 'Trok is reading entry info…',
       emptyTitle: 'No suggestions yet',
       empty: 'No one else has shared entry info yet. Check back after more people join.',
       noQuestionsTitle: 'No intros in this room',
-      noQuestions: "The host didn't add entry questions, so Qrewing can't suggest people to meet here.",
+      noQuestions: "The host didn't add entry questions, so Trok can't suggest people to meet here.",
       // UX2-137: the host sees it about themselves.
-      noQuestionsHost: "You didn't add entry questions, so Qrewing can't suggest people to meet here.",
-      noEntryTitle: 'Tell Qrewing about you',
-      noEntry: 'Qrewing suggests people from the entry info members share. Add yours to see who to meet.',
+      noQuestionsHost: "You didn't add entry questions, so Trok can't suggest people to meet here.",
+      noEntryTitle: 'Tell Trok about you',
+      noEntry: 'Trok suggests people from the entry info members share. Add yours to see who to meet.',
       stale: 'Showing the last list. A new one is available in a few minutes.',
-      pending: 'Qrewing is still finding people to meet.',
-      pendingFinal: 'Qrewing is still finding people to meet. Tap Refresh to check again.',
-      updating: 'Showing the last list while Qrewing updates it.',
+      pending: 'Trok is still finding people to meet.',
+      pendingFinal: 'Trok is still finding people to meet. Tap Refresh to check again.',
+      updating: 'Showing the last list while Trok updates it.',
       updatingFinal: 'Showing the last list. Tap Refresh to check again.',
       updateFailed: 'Could not update the list. Tap Refresh to try again.',
       // UX2-49: the no-consent empty state says what the screen is for, then what to do.
-      notConsented: 'Qrewing suggests people here you might get along with. Agree to Qrewing AI first.',
+      notConsented: 'Trok suggests people here you might get along with. Agree to Trok AI first.',
       // UX2-01: plan and consent gates are calm empty states, not errors.
       plusTitle: 'Find who to meet',
-      plus: "Qrewing suggests people from the entry info members share. It's part of Qrew Plus.",
-      seePlusHint: 'Opens the Qrew Plus page',
+      plus: "Trok suggests people from the entry info members share. It's part of Tropop Plus.",
+      seePlusHint: 'Opens the Tropop Plus page',
       consentTitle: 'Find who to meet',
       agree: 'Agree',
       // UX2-09: dead ends (pattern D), neutral with Back instead of a red Refresh.
-      off: 'Qrewing is off in this room.',
-      unavailable: "Qrewing isn't available right now.",
+      off: 'Trok is off in this room.',
+      unavailable: "Trok isn't available right now.",
       back: 'Back',
     },
     recap: {
       title: 'Recap',
       none: 'No recap was saved for this room.',
-      pending: 'Qrewing is still writing the recap.',
+      pending: 'Trok is still writing the recap.',
       offline: 'Could not get the recap. Check your connection.',
       // UX2-82: the card's read failed.
       loadFailed: "Couldn't load the recap.",
@@ -1428,18 +1428,18 @@ export const en = {
       notSetUp: 'Photos of me was not set up before the room ended.',
     },
     errors: {
-      ai_not_configured: 'Qrewing is not set up yet.',
-      ai_off: 'Qrewing AI is off in this room.',
+      ai_not_configured: 'Trok is not set up yet.',
+      ai_off: 'Trok AI is off in this room.',
       not_member: 'You are not in this room.',
       not_muted: 'Turn on Mute small talk first.',
       no_entry: 'Add your entry info first.',
       too_early: 'The recap is available in the last hour of the room.',
-      not_consented: 'Agree to Qrewing AI in this room first.',
-      ask_limit: 'You have asked Qrewing a lot today. Try again later.',
-      unclear: "Qrewing couldn't understand that. Try saying it another way.",
+      not_consented: 'Agree to Trok AI in this room first.',
+      ask_limit: 'You have asked Trok a lot today. Try again later.',
+      unclear: "Trok couldn't understand that. Try saying it another way.",
       rate_limited: 'Too many requests. Try again in a little while.',
-      plan_limit: 'This needs Qrew Plus.',
-      ai_failed: 'Qrewing could not finish this. Try again.',
+      plan_limit: 'This needs Tropop Plus.',
+      ai_failed: 'Trok could not finish this. Try again.',
       network: 'No connection. Try again.',
     },
   },
@@ -1547,7 +1547,7 @@ export const en = {
     savedToPhotos: 'Saved to Photos',
     openApp: (a: ConnectApp) => `Open ${connectApp(a)}`,
     fallbackHow: (a: ConnectApp) => `In ${connectApp(a)}, tap Scan and choose this photo.`,
-    photosDenied: 'Allow Qrew to add photos in Settings.',
+    photosDenied: 'Allow Tropop to add photos in Settings.',
     openSettings: 'Open Settings',
     close: 'Close',
 

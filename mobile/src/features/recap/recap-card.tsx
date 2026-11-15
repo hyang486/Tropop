@@ -35,7 +35,7 @@ function GraceRecapNotices({ roomId, onRecap, onSubscribed }: { roomId: string; 
 
 /**
  * The saved recap on the Room ended screen (spec 3.3), read from this phone. "No recap was saved" only for rooms
- * this phone knows had Qrewing AI on. In grace (spec 7.3) the shared row is also read for rooms without the mark
+ * this phone knows had Trok AI on. In grace (spec 7.3) the shared row is also read for rooms without the mark
  * (the chat was never opened here), and a room_recaps notice reads it again, so "still writing" resolves by
  * itself and a refreshed recap replaces the saved one. After the server deleted the room the reads fail quietly,
  * so only the phone's copy remains.
@@ -65,7 +65,7 @@ export function SavedRecapCard({ roomId, grace }: { roomId: string; grace: boole
       if (notice && userId) saved = (await readAndSaveRecap(roomId, userId)) ?? saved;
       // Early end (spec 7): the room is readable for 30 minutes, but room notices other than room_recaps stop at
       // the end, so a member who missed the recap reads the row (grace read policy), and a phone that knows the
-      // room had Qrewing on asks once if there is none yet.
+      // room had Trok on asks once if there is none yet.
       if (!saved && userId && (mark?.ai || grace)) {
         const res = await recapForEndedRoom(roomId, userId, { ask: mark?.ai === true });
         if ('saved' in res) saved = res.saved;

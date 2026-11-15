@@ -45,7 +45,7 @@ type State =
   | { status: 'ready'; room: Room; enrollment: FaceEnrollment | null; refUrl: string | null; matchCount: number };
 
 /**
- * Photos of me setup for one room (Qrew unit 5, Q 06.02): review the reference with the full consent points,
+ * Photos of me setup for one room (Tropop unit 5, Q 06.02): review the reference with the full consent points,
  * or (once enrolled) the private reference with Manage (Replace, Stop and remove) at the top right. Nothing is
  * uploaded before "Agree and save".
  */

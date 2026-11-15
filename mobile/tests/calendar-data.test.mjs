@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing Calendar phone storage: parse, room snapshots, recap diary, events, sign-out clear.
+// Run: npm test. Trok Calendar phone storage: parse, room snapshots, recap diary, events, sign-out clear.
 import './ts-resolve.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

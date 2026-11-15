@@ -1,4 +1,4 @@
-// Pure helpers for the Photos & files screens (Qrew unit 5, Q 05.03/05.04). No React Native imports, so
+// Pure helpers for the Photos & files screens (Tropop unit 5, Q 05.03/05.04). No React Native imports, so
 // `npm test` can load them under plain Node.
 
 /**

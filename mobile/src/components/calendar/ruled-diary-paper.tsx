@@ -20,7 +20,7 @@ const PAD_X = 20;
 const RULE_FADE = 0.4;
 
 /**
- * Qrewing Calendar: diary paper (cream, faint straight pencil rules, no card chrome) behind the caller's children.
+ * Trok Calendar: diary paper (cream, faint straight pencil rules, no card chrome) behind the caller's children.
  * At least `lines` rules tall; it grows with its content and draws one rule per line of its measured height.
  */
 export function RuledDiaryPaper({
@@ -63,7 +63,7 @@ export function RuledDiaryPaper({
 }
 
 /**
- * Qrewing Calendar: a past room's diary, handwritten on pencil-ruled paper: a title, a date line, then up to 3 lines of
+ * Trok Calendar: a past room's diary, handwritten on pencil-ruled paper: a title, a date line, then up to 3 lines of
  * the first-person recap (extra lines are dropped). `icon` (the room's emoji) draws its ink line icon before the
  * title; it is decorative, since the label already names the room. Read by VoiceOver as one element.
  */

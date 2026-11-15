@@ -1,7 +1,7 @@
 // Pure logic for the end-of-room recap (spec 3.3 and 7.3). No React Native imports, so `npm test` can load it.
 
 export const RECAP_KEY_PREFIX = 'qrewing.recap.v1.';
-/** Which recap calls this device already made for a room, and that the room had Qrewing AI on. */
+/** Which recap calls this device already made for a room, and that the room had Trok AI on. */
 export const RECAP_MARK_PREFIX = 'qrewing.recap-mark.v1.';
 
 export const FIRST_CALL_MS = 60 * 60_000;
@@ -138,7 +138,7 @@ export function myPartAfterRoomCheck(part: MyPart, openAfterCount: boolean): MyP
 }
 
 /**
- * Qrewing Calendar (Plus preview): a recap saved through a path that did not send diary:true (room_recaps notice,
+ * Trok Calendar (Plus preview): a recap saved through a path that did not send diary:true (room_recaps notice,
  * a done shared row read in grace, the ended-room ask) asks once for this member's emoji and diary. Background
  * only: never throws, one call per room at a time; the server caps it and answers 403 once the room is gone.
  */
@@ -212,7 +212,7 @@ export function withTimeout<T, F>(p: Promise<T>, ms: number, fallback: F, setTim
 /**
  * What the Room ended recap card shows (spec 3.3, 7.3). `miss` is why the server read gave no recap: `pending`
  * (another member's call is writing it), `offline` (the request never got an answer) or `gone` (any other answer,
- * including the room deleted after grace). Rooms this phone does not know had Qrewing on show only a recap or
+ * including the room deleted after grace). Rooms this phone does not know had Trok on show only a recap or
  * "still writing" (read in grace).
  */
 export type RecapMiss = 'pending' | 'offline' | 'gone';

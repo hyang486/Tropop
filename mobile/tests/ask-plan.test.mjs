@@ -1,4 +1,4 @@
-// Run: npm test. Private Qrewing chat (spec 10.3, 10.4): history trim, parse and purge, the ask request shape and
+// Run: npm test. Private Trok chat (spec 10.3, 10.4): history trim, parse and purge, the ask request shape and
 // bounds, and the error mapping (plan, API with a fake invoke, and the AsyncStorage store stubbed in-process).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

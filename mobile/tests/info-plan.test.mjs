@@ -1,4 +1,4 @@
-// Run: npm test. Qrew unit 5: Room info "N people · M arrived" (Q 03.03).
+// Run: npm test. Tropop unit 5: Room info "N people · M arrived" (Q 03.03).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

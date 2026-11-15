@@ -16,7 +16,7 @@ import { deleteAccount, signOut, useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 
 /**
- * Qrew unit 5 (Q 07.01): handwritten title, account cards, Language / Plus preview / Log out as rows and Delete
+ * Tropop unit 5 (Q 07.01): handwritten title, account cards, Language / Plus preview / Log out as rows and Delete
  * account as a red text button. Photo and name are edited on Edit profile (profile-edit).
  */
 export default function Profile() {

@@ -1,7 +1,7 @@
 import AppIntents
 
-/// Spec 10.5. Every phrase must contain \(.applicationName) ("Qrew") plus other words.
-/// "Hey Siri, Qrewing" would need INAlternativeAppNames and a device check (human item); not set here.
+/// Spec 10.5. Every phrase must contain \(.applicationName) ("Tropop") plus other words.
+/// "Hey Siri, Trok" would need INAlternativeAppNames and a device check (human item); not set here.
 struct AppShortcuts: AppShortcutsProvider {
   static var appShortcuts: [AppShortcut] {
     AppShortcut(
@@ -10,7 +10,7 @@ struct AppShortcuts: AppShortcutsProvider {
         "Ask \(.applicationName)",
         "Ask \(.applicationName) a question",
       ],
-      shortTitle: "Ask Qrewing",
+      shortTitle: "Ask Trok",
       systemImageName: "bubble.left.and.text.bubble.right"
     )
   }

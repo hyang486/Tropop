@@ -1,4 +1,4 @@
-// Pure logic for the Qrewing AI client (no React Native imports, so node --test can load it).
+// Pure logic for the Trok AI client (no React Native imports, so node --test can load it).
 import type { MatchResult, QrewingError, QrewingMemberRow, QrewingRoomRow } from './types';
 
 const KNOWN: readonly QrewingError[] = [
@@ -54,7 +54,7 @@ export function isOfflineError(error: unknown): boolean {
   return typeof message === 'string' && OFFLINE_MESSAGE.test(message);
 }
 
-/** Short text for a failed save or read in a Qrewing screen; never the raw server message. */
+/** Short text for a failed save or read in a Trok screen; never the raw server message. */
 export function saveErrorKind(error: unknown): 'network' | 'failed' {
   return isOfflineError(error) ? 'network' : 'failed';
 }
@@ -74,7 +74,7 @@ export function invokeFailureKind(error: unknown): 'http' | 'network' | 'server'
 export const MATCH_RETRY_MS = 10_000;
 
 /**
- * capacity B item 4: personal Qrewing (Ask, people to meet) follows the caller's own plan. A 402 plan_limit means
+ * capacity B item 4: personal Trok (Ask, people to meet) follows the caller's own plan. A 402 plan_limit means
  * the server has the caller as Free, so the local Plus copy is re-read and the screen offers the Plus intro.
  */
 export function isPlanLimit(error: QrewingError | null | undefined): boolean {
@@ -129,12 +129,12 @@ export function sessionUserId(res: { data: { session: { user: { id: string } } |
   return res?.data?.session?.user?.id;
 }
 
-// Table missing (0027 not applied yet): a known "Qrewing is not here", not a failed read, so rooms without the
+// Table missing (0027 not applied yet): a known "Trok is not here", not a failed read, so rooms without the
 // tables do not show "Could not load" or retry every 30 s.
 const MISSING_TABLE = new Set(['42P01', 'PGRST205']);
 
 /**
- * The room's Qrewing state from the qrewing_rooms and qrewing_members reads (review R1). Any error on the room
+ * The room's Trok state from the qrewing_rooms and qrewing_members reads (review R1). Any error on the room
  * read is `readFailed` (not "off"), except a missing table; no row (no error) is off.
  */
 export function roomStateFrom(
@@ -151,7 +151,7 @@ export function roomStateFrom(
 }
 
 /**
- * End-room copy (review R6): name the recap unless a read actually answered that Qrewing AI is off. Still loading
+ * End-room copy (review R6): name the recap unless a read actually answered that Trok AI is off. Still loading
  * or a failed read keeps the recap wording.
  */
 export function endCopyHasRecap(state: Pick<QrewingRoomState, 'aiEnabled' | 'readFailed' | 'loaded'>): boolean {
@@ -159,7 +159,7 @@ export function endCopyHasRecap(state: Pick<QrewingRoomState, 'aiEnabled' | 'rea
 }
 
 /**
- * Which Qrewing function calls a room state allows. An AI-off room, a room still loading, or a failed read makes
+ * Which Trok function calls a room state allows. An AI-off room, a room still loading, or a failed read makes
  * none: no probe, no triage, no recap. Triage also needs a passing probe, an event room, and my Agree plus Mute.
  */
 export function allowedQrewingCalls(

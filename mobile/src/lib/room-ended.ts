@@ -1,4 +1,4 @@
-// Pure helpers for the Qrew "This room has ended" screen (Q 06.04). No React Native imports, so `npm test`
+// Pure helpers for the Tropop "This room has ended" screen (Q 06.04). No React Native imports, so `npm test`
 // can load them.
 
 /** The room fields the ended screen reads. */

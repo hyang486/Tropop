@@ -9,8 +9,8 @@ const people = readFileSync(new URL('../src/features/event/people-screen.tsx', i
 
 test('UX2-137: host vs member wording on the no-questions empty state; consent title matches plusTitle', () => {
   const s = en.qrewing.people;
-  assert.equal(s.noQuestionsHost, "You didn't add entry questions, so Qrewing can't suggest people to meet here.");
-  assert.equal(s.noQuestions, "The host didn't add entry questions, so Qrewing can't suggest people to meet here.");
+  assert.equal(s.noQuestionsHost, "You didn't add entry questions, so Trok can't suggest people to meet here.");
+  assert.equal(s.noQuestions, "The host didn't add entry questions, so Trok can't suggest people to meet here.");
   assert.equal(s.consentTitle, 'Find who to meet');
   assert.equal(s.consentTitle, s.plusTitle);
   assert.match(people, /setHostId\(members\.find\(\(m\) => m\.role === 'host'\)\?\.user_id \?\? null\)/);

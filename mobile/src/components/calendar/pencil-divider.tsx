@@ -8,7 +8,7 @@ import { useCalendarColors } from './tokens';
 const HEIGHT = 6;
 
 /**
- * Qrewing Calendar: a straight pencil rule across its parent's width (the same graphite texture as the month grid),
+ * Trok Calendar: a straight pencil rule across its parent's width (the same graphite texture as the month grid),
  * for the day list and the diary instead of a card edge. `inset` keeps it off both sides. Decorative only.
  */
 export function PencilDivider({ seed = 'divider', inset = 0, style }: { seed?: string; inset?: number; style?: StyleProp<ViewStyle> }) {

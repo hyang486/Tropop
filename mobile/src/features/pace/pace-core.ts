@@ -1,4 +1,4 @@
-// Qrewing AI pace maker (spec 3.4): the pure, on-device rules. No React Native imports, so `npm test` runs it.
+// Trok AI pace maker (spec 3.4): the pure, on-device rules. No React Native imports, so `npm test` runs it.
 // No model and no server: stats come from the user's own fixes, the lead group from live_presence rows.
 
 export type Point = { latitude: number; longitude: number };
@@ -753,7 +753,7 @@ export function spokenCue(cue: ChosenCue): string {
   }
 }
 
-// --- Qrewing bot `me` snapshot (spec 10.3/10.4) ----------------------------------------------------------------
+// --- Trok bot `me` snapshot (spec 10.3/10.4) ----------------------------------------------------------------
 // Only these four fields leave the phone, for the asker only: never a position.
 
 export type PaceSnapshot = {

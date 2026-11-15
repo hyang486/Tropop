@@ -1,4 +1,4 @@
-// Qrewing pieces of the room chat screen (spec 3.2): availability probe, consent and entry gates, the Mute small
+// Trok pieces of the room chat screen (spec 3.2): availability probe, consent and entry gates, the Mute small
 // talk bar, the important-message banner and the collapsed "N messages hidden" row.
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -19,7 +19,7 @@ import type { ImportantBanner as Banner } from './use-small-talk';
 
 
 /**
- * The room's Qrewing state for the chat screen. `available` is false until the probe answers ok, so a
+ * The room's Trok state for the chat screen. `available` is false until the probe answers ok, so a
  * missing key (503) or a room with AI off shows no AI UI. `hasProfile` is null until known. A read or probe
  * that failed offline is tried again every 30 s, so AI UI comes back after the connection does.
  */

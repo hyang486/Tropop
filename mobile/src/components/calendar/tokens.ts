@@ -1,5 +1,5 @@
 /**
- * Qrewing Calendar colors, light only (B1) (react-native-svg needs plain strings). Calendar-only (the approved
+ * Trok Calendar colors, light only (B1) (react-native-svg needs plain strings). Calendar-only (the approved
  * pencil mockup, docs/evidence/2026-11-13-calendar-pencil-mockup-v2.html), so they live here, not in components/ui.
  * ink: text and line icons. pencil: grid lines and dividers (graphite; light graphite on the dark paper).
  */

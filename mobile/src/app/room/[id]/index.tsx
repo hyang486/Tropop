@@ -229,7 +229,7 @@ function ChatRoom({
   remainingMs: number;
   onNewSender: (senderId: string) => void;
   onSendFailed: () => void;
-  /** Qrewing AI could not be turned on at create time (non-blocking note). */
+  /** Trok AI could not be turned on at create time (non-blocking note). */
   aiNote?: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -273,12 +273,12 @@ function ChatRoom({
   const lift = useLift();
   const paper = usePalette().paper;
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
-  // Qrewing AI (spec 3.2): disclosure, entry gate, Mute small talk with important-message alerts.
+  // Trok AI (spec 3.2): disclosure, entry gate, Mute small talk with important-message alerts.
   const qrewing = useQrewingChat(room.id, room.type, userId);
   useRecapTriggers(room.id, userId, qrewing.aiEnabled, remainingMs, new Date(room.expires_at).getTime() - new Date(room.created_at).getTime());
   const [disclosureClosed, setDisclosureClosed] = useState(false);
   const [askConsent, setAskConsent] = useState(false);
-  // UX2-04 / UX3-B05: one Ask probe for the composer's Qrewing button and the "answered your question" notice
+  // UX2-04 / UX3-B05: one Ask probe for the composer's Trok button and the "answered your question" notice
   // (Free → Plus intro, like the button).
   const ask = useQrewingAskButton(room.id);
   // UX2-04b: my stored plan; a Free asker's "answered your question" notice opens AnswerSheet with this card.
@@ -567,7 +567,7 @@ function ChatRoom({
             <EmergencyAlerts place="chat" roomId={room.id} activity={activity} userId={userId} names={names} presence={presence} />
           </View>
 
-          {/* Spec 10.1: the list area ends at the composer, so Ask Qrewing floats over the list and never covers it.
+          {/* Spec 10.1: the list area ends at the composer, so Ask Trok floats over the list and never covers it.
               Clipped so a message scrolled past the top never shows behind the Emergency card above. */}
           <View style={[styles.flex, styles.clip]}>
           {/* V3 P1: a 16 pt paper fade under the Emergency card so scrolled text doesn't cut off hard below it. */}
@@ -715,7 +715,7 @@ function ChatRoom({
             >
               <SymbolView name={plusOpen ? 'xmark' : 'plus'} size={18} weight="semibold" tintColor={colors.label} />
             </Pressable>
-            {/* UX P1-11: the shared Composer (same field and ink up-arrow as Ask Qrewing). */}
+            {/* UX P1-11: the shared Composer (same field and ink up-arrow as Ask Trok). */}
             {qrewing.gates.entry ? (
               <EntryGate roomId={room.id} />
             ) : (
@@ -732,7 +732,7 @@ function ChatRoom({
                   sendLabel={en.chat.send}
                   canSend={canSend}
                   maxLength={MAX_MESSAGE_LENGTH}
-                  // UX3-B05: Qrewing sits in the send slot while the field is empty (where the FAB used to show).
+                  // UX3-B05: Trok sits in the send slot while the field is empty (where the FAB used to show).
                   idleAction={ask.available ? {
                     label: en.qrewing.ask.composerLabel,
                     hint: en.qrewing.ask.composerHint,

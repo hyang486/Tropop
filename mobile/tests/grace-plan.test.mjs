@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing grace period (spec 7): room phase, timer, allowed actions, room list entry.
+// Run: npm test. Trok grace period (spec 7): room phase, timer, allowed actions, room list entry.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

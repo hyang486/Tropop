@@ -1,4 +1,4 @@
-/** Qrewing Calendar labels (dates are local 'YYYY-MM-DD' keys, formatted as UTC so the key's day never shifts). */
+/** Trok Calendar labels (dates are local 'YYYY-MM-DD' keys, formatted as UTC so the key's day never shifts). */
 import type { DateKey } from './calendar-plan';
 
 function utcDate(key: DateKey): Date {

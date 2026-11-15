@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Qrew",
+    "name": "Tropop",
     "slug": "moment",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
       "infoPlist": {
         "INAlternativeAppNames": [
           {
-            "INAlternativeAppName": "Qrewing",
+            "INAlternativeAppName": "Trok",
             "INAlternativeAppNamePronunciationHint": "crew-ing"
           }
         ]
@@ -57,8 +57,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Qrew uses the camera to scan room invite QR codes, to take photos for your room, and, only if you turn on face matching, to take your face reference photo.",
-          "microphonePermission": "Qrew listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved.",
+          "cameraPermission": "Tropop uses the camera to scan room invite QR codes, to take photos for your room, and, only if you turn on face matching, to take your face reference photo.",
+          "microphonePermission": "Tropop listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved.",
           "recordAudioAndroid": false
         }
       ],
@@ -66,16 +66,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Qrew reads the original photos and videos you choose so they can be shared at full quality in your room.",
-          "cameraPermission": "Qrew uses the camera to scan room invite QR codes, to take photos for your room, and, only if you turn on face matching, to take your face reference photo.",
-          "microphonePermission": "Qrew listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved."
+          "photosPermission": "Tropop reads the original photos and videos you choose so they can be shared at full quality in your room.",
+          "cameraPermission": "Tropop uses the camera to scan room invite QR codes, to take photos for your room, and, only if you turn on face matching, to take your face reference photo.",
+          "microphonePermission": "Tropop listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Qrew reads the original photos and videos you choose so they can be shared at full quality in your room.",
-          "savePhotosPermission": "Qrew saves the originals you download from a room to your photo library.",
+          "photosPermission": "Tropop reads the original photos and videos you choose so they can be shared at full quality in your room.",
+          "savePhotosPermission": "Tropop saves the originals you download from a room to your photo library.",
           "isAccessMediaLocationEnabled": false
         }
       ],
@@ -88,7 +88,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Qrew shows your position to your room only while you share it during an activity and the app is open.",
+          "locationWhenInUsePermission": "Tropop shows your position to your room only while you share it during an activity and the app is open.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
           "motionUsagePermission": false,
@@ -101,8 +101,8 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Qrew listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved.",
-          "speechRecognitionPermission": "Qrew turns your spoken answer into text so you can answer a question while you're moving. Audio is never saved."
+          "microphonePermission": "Tropop listens once after reading a question aloud while you're moving, so you can answer by voice. Audio is never saved.",
+          "speechRecognitionPermission": "Tropop turns your spoken answer into text so you can answer a question while you're moving. Audio is never saved."
         }
       ]
     ],
