@@ -1,9 +1,11 @@
 import { SymbolView } from 'expo-symbols';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { Button, colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { metPeople, recapSpoken, type RecapState } from './day-detail-model';
+
+const QREWING_MARK = require('../../../../assets/brand/qrewing/qrewing-mark.png');
 
 const t = en.calendar;
 
@@ -17,7 +19,7 @@ export function RecapCard({
   return (
     <View style={styles.outer} accessible={spoken ? true : undefined} accessibilityLabel={spoken ?? undefined}>
       <View style={styles.header} accessible={spoken ? undefined : true} accessibilityRole="header" accessibilityLabel={spoken ? undefined : t.recapTitle}>
-        <SymbolView name="sparkles" size={18} tintColor={colors.tint} />
+        <Image source={QREWING_MARK} style={{ width: 18, height: 18 }} resizeMode="contain" accessible={false} />
         <Text style={styles.headerText}>{t.recapTitle}</Text>
       </View>
       <View style={styles.inner}>
