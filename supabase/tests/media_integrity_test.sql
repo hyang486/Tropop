@@ -175,6 +175,15 @@ select mtests.login('d0000000-0000-4000-8000-000000000002');
 set local role authenticated;
 select public.end_room('d1000000-0000-4000-8000-000000000003');
 reset role;
+-- Expiry has no grace; an early end keeps originals readable for 30 minutes (0027), then denies.
+select mtests.login('d0000000-0000-4000-8000-000000000001');
+set local role authenticated;
+select mtests.expect_count($q$ select 1 from storage.objects where bucket_id = 'room-media'
+  and name like 'd1000000-0000-4000-8000-000000000002/%' $q$, 0, 'uploader cannot read originals right after expiry');
+select mtests.expect_count($q$ select 1 from storage.objects where bucket_id = 'room-media'
+  and name like 'd1000000-0000-4000-8000-000000000003/%' $q$, 2, 'uploader reads originals during early-end grace');
+reset role;
+update public.rooms set grace_until = now() - interval '1 minute' where id = 'd1000000-0000-4000-8000-000000000003';
 select mtests.login('d0000000-0000-4000-8000-000000000001');
 set local role authenticated;
 select mtests.expect_count($q$ select 1 from storage.objects where bucket_id = 'room-media'

@@ -256,7 +256,7 @@ reset role;
 select tests.login('a0000000-0000-4000-8000-000000000001', false);
 set local role authenticated;
 select tests.expect_ok($q$ select public.set_activity_state(current_setting('t.r')::uuid, 'active') $q$, 'host starts activity');
-select tests.expect_ok($q$ select public.set_route(current_setting('t.r')::uuid, '[{"latitude":37,"longitude":-122}]'::jsonb) $q$, 'host sets route');
+select tests.expect_ok($q$ select public.set_route(current_setting('t.r')::uuid, '[{"lat":37,"lng":-122}]'::jsonb) $q$, 'host sets route');
 select tests.expect_error($q$ select public.set_activity_state(current_setting('t.x')::uuid, 'active') $q$,
   'activity cannot start in a room without location permission');
 select tests.expect_count($q$ select 1 from public.profiles where id = 'a0000000-0000-4000-8000-000000000002' $q$, 1,
@@ -435,6 +435,13 @@ end $$;
 update public.rooms set created_at = now() - interval '2 hours', expires_at = now() - interval '1 second'
  where id = current_setting('t.x')::uuid;
 
+-- Y was ended early by the host: readable during the 30-minute grace (0027), hidden once grace is over.
+select tests.login('a0000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select tests.expect_count($q$ select 1 from public.rooms where id = current_setting('t.y')::uuid $q$, 1, 'ended room row readable during grace');
+reset role;
+update public.rooms set grace_until = now() - interval '1 minute' where id = current_setting('t.y')::uuid;
+
 select tests.login('a0000000-0000-4000-8000-000000000002', true);
 set local role authenticated;
 select tests.expect_count($q$ select 1 from public.rooms where id = current_setting('t.x')::uuid $q$, 0, 'expired room is hidden before cleanup');
@@ -453,7 +460,7 @@ select tests.login('a0000000-0000-4000-8000-000000000001', false);
 set local role authenticated;
 select tests.expect_error($q$ select public.update_room_expiry(current_setting('t.x')::uuid, now() + interval '1 day') $q$,
   'an expired room cannot be revived');
-select tests.expect_ok($q$ select public.update_room_expiry(current_setting('t.r')::uuid, now() + interval '3 days') $q$, 'host extends open room');
+select tests.expect_ok($q$ select public.update_room_expiry(current_setting('t.r')::uuid, now() + interval '1 day') $q$, 'host extends open room');
 select tests.expect_count($q$ select 1 from public.rooms where id = current_setting('t.r')::uuid and expiry_version = 2 $q$, 1,
   'expiry change bumps expiry_version');
 reset role;
