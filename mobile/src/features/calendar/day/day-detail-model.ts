@@ -49,11 +49,11 @@ const clock = (iso: string, tz?: string) =>
   new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }).format(new Date(iso));
 
 const ymd = (ms: number, tz?: string) => new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: tz }).format(ms);
-/** "Ends today at 10:00 PM" / "Ends tomorrow at ..." / "Ends Wed, Nov 18 at ..." (en.room.endsOn; no year). */
+/** "Ends today at 10:00 PM" / "Ends tomorrow at ..." / "Ends Nov 18 at ..." (en.room.endsOn; no year). */
 function endsLine(endAt: string, now: number, tz?: string): string {
   const end = Date.parse(endAt);
   const diff = Math.round((Date.parse(ymd(end, tz)) - Date.parse(ymd(now, tz))) / 86_400_000);
-  const date = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz }).format(end);
+  const date = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: tz }).format(end);
   return en.room.endsOn(diff <= 0 ? 'today' : diff === 1 ? 'tomorrow' : 'later', date, clock(endAt, tz));
 }
 
