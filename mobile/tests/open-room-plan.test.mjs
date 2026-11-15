@@ -173,3 +173,29 @@ test('UX2-54: Create room shows the at-max line only for Free; Plus keeps only t
   assert.match(src, /atMax && plus === false \? \(/);
   assert.doesNotMatch(src, /capacityAtMax\(capacityMax\(plus\), plus\)/);
 });
+
+test('E1 openChatView: Explore shows the empty state after an empty read; Today stays hidden; loading and errors unchanged', async () => {
+  const { openChatView } = await import('../src/features/event/open-room-plan.ts');
+  assert.equal(openChatView(true, [], null, false, true), 'empty', 'Explore, loaded, no rows');
+  assert.equal(openChatView(true, [], null, false, false), 'none', 'Today stays null when empty');
+  assert.equal(openChatView(true, null, null, false, true), 'none', 'still loading: nothing new');
+  assert.equal(openChatView(true, null, 'x', false, true), 'section', 'load error keeps the error and Try again');
+  assert.equal(openChatView(true, null, 'x', true, true), 'none', 'Rooms offline hides the section error');
+  assert.equal(openChatView(true, [{}], null, false, true), 'section');
+  assert.equal(openChatView(false, null, null, false, true), 'empty', 'Open chat off: empty state on Explore');
+  assert.equal(openChatView(false, null, null, false, false), 'none');
+});
+
+test('E1 initialVisibility: only ?visibility=public starts Public', async () => {
+  const { initialVisibility } = await import('../src/features/event/open-room-plan.ts');
+  assert.equal(initialVisibility('public'), 'public');
+  assert.equal(initialVisibility(['public']), 'public');
+  for (const v of [undefined, '', 'private', 'Public', 'both', ['private', 'public']]) assert.equal(initialVisibility(v), 'private');
+});
+
+test('E1 copy: the three empty-state strings', async () => {
+  const { en } = await import('../src/i18n/en.ts');
+  assert.equal(en.openChat.emptyTitle, 'No open rooms right now');
+  assert.equal(en.openChat.emptyAction, 'Start a public room');
+  assert.match(en.openChat.emptyBody, /^Public rooms show up here while they're open\. Start one and people can join without a code\.$/);
+});

@@ -126,6 +126,24 @@ export function joinableOpenRooms<T extends { member_count: number; max_members:
 
 export type Visibility = 'private' | 'public';
 
+/**
+ * What the Open chat section renders. Today (`hasEmpty` false) hides while it has no rows (UX2-58); Explore passes an
+ * empty state that shows once the first read has answered with no rows and no error. Loading shows nothing new.
+ */
+export function openChatView(
+  live: boolean, rooms: readonly unknown[] | null, error: string | null, roomsOffline: boolean, hasEmpty: boolean,
+): 'none' | 'section' | 'empty' {
+  if (!live) return hasEmpty ? 'empty' : 'none'; // Open chat off: Explore still says why it is empty (no button)
+  if (error !== null && !roomsOffline) return 'section';
+  if (rooms?.length) return 'section';
+  return hasEmpty && rooms !== null ? 'empty' : 'none';
+}
+
+/** Create-room's first visibility: only ?visibility=public (Explore's empty state) starts Public; anything else is Private. */
+export function initialVisibility(param: string | string[] | undefined): Visibility {
+  return (Array.isArray(param) ? param[0] : param) === 'public' ? 'public' : 'private';
+}
+
 /** Why a public room can't be created yet; null when it can. Private rooms have nothing to check. */
 export function openRoomProblem(visibility: Visibility, area: string): 'area' | null {
   return visibility === 'public' && !normalizeArea(area) ? 'area' : null;

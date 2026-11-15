@@ -208,6 +208,9 @@ export const en = {
   // Spec 11 D: the Open chat section on Rooms.
   openChat: {
     section: 'Open chat',
+    emptyTitle: 'No open rooms right now',
+    emptyBody: "Public rooms show up here while they're open. Start one and people can join without a code.",
+    emptyAction: 'Start a public room',
     today: 'today',
     tomorrow: 'tomorrow',
     until: (when: string) => `until ${when}`,
