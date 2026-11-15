@@ -61,9 +61,6 @@ export function EmergencyConfirmHost() {
         </Text>
         <Text style={styles.body}>{en.activity.emergencyConfirmBody}</Text>
         <View style={styles.actions}>
-          <Pressable accessibilityRole="button" onPress={close} style={[styles.button, styles.cancel]}>
-            <Text style={styles.cancelText}>{en.room.cancel}</Text>
-          </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => {
@@ -74,6 +71,9 @@ export function EmergencyConfirmHost() {
             style={[styles.button, styles.send]}
           >
             <Text style={styles.sendText}>{en.activity.sendEmergency}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={close} style={[styles.button, styles.cancel]}>
+            <Text style={styles.cancelText}>{en.room.cancel}</Text>
           </Pressable>
         </View>
       </View>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     zIndex: 1000,
     elevation: 1000,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: colors.scrim,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
@@ -107,11 +107,10 @@ const styles = StyleSheet.create({
     color: colors.label,
   },
   body: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  actions: { gap: 8, marginTop: 12 },
   button: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 24,
+    minHeight: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
