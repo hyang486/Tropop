@@ -16,6 +16,7 @@ import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type AddChoice, AddMediaSheet } from '@/components/add-media-sheet';
+import { DropZone } from '@/components/drop-zone';
 import { EmptyState } from '@/components/empty-state';
 import { HandTitle } from '@/components/hand-title';
 import { ClosesSoonCard, SavedCard } from '@/components/media-cards';
@@ -254,6 +255,7 @@ export default function GalleryScreen() {
   );
 
   return (
+    <DropZone label="Drop to add" onFiles={(files) => void run(async () => files)}>
     <View ref={rootRef} onLayout={measureRoot} style={[styles.flex, { paddingTop: headerOverlap }]}>
       <Stack.Screen
         options={{
@@ -367,6 +369,7 @@ export default function GalleryScreen() {
 
       <AddMediaSheet visible={sheetOpen && can.upload} onClose={() => setSheetOpen(false)} onChoose={onChoose} />
     </View>
+    </DropZone>
   );
 }
 

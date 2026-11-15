@@ -30,15 +30,18 @@ export function useAddQrCode(onSaved: (app: ConnectApp) => void) {
   const { session } = useAuth();
   const [busyApp, setBusyApp] = useState<ConnectApp | null>(null);
   const [inlineError, setInlineError] = useState<{ app: ConnectApp; message: string } | null>(null);
+  const [dropError, setDropError] = useState<string | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [showFull, setShowFull] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  async function start(app: ConnectApp) {
+  // Web drag-and-drop: `dropped` replaces the picker with the dragged image; the flow after it is unchanged.
+  async function start(app: ConnectApp, dropped?: { uri: string; mimeType?: string | null }) {
     setInlineError(null);
-    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, exif: false });
-    const asset = picked.canceled ? null : picked.assets[0];
+    setDropError(null);
+    const picked = dropped ? null : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, exif: false });
+    const asset = dropped ?? (picked && !picked.canceled ? picked.assets[0] : null);
     if (!asset) return;
     setBusyApp(app);
     try {
@@ -69,6 +72,19 @@ export function useAddQrCode(onSaved: (app: ConnectApp) => void) {
     } finally {
       setBusyApp(null);
     }
+  }
+
+  /** Web drop on the My QR codes screen (no app chosen): the QR's own link says which app it is for. */
+  async function drop(dropped: { uri: string; mimeType?: string | null }) {
+    setInlineError(null);
+    setDropError(null);
+    const { decoded } = await prepareQrImage(dropped.uri);
+    const owner = decoded ? appForLink(decoded) : null;
+    if (!owner) {
+      setDropError(t.noQrFound);
+      return;
+    }
+    await start(owner, dropped);
   }
 
   async function save() {
@@ -135,7 +151,7 @@ export function useAddQrCode(onSaved: (app: ConnectApp) => void) {
     </Modal>
   );
 
-  return { start, busyApp, inlineError, previewSheet };
+  return { start, drop, dropError, busyApp, inlineError, previewSheet };
 }
 
 const styles = StyleSheet.create({

@@ -24,3 +24,7 @@ supabase/.branches/
 
 # Python cache
 __pycache__/
+
+# Human test photos: never commit
+face_recognition_test/
+mobile/public/demo-gallery/
