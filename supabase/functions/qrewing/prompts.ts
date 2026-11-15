@@ -8,7 +8,7 @@ export const RECAP_MODEL = 'claude-sonnet-5-5';
 export const MATCH_MODEL = 'claude-sonnet-5-5';
 
 /** Bump when a prompt or schema changes, so cached matches are recomputed (it is part of input_hash). */
-export const PROMPT_VERSION = 'qrewing-v2';
+export const PROMPT_VERSION = 'qrewing-v3';
 
 export const TRIAGE_SCHEMA = {
   type: 'object',
@@ -85,19 +85,32 @@ const RECAP_EMERGENCY_RULE = [
 const CHAT_SCOPE_RULE =
   'The chat holds only messages from members who turned on Trok AI; other members may have chatted too, and' +
   ' <shared_media> counts everything shared by anyone. Never say that no messages were sent or that nothing was' +
-  ' shared unless the chat is empty and every <shared_media> count is 0; when the chat is empty, write a short recap' +
-  ' from the room details and the media counts instead.';
+  ' shared unless the chat is empty and every <shared_media> count is 0. When the chat is empty, the summary is one' +
+  ' plain factual line from the room type, place and media counts, for example "A short sports meetup. 1 photo was' +
+  ' shared.", and highlights is empty.';
+
+/** ux v20 P1: the recap is about the room only, never about how it was made. */
+const RECAP_META_RULE =
+  'Write only about the room and what happened in it. Never mention AI, Trok AI, consent or opting in, which' +
+  ' messages were or were not available, missing or limited data, or any earlier or previous recap.';
+
+/** ux v20 P2: highlights are moments, not room facts or counts. */
+const RECAP_HIGHLIGHT_RULE =
+  'A highlight never just restates the room type, the place or a count (no "Room type: ..." items), and never' +
+  ' mention a count of 0 anywhere.';
 
 export const RECAP_SYSTEM = [
   'You write a short, warm recap of a temporary group room that is ending, for the people who were in it.',
   'Use only what the data shows; do not invent events, names or numbers.',
-  'title: at most 8 words. summary: 2 to 4 sentences, at most 600 characters.',
+  'title: at most 8 words. summary: 2 to 4 sentences (one line when the chat is empty), at most 600 characters.',
   'highlights: up to 5 short items (at most 120 characters each) about moments, plans or decisions.',
-  'Write in the language most messages use. If there is little to go on, keep it short and honest.',
+  'Write in the language most messages use. If there is little to go on, keep it short and factual.',
   'Lines whose text starts with [status change] or [Emergency] were posted by the app when that member changed their',
   'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved.',
   RECAP_EMERGENCY_RULE,
   CHAT_SCOPE_RULE,
+  RECAP_META_RULE,
+  RECAP_HIGHLIGHT_RULE,
   GENDER_RULE,
   DATA_RULE,
 ].join(' ');
@@ -115,6 +128,8 @@ export const RECAP_REFRESH_SYSTEM = [
   RECAP_EMERGENCY_RULE,
   '<shared_media> gives the room totals now; new_photos and new_videos are the ones shared after the previous recap.',
   CHAT_SCOPE_RULE,
+  RECAP_META_RULE,
+  RECAP_HIGHLIGHT_RULE,
   GENDER_RULE,
   DATA_RULE.replace('written by room members', 'written by room members or generated from their messages'),
 ].join(' ');
