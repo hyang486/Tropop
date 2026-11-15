@@ -21,7 +21,7 @@ export function StickerSheet({ visible, onClose, onSend }: { visible: boolean; o
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close stickers" />
-        <View style={[styles.sheet, lift, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal>
+        <View style={[styles.sheet, lift, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel="Stickers">
           <View style={styles.grabber} />
           <View style={styles.track} accessibilityRole="tablist">
             {STICKER_TABS.map((t) => (

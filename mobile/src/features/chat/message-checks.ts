@@ -70,9 +70,7 @@ export function useMessageChecks(roomId: string, userId: string | null | undefin
       if (!userId || !ready) return;
       seq.current += 1;
       setRows((cur) => toggleReactionRows(cur, messageId, userId, reaction));
-      // Not in database.types.ts until 0043 is live and the types are regenerated; then drop the cast.
-      const untyped = supabase as unknown as { rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ error: unknown }> };
-      const { error } = await untyped.rpc('toggle_message_reaction', { p_message_id: messageId, p_reaction: reaction });
+      const { error } = await supabase.rpc('toggle_message_reaction', { p_message_id: messageId, p_reaction: reaction });
       if (error) Alert.alert(en.chat.checkFailed);
       else haptics.selection();
       void load();

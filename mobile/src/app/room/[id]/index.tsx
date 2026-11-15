@@ -465,7 +465,7 @@ function ChatRoom({
       danger: uploadSummary.failed > 0,
       onPress: () => go('/room/[id]/gallery'),
     },
-    { key: 'stickers', symbol: 'face.smiling', label: 'Stickers', onPress: () => { setPlusOpen(false); setStickersOpen(true); } },
+    { key: 'stickers', symbol: 'face.smiling', label: en.chat.stickersTile, onPress: () => { setPlusOpen(false); setStickersOpen(true); } },
     ...(room.location_allowed || room.host_id === userId
       ? [{ key: 'map', symbol: 'map', label: en.map.headerLink, onPress: () => go('/room/[id]/map') } satisfies PlusTile]
       : []),
@@ -991,7 +991,7 @@ function MessageRow({
   );
 
   const chips = reactions?.length ? (
-    <ReactionChips rows={reactions} me={me ?? undefined} align={mine ? 'flex-end' : 'flex-start'} onToggle={onToggleReaction} onLongPress={onReact} />
+    <ReactionChips rows={reactions} me={me ?? undefined} align={mine ? 'flex-end' : 'flex-start'} onToggle={onToggleReaction} onMore={onReact} />
   ) : null;
   if (mine) {
     return (

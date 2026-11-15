@@ -47,7 +47,7 @@ export function ReactionGrid({ visible, onClose, onPick }: { visible: boolean; o
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close reactions" />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal>
+        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel="Reactions">
           <View style={styles.grid}>
             {REACTIONS.map((r) => (
               <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`React with ${r.label}`} onPress={() => onPick(r.id)} style={styles.cell}>

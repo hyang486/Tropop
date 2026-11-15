@@ -484,6 +484,9 @@ export const en = {
     pinnedDismiss: 'Hide the notice',
     // Spec 11 A14: the tag next to the host's name.
     hostTag: 'Host',
+    // B3: the long-press menu item and the plus-panel tile.
+    react: 'React',
+    stickersTile: 'Stickers',
   },
   media: {
     // UX2-37: the viewer's photo failed to load.

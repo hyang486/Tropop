@@ -14,13 +14,14 @@ export function ReactionChips({
   me,
   align = 'flex-start',
   onToggle,
-  onLongPress,
+  onMore,
 }: {
   rows: readonly ReactionRow[];
   me: string | undefined;
   align?: 'flex-start' | 'flex-end';
   onToggle: (reaction: number) => void;
-  onLongPress?: () => void;
+  /** Tap on "+N": opens the reaction picker. Chips themselves have no long-press. */
+  onMore?: () => void;
 }) {
   const { chips, more } = groupReactions(rows, me);
   if (chips.length === 0) return null;
@@ -32,7 +33,6 @@ export function ReactionChips({
           accessibilityRole="button"
           accessibilityLabel={chipLabel(c)}
           onPress={() => onToggle(c.reaction)}
-          onLongPress={onLongPress}
           style={[styles.chip, c.mine && styles.mine]}
         >
           <Image source={REACTION_IMAGES[c.reaction][20]} style={styles.icon} accessible={false} />
@@ -40,7 +40,7 @@ export function ReactionChips({
         </Pressable>
       ))}
       {more > 0 && (
-        <Pressable accessibilityRole="button" accessibilityLabel={`${more} more reactions`} onPress={onLongPress} style={styles.chip}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${more} more reactions`} onPress={onMore} style={styles.chip}>
           <Text style={styles.count}>+{more}</Text>
         </Pressable>
       )}

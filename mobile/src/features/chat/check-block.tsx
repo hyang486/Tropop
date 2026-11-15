@@ -75,7 +75,7 @@ export function CheckBlock({
       <Host matchContents>
         <ContextMenu>
           <ContextMenu.Items>
-            {onReact ? <Button label="React" systemImage="face.smiling" onPress={onReact} /> : null}
+            {onReact ? <Button label={en.chat.react} systemImage="face.smiling" onPress={onReact} /> : null}
             <Button label={actionLabel} systemImage="checkmark" onPress={() => onToggle(false)} />
             {copyText != null ? (
               <Button label={en.chat.copy} systemImage="doc.on.doc" onPress={() => void Clipboard.setStringAsync(copyText)} />
