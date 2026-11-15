@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { useRoomEvents } from '@/lib/room-channel';
 
-import { myPartRows, type RecapMark, type RecapMiss, recapCardView, rereadOnSubscribe, type SavedRecap } from './recap-plan';
+import { myPartRows, type RecapMark, type RecapMiss, recapCardView, rereadOnSubscribe, type SavedRecap, visibleHighlights } from './recap-plan';
 import { loadMark, loadSavedRecap, readAndSaveRecap, recapForEndedRoom } from './recap-store';
 
 const s = en.qrewing.recap;
@@ -175,7 +175,7 @@ function RecapCardBody({
       <QCard lift>
         <Text style={styles.title} accessibilityRole="header">{saved.server.title}</Text>
         <Text style={styles.body}>{saved.server.summary}</Text>
-        {saved.server.highlights.map((h, i) => (
+        {visibleHighlights(saved.server.summary, saved.server.highlights).map((h, i) => (
           <Text key={i} style={styles.body} accessibilityLabel={h}>
             {`•  ${h}`}
           </Text>

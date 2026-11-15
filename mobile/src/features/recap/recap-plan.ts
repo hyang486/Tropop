@@ -349,3 +349,23 @@ export function myPartRows(me: MyPart, s: MyPartCopy, time: (iso: string) => str
     me.pace,
   ].filter((x): x is string => !!x);
 }
+
+const normText = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+/**
+ * Render-time backstop for saved recaps made before the server's restate check: hide a highlight that is empty,
+ * sits inside the summary (case and punctuation ignored) or repeats an earlier highlight; keep order, at most 5.
+ * Nothing stored changes, and near-paraphrases are not caught (that is the server's job).
+ */
+export function visibleHighlights(summary: string, highlights: readonly string[], max = 5): string[] {
+  const inSummary = ` ${normText(summary)} `;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const h of highlights) {
+    const n = normText(h);
+    if (!n || inSummary.includes(` ${n} `) || seen.has(n)) continue;
+    seen.add(n);
+    out.push(h);
+    if (out.length === max) break;
+  }
+  return out;
+}

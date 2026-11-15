@@ -70,9 +70,9 @@ test('eventTimeText', () => {
 });
 
 test('recapSpoken: the recap card reads as one sentence; upsell and wait stay off', () => {
-  assert.equal(m.recapSpoken('ready', 3, ['Met at noon', 'Booked a court.']), 'Trok Recap. You met 2 people. Met at noon. Booked a court.');
-  assert.equal(m.recapSpoken('pending', null, null), 'Trok Recap. Your recap appears after this room ends.');
-  assert.equal(m.recapSpoken('failed', null, null), 'Trok Recap. No recap was saved for this room.');
+  assert.equal(m.recapSpoken('ready', 3, ['Met at noon', 'Booked a court.']), 'Trok recap. You met 2 people. Met at noon. Booked a court.');
+  assert.equal(m.recapSpoken('pending', null, null), 'Trok recap. Your recap appears after this room ends.');
+  assert.equal(m.recapSpoken('failed', null, null), 'Trok recap. No recap was saved for this room.');
   assert.equal(m.recapSpoken('upsell', 3, ['x']), null);
   assert.equal(m.recapSpoken('wait', null, null), null);
 });
