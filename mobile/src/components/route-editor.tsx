@@ -1,7 +1,8 @@
 import { AppleMaps, type CameraMoveEvent } from 'expo-maps';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 import { Modal } from '@/components/modal';
 import { Text } from '@/components/text';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';

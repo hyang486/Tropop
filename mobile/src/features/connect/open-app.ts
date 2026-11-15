@@ -1,4 +1,5 @@
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 
 import { CONNECT_APP_STORE, type ConnectApp } from '@/lib/connect-plan';
 

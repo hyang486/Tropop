@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 import { Text, TextInput } from '@/components/text';
 
 import { Button, colors, Hint } from '@/components/ui';

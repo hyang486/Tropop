@@ -4,8 +4,8 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Platform, PlatformColor, Pressable, StyleSheet, View } from 'react-native';
-import { ActionSheetIOS } from '@/lib/dialogs';
+import { Platform, PlatformColor, Pressable, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Alert } from '@/lib/dialogs';
 import { Text, TextInput } from '@/components/text';
 
 import { InkIcon } from '@/components/calendar';

@@ -25,3 +25,8 @@ test('guard: ActionSheetIOS is imported only through lib/dialogs', () => {
   const bad = files.filter((f) => /import \{[^}]*\bActionSheetIOS\b[^}]*\} from 'react-native'/.test(read(f)));
   assert.deepEqual(bad, []);
 });
+
+test('guard: Alert is imported only through lib/dialogs', () => {
+  const bad = files.filter((f) => /import \{[^}]*\bAlert\b[^}]*\} from 'react-native'/.test(read(f)));
+  assert.deepEqual(bad, []);
+});

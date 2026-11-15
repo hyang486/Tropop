@@ -2,8 +2,8 @@ import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Linking, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
-import { ActionSheetIOS } from '@/lib/dialogs';
+import { ActivityIndicator, AppState, Linking, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 
 import { InkArt } from '@/components/ink-art';

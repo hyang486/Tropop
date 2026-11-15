@@ -3,8 +3,8 @@ import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Linking, Pressable, Share, StyleSheet, View } from 'react-native';
-import { ActionSheetIOS } from '@/lib/dialogs';
+import { ActivityIndicator, AppState, Linking, Pressable, Share, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Alert } from '@/lib/dialogs';
 
 import { EmptyState } from '@/components/empty-state';
 import { SavedCard } from '@/components/media-cards';

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert } from '@/lib/dialogs';
 
 import { en } from '@/i18n/en';
 import { haptics } from '@/lib/haptics';
