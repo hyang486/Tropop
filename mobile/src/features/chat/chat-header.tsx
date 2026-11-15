@@ -21,16 +21,19 @@ export function ChatHeaderButtons({
   roomId,
   onBell,
   onGear,
+  rt = false,
 }: {
   roomId: string;
   onBell: () => void;
   onGear: () => void;
+  /** F-RT2: inside our own Reduce Transparency capsule (44 pt items, no extra gap). */
+  rt?: boolean;
 }) {
   const { unread } = useRoomNotices(roomId);
   return (
-    <View style={styles.headerRow}>
-      <HeaderIcon symbol="bell" label={en.chat.noticesA11y(unread)} onPress={onBell} badge={unread} />
-      <HeaderIcon symbol="gearshape" label={en.chat.settings} onPress={onGear} />
+    <View style={rt ? styles.rtRow : styles.headerRow}>
+      <HeaderIcon symbol="bell" label={en.chat.noticesA11y(unread)} onPress={onBell} badge={unread} rt={rt} />
+      <HeaderIcon symbol="gearshape" label={en.chat.settings} onPress={onGear} rt={rt} />
     </View>
   );
 }
@@ -40,14 +43,16 @@ function HeaderIcon({
   label,
   onPress,
   badge = 0,
+  rt = false,
 }: {
   symbol: SFSymbol;
   label: string;
   onPress: () => void;
   badge?: number;
+  rt?: boolean;
 }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={7} style={styles.icon}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={rt ? 0 : 7} style={rt ? styles.rtIcon : styles.icon}>
       <SymbolView name={symbol} size={22} tintColor={colors.tint} />
       {badge > 0 ? (
         <View style={styles.badge} importantForAccessibility="no-hide-descendants">
@@ -191,6 +196,8 @@ export function useChatNoticeProducers({
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   icon: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
+  rtRow: { flexDirection: 'row', alignItems: 'center' },
+  rtIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute',
     top: -2,

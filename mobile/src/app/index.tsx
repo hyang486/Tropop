@@ -7,7 +7,8 @@ import { InkArt } from '@/components/ink-art';
 import { Pill } from '@/components/pill';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QScreen } from '@/components/q-screen';
-import { Button, Card, colors, Hint, radius, size, Tag, textRole } from '@/components/ui';
+import { RtIconButton, rtRightOptions } from '@/components/rt-header';
+import { Button, Card, colors, Hint, radius, size, Tag, textRole, useReduceTransparency } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
@@ -40,6 +41,7 @@ import { graceTime } from '@/features/recap/use-grace';
 
 export default function Rooms() {
   const router = useRouter();
+  const reduceTransparency = useReduceTransparency();
   const { isGuest, session } = useAuth();
   const uid = session?.user.id;
   const now = useNow();
@@ -106,15 +108,27 @@ export default function Rooms() {
   return (
     <>
       {/* V2: one glass pill holding Calendar + Profile icons (44 pt each), no "Profile" text. */}
-      <Stack.Toolbar placement="right">
-        {/* Qrewing Calendar (Plus preview); the screen shows the upsell without it. */}
-        <Stack.Toolbar.Button
-          icon="calendar"
-          accessibilityLabel={en.calendar.openLabel}
-          onPress={() => router.push('/calendar')}
+      {reduceTransparency ? (
+        // F-RT2: the native toolbar pill turns near-white in dark mode under Reduce Transparency; draw our own capsule.
+        <Stack.Screen
+          options={rtRightOptions(
+            <>
+              <RtIconButton symbol="calendar" label={en.calendar.openLabel} onPress={() => router.push('/calendar')} />
+              <RtIconButton symbol="person" label={en.home.profile} onPress={() => router.push('/profile')} />
+            </>,
+          )}
         />
-        <Stack.Toolbar.Button icon="person" accessibilityLabel={en.home.profile} onPress={() => router.push('/profile')} />
-      </Stack.Toolbar>
+      ) : (
+        <Stack.Toolbar placement="right">
+          {/* Qrewing Calendar (Plus preview); the screen shows the upsell without it. */}
+          <Stack.Toolbar.Button
+            icon="calendar"
+            accessibilityLabel={en.calendar.openLabel}
+            onPress={() => router.push('/calendar')}
+          />
+          <Stack.Toolbar.Button icon="person" accessibilityLabel={en.home.profile} onPress={() => router.push('/profile')} />
+        </Stack.Toolbar>
+      )}
       <QScreen
         floating={notice ? <Snackbar notice={notice} onHide={hideNotice} /> : undefined}
         refreshControl={

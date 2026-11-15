@@ -22,7 +22,8 @@ import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { RoomEnded } from '@/components/room-ended';
 import { QrewingComposerMark, useQrewingAskButton } from '@/features/event/qrewing-fab';
-import { colors, Hint, Screen, size, useLift, usePalette } from '@/components/ui';
+import { rtBackOptions, rtRightOptions } from '@/components/rt-header';
+import { colors, Hint, Screen, size, useLift, usePalette, useReduceTransparency } from '@/components/ui';
 import { EntryGate, HiddenRow, MuteBar, useQrewingChat } from '@/features/event/chat-layer';
 import { DisclosureSheet } from '@/features/event/disclosure-sheet';
 import { noteSiriRoomOpened } from '@/features/event/siri-mirror';
@@ -243,6 +244,7 @@ function ChatRoom({
   // UX2-130: the reminder card, once per room, above the newest message (it scrolls with the list).
   const reminderCard = useReminderCard(room, remainingMs, activity.emergencies.length > 0);
   const [sheet, setSheet] = useState<'notices' | 'settings' | null>(null);
+  const reduceTransparency = useReduceTransparency();
   const [plusOpen, setPlusOpen] = useState(false);
   // V3: the composer floats over the list; its measured height (pill + bottom gap) is the list's bottom inset.
   const [dockHeight, setDockHeight] = useState(0);
@@ -495,6 +497,20 @@ function ChatRoom({
           headerRight: () => (
             <ChatHeaderButtons roomId={room.id} onBell={() => setSheet('notices')} onGear={() => setSheet('settings')} />
           ),
+          // F-RT2: with Reduce Transparency, our own opaque back circle and bell/gear capsule (one shared helper).
+          ...(reduceTransparency
+            ? {
+                ...(router.canGoBack() ? rtBackOptions(() => router.back(), en.room.back) : {}),
+                ...rtRightOptions(
+                  <ChatHeaderButtons
+                    roomId={room.id}
+                    onBell={() => setSheet('notices')}
+                    onGear={() => setSheet('settings')}
+                    rt
+                  />,
+                ),
+              }
+            : {}),
         }}
       />
       <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={top}>
