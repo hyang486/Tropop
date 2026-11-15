@@ -8,6 +8,8 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { withCors } from '../_shared/cors.ts';
+
 import { handle, type Model, type Msg, type QrewingStore, type RecapRow, type StoredMatch, TRIAGE_MODEL_SKIP_REASON } from './core.ts';
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (req: Request) => Promise<Response> | Response): void };
@@ -493,7 +495,8 @@ function createStore(admin: any): QrewingStore {
   };
 }
 
-Deno.serve(async (req) => {
+// Web: OPTIONS preflight and CORS headers on every response (_shared/cors.ts); native requests are unchanged.
+Deno.serve(withCors(async (req) => {
   const startedAt = Date.now();
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
 
@@ -518,4 +521,4 @@ Deno.serve(async (req) => {
     log('internal_error', { kind: e instanceof Error ? e.message.slice(0, 40) : 'unknown' });
     return json(500, { error: 'internal' });
   }
-});
+}));
