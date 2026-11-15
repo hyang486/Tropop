@@ -34,7 +34,7 @@ export const palette = {
     cardStrong: '#E6DED7',
     dangerCard: '#FBE9E7',
     errorText: '#D70015',
-    sheet: '#FFFFFF',
+    sheet: '#FFFCF8',
     scrim: 'rgba(48,43,40,0.40)',
     grabber: 'rgba(113,100,94,0.4)',
     sheetCard: '#F5EFE7',

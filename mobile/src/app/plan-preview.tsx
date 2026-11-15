@@ -22,7 +22,7 @@ const s = t.sample;
 
 // Black line icons (v2 mockup: magnifier, person+, pencil); UX2-64: shared by the Free and the Plus list.
 const ICON: Record<PlusLine, SymbolViewProps['name']> = {
-  ai: 'plus.magnifyingglass',
+  ai: 'sparkles',
   rooms: 'person.badge.plus',
   add: 'pencil',
 };
