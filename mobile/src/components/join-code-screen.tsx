@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { type ComponentRef, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 
 import { useReduceMotion } from '@/components/enter-view';
 import { QScreen } from '@/components/q-screen';

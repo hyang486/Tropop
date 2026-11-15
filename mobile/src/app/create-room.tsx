@@ -4,7 +4,8 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, Alert, PlatformColor, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActionSheetIOS, Alert, PlatformColor, Pressable, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 
 import { InkIcon } from '@/components/calendar';
 import { PlacePinMap } from '@/components/place-time-cards';

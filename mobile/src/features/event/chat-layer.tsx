@@ -2,7 +2,8 @@
 // talk bar, the important-message banner and the collapsed "N messages hidden" row.
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { colors } from '@/components/ui';
 import { SheetRow } from '@/features/chat/chat-sheet';

@@ -1,7 +1,8 @@
 // UX P1-6: a one-time notice ("Sunrise 5K just filled up.") as a 4-second ink snackbar instead of a red line that
 // stays. Pinned above the bottom safe area; fades in over 200 ms (opacity only, so it suits reduced motion too).
 import { useEffect, useState } from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
+import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, space } from '@/components/ui';

@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { type ReactNode, useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, type TextInputProps, View } from 'react-native';
+import { TextInput } from '@/components/text';
 
 import { composerFadeMs, composerSlot } from '@/components/composer-plan';
 import { useReduceMotion } from '@/components/enter-view';

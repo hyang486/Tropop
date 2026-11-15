@@ -1,12 +1,9 @@
-// Qrew redesign: which bundled handwriting font draws a title (pure; unit tested).
-// React Native has no per-glyph font fallback, so a title with any Hangul uses the Korean hand font
-// (Gaegu Light, which also has Latin), and any other title the Latin hand font (Patrick Hand).
+// B1: titles use Source Sans 3 (Semibold) like everything else; the handwriting fonts are gone. The names stay so the
+// calendar and Plus call sites keep working; both keys now resolve to the same family. Pure; unit tested.
 
-export const HAND_FONT_LATIN = 'QrewHand';
-export const HAND_FONT_KOREAN = 'QrewHandKo';
+export const HAND_FONT_LATIN = 'SourceSans3-Semibold';
+export const HAND_FONT_KOREAN = HAND_FONT_LATIN;
 
-const HANGUL = /[ᄀ-ᇿ㄰-㆏ꥠ-꥿가-힯ힰ-퟿]/;
-
-export function handFontFor(text: string) {
-  return HANGUL.test(text) ? HAND_FONT_KOREAN : HAND_FONT_LATIN;
+export function handFontFor(_text: string) {
+  return HAND_FONT_LATIN;
 }

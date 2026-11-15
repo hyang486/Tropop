@@ -2,7 +2,8 @@ import { useFonts } from 'expo-font';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HAND_FONTS, HandTitle, useInk } from '@/components/hand-title';

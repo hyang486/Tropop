@@ -11,9 +11,9 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import { Text } from '@/components/text';
 
 import { InkArt } from '@/components/ink-art';
 import { QRowCard } from '@/components/q-row-card';

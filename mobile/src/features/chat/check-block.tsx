@@ -2,7 +2,8 @@ import { Button, ContextMenu, Host, RNHostView } from '@expo/ui/swift-ui';
 import * as Clipboard from 'expo-clipboard';
 import { SymbolView } from 'expo-symbols';
 import { type ReactElement, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
 import { colors, size } from '@/components/ui';

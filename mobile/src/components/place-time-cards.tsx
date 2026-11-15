@@ -1,6 +1,7 @@
 import { AppleMaps } from 'expo-maps';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { MapsSheet } from '@/components/maps-sheet';
 import { QRowCard } from '@/components/q-row-card';

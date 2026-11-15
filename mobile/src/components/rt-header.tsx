@@ -1,6 +1,6 @@
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, useColorScheme, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { elevation, radius, size, usePalette } from '@/components/ui';
 
@@ -10,7 +10,7 @@ import { elevation, radius, size, usePalette } from '@/components/ui';
  * an opaque lift fill, a 0.5 pt hairline (light rgba(0,0,0,0.08), dark rgba(255,255,255,0.10)), the lift shadow
  * and label-colored icons, and `hidesSharedBackground` removes the system one. RT off: nothing here is used.
  */
-export const RT_HAIRLINE = { light: 'rgba(0,0,0,0.08)', dark: 'rgba(255,255,255,0.10)' } as const;
+export const RT_HAIRLINE = 'rgba(48,43,40,0.08)';
 
 /** Spread into a screen's options when RT is on: our back circle in place of the native back button. */
 export function rtBackOptions(onBack: () => void, label: string) {
@@ -48,7 +48,6 @@ function RtChevron() {
 
 /** The opaque lift surface: a 44 pt circle (back) or a capsule hugging its 44 pt items. */
 export function RtSurface({ shape, children }: { shape: 'circle' | 'capsule'; children: ReactNode }) {
-  const dark = useColorScheme() === 'dark';
   const pal = usePalette();
   const style: ViewStyle[] = [
     styles.base,
@@ -56,10 +55,9 @@ export function RtSurface({ shape, children }: { shape: 'circle' | 'capsule'; ch
     {
       backgroundColor: pal.lift,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: dark ? RT_HAIRLINE.dark : RT_HAIRLINE.light,
+      borderColor: RT_HAIRLINE,
     },
-    // The lift shadow on light; dark has no shadow (the hairline carries it).
-    dark ? {} : { boxShadow: elevation.lift.light.boxShadow },
+    { boxShadow: elevation.lift.light.boxShadow },
   ];
   return <View style={style}>{children}</View>;
 }

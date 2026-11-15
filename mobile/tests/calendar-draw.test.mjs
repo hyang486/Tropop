@@ -222,33 +222,17 @@ const contrast = (a, b) => {
 };
 const over = (fg, alpha, bg) => fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
 
-test('dark mode: same number of highlighters, so a room keeps its hue slot when the theme flips', () => {
+test('light only (B1): at least six distinct highlighters', () => {
   const L = theme('light');
-  const D = theme('dark');
-  assert.equal(L.hl.length, D.hl.length);
   assert.ok(L.hl.length >= 6);
-  assert.equal(new Set(D.hl.map((h) => h.toLowerCase())).size, D.hl.length, 'dark highlighters are distinct');
+  assert.equal(new Set(L.hl.map((h) => h.toLowerCase())).size, L.hl.length, 'highlighters are distinct');
+  assert.ok(!/dark: \{/.test(tokens), 'no dark palette');
 });
 
-test('dark mode: day numbers and grid lines stay readable on the paper in both themes', () => {
-  for (const name of ['light', 'dark']) {
-    const t = theme(name);
-    const paper = rgb(t.paper);
-    assert.ok(contrast(rgb(t.ink), paper) >= 4.5, `${name}: day number contrast`);
-    // Grid lines are pencil at the lightest pressure (sketch.ts PRESSURE_OPACITY[0]): a non-text graphic needs 3:1.
-    assert.ok(contrast(over(rgb(t.pencil), PRESSURE_OPACITY[0], paper), paper) >= 3, `${name}: grid line contrast`);
-  }
-});
-
-test('dark mode: a highlighter on the dark paper is dimmer than on the light paper but still visible', () => {
-  const L = theme('light');
-  const D = theme('dark');
-  L.hl.forEach((h, i) => {
-    const onLight = over(rgb(h), L.opacity, rgb(L.paper));
-    const onDark = over(rgb(D.hl[i]), D.opacity, rgb(D.paper));
-    assert.ok(lum(onDark) < lum(onLight), `slot ${i}: dark band is dimmer`);
-    assert.ok(contrast(onDark, rgb(D.paper)) >= 1.5, `slot ${i}: dark band stands off the paper`);
-    // Ink (the day list, emoji edges) over the band stays readable.
-    assert.ok(contrast(rgb(D.ink), onDark) >= 3, `slot ${i}: ink over dark band`);
-  });
+test('light only: day numbers and grid lines stay readable on the paper', () => {
+  const t = theme('light');
+  const paper = rgb(t.paper);
+  assert.ok(contrast(rgb(t.ink), paper) >= 4.5, 'day number contrast');
+  // Grid lines are pencil at the lightest pressure (sketch.ts PRESSURE_OPACITY[0]): a non-text graphic needs 3:1.
+  assert.ok(contrast(over(rgb(t.pencil), PRESSURE_OPACITY[0], paper), paper) >= 3, 'grid line contrast');
 });

@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { HAND_FONTS } from '@/components/hand-title';
 import { Button } from '@/components/ui';

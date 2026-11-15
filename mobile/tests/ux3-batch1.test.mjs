@@ -100,6 +100,6 @@ test('UX3-A02: Rooms has no subtitle, a 48 pt Join/Create pair over a list, and 
 
 test('UX3-A07 (ux P2): Profile has no header subtitle, so a guest reads "Guest on this phone" once', () => {
   const p = src('app/profile.tsx');
-  assert.match(p, /<QScreen\s+title=\{en\.profile\.title\}\s+titleUnderline\s+\/\/[^\n]*\n\s*>/);
+  assert.match(p, /<QScreen\s+title=\{en\.profile\.title\}\s+\/\/[^\n]*\n\s*>/);
   assert.doesNotMatch(p, /subtitle=\{isGuest \? en\.profile\.guestAccount/);
 });

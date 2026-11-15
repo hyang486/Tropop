@@ -32,10 +32,10 @@ test('roomTheme: the same name with other spacing and case gives the same theme'
   assert.equal(roomTheme('  saturday RUN crew '), roomTheme('Saturday Run Crew'));
 });
 
-test('handFontFor: Hangul anywhere picks the Korean hand font; otherwise the Latin one', () => {
+test('handFontFor (B1): every title uses Source Sans 3 Semibold', () => {
   assert.equal(handFontFor('Saturday Run Crew'), HAND_FONT_LATIN);
   assert.equal(handFontFor('토요 러닝'), HAND_FONT_KOREAN);
-  assert.equal(handFontFor('Run 크루'), HAND_FONT_KOREAN);
+  assert.equal(HAND_FONT_KOREAN, HAND_FONT_LATIN);
   assert.equal(handFontFor('🏃'), HAND_FONT_LATIN);
 });
 

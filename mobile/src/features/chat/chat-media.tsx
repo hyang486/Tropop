@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { type ReactNode, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { colors } from '@/components/ui';
 import { GRID_GUTTER, GRID_SIZE, GRID_TILE, mediaLayout, singleSize } from '@/features/chat/chat-media-plan';

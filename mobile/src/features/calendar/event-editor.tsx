@@ -6,7 +6,8 @@ import { DatePicker, Host } from '@expo/ui/swift-ui';
 import { labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { InkIcon, inkIconKey, inkIconLabel } from '@/components/calendar';
 import { QField, QLabel, QScreen } from '@/components/q-screen';

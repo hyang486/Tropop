@@ -4,7 +4,8 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
-import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, Text, useColorScheme, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
@@ -870,14 +871,13 @@ function useReduceTransparency(): boolean {
 function MapGlass({ children, style }: { children: ReactNode; style: StyleProp<ViewStyle> }) {
   const reduce = useReduceTransparency();
   const lift = useLift();
-  const dark = useColorScheme() === 'dark';
   const pal = usePalette();
   if (Platform.OS === 'ios' && isLiquidGlassAvailable() && !reduce) {
     return <GlassView style={style}>{children}</GlassView>;
   }
   // F-RT1 (ux): opaque lift fill from the JS scheme (the header hosts this view natively, where a dynamic color can
   // resolve against the wrong appearance), a 0.5 pt hairline plus the lift shadow so it holds against the map.
-  const edge = { borderWidth: 0.5, borderColor: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)' };
+  const edge = { borderWidth: 0.5, borderColor: 'rgba(48,43,40,0.08)' };
   return <View style={[style, { backgroundColor: pal.lift }, lift, edge]}>{children}</View>;
 }
 

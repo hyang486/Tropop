@@ -2,7 +2,8 @@
 // optionally "Post as notice" (also pinned as the chat notice). The answer goes only to the asker.
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { QCard, QField, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';

@@ -4,84 +4,60 @@ import { Children, isValidElement, type ReactElement, type ReactNode, useEffect,
 import {
   AccessibilityInfo,
   ActivityIndicator,
-  DynamicColorIOS,
   Platform,
-  PlatformColor,
   Pressable,
   type RefreshControlProps,
   ScrollView,
   type StyleProp,
   StyleSheet,
-  Text,
-  TextInput,
   View,
   type TextInputProps,
-  useColorScheme,
   type ViewStyle,
 } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 
 /**
- * Qrew palette (work list "Palette and controls", supervisor A2): white ground, ink #181817, pale cards
- * #F6F6F2, ink primary / wash secondary buttons, pill chips, red only for Emergency and danger. Dark mode
- * inverts ink and ground (the ink art and title already use the light ink #EDEDE8 there).
+ * Qrew palette, B1 (docs/evidence/ux/brand-rebuild/phase1-tokens-type-spec.md, USC edition, light only): Warm Ivory
+ * ground, ink #302B28, Cardinal accent, gold for badges only (never text on light), softGold for the own bubble.
+ * Emergency keeps danger/redwash; Cardinal never sits on a redwash surface.
  */
 export const palette = {
-  // cardStrong: own chat bubbles (Q 03.01 "On my way!"); dangerCard: the Emergency card and status (Q 03.02, 04.03).
-  // ink2 (UX §3): hints, labels and timestamps; 6.4:1 on paper (light). secondaryLabel stays for placeholders only.
-  // UX2-45: sheet is the iOS elevated background (dark #1C1C1E lifts a sheet off the #000 screen); scrim behind it;
-  // grabber is ink2 at 40%.
-  // V1 Paper & Graphite (docs/evidence/ux/paper-graphite-spec-2026-11-14.md): three paper tones and a lift. paper is
-  // the ground, wash the quiet fills, wash2 avatars/dividers on wash, lift what you act on, redwash Emergency surfaces.
-  // card/cardStrong/dangerCard keep their names and now hold wash/wash2/redwash; sheet = lift, sheetCard = wash.
   light: {
-    ink: '#181817',
-    ink2: '#5E5E58',
-    paper: '#F7F6F2',
-    wash: '#EDECE6',
-    wash2: '#E3E2DB',
+    ink: '#302B28',
+    ink2: '#71645E',
+    paper: '#FFFCF8',
+    wash: '#F5EFE7',
+    wash2: '#E6DED7',
     lift: '#FFFFFF',
     redwash: '#FBE9E7',
-    card: '#EDECE6',
-    cardStrong: '#E3E2DB',
+    card: '#F5EFE7',
+    cardStrong: '#E6DED7',
     dangerCard: '#FBE9E7',
     errorText: '#D70015',
     sheet: '#FFFFFF',
-    scrim: 'rgba(0,0,0,0.25)',
-    grabber: 'rgba(94,94,88,0.4)',
-    sheetCard: '#EDECE6',
-    tileOnLift: '#EDECE6',
+    scrim: 'rgba(48,43,40,0.40)',
+    grabber: 'rgba(113,100,94,0.4)',
+    sheetCard: '#F5EFE7',
+    tileOnLift: '#E6DED7',
     onDanger: '#FFFFFF',
     dangerSolid: '#D70015',
-  },
-  dark: {
-    ink: '#EDEDE8',
-    ink2: '#A8A8A2',
-    paper: '#121211',
-    wash: '#1F1F1D',
-    wash2: '#2A2A27',
-    lift: '#232321',
-    redwash: '#3A1A1A',
-    card: '#1F1F1D',
-    cardStrong: '#2A2A27',
-    dangerCard: '#3A1A1A',
-    errorText: '#FF6961',
-    sheet: '#232321',
-    scrim: 'rgba(0,0,0,0.5)',
-    grabber: 'rgba(168,168,162,0.4)',
-    sheetCard: '#1F1F1D',
-    tileOnLift: '#2E2E2B',
-    onDanger: '#121211',
-    dangerSolid: '#FF6961',
+    placeholder: '#9A918A',
+    separator: '#E6DED7',
+    tint: '#990000',
+    tintPressed: '#7A0000',
+    onTint: '#FFFFFF',
+    gold: '#FFCC00',
+    softGold: '#FFF2BF',
   },
 } as const;
 
 function themed(key: keyof typeof palette.light) {
-  return Platform.OS === 'ios' ? DynamicColorIOS({ light: palette.light[key], dark: palette.dark[key] }) : palette.light[key];
+  return palette.light[key];
 }
 
-/** Plain color strings for the current scheme (for react-native-svg, which needs strings). */
+/** Plain color strings (for react-native-svg, which needs strings). Light only since B1. */
 export function usePalette() {
-  return useColorScheme() === 'dark' ? palette.dark : palette.light;
+  return palette.light;
 }
 
 export const colors = {
@@ -89,7 +65,7 @@ export const colors = {
   /** UX §3: secondary text, section labels, captions and times. */
   ink2: themed('ink2'),
   /** Placeholders only (UX P1-12); use `ink2` for any text people need to read. */
-  secondaryLabel: PlatformColor('secondaryLabel'),
+  secondaryLabel: themed('placeholder'),
   background: themed('paper'),
   field: themed('card'),
   fieldStrong: themed('cardStrong'),
@@ -106,16 +82,21 @@ export const colors = {
   onDanger: themed('onDanger'),
   /** V1: Emergency surfaces and the destructive button. */
   redwash: themed('redwash'),
-  separator: PlatformColor('separator'),
-  /** The accent is ink: primary buttons, links, selected chips and segments, own chat bubbles. */
-  tint: themed('ink'),
+  separator: themed('separator'),
+  /** Cardinal: primary buttons, links, selected chips, segments and tiles. */
+  tint: themed('tint'),
+  tintPressed: themed('tintPressed'),
+  /** Gold: unread/count badges only (ink text on it); never text on light. */
+  gold: themed('gold'),
+  /** Own chat bubble, the Ends-in timer chip, gentle notices (ink text). */
+  softGold: themed('softGold'),
   /** Text and icons on a `tint` background (paper, so it inverts with the ink). */
-  onTint: themed('paper'),
-  danger: PlatformColor('systemRed'),
+  onTint: themed('onTint'),
+  danger: themed('dangerSolid'),
   // UX2 a11y: fixable error text only (systemRed text is 3.1–3.6:1 in light mode). Emergency fills and destructive
   // buttons keep danger.
   errorText: themed('errorText'),
-  warning: PlatformColor('systemOrange'),
+  warning: '#B25E00',
   /** UX2-45: custom bottom sheets. Cards, rows and bubbles inside a sheet use `fieldStrong`, not `field`. */
   sheet: themed('sheet'),
   scrim: themed('scrim'),
@@ -130,27 +111,23 @@ export const colors = {
 /** UX2-45: one look for every custom bottom sheet: scrim, 16 pt top radius on `sheet`, a 36×5 grabber. */
 export const sheetStyle = StyleSheet.create({
   scrim: { backgroundColor: colors.scrim },
-  surface: { backgroundColor: colors.sheet, borderTopLeftRadius: 16, borderTopRightRadius: 16, borderCurve: 'continuous' },
+  surface: { backgroundColor: colors.sheet, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderCurve: 'continuous' },
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber },
 });
 
 /** Chips and buttons are pills. V1: card 22, thumb/tile 14, tag 10 (all borderCurve continuous). */
-export const radius = { pill: 999, card: 22, tile: 14, tag: 10 };
+export const radius = { pill: 999, card: 24, tile: 16, tag: 999, field: 16 };
 
-/**
- * V1 lift shadow: a soft two-layer shadow on light; none on dark (shadows don't read there), a 6% white hairline
- * instead, since the dark lift tone already sits above paper.
- */
+/** Lift shadow: warm, not black (B1). Light only, so there is a single entry. */
 export const elevation = {
   lift: {
-    light: { boxShadow: '0 1px 2px rgba(24,24,23,0.06), 0 8px 24px rgba(24,24,23,0.08)' },
-    dark: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.06)' },
+    light: { boxShadow: '0 2px 8px rgba(48,43,40,0.08)' },
   },
-} as const satisfies Record<string, Record<'light' | 'dark', ViewStyle>>;
+} as const satisfies Record<string, Record<'light', ViewStyle>>;
 
-/** The lift shadow (or its dark hairline) for the current scheme. */
+/** The lift shadow. */
 export function useLift(): ViewStyle {
-  return useColorScheme() === 'dark' ? elevation.lift.dark : elevation.lift.light;
+  return elevation.lift.light;
 }
 
 /** UX §3 spacing: a 4 pt grid. V1: screen gutter 20 (was 16), gap between rows 8, gap before a section 24. */
@@ -160,10 +137,10 @@ export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32, gutter: 20, r
 export const size = { row: 44, rowSubtitle: 56, roomRow: 64, hit: 44, chip: 36, button: 52, avatar: 32 } as const;
 
 /**
- * UX §3 type roles for the system font. Titles use HandTitle (Patrick Hand): `titleSize.screen` 40 (V1), `.sheet` 24.
+ * UX §3 type roles for the system font. Titles use HandTitle (Source Sans 3 semibold): `titleSize.screen` 28, `.sheet` 20.
  * Colors are included, so a role can be spread into a style as is.
  */
-export const titleSize = { screen: 40, sheet: 24 } as const;
+export const titleSize = { screen: 28, sheet: 20 } as const;
 export const textRole = StyleSheet.create({
   section: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   body: { fontSize: 17, color: colors.label },

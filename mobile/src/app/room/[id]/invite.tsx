@@ -8,9 +8,9 @@ import {
   Pressable,
   Share,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import { Text } from '@/components/text';
 
 import { QrCode } from '@/components/qr-code';
 import { QLink, QScreen } from '@/components/q-screen';

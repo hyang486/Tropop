@@ -1,6 +1,7 @@
 import { useFonts } from 'expo-font';
 import { type ReactNode, useMemo, useState } from 'react';
-import { type StyleProp, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Text } from '@/components/text';
 import Svg, { Path } from 'react-native-svg';
 
 import { HAND_FONTS } from '@/components/hand-title';

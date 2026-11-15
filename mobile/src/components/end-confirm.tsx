@@ -1,7 +1,8 @@
 import { SymbolView } from 'expo-symbols';
 import { Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { EmergencyCheckNote, EmergencyOpenNote, useSlow } from '@/components/emergency-open-note';
 import { useInk } from '@/components/hand-title';

@@ -8,12 +8,12 @@ import {
   ScrollView,
   type StyleProp,
   StyleSheet,
-  Text,
   useWindowDimensions,
   Vibration,
   View,
   type ViewStyle,
 } from 'react-native';
+import { Text } from '@/components/text';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 

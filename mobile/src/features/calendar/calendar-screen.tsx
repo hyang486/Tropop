@@ -10,7 +10,8 @@ import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -152,7 +153,6 @@ function CalendarMonth({ uid }: { uid: string }) {
       />
       <QScreen
         title={t.title}
-        titleUnderline
         floating={
           // "Add with Qrewing" is Plus only (tiers FINAL). Free taps open the Plus intro with no server call.
           addTapAction(plus) === null ? undefined : (
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.scrim, padding: 16 }, // UX2-115
   sheet: { flex: 1, padding: 24, gap: 12, backgroundColor: colors.sheet },
   sheetHead: { flexDirection: 'row', alignItems: 'center' },
-  sheetTitle: { flex: 1, fontSize: titleSize.sheet, lineHeight: 30 },
+  sheetTitle: { flex: 1, fontSize: titleSize.sheet, lineHeight: 28 },
   askField: {
     minHeight: 96,
     backgroundColor: colors.wash,

@@ -1,7 +1,8 @@
 // UX P2-1: Create room status options as removable chips plus a "+ Add" chip, instead of comma-separated text.
 // Validation is the info editor's (normalizeStatusLabels), so both screens accept and reject the same labels.
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 
 import { colors, size, space } from '@/components/ui';
 import { en } from '@/i18n/en';

@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { InkArt } from '@/components/ink-art';
 import { Button, colors } from '@/components/ui';

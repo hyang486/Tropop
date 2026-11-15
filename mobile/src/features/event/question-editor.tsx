@@ -1,5 +1,6 @@
 import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { useAnnounce } from '@/features/event/announce';
 import { QCard, QField, QLabel, QLink } from '@/components/q-screen';

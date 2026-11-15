@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text } from '@/components/text';
 
 import { InkArt } from '@/components/ink-art';
 import { QScreen } from '@/components/q-screen';
