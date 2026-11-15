@@ -76,6 +76,15 @@ export function recapState(r: Pick<DayRoom, 'end' | 'endAt' | 'diary'>, now: num
 }
 
 /** "You met 3 people" / "You met 1 person"; null (hide the row) under 2 people or unknown. people counts you. */
+/** The recap card read as one sentence; null for the upsell state, whose button must stay reachable on its own. */
+export function recapSpoken(state: RecapState, people: number | null | undefined, diary: readonly string[] | null | undefined): string | null {
+  const t = en.calendar;
+  if (state === 'upsell' || state === 'wait') return null;
+  const body = state === 'pending' ? [t.recapPending] : state === 'failed' ? [t.recapNone]
+    : [metPeople(people), ...(diary ?? []).slice(0, 3).map((l) => l.trim())];
+  return [t.recapTitle, ...body].filter(Boolean).map((p) => String(p).replace(/[.\s]+$/, '')).join('. ') + '.';
+}
+
 export function metPeople(people: number | null | undefined): string | null {
   if (typeof people !== 'number' || !Number.isFinite(people) || people < 2) return null;
   return en.calendar.metPeople(people - 1);

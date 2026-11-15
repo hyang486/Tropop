@@ -66,3 +66,11 @@ test('hero: an old snapshot without hero gets one on the next sync; parseDoc kee
   assert.equal(parseDoc(JSON.stringify(bad)).rooms.r1.hero, 'run'); // an invalid value is re-picked from the name
   assert.ok(isHeroTopic('general') && !isHeroTopic('nope'));
 });
+
+test('hero: whole-word match, rerun and gamer never match run or game', () => {
+  assert.equal(hero('Rerun'), 'general');
+  assert.equal(hero('Gamer night'), 'general');
+  assert.equal(hero('Sunday rerun party'), 'party');
+  assert.equal(hero('Run-club'), 'run');
+  assert.equal(hero('Game on'), 'sports');
+});
