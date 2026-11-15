@@ -330,3 +330,22 @@ export async function saveRecapInTwoSteps(
   await d.write(saved).catch(() => {});
   return saved;
 }
+
+type MyPartCopy = {
+  messages: (n: number) => string;
+  media: (n: number) => string;
+  photosOfMe: (n: number) => string;
+  arrived: (time: string) => string;
+};
+
+/** P2: rows of the "You in this room" card. Unknown or 0 counts are left out; [] hides the whole card. */
+export function myPartRows(me: MyPart, s: MyPartCopy, time: (iso: string) => string): string[] {
+  const n = (v: number | null) => v !== null && v > 0;
+  return [
+    n(me.messages) ? s.messages(me.messages!) : null,
+    n(me.mediaShared) ? s.media(me.mediaShared!) : null,
+    n(me.photosOfMe) ? s.photosOfMe(me.photosOfMe!) : null,
+    me.arrivedAt ? s.arrived(time(me.arrivedAt)) : null,
+    me.pace,
+  ].filter((x): x is string => !!x);
+}
