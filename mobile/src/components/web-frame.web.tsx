@@ -15,7 +15,8 @@ export function WebFrame({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        height: '100vh',
+        overflow: 'auto', // scrolls only when the 0.6 floor is hit; the fixed panel never adds page height
         boxSizing: 'border-box',
         display: 'flex',
         alignItems: 'center',
