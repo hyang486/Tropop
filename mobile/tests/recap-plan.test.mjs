@@ -213,3 +213,23 @@ test('a failed write never loses the returned recap', async () => {
   });
   assert.deepEqual(saved.me, me);
 });
+
+test('recapStep F-EMX5: a short room calls once in the last 2 minutes, a normal room is unchanged', () => {
+  const total = 5 * MIN;
+  assert.equal(recapStep(4 * MIN, EMPTY_MARK, total), null);
+  assert.equal(recapStep(2 * MIN, EMPTY_MARK, total), 'late');
+  assert.equal(recapStep(MIN, EMPTY_MARK, total), 'late');
+  assert.equal(recapStep(MIN, { ...EMPTY_MARK, first: true, refresh: true }, total), null);
+  assert.equal(recapStep(30 * 1000, EMPTY_MARK, 10 * MIN), 'late');
+  assert.equal(recapStep(0, EMPTY_MARK, total), null);
+  // normal rooms: same as without a total
+  assert.equal(recapStep(60 * MIN, EMPTY_MARK, 3 * 60 * MIN), 'first');
+  assert.equal(recapStep(10 * MIN, { ...EMPTY_MARK, first: true }, 3 * 60 * MIN), 'refresh');
+  assert.equal(recapStep(5 * MIN, EMPTY_MARK, 11 * MIN), 'late');
+});
+
+test('mergeMyPart F-EMX5: the fresh last-2-minutes count replaces the stale one', () => {
+  const stale = { messages: 0, mediaShared: 0, photosOfMe: null, arrivedAt: null, pace: null };
+  const fresh = { messages: 2, mediaShared: 0, photosOfMe: null, arrivedAt: null, pace: null };
+  assert.equal(mergeMyPart(stale, fresh).messages, 2);
+});
