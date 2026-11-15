@@ -1047,7 +1047,7 @@ export const en = {
     pitch: {
       diary: { heading: 'Every meetup,\na page in your diary', sub: 'Trok writes it for you when the room ends.' },
       chat: { heading: 'Your room,\nwith a helper', sub: 'Answers from the chat, asks the host when it isn’t sure.' },
-      trip: { heading: 'Keep the whole\ntrip in one room', sub: 'Up to 7 days and 30 people. Free rooms stop at 2 days and 6.' },
+      trip: { heading: 'Keep the whole\ntrip in one room', sub: 'Up to 7 days and 30 people. Free rooms stop at 2 days and 6 people.' },
     },
     // Sample content for the preview card (illustration, not real data).
     sample: {
