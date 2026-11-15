@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { Button, colors } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { metPeople, type RecapState } from './day-detail-model';
+import { metPeople, recapSpoken, type RecapState } from './day-detail-model';
 
 const t = en.calendar;
 
@@ -13,9 +13,10 @@ export function RecapCard({
 }: { state: RecapState; diary?: string[] | null; people?: number | null; onSeePlus: () => void }) {
   if (state === 'wait') return null;
   const met = state === 'ready' ? metPeople(people) : null;
+  const spoken = recapSpoken(state, people, diary);
   return (
-    <View style={styles.outer}>
-      <View style={styles.header} accessible accessibilityRole="header" accessibilityLabel={t.recapTitle}>
+    <View style={styles.outer} accessible={spoken ? true : undefined} accessibilityLabel={spoken ?? undefined}>
+      <View style={styles.header} accessible={spoken ? undefined : true} accessibilityRole="header" accessibilityLabel={spoken ? undefined : t.recapTitle}>
         <SymbolView name="sparkles" size={18} tintColor={colors.tint} />
         <Text style={styles.headerText}>{t.recapTitle}</Text>
       </View>
@@ -30,7 +31,7 @@ export function RecapCard({
           </View>
         ) : null}
         {met ? (
-          <View style={styles.row} accessible accessibilityLabel={met}>
+          <View style={styles.row} accessible={spoken ? undefined : true} accessibilityLabel={spoken ? undefined : met}>
             <SymbolView name="person.2" size={22} tintColor={colors.tint} />
             <Text style={styles.rowTitle}>{met}</Text>
           </View>
