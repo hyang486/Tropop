@@ -23,12 +23,11 @@ test('pace number shrinks to 0.85 at most', () => {
   assert.match(src('features/pace/pace-card.tsx'), /<Text style=\{textRole\.stat\} numberOfLines=\{1\} adjustsFontSizeToFit minimumFontScale=\{0\.85\}>/);
 });
 
-test('errorText: #D70015 light / #FF6961 dark, used by Hint tone="error"; danger stays systemRed', () => {
+test('errorText: #D70015 (light only, B1), used by Hint tone="error"; danger is the solid red', () => {
   const ui = src('components/ui.tsx');
   assert.match(ui, /dangerCard: '#FBE9E7',\s*errorText: '#D70015',/);
-  assert.match(ui, /dangerCard: '#3A1A1A',\s*errorText: '#FF6961',/);
   assert.match(ui, /errorText: themed\('errorText'\),/);
-  assert.match(ui, /danger: PlatformColor\('systemRed'\),/);
+  assert.match(ui, /danger: themed\('dangerSolid'\),/);
   assert.match(ui, /tone === 'error' && \{ color: colors\.errorText \}/);
   assert.match(ui, /destructive: colors\.redwash,/);
   assert.match(ui, /destructive: colors\.errorText,/);

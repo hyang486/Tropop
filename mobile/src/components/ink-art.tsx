@@ -1,4 +1,4 @@
-import { type ColorValue, Image, StyleSheet, useColorScheme, View } from 'react-native';
+import { type ColorValue, Image, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { useArtFit } from '@/components/art-fit';
@@ -25,7 +25,6 @@ const STROKE = 2.6;
  * the line is made bolder there. Image art gets four extra copies offset by BOLD_OFFSET points; drawings get a
  * stroke of at least MIN_STROKE_PT points. Light mode and the large art are unchanged.
  */
-const SMALL_WIDTH = 80;
 const BOLD_OFFSET = 0.5;
 const MIN_STROKE_PT = 1.1;
 const BOLD_SHIFTS = [
@@ -53,7 +52,7 @@ export function InkArt({
 }) {
   const ink = useInk();
   const { paper } = usePalette();
-  const bold = useColorScheme() === 'dark' && width < SMALL_WIDTH;
+  const bold = false;
   const fill = ground ?? paper;
   const entry = art ? artEntry(art) : themeArt(roomTheme(roomName));
   const height = Math.round(width / entry.aspect);

@@ -6,11 +6,11 @@ import { test } from 'node:test';
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const helper = read('../src/components/rt-header.tsx');
 
-test('the shared surface: lift fill, 0.5 pt hairline in both schemes, light shadow, 44 pt targets, no shared bar background', () => {
+test('the shared surface: lift fill, 0.5 pt hairline (light only, B1), light shadow, 44 pt targets, no shared bar background', () => {
   assert.match(helper, /backgroundColor: pal\.lift/);
   assert.doesNotMatch(helper, /\bcolors\./, 'a dynamic color resolves light inside the native header (F-RT1)');
   assert.match(helper, /borderWidth: StyleSheet\.hairlineWidth/);
-  assert.match(helper, /light: 'rgba\(0,0,0,0\.08\)', dark: 'rgba\(255,255,255,0\.10\)'/);
+  assert.match(helper, /RT_HAIRLINE = 'rgba\(48,43,40,0\.08\)'/);
   assert.match(helper, /elevation\.lift\.light\.boxShadow/);
   assert.match(helper, /size\.hit/);
   assert.equal((helper.match(/hidesSharedBackground: true/g) ?? []).length, 2);
