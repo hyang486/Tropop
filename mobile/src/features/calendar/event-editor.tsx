@@ -201,9 +201,9 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
             accessibilityLabel={inkIconLabel(e)}
             accessibilityState={{ selected: inkIconKey(e) === picked }}
             onPress={() => setEmoji(e)}
-            style={[styles.emoji, inkIconKey(e) === picked && { backgroundColor: colors.wash2 }]}
+            style={[styles.emoji, inkIconKey(e) === picked && { backgroundColor: colors.tint }]}
           >
-            <InkIcon emoji={e} size={26} />
+            <InkIcon emoji={e} size={26} color={inkIconKey(e) === picked ? colors.onTint : undefined} />
           </Pressable>
         ))}
       </View>

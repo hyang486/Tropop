@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   grid: { position: 'relative', borderRadius: 8 },
   cell: { position: 'absolute', paddingTop: 2, paddingHorizontal: 4 },
   dayNum: { fontSize: 16, lineHeight: 18 },
-  today: { textDecorationLine: 'underline' },
+  today: { borderWidth: 2, borderColor: colors.tint, borderRadius: 14, minWidth: 28, height: 28, lineHeight: 24, textAlign: 'center', overflow: 'hidden' },
   more: { position: 'absolute', right: 2, top: 0, minWidth: 24, alignItems: 'flex-end', paddingHorizontal: 2 },
   moreText: { fontSize: 13, lineHeight: 18 },
   fab: { position: 'absolute', width: FAB, height: FAB, borderRadius: FAB / 2 },
