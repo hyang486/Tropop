@@ -87,7 +87,7 @@ test('UX3-A02: rooms group into Happening now, Coming up and Ending soon', async
 });
 
 test('UX3-A02: Rooms has no subtitle, a 48 pt Join/Create pair over a list, and section headers', () => {
-  const h = src('app/index.tsx');
+  const h = src('app/(tabs)/index.tsx');
   assert.doesNotMatch(h, /subtitle=/);
   // V2 adds icons and a 10 pt gap (tests/v2-rooms.test.mjs).
   assert.match(h, /<Button compact icon="qrcode\.viewfinder" title=\{en\.home\.joinShort\}/);

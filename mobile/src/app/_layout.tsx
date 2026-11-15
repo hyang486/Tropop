@@ -22,7 +22,7 @@ import { useReduceMotion } from '@/components/enter-view';
 SplashScreen.preventAutoHideAsync();
 
 // The stack's own roots: these never need a way home.
-const ROOT_SCREENS = new Set(['index', 'welcome', 'join/[token]']);
+const ROOT_SCREENS = new Set(['(tabs)', 'welcome', 'join/[token]']);
 
 function RootNavigator() {
   const { session, loading } = useAuth();
@@ -87,10 +87,12 @@ function RootNavigator() {
       })}
     >
       <Stack.Protected guard={signedIn} redirectTo="/welcome">
-        <Stack.Screen name="index" options={{ title: en.home.title, headerTitle: '' }} />
+        {/* Tab roots (Today `/`, Explore, Qrews, Moments `/calendar`): the tab navigator draws their headers. */}
+        <Stack.Screen name="(tabs)" options={{ title: en.home.title, headerShown: false }} />
         <Stack.Screen name="profile" options={{ title: en.profile.title, headerTitle: '' }} />
         <Stack.Screen name="profile-edit" options={{ title: en.profile.editProfile, headerTitle: '' }} />
-        <Stack.Screen name="connect/index" options={{ title: 'Connections', headerTitle: '' }} />
+        {/* Redirect to the Qrews tab. */}
+        <Stack.Screen name="connect/index" options={{ headerShown: false }} />
         <Stack.Screen name="connect/codes" options={{ title: 'My QR codes', headerTitle: '' }} />
         <Stack.Screen name="connect/code/[app]" options={{ title: '', headerTitle: '' }} />
         <Stack.Screen name="connect/person/[userId]" options={{ title: '', headerTitle: '' }} />
@@ -98,7 +100,6 @@ function RootNavigator() {
         <Stack.Screen name="upgrade" options={{ title: en.upgrade.title, headerTitle: '', presentation: 'modal' }} />
         <Stack.Screen name="pick-character" options={{ title: en.profile.pickCharacterTitle, headerTitle: '', presentation: 'modal' }} />
         <Stack.Screen name="plan-preview" options={{ title: en.planPreview.title, headerTitle: '' }} />
-        <Stack.Screen name="calendar" options={{ title: en.calendar.title, headerTitle: '' }} />
         <Stack.Screen name="calendar-event" options={{ title: en.calendar.newEvent, headerTitle: '' }} />
         <Stack.Screen name="create-room" options={{ title: en.createRoom.title, headerTitle: '' }} />
         <Stack.Screen name="join/index" options={{ title: en.join.title, headerTitle: '' }} />

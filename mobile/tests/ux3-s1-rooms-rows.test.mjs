@@ -65,7 +65,7 @@ test('VoiceOver: one element in the spec order', () => {
 });
 
 test('Rooms home wires summaries, drops the type word, uses the shared Pill; chat marks read', () => {
-  const h = src('app/index.tsx');
+  const h = src('app/(tabs)/index.tsx');
   assert.match(h, /fetchRoomSummaries\(/);
   assert.match(h, /sortByLastItem\(group\.rows/);
   assert.doesNotMatch(h, /en\.rooms\.types\[/);

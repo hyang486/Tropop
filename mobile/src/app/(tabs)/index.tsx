@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
@@ -8,14 +8,12 @@ import { InkArt, ThemeSticker } from '@/components/ink-art';
 import { Pill } from '@/components/pill';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QScreen } from '@/components/q-screen';
-import { RtIconButton, rtRightOptions } from '@/components/rt-header';
-import { Button, Card, colors, Hint, size, Tag, textRole, useReduceTransparency } from '@/components/ui';
+import { Button, Card, colors, Hint, size, Tag, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { takeCharacterPrompt } from '@/features/characters/first-run';
 import { fetchHostFaces, type HostFace } from '@/features/characters/host-faces';
 import { PersonAvatar } from '@/features/characters/person-avatar';
 import { useAuth } from '@/lib/auth';
-import { errorKind } from '@/lib/error-kind';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
 import { resumePendingInvite } from '@/lib/invite';
@@ -26,7 +24,6 @@ import { useNow } from '@/lib/use-now';
 import { acquireRoomChannel } from '@/lib/room-channel';
 import { createRoomsLive } from '@/features/event/rooms-live';
 import { purgeStaleAskHistories } from '@/features/event/ask-store';
-import { OpenChatSection } from '@/features/event/open-chat-section';
 import { groupBySection, roomSection } from '@/features/event/rooms-sections';
 import { fetchRoomEmergencies, fetchRoomSummaries } from '@/features/event/room-summary-api';
 import {
@@ -46,7 +43,6 @@ import {
   unreadLabel,
   type RoomSummary,
 } from '@/features/event/room-summary';
-import { Snackbar } from '@/features/event/snackbar';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
 import { syncCalendarRooms } from '@/features/calendar/calendar-store';
 import { roomListEntry } from '@/features/recap/grace-plan';
@@ -54,7 +50,6 @@ import { graceTime } from '@/features/recap/use-grace';
 
 export default function Rooms() {
   const router = useRouter();
-  const reduceTransparency = useReduceTransparency();
   const { isGuest, session } = useAuth();
   const uid = session?.user.id;
   const now = useNow();
@@ -66,16 +61,9 @@ export default function Rooms() {
   // P3 Emergency row: who is in Emergency per open room; null when unknown or the read failed (normal rows).
   const [emergencies, setEmergencies] = useState<Map<string, EmergencyPerson[]> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // UX2-26: while Rooms already says offline, Open chat hides its own load error.
-  const [offline, setOffline] = useState(false);
   const [retrying, setRetrying] = useState(false);
   // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
   const [refreshing, setRefreshing] = useState(false);
-  const [openChatKey, setOpenChatKey] = useState(0);
-  // UX P1-6: one Open chat notice at a time; the id re-shows (and re-reads) the same text.
-  const [notice, setNotice] = useState<{ id: number; text: string } | null>(null);
-  const showNotice = useCallback((text: string) => setNotice((n) => ({ id: (n?.id ?? 0) + 1, text })), []);
-  const hideNotice = useCallback(() => setNotice(null), []);
   const rows = visibleRows(rooms ?? [], now);
   // UX3-A02: the empty layout only once the read answered with no rows (not while loading or on an error).
   const empty = rooms !== null && rows.length === 0 && !error;
@@ -101,7 +89,6 @@ export default function Rooms() {
       setSummaries(nextSummaries);
       setEmergencies(nextEmergencies);
       void fetchHostFaces(list.map((r) => r.host_id)).then(setHostFaces, () => undefined);
-      setOffline(false);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
       // Spec 10.4: Ask Trok history goes once a room ended (grace counts as ended), expired or was left.
@@ -117,9 +104,8 @@ export default function Rooms() {
         true,
         { ask: false },
       );
-    } catch (e) {
+    } catch {
       setError(en.home.loadFailed);
-      setOffline(errorKind(e) === 'offline');
     }
   }, [uid]);
 
@@ -182,37 +168,13 @@ export default function Rooms() {
 
   return (
     <>
-      {/* V2: one glass pill holding Calendar + Profile icons (44 pt each), no "Profile" text. */}
-      {reduceTransparency ? (
-        // F-RT2: the native toolbar pill turns near-white in dark mode under Reduce Transparency; draw our own capsule.
-        <Stack.Screen
-          options={rtRightOptions(
-            <>
-              <RtIconButton symbol="calendar" label={en.calendar.openLabel} onPress={() => router.push('/calendar')} />
-              <RtIconButton symbol="person" label={en.home.profile} onPress={() => router.push('/profile')} />
-            </>,
-          )}
-        />
-      ) : (
-        <Stack.Toolbar placement="right">
-          {/* Trok Calendar (Plus preview); the screen shows the upsell without it. */}
-          <Stack.Toolbar.Button
-            icon="calendar"
-            accessibilityLabel={en.calendar.openLabel}
-            onPress={() => router.push('/calendar')}
-          />
-          <Stack.Toolbar.Button icon="person" accessibilityLabel={en.home.profile} onPress={() => router.push('/profile')} />
-        </Stack.Toolbar>
-      )}
       <QScreen
-        floating={notice ? <Snackbar notice={notice} onHide={hideNotice} /> : undefined}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             tintColor={colors.secondaryLabel}
             onRefresh={() => {
               setRefreshing(true);
-              setOpenChatKey((k) => k + 1);
               void load().finally(() => setRefreshing(false));
             }}
           />
@@ -381,8 +343,6 @@ export default function Rooms() {
         ))}
         {isGuest && rows.length > 0 ? <GuestCreateLink /> : null}
 
-        {/* Spec 11 D: public rooms anyone can join without a code (hidden until 0031 is live). */}
-        <OpenChatSection refreshKey={openChatKey} onNotice={showNotice} roomsOffline={offline} />
       </QScreen>
     </>
   );

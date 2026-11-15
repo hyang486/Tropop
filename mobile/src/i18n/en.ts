@@ -14,6 +14,14 @@ const shortDate = (iso: string) =>
 
 export const en = {
   appName: 'Tropop',
+  // Bottom tab bar (tabs-spec.md): labels are exactly these four.
+  tabs: {
+    today: 'Today',
+    explore: 'Explore',
+    qrews: 'Qrews',
+    moments: 'Moments',
+    profile: 'Profile',
+  },
   welcome: {
     // Q 01.01
     // UX3-A03: headline and three value rows.
@@ -1506,7 +1514,7 @@ export const en = {
     addFirstAction: 'Add a QR code',
 
     // 03 Connections
-    connectionsTitle: 'Connections',
+    connectionsTitle: 'Qrews',
     requests: 'Requests',
     sent: 'Sent',
     connectedSection: 'Connected',
