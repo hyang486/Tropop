@@ -1399,14 +1399,19 @@ test('E2E (a) ask: status and Emergency lines with times, who saw the Emergency,
   assert.ok(calls[0].system.includes('<room_events>'), 'events rule');
 });
 
-test('E2E (a) ask: an Emergency with no later status is unresolved and seen by nobody yet', async () => {
+test('E2E (a) ask: an Emergency with no later status is unresolved and seen by no one yet', async () => {
   const w = world({
     messages: [msg(1, CAT, 'Cat needs help (Emergency)', 5, 'emergency')],
     emergencies: [{ id: 'e1', userId: CAT, createdAt: iso(-5 * MIN), ackedBy: [] }],
   });
   const { m, calls } = model(answer('ok'));
   await run(w, m, BOB, ASK('Anything wrong?'));
-  assert.match(calls[0].user, /<emergency who="Cat" at="[^"]+" resolved="false" seen_by="nobody yet"\/>/);
+  assert.match(calls[0].user, /<emergency who="Cat" at="[^"]+" resolved="false" seen_by="no one yet"\/>/);
+  assert.ok(!/nobody/i.test(calls[0].user));
+});
+
+test('ask: the system prompt says an unseen Emergency plainly, suggests checking on them, blames no one (ux)', () => {
+  assert.ok(ASK_SYSTEM.includes("If no one has seen it, say so plainly and suggest checking on them. Don't blame anyone."));
 });
 
 test('E2E (a) recap: status and Emergency lines merge into the chat in time order, tagged; <emergencies> block', async () => {
@@ -1428,6 +1433,24 @@ test('E2E (a) recap: status and Emergency lines merge into the chat in time orde
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'time order');
   assert.ok(u.includes('<emergencies>\n<emergency who="Bob" resolved="true" seen_by="Hana"/>\n</emergencies>'));
   assert.ok(calls[0].system.includes('[status change]'));
+});
+
+test('recap: an unseen, unresolved Emergency sends seen_by="" and the prompts forbid "nobody" (qa PDF v2)', async () => {
+  const w = world({
+    messages: [msg(1, HOST, 'Start at 7', 30), msg(2, BOB, 'Bob needs help (Emergency)', 25, 'emergency')],
+    emergencies: [{ id: 'e1', userId: BOB, createdAt: iso(-25 * MIN), ackedBy: [] }],
+  });
+  const { m, calls } = model(() => ({ text: RECAP_OUT }));
+  const r = await run(w, m, HOST, { action: 'recap', roomId: ROOM });
+  assert.equal(r.status, 200);
+  assert.ok(calls[0].user.includes('<emergency who="Bob" resolved="false" seen_by=""/>'));
+  assert.ok(!/nobody/i.test(calls[0].user));
+  for (const sys of [RECAP_SYSTEM, RECAP_REFRESH_SYSTEM]) {
+    assert.ok(sys.includes(`"<who>'s Emergency was still open when the room ended."`));
+    assert.ok(sys.includes('" · Seen by <seen_by>."'));
+    assert.ok(sys.includes('Never say "nobody"'));
+    assert.ok(!sys.includes('how it ended when there was one'));
+  }
 });
 
 const POS = (userId: string, lat: number, secAgo: number, speedMps: number | null, sharing = true) =>

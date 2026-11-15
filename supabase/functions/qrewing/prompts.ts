@@ -75,6 +75,13 @@ export const TRIAGE_SYSTEM = [
   DATA_RULE,
 ].join(' ');
 
+/** qa PDF v2: an Emergency is reported without blame; seen_by="" means no one acknowledged it. */
+const RECAP_EMERGENCY_RULE = [
+  'Mention each Emergency and how it ended; do not add details the data does not show.',
+  'Write an unresolved Emergency as "<who>\'s Emergency was still open when the room ended."; when seen_by is not',
+  'empty, append " · Seen by <seen_by>." Never say "nobody" or "no one", and never imply anyone failed to respond.',
+].join(' ');
+
 const CHAT_SCOPE_RULE =
   'The chat holds only messages from members who turned on Qrewing AI; other members may have chatted too, and' +
   ' <shared_media> counts everything shared by anyone. Never say that no messages were sent or that nothing was' +
@@ -88,8 +95,8 @@ export const RECAP_SYSTEM = [
   'highlights: up to 5 short items (at most 120 characters each) about moments, plans or decisions.',
   'Write in the language most messages use. If there is little to go on, keep it short and honest.',
   'Lines whose text starts with [status change] or [Emergency] were posted by the app when that member changed their',
-  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved. Mention an',
-  'Emergency and how it ended when there was one; do not add details the data does not show.',
+  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved.',
+  RECAP_EMERGENCY_RULE,
   CHAT_SCOPE_RULE,
   GENDER_RULE,
   DATA_RULE,
@@ -104,8 +111,8 @@ export const RECAP_REFRESH_SYSTEM = [
   'highlights: up to 5 short items (at most 120 characters each) about moments, plans or decisions.',
   'Write in the language of the previous recap.',
   'Lines whose text starts with [status change] or [Emergency] were posted by the app when that member changed their',
-  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved. Mention an',
-  'Emergency and how it ended when there was one; do not add details the data does not show.',
+  'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved.',
+  RECAP_EMERGENCY_RULE,
   '<shared_media> gives the room totals now; new_photos and new_videos are the ones shared after the previous recap.',
   CHAT_SCOPE_RULE,
   GENDER_RULE,
@@ -172,7 +179,7 @@ export type RecapEmergency = { who: string; resolved: boolean; seenBy: string[] 
 
 function recapEmergencies(list: RecapEmergency[] | undefined): string {
   if (!list?.length) return '';
-  const rows = list.map((e) => `<emergency who="${esc(e.who)}" resolved="${e.resolved}" seen_by="${esc(e.seenBy.length ? e.seenBy.join(', ') : 'nobody')}"/>`);
+  const rows = list.map((e) => `<emergency who="${esc(e.who)}" resolved="${e.resolved}" seen_by="${esc(e.seenBy.join(', '))}"/>`);
   return `\n<emergencies>\n${rows.join('\n')}\n</emergencies>`;
 }
 
@@ -258,6 +265,7 @@ export const ASK_SYSTEM = [
   'they are standing still now; trust it over older chat. <room_events> lists status changes and Emergency alerts',
   'with their times; <emergencies> says who raised an Emergency, when, who saw it, and whether it was resolved (the',
   'member changed their status afterwards). Report them only as given.',
+  'If no one has seen it, say so plainly and suggest checking on them. Don\'t blame anyone.',
   '<group> is present only while a group activity runs: it lists only members who share their location and allow',
   'AI, with progress in metres (progress_means says what it is measured from), whether each is moving, the lead group',
   '(everyone within 50 m of the front) and the asker\'s gap to it. Members not listed there do not share their',
@@ -374,7 +382,7 @@ export function askUser(a: AskInput): string {
   const chat = a.lines.map((l) => `[${esc(l.at)}] ${esc(l.sender)}: ${esc(l.text)}`).join('\n');
   const events = a.events.map((e) => `<event${attrs({ at: e.at, who: e.who, kind: e.kind })}>${esc(e.text)}</event>`).join('\n');
   const alerts = a.emergencies
-    .map((e) => `<emergency${attrs({ who: e.who, at: e.at, resolved: e.resolved, seen_by: e.seenBy.length ? e.seenBy.join(', ') : 'nobody yet' })}/>`)
+    .map((e) => `<emergency${attrs({ who: e.who, at: e.at, resolved: e.resolved, seen_by: e.seenBy.length ? e.seenBy.join(', ') : 'no one yet' })}/>`)
     .join('\n');
   return [
     `<room>\n${room.join('\n')}\n</room>`,
