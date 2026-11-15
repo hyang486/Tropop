@@ -29,7 +29,7 @@ const MAX_STICKER = 200;
  * stickers are transparent and draw straight on the paper (capped at 200 pt). Decorative: hidden from VoiceOver.
  * `width` is the sticker width in points; the hero always fills the width the screen gives it.
  */
-export function InkArt({ art, roomName, width = 180 }: { art?: ArtKey; roomName?: string; width?: number }) {
+export function InkArt({ art, roomName, width = 180, aspect = '3:2' }: { art?: ArtKey; roomName?: string; width?: number; aspect?: '3:2' | '16:9' }) {
   const entry = art ? artEntry(art) : themeArt(roomTheme(roomName));
   // UX2-61: in a QScreen `bottom` block the art shows whole or not at all.
   const fit = useArtFit();
@@ -41,8 +41,9 @@ export function InkArt({ art, roomName, width = 180 }: { art?: ArtKey; roomName?
       onLayout={fit ? (e) => fit.report(e.nativeEvent.layout.height) : undefined}
       accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {entry.kind === 'hero' ? (
-        <View style={styles.hero}>
-          <Image source={IMAGES[entry.key]} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <View style={[styles.hero, aspect === '16:9' && styles.hero169]}>
+          {/* F-WEL1: an explicit 100% frame; absoluteFill drew the 1200x800 photo at its intrinsic size. */}
+          <Image source={IMAGES[entry.key]} style={styles.heroImage} resizeMode="cover" />
         </View>
       ) : (
         <Image source={IMAGES[entry.key]} style={{ width: side, height: side }} resizeMode="contain" />
@@ -61,4 +62,6 @@ const styles = StyleSheet.create({
   wrap: { alignItems: 'center' },
   heroWrap: { alignSelf: 'stretch' },
   hero: { width: '100%', aspectRatio: 3 / 2, borderRadius: 24, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: HERO_GROUND },
+  hero169: { aspectRatio: 16 / 9 },
+  heroImage: { width: '100%', height: '100%' },
 });

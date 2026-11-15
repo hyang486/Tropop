@@ -13,7 +13,7 @@ test('UX3-A03: Welcome shows art, the headline and three value rows, no tagline'
     assert.match(w, new RegExp(`en\\.welcome\\.${k}Title`));
     assert.match(w, new RegExp(`en\\.welcome\\.${k}Line`));
   }
-  assert.match(w, /<InkArt art="gathering" \/>/);
+  assert.match(w, /<InkArt art="gathering" aspect="16:9" \/>/);
   assert.doesNotMatch(w, /tagline/);
   assert.doesNotMatch(en, /tagline:/);
 });
