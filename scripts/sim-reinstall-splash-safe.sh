@@ -15,6 +15,9 @@ want_ver=$(plutil -extract CFBundleVersion raw "$APP/Info.plist")
 # true once the registry points at the NEW bundle (an app rename leaves the old Qrew.app path registered for a while)
 is_new() { [ -n "$1" ] && [ "$(basename "$1")" = "$want_name" ] && [ -f "$1/Info.plist" ] &&
   [ "$(plutil -extract CFBundleVersion raw "$1/Info.plist" 2>/dev/null)" = "$want_ver" ]; }
+# Simulator Keychain items (the session key) are scoped by application-identifier: a mismatch opens signed out.
+appid() { strings -a "$(exe "$1")" | grep -A1 '<key>application-identifier</key>' | sed -n 's#.*<string>\(.*\)</string>.*#\1#p' | head -1; }
+new_id=$(appid "$APP"); [ -n "$new_id" ] || { echo "no application-identifier in $APP" >&2; exit 1; }
 new_fake=$(strings -a "$(exe "$APP")" | grep -c FAKETEAMID || true)
 [ -z "$KIND" ] && { [ "$new_fake" -gt 0 ] && KIND=fake || KIND=9k6; }
 want_fake=0; [ "$KIND" = fake ] && want_fake=1
@@ -28,8 +31,13 @@ old=$(xcrun simctl get_app_container "$UDID" "$BID" app 2>/dev/null || true)
 if [ -n "$old" ]; then
   old_fake=$(strings -a "$(exe "$old")" | grep -c FAKETEAMID || true)
   [ $((old_fake>0)) -eq "$want_fake" ] || { echo "installed app-id differs from the $KIND variant; ask before changing" >&2; exit 1; }
+  old_id=$(appid "$old")
+  [ "$old_id" = "$new_id" ] || { echo "application-identifier mismatch: installed ${old_id:-none}, new $new_id; ask before changing" >&2; exit 1; }
 fi
 
+# Every install moves the data container to a new UUID and copies it, so check its contents, not its UUID.
+kept() { (cd "$1" && { find Documents "Library/Application Support" -type f 2>/dev/null || true; } | sort); }
+before=""; [ -n "$old" ] && before=$(kept "$(xcrun simctl get_app_container "$UDID" "$BID" data)")
 xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
 xcrun simctl install "$UDID" "$APP"
 DATA=$(xcrun simctl get_app_container "$UDID" "$BID" data)   # resolve while booted
@@ -50,5 +58,7 @@ for _ in $(seq 1 60); do   # the app container path is re-registered a few secon
   is_new "$fin" && break
   sleep 1
 done
+lost=$(comm -23 <(echo "$before") <(kept "$(xcrun simctl get_app_container "$UDID" "$BID" data)") | grep -c . || true)
+[ "$lost" -eq 0 ] || { echo "data check FAILED: $lost file(s) from Documents/Application Support missing after install" >&2; exit 1; }
 is_new "${fin:-}" || { echo "after reboot the registry still points at ${fin:-none}, not $want_name $want_ver" >&2; exit 1; }
-echo "ok $UDID $want_name CFBundleVersion=$want_ver data=$(basename "$DATA")"
+echo "ok $UDID $want_name CFBundleVersion=$want_ver app-id=$new_id data=$(basename "$DATA") kept=$(echo "$before" | grep -c . || true) files"
