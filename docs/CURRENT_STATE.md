@@ -1088,3 +1088,8 @@ Order: camera → N-1 → C-3 → F5-5b → FG-L1 → FG-R1. Each merge is re-ch
 - MERGED (supervisor PASS + go): fix-rcp1 → local main 9395072. qrewing 84/84, tsc 0, lint 0, 1146/1146. No push.
   qrewing v18 deploy NOT approved (supervisor asking the human); device check only after deploy.
   0043 dry run (dry0043 ee9f988, PGlite through 0042 + both 0043 tests): PASSED. B3 waits on F-RM1 repro + go; redo merge-tree on new main.
+- MERGED (supervisor go, F-RM1 cleared on build 3): integ-b3 2314bb7 → local main 62a4615 (conflict profile.tsx only:
+  B3 "You" header + Card/Settings card kept, Connect's Connections + My QR codes rows go into Card 1 as grouped, ahead
+  of Plus/guest row). Then cherry-pick -x 5bbbbb4 → 96eae01, 5f9380b → 05db223 (0043 migration, revert, tests).
+  PGlite through 0042 + 0043 tests and rollback test PASSED; qrewing 84/84; tsc 0 (after typed-routes regen); lint 0;
+  npm test 1162/1162. No push. ux checks merged Profile in the full walk.
