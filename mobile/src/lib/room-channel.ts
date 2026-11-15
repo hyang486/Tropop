@@ -1,67 +1,27 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
+import { createRoomChannels, type ChannelStatus, type RoomEvent } from './room-channel-core';
 import { supabase } from './supabase';
 
-/**
- * A change notice from the private Broadcast topic `room:<id>` (migration 0017).
- * It carries no row content: listeners refetch through RLS.
- */
-export type RoomEvent = {
-  table: string;
-  op: 'INSERT' | 'UPDATE' | 'DELETE';
-  /** The row id, for tables that have an `id` column. */
-  id?: string;
-  /** expiry_reminders notices (migration 0019): the expiry version the reminders are for. */
-  expiry_version?: number;
-};
-
-export type ChannelStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR';
-
-type Listener = {
-  onEvent: (event: RoomEvent) => void;
-  onStatus: (status: ChannelStatus) => void;
-};
-
-type Entry = { channel: RealtimeChannel; listeners: Set<Listener>; status: ChannelStatus | null };
+export type { ChannelStatus, RoomEvent, RoomListener } from './room-channel-core';
 
 // One channel per room, shared by every screen and hook that needs it: joining the same topic twice
-// on one socket would make the server close the first join.
-const entries = new Map<string, Entry>();
+// on one socket would make the server close the first join. Ref-counted in room-channel-core.
+const channels = createRoomChannels<RealtimeChannel>({
+  open: (topic, onPayload, onStatus) =>
+    supabase
+      .channel(topic, { config: { private: true } })
+      .on('broadcast', { event: '*' }, ({ payload }) => onPayload(payload))
+      .subscribe((status) => onStatus(status)),
+  remove: (channel) => {
+    void supabase.removeChannel(channel);
+  },
+});
 
-function subscribeRoom(roomId: string, listener: Listener): () => void {
-  let entry = entries.get(roomId);
-  if (!entry) {
-    const listeners = new Set<Listener>();
-    const created: Entry = { channel: null as unknown as RealtimeChannel, listeners, status: null };
-    created.channel = supabase
-      .channel(`room:${roomId}`, { config: { private: true } })
-      .on('broadcast', { event: '*' }, ({ payload }) => {
-        for (const l of listeners) l.onEvent(payload as RoomEvent);
-      })
-      .subscribe((status) => {
-        created.status = status as ChannelStatus;
-        for (const l of listeners) l.onStatus(status as ChannelStatus);
-      });
-    entries.set(roomId, created);
-    entry = created;
-  } else if (entry.status) {
-    // Late subscriber: report the current status so it can load right away.
-    const status = entry.status;
-    queueMicrotask(() => listener.onStatus(status));
-  }
-  entry.listeners.add(listener);
-
-  return () => {
-    const current = entries.get(roomId);
-    if (!current) return;
-    current.listeners.delete(listener);
-    if (current.listeners.size === 0) {
-      entries.delete(roomId);
-      supabase.removeChannel(current.channel);
-    }
-  };
-}
+/** Acquires the shared `room:<id>` channel for one listener; the returned function releases only that listener. */
+export const acquireRoomChannel = channels.acquire;
+const subscribeRoom = channels.acquire;
 
 /** Listens to the room's change notices. Handlers may change between renders without resubscribing. */
 export function useRoomEvents(
