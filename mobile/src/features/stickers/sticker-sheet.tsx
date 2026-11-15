@@ -41,7 +41,7 @@ export function StickerSheet({ visible, onClose, onSend }: { visible: boolean; o
               </Pressable>
             ))}
           </View>
-          <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {stickersIn(tab).map((s) => (
               <Pressable
                 key={s.id}
