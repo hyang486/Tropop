@@ -104,6 +104,7 @@ create table private.connect_request_log (
   created_at timestamptz not null default now()
 );
 create index connect_request_log_idx on private.connect_request_log (user_id, created_at);
+alter table private.connect_request_log enable row level security; -- no policies: server-only
 
 create function private.is_connected(p_other uuid)
 returns boolean language sql stable security definer
