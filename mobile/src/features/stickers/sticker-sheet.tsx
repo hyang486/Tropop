@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { STICKER_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
-import { colors, elevation, useLift } from '@/components/ui';
+import { colors, useLift } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 import { stickersIn, STICKER_TABS, type StickerTab } from '@/lib/stickers';
 
@@ -34,7 +34,7 @@ export function StickerSheet({ visible, onClose, onSend }: { visible: boolean; o
                   if (t !== tab) haptics.selection();
                   setTab(t);
                 }}
-                style={[styles.seg, tab === t && styles.segOn]}
+                style={[styles.seg, tab === t && [styles.segOn, lift]]}
               >
                 <Text style={[styles.segText, tab === t && styles.segTextOn]}>{t}</Text>
               </Pressable>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 2.5, backgroundColor: colors.grabber },
   track: { flexDirection: 'row', backgroundColor: colors.wash, borderRadius: 12, padding: 3 },
   seg: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
-  segOn: { backgroundColor: colors.lift, ...elevation.lift.light },
+  segOn: { backgroundColor: colors.lift },
   segText: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
   segTextOn: { color: colors.label },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
