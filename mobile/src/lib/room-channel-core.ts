@@ -26,14 +26,16 @@ export type ChannelClient<C> = {
   remove: (channel: C) => void;
 };
 
+const TERMINAL = new Set(['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED']);
+
 export function createRoomChannels<C>(client: ChannelClient<C>) {
-  type Entry = { channel: C; listeners: Set<RoomListener>; status: ChannelStatus | null };
+  type Entry = { channel: C; listeners: Set<RoomListener>; status: ChannelStatus | null; dead: boolean };
   const entries = new Map<string, Entry>();
 
   function acquire(roomId: string, listener: RoomListener): () => void {
     let entry = entries.get(roomId);
     if (!entry) {
-      const created = { listeners: new Set<RoomListener>(), status: null } as unknown as Entry;
+      const created = { listeners: new Set<RoomListener>(), status: null, dead: false } as unknown as Entry;
       created.channel = client.open(
         `room:${roomId}`,
         (payload) => {
@@ -41,11 +43,25 @@ export function createRoomChannels<C>(client: ChannelClient<C>) {
         },
         (status) => {
           created.status = status as ChannelStatus;
+          // A dead channel leaves the map first, so a consumer acquiring now (even from inside onStatus)
+          // opens a fresh channel instead of inheriting this one. Its listeners still get the status.
+          if (TERMINAL.has(status) && !created.dead) {
+            created.dead = true;
+            if (entries.get(roomId) === created) entries.delete(roomId);
+            // Not yet assigned when open() reports synchronously; removed right after open() below.
+            if (created.channel !== undefined) client.remove(created.channel);
+          }
           for (const l of [...created.listeners]) l.onStatus(status as ChannelStatus);
         },
       );
-      entries.set(roomId, created);
+      if (created.dead) client.remove(created.channel);
+      else entries.set(roomId, created);
       entry = created;
+      // The status came before this listener was added; replay it.
+      if (created.dead && created.status) {
+        const status = created.status;
+        queueMicrotask(() => listener.onStatus(status));
+      }
     } else if (entry.status) {
       // Late subscriber: report the current status so it can load right away.
       const status = entry.status;
@@ -60,7 +76,8 @@ export function createRoomChannels<C>(client: ChannelClient<C>) {
       if (released) return;
       released = true;
       mine.listeners.delete(listener);
-      if (mine.listeners.size === 0 && entries.get(roomId) === mine) {
+      // An evicted (dead) entry was already removed; a newer entry for this room is never touched.
+      if (mine.listeners.size === 0 && !mine.dead && entries.get(roomId) === mine) {
         entries.delete(roomId);
         client.remove(mine.channel);
       }

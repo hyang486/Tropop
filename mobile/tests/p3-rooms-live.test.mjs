@@ -181,3 +181,86 @@ test('rooms live: leaving a room on the list keeps the room screen subscribed', 
   client.emit('room:a', { table: 'messages', op: 'INSERT' });
   assert.equal(screen.length, 1);
 });
+
+/** Like fakeClient, but tests can push a status into an open topic. */
+function statusClient() {
+  const c = fakeClient();
+  const chans = [];
+  return {
+    ...c,
+    open: (topic, onPayload, onStatus) => {
+      const ch = c.open(topic, onPayload, onStatus);
+      chans.push(ch);
+      return ch;
+    },
+    status: (i, s) => chans[i].onStatus(s),
+    payload: (i, p) => chans[i].onPayload(p),
+  };
+}
+
+for (const terminal of ['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED']) {
+  test(`dead channel (${terminal}): evicted and removed, listeners still told, next acquire opens fresh`, () => {
+    const client = statusClient();
+    const ch = createRoomChannels(client);
+    const seen = [];
+    ch.acquire('r1', { onEvent: () => undefined, onStatus: (s) => seen.push(s) });
+    client.status(0, 'SUBSCRIBED');
+    client.status(0, terminal);
+    assert.deepEqual(seen, ['SUBSCRIBED', terminal]);
+    assert.deepEqual(client.log.removed, ['room:r1']);
+    assert.equal(ch.size(), 0);
+
+    const screen = [];
+    ch.acquire('r1', listener(screen));
+    assert.deepEqual(client.log.opened, ['room:r1', 'room:r1'], 'a fresh channel, not the dead one');
+    client.payload(1, { table: 'messages', op: 'INSERT' });
+    assert.equal(screen.length, 1);
+  });
+}
+
+test('dead channel: the old handle released after reopen leaves the new channel alive', () => {
+  const client = statusClient();
+  const ch = createRoomChannels(client);
+  const releaseRooms = ch.acquire('r1', listener([]));
+  client.status(0, 'CHANNEL_ERROR');
+  const screen = [];
+  const releaseScreen = ch.acquire('r1', listener(screen));
+  releaseRooms();
+  assert.deepEqual(client.log.removed, ['room:r1'], 'only the dead channel was removed, once');
+  assert.equal(ch.listenerCount('r1'), 1);
+  client.payload(1, { table: 'messages', op: 'INSERT' });
+  assert.equal(screen.length, 1);
+  releaseScreen();
+  assert.deepEqual(client.log.removed, ['room:r1', 'room:r1']);
+});
+
+test('dead channel: re-acquiring from inside onStatus gets a fresh channel', () => {
+  const client = statusClient();
+  const ch = createRoomChannels(client);
+  ch.acquire('r1', {
+    onEvent: () => undefined,
+    onStatus: (s) => {
+      if (s === 'CLOSED') ch.acquire('r1', listener([]));
+    },
+  });
+  client.status(0, 'CLOSED');
+  assert.equal(client.log.opened.length, 2);
+  assert.equal(ch.listenerCount('r1'), 1);
+});
+
+test('dead channel: a terminal status during open is not stored and is replayed', async () => {
+  const fake = fakeClient();
+  const ch = createRoomChannels({
+    open: (topic, onPayload, onStatus) => {
+      onStatus('CHANNEL_ERROR');
+      return fake.open(topic, onPayload, onStatus);
+    },
+    remove: fake.remove,
+  });
+  const seen = [];
+  ch.acquire('r1', { onEvent: () => undefined, onStatus: (s) => seen.push(s) });
+  await Promise.resolve();
+  assert.deepEqual(seen, ['CHANNEL_ERROR']);
+  assert.equal(ch.size(), 0);
+  assert.deepEqual(fake.log.removed, ['room:r1']);
+});
