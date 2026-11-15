@@ -54,7 +54,7 @@ export function EmergencyConfirmHost() {
   return (
     // An in-screen overlay, not a native Modal: iOS can drop a Modal presented while the status picker's Modal is
     // still animating out, which would make Emergency impossible to send. No presenter, no race.
-    <View style={styles.backdrop} accessibilityViewIsModal>
+    <View style={styles.backdrop} accessibilityViewIsModal onAccessibilityEscape={close}>
       <View style={styles.card}>
         <Text style={styles.title} accessibilityRole="header">
           {en.activity.emergencyConfirmTitle}
