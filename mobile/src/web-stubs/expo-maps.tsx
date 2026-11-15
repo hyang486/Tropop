@@ -15,6 +15,8 @@ type Annotation = {
   backgroundColor?: string;
   textColor?: string;
   anchor?: { x: number; y: number };
+  /** Web only: a data/https URL drawn instead of the text pill (the web pin baker passes it). */
+  iconUrl?: string;
 };
 type Marker = { id?: string; coordinates?: LatLng; title?: string };
 type Polyline = { id?: string; coordinates: LatLng[]; color?: string; width?: number };
@@ -106,8 +108,9 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
       const ax = a.anchor?.x ?? 0.5;
       const ay = a.anchor?.y ?? 0.5;
       const size = short ? 'min-width:34px;height:34px;border-radius:17px;line-height:34px;font-size:15px' : 'padding:2px 8px;border-radius:12px;line-height:18px;font-size:12px';
-      const html =
-        `<div style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:inline-block;text-align:center;white-space:pre;font:600 12px system-ui;box-sizing:border-box;` +
+      const html = a.iconUrl
+        ? `<img src="${esc(a.iconUrl)}" alt="" style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:block;max-width:none">`
+        : `<div style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:inline-block;text-align:center;white-space:pre;font:600 12px system-ui;box-sizing:border-box;` +
         `border:1px solid rgba(0,0,0,.15);box-shadow:0 1px 3px rgba(0,0,0,.25);${size};background:${a.backgroundColor ?? '#fff'};color:${a.textColor ?? '#1a1a1a'}">${esc(text)}</div>`;
       const marker = L.marker([a.coordinates.latitude, a.coordinates.longitude], { icon: L.divIcon({ className: '', iconSize: [0, 0], html }), keyboard: false });
       marker.on('click', (e) => {
