@@ -10,6 +10,11 @@ BID=com.iyaproject.moment
 # The executable is named after the app (Qrew before build 4, Tropop from build 4): read it from Info.plist.
 exe() { echo "$1/$(/usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$1/Info.plist")"; }
 [ -f "$(exe "${APP:?}")" ] || { echo "not an app bundle: $APP" >&2; exit 1; }
+want_name=$(basename "${APP%/}")
+want_ver=$(plutil -extract CFBundleVersion raw "$APP/Info.plist")
+# true once the registry points at the NEW bundle (an app rename leaves the old Qrew.app path registered for a while)
+is_new() { [ -n "$1" ] && [ "$(basename "$1")" = "$want_name" ] && [ -f "$1/Info.plist" ] &&
+  [ "$(plutil -extract CFBundleVersion raw "$1/Info.plist" 2>/dev/null)" = "$want_ver" ]; }
 new_fake=$(strings -a "$(exe "$APP")" | grep -c FAKETEAMID || true)
 [ -z "$KIND" ] && { [ "$new_fake" -gt 0 ] && KIND=fake || KIND=9k6; }
 want_fake=0; [ "$KIND" = fake ] && want_fake=1
@@ -31,10 +36,10 @@ DATA=$(xcrun simctl get_app_container "$UDID" "$BID" data)   # resolve while boo
 # install returns before the bundle is fully in place; shutting down too early leaves a half install
 for _ in $(seq 1 60); do
   nb=$(xcrun simctl get_app_container "$UDID" "$BID" app 2>/dev/null || true)
-  [ -n "$nb" ] && [ -f "$nb/Info.plist" ] && break
+  is_new "$nb" && break
   sleep 1
 done
-[ -f "${nb:?}/Info.plist" ] || { echo "install did not complete" >&2; exit 1; }
+is_new "${nb:-}" || { echo "install did not complete (registry: ${nb:-none})" >&2; exit 1; }
 xcrun simctl shutdown "$UDID"
 SNAP="${DATA:?}/Library/SplashBoard/Snapshots"
 [ -d "$SNAP" ] && find "${SNAP:?}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
@@ -42,7 +47,8 @@ xcrun simctl boot "$UDID"
 xcrun simctl bootstatus "$UDID" >/dev/null 2>&1
 for _ in $(seq 1 60); do   # the app container path is re-registered a few seconds after boot
   fin=$(xcrun simctl get_app_container "$UDID" "$BID" app 2>/dev/null || true)
-  [ -n "$fin" ] && [ -f "$fin/Info.plist" ] && break
+  is_new "$fin" && break
   sleep 1
 done
-echo "ok $UDID CFBundleVersion=$(plutil -extract CFBundleVersion raw "${fin:?}/Info.plist")"
+is_new "${fin:-}" || { echo "after reboot the registry still points at ${fin:-none}, not $want_name $want_ver" >&2; exit 1; }
+echo "ok $UDID $want_name CFBundleVersion=$want_ver data=$(basename "$DATA")"
