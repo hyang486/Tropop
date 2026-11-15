@@ -1,7 +1,8 @@
 // Spec 11 C, in Ask Qrewing: questions Qrewing passed on to a person. Waiting, the answer (only I see it), or after
 // ~3 minutes with no answer the offer to ask in the room chat instead (the server posts it as my chat message).
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';

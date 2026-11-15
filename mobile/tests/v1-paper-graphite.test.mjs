@@ -51,17 +51,17 @@ test('V1 Card and Tag primitives, gutter 20, radii', () => {
   assert.match(ui, /gutter: 20,/);
 });
 
-test('V1 HandTitle: 40/44 screen titles capped at 1.2, pencil underline on the three root screens only', () => {
-  assert.match(ui, /titleSize = \{ screen: 40, sheet: 24 \}/);
-  assert.match(hand, /screen: \{ fontSize: titleSize\.screen, lineHeight: 44 \}/);
+test('B1 HandTitle: Source Sans 3 titles, 28/36 screen and 20/28 sheet, no squiggle, no handwriting font', () => {
+  assert.match(ui, /titleSize = \{ screen: 28, sheet: 20 \} as const/);
+  assert.match(hand, /title: \{ fontSize: titleSize\.sheet, lineHeight: 28, fontWeight: '600' \}/);
+  assert.match(hand, /screen: \{ fontSize: titleSize\.screen, lineHeight: 36 \}/);
   assert.match(hand, /maxFontSizeMultiplier=\{screen \? 1\.2 : 1\.6\}/);
-  assert.match(hand, /'M2 6c10-4 18 3 28-1s18-3 28 0 20 2 36-2'/);
-  assert.match(hand, /strokeWidth=\{2\} strokeLinecap="round"/);
-  assert.match(hand, /underline: \{ marginTop: 4 \}/);
-  assert.match(hand, /accessibilityElementsHidden/);
-  for (const p of ['app/index.tsx', 'app/profile.tsx', 'features/calendar/calendar-screen.tsx']) assert.match(src(p), /titleUnderline/);
-  // Plus stays as it is (human, FINAL).
-  assert.doesNotMatch(src('app/plan-preview.tsx'), /titleUnderline|HandTitle screen/);
+  assert.doesNotMatch(hand, /Svg|PENCIL_UNDERLINE|PatrickHand|Gaegu/);
+  for (const p of ['app/index.tsx', 'app/profile.tsx', 'features/calendar/calendar-screen.tsx']) assert.doesNotMatch(src(p), /titleUnderline/);
+  const text = src('components/text.tsx');
+  assert.match(text, /SourceSans3-Regular/);
+  assert.match(text, /SourceSans3-Semibold/);
+  assert.match(text, /SourceSans3-Bold/);
 });
 
 test('V1 QRowCard: standalone wash fill with no border; grouped drops its own fill and radius inside a Card', () => {

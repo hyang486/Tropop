@@ -1,7 +1,8 @@
 import { useFonts } from 'expo-font';
 import { SymbolView } from 'expo-symbols';
 import { Fragment } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { HAND_FONTS } from '@/components/hand-title';
 import { colors } from '@/components/ui';

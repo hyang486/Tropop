@@ -10,12 +10,11 @@ import {
   ScrollView,
   type StyleProp,
   StyleSheet,
-  Text,
-  TextInput,
   View,
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 
 /**
  * Qrew palette, B1 (docs/evidence/ux/brand-rebuild/phase1-tokens-type-spec.md, USC edition, light only): Warm Ivory
@@ -138,10 +137,10 @@ export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32, gutter: 20, r
 export const size = { row: 44, rowSubtitle: 56, roomRow: 64, hit: 44, chip: 36, button: 52, avatar: 32 } as const;
 
 /**
- * UX §3 type roles for the system font. Titles use HandTitle (Patrick Hand): `titleSize.screen` 40 (V1), `.sheet` 24.
+ * UX §3 type roles for the system font. Titles use HandTitle (Source Sans 3 semibold): `titleSize.screen` 28, `.sheet` 20.
  * Colors are included, so a role can be spread into a style as is.
  */
-export const titleSize = { screen: 40, sheet: 24 } as const;
+export const titleSize = { screen: 28, sheet: 20 } as const;
 export const textRole = StyleSheet.create({
   section: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
   body: { fontSize: 17, color: colors.label },

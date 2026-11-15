@@ -2,7 +2,8 @@ import { type EndedRoomFields } from '@/lib/room-ended';
 import { roomHasEnded } from '@/lib/error-kind';
 import { classifySend } from '@/lib/send-room';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
 
 import { confirmEmergency, isEmergencyActiveNotice, StatusPicker } from '@/components/status-picker';

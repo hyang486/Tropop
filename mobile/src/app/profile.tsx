@@ -72,7 +72,6 @@ export default function Profile() {
   return (
     <QScreen
       title={en.profile.title}
-      titleUnderline
       // UX3-A07: no subtitle; the Account row below says the email or "Guest on this phone" (once, not twice).
     >
       <ProfileRetry />

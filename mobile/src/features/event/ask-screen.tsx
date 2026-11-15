@@ -2,7 +2,8 @@
 // room, and the history stays on this phone (ask-store).
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { EmptyState } from '@/components/empty-state';
 import { useAnnounce } from '@/features/event/announce';

@@ -1,7 +1,8 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { InkIcon } from '@/components/calendar/ink-icon';
 import { InkArt } from '@/components/ink-art';
@@ -204,7 +205,6 @@ export default function Rooms() {
           />
         }
         title={en.home.title}
-        titleUnderline
       >
         {/* UX3-A02: no subtitle (the "Name · Host" line said nothing useful). With rooms (or while they load):
             one row of two 48 pt buttons, Join and Create; a guest gets Join alone, full width, and the

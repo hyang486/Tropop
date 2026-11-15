@@ -1,7 +1,8 @@
 // UX2-04b: a Free asker taps "<name> answered your question": a read-only sheet with the question and the answer.
 // Reading a person's answer is never behind Plus; only asking Qrewing more is (See Plus → from=ask).
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReduceMotion } from '@/components/enter-view';

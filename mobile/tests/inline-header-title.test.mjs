@@ -22,7 +22,7 @@ test('UX2-59: QScreen wires it under a header (sheets opt in) and fades solid to
   const q = src('components/q-screen.tsx');
   assert.match(q, /useInlineHeaderTitle\(title && \(inlineTitle \?\? !sheet\) && overlap > 0 \? title : null, overlap\)/);
   // C28: the whole block (title + subtitle) carries the scroll-driven fade.
-  assert.match(q, /<Animated\.View style=\{\[styles\.head, \{ opacity: inline\.blockOpacity \}\]\} onLayout=\{inline\.onTitleLayout\}>\s*<View onLayout=\{inline\.onTitleTextLayout\}>\s*<HandTitle screen underline=\{titleUnderline\}>\s*\{title\}\s*<\/HandTitle>\s*<\/View>\s*\{subtitle \? <Text style=\{styles\.subtitle\}>\{subtitle\}<\/Text> : null\}\s*<\/Animated\.View>/);
+  assert.match(q, /<Animated\.View style=\{\[styles\.head, \{ opacity: inline\.blockOpacity \}\]\} onLayout=\{inline\.onTitleLayout\}>\s*<View onLayout=\{inline\.onTitleTextLayout\}>\s*<HandTitle screen>\s*\{title\}\s*<\/HandTitle>\s*<\/View>\s*\{subtitle \? <Text style=\{styles\.subtitle\}>\{subtitle\}<\/Text> : null\}\s*<\/Animated\.View>/);
   assert.match(q, /inline\.onScrollY\(e\.nativeEvent\.contentOffset\.y\)/);
   assert.match(q, /height: overlap \+ 16, backgroundImage: `linear-gradient\(\$\{paper\} 0%, \$\{paper\} \$\{edgeSolid\(overlap\)\}%/);
   const ed = src('features/calendar/event-editor.tsx');

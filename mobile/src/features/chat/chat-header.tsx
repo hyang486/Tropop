@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
 
 import { colors, usePalette } from '@/components/ui';

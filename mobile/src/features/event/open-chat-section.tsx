@@ -2,7 +2,8 @@
 // (join_open_room). Renders nothing while OPEN_ROOMS_LIVE is false (migration 0031 not live yet).
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { InkIcon } from '@/components/calendar';
 import { QLabel } from '@/components/q-screen';

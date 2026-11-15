@@ -2,7 +2,8 @@ import { roomHasEnded } from '@/lib/error-kind';
 import { classifySend } from '@/lib/send-room';
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { confirmEmergency, isEmergencyActiveNotice, StatusPicker } from '@/components/status-picker';
 import { colors } from '@/components/ui';

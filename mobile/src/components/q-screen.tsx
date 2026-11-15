@@ -23,10 +23,10 @@ import {
   type RefreshControlProps,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/text';
+import { TextInput as RNTextInput } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,7 +57,6 @@ import { useHeaderOverlap } from '@/lib/use-header-overlap';
  */
 export function QScreen({
   title,
-  titleUnderline,
   subtitle,
   children,
   actions,
@@ -73,8 +72,6 @@ export function QScreen({
   inlineTitle,
 }: {
   title?: string;
-  /** V1: the pencil underline under the title, on the three root screens only. */
-  titleUnderline?: boolean;
   /** Small gray line right under the title. */
   subtitle?: string;
   children?: ReactNode;
@@ -163,7 +160,7 @@ export function QScreen({
           {title ? (
             <Animated.View style={[styles.head, { opacity: inline.blockOpacity }]} onLayout={inline.onTitleLayout}>
               <View onLayout={inline.onTitleTextLayout}>
-                <HandTitle screen underline={titleUnderline}>
+                <HandTitle screen>
                   {title}
                 </HandTitle>
               </View>
@@ -317,7 +314,7 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
   }, []);
 
   const reveal = useCallback(() => {
-    const field = TextInput.State.currentlyFocusedInput();
+    const field = RNTextInput.State.currentlyFocusedInput();
     if (keyboardUp.current && field) scrollIntoView(field, keepRef.current?.current ?? null);
     else if (pending.current && Date.now() < pending.current.until) scrollIntoView(pending.current.target, pending.current.extra);
   }, [scrollIntoView]);
