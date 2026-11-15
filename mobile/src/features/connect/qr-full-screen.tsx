@@ -69,7 +69,7 @@ export function QrFullScreen({ qr, onClose }: { qr: FullScreenQr | null; onClose
             <SymbolView name="xmark" size={20} tintColor={colors.label} />
           </Pressable>
           <View style={styles.titleRow}>
-            <AppMark app={qr.app} size={40} />
+            <AppMark app={qr.app} />
             <Text style={styles.title} accessibilityRole="header">
               {t.fallbackTitle(qr.ownerName, qr.app)}
             </Text>

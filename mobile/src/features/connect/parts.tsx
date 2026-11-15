@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { SymbolView } from 'expo-symbols';
+import { StyleSheet, Text, useColorScheme, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -20,32 +21,32 @@ export const connectTokens = {
 };
 
 /**
- * Official app icons (human H1 = B; ux connect-logos: the publishers' App Store icons, unmodified, only scaled).
- * 40 pt in rows and the fallback, 32 pt in the connection card header, 20 pt (32 files) in the Connected row (mock 03). Decorative: the name always sits next to it.
+ * App logos (ux "Logo compliance addendum", connect-spec.md): the publishers' brand-kit files from app-logos/40,
+ * unaltered, one size (40 pt). No tile, radius, ring or tint; dark mode puts the logo on a 44 pt white rounded
+ * square (WeChat needs a light ground). LinkedIn's [in] bug is not shipped while its licence is pending: an ink
+ * SF Symbol `link` (24 pt) fills the 40 pt slot. Decorative: the app name is always the label next to it.
  */
-const LOGO_40: Record<ConnectApp, number> = {
+const LOGO: Record<Exclude<ConnectApp, 'linkedin'>, number> = {
   kakaotalk: require('../../../assets/brand/connect/kakaotalk.png'),
   wechat: require('../../../assets/brand/connect/wechat.png'),
   whatsapp: require('../../../assets/brand/connect/whatsapp.png'),
   line: require('../../../assets/brand/connect/line.png'),
-  linkedin: require('../../../assets/brand/connect/linkedin.png'),
-};
-const LOGO_32: Record<ConnectApp, number> = {
-  kakaotalk: require('../../../assets/brand/connect/kakaotalk-32.png'),
-  wechat: require('../../../assets/brand/connect/wechat-32.png'),
-  whatsapp: require('../../../assets/brand/connect/whatsapp-32.png'),
-  line: require('../../../assets/brand/connect/line-32.png'),
-  linkedin: require('../../../assets/brand/connect/linkedin-32.png'),
 };
 
-export function AppMark({ app, size = 40 }: { app: ConnectApp; size?: 40 | 32 | 20 }) {
+export function AppMark({ app }: { app: ConnectApp }) {
+  const dark = useColorScheme() === 'dark';
+  if (app === 'linkedin') {
+    return (
+      <View style={styles.markSlot} accessible={false} importantForAccessibility="no-hide-descendants">
+        <SymbolView name="link" size={24} tintColor={colors.label} />
+      </View>
+    );
+  }
+  const logo = <Image source={LOGO[app]} style={styles.mark} accessible={false} />;
   return (
-    <Image
-      source={(size === 40 ? LOGO_40 : LOGO_32)[app]}
-      style={[styles.mark, { width: size, height: size, borderRadius: size * 0.225 }]}
-      accessible={false}
-      importantForAccessibility="no"
-    />
+    <View style={dark ? styles.markGround : null} accessible={false} importantForAccessibility="no-hide-descendants">
+      {logo}
+    </View>
   );
 }
 
@@ -91,7 +92,17 @@ export function GoldBadge({ count, label }: { count: number; label?: string }) {
 }
 
 const styles = StyleSheet.create({
-  mark: { borderCurve: 'continuous', overflow: 'hidden' },
+  mark: { width: 40, height: 40 },
+  markSlot: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  markGround: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderCurve: 'continuous',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   qrBox: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,

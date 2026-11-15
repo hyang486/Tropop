@@ -28,7 +28,7 @@ import {
 import { appNames, daysLeft, toConnectError } from '@/lib/connect-plan';
 
 import { connectCopy as t } from './copy';
-import { AppMark, GoldBadge } from './parts';
+import { GoldBadge } from './parts';
 import { PlusSheet } from './sheets';
 
 type Data = { requests: ConnectRequest[]; connections: Connection[]; quota: ConnectionQuota };
@@ -226,12 +226,8 @@ export function ConnectionsScreen() {
                     <Avatar path={c.otherAvatarPath} name={name} size={44} />
                     <View style={styles.rowText}>
                       <Text style={styles.name}>{name}</Text>
-                      <View style={styles.marks}>
-                        {c.otherApps.map((a) => (
-                          <AppMark key={a} app={a} size={20} />
-                        ))}
-                        <Text style={styles.meta}>{meta}</Text>
-                      </View>
+                      {/* ux logo addendum: compact rows show app names only, no logos. */}
+                      <Text style={styles.meta}>{[appNames(c.otherApps), meta].filter(Boolean).join(' · ')}</Text>
                     </View>
                     <SymbolView name="chevron.right" size={14} tintColor={colors.ink2} />
                   </Pressable>
@@ -266,7 +262,6 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2 },
   name: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
   meta: { fontSize: 14, lineHeight: 20, color: colors.ink2, flexShrink: 1 },
-  marks: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   requestActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 10 },
   acceptWrap: { minWidth: 96 },
   textAction: { minHeight: 44, minWidth: 44, justifyContent: 'center' },

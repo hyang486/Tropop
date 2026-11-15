@@ -124,7 +124,7 @@ export function ConnectionScreen() {
         ? data?.codes.map((code) => (
             <View key={code.app} style={styles.card}>
               <View style={styles.cardHead}>
-                <AppMark app={code.app} size={32} />
+                <AppMark app={code.app} />
                 <Text style={styles.appName}>{t.appName(code.app)}</Text>
                 {isRecentlyUpdated(code.updatedAt) ? (
                   <View style={styles.tag}>
