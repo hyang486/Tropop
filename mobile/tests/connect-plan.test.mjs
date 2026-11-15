@@ -111,6 +111,8 @@ test('appNames uses the fixed order and display names', () => {
 
 test('opensFromLink: KakaoTalk, WeChat and image-only codes use the fallback', () => {
   assert.equal(opensFromLink('line', 'https://line.me/ti/p/a'), true);
+  assert.equal(opensFromLink('line', 'https://evil.example/line.me'), false);
+  assert.equal(opensFromLink('whatsapp', 'https://line.me/ti/p/a'), false);
   assert.equal(opensFromLink('line', null), false);
   assert.equal(opensFromLink('kakaotalk', 'https://qr.kakao.com/x'), false);
   assert.equal(opensFromLink('wechat', 'https://u.wechat.com/x'), false);

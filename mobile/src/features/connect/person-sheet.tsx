@@ -244,6 +244,6 @@ const styles = StyleSheet.create({
   loading: { marginVertical: 16 },
   block: { gap: 10, marginTop: 16 },
   sheetTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label, textAlign: 'center' },
-  sheetBody: { fontSize: 17, lineHeight: 24, color: colors.ink2, textAlign: 'center', marginTop: 8 },
+  sheetBody: { fontSize: 16, lineHeight: 24, color: colors.ink2, textAlign: 'center', marginTop: 8 },
   actions: { marginTop: 24, gap: 8, alignItems: 'stretch' },
 });

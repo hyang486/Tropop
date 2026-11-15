@@ -74,7 +74,7 @@ export function QrFullScreen({ qr, onClose }: { qr: FullScreenQr | null; onClose
               {t.fallbackTitle(qr.ownerName, qr.app)}
             </Text>
           </View>
-          <QrImage path={qr.path} size={280} label={t.qrLabel(`${qr.ownerName}'s`, qr.app)} style={styles.qr} />
+          <QrImage path={qr.path} size={280} label={t.qrLabel(qr.ownerName, qr.app)} style={styles.qr} />
           {qr.fallback ? (
             <>
               <Text style={styles.how}>

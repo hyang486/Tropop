@@ -139,7 +139,7 @@ function CodeRow({
           {code.reportedAt ? <Text style={styles.reported}>{` · ${t.reportedOn(code.reportedAt)}`}</Text> : null}
         </Text>
       </View>
-      {busy ? <ActivityIndicator /> : <QrImage path={code.imagePath} size={56} label={t.qrLabel('Your', app)} />}
+      {busy ? <ActivityIndicator /> : <QrImage path={code.imagePath} size={56} label={t.qrLabel(null, app)} />}
       <SymbolView name="chevron.right" size={14} tintColor={colors.ink2} />
     </Pressable>
   );
@@ -152,11 +152,11 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingVertical: 12 },
   pressed: { opacity: 0.6 },
   rowText: { flex: 1, gap: 2 },
-  name: { flex: 1, fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.label },
-  meta: { fontSize: 15, lineHeight: 20, color: colors.ink2 },
+  name: { flex: 1, fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
+  meta: { fontSize: 14, lineHeight: 20, color: colors.ink2 },
   reported: { color: connectTokens.reportedText },
   addHit: { minHeight: 44, minWidth: 44, alignItems: 'flex-end', justifyContent: 'center' },
-  link: { fontSize: 17, fontWeight: '600', color: colors.tint },
+  link: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.tint },
   inlineError: { paddingLeft: 52, paddingBottom: 12 },
   notice: {
     flexDirection: 'row',
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: connectTokens.gold, alignSelf: 'flex-start', marginTop: 7 },
   noticeText: { flex: 1, gap: 2 },
-  noticeTitle: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: colors.label },
-  noticeBody: { fontSize: 15, lineHeight: 20, color: colors.label },
+  noticeTitle: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
+  noticeBody: { fontSize: 16, lineHeight: 24, color: colors.label },
   noticeAction: { minHeight: 44, justifyContent: 'center' },
 });

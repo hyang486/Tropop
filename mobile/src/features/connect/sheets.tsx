@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: colors.grabber, marginBottom: 16 },
   hero: { alignSelf: 'center', width: 56, height: 56, marginBottom: 8 },
   title: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label, textAlign: 'center' },
-  body: { fontSize: 17, lineHeight: 24, color: colors.ink2, textAlign: 'center', marginTop: 8 },
+  body: { fontSize: 16, lineHeight: 24, color: colors.ink2, textAlign: 'center', marginTop: 8 },
   actions: { marginTop: 24, gap: 8, alignItems: 'stretch' },
   note: { fontSize: 14, lineHeight: 20, color: colors.ink2, textAlign: 'center' },
 });

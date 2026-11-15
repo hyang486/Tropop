@@ -75,7 +75,7 @@ export function MyCodeDetailScreen() {
       ) : null}
       {code ? (
         <>
-          <QrImage path={code.imagePath} size={280} label={t.qrLabel('Your', app)} style={styles.image} />
+          <QrImage path={code.imagePath} size={280} label={t.qrLabel(null, app)} style={styles.image} />
           <Text style={styles.meta}>{t.added(code.updatedAt)}</Text>
           <View style={styles.actions}>
             <Button title={t.replace} variant="secondary" onPress={() => void add.start(app)} busy={add.busyApp === app} />
@@ -93,9 +93,9 @@ export function MyCodeDetailScreen() {
 const styles = StyleSheet.create({
   loading: { marginVertical: 24 },
   image: { alignSelf: 'center', marginTop: 8 },
-  meta: { fontSize: 15, color: colors.ink2, textAlign: 'center' },
+  meta: { fontSize: 14, lineHeight: 20, color: colors.ink2, textAlign: 'center' },
   actions: { gap: 8, marginTop: 8 },
-  link: { fontSize: 17, fontWeight: '600', color: colors.tint },
+  link: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.tint },
   notice: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -104,6 +104,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
   },
-  noticeText: { flex: 1, fontSize: 15, lineHeight: 20, color: colors.label },
+  noticeText: { flex: 1, fontSize: 16, lineHeight: 24, color: colors.label },
   noticeAction: { minHeight: 44, justifyContent: 'center' },
 });

@@ -43,7 +43,8 @@ export const connectCopy = {
   removeBody: "Your connections won't see it anymore.",
   reportedNotice: (who: string | null, a: ConnectApp, iso: string) =>
     `${who ?? 'Someone'} said this code didn't work on ${shortDate(iso)}. ${app(a)} codes can be reset. Replace it with a new one?`,
-  qrLabel: (owner: string, a: ConnectApp) => `${owner} ${app(a)} QR code`,
+  /** null = mine ("Your LINE QR code"); otherwise "Sora's LINE QR code". */
+  qrLabel: (owner: string | null, a: ConnectApp) => `${owner == null ? 'Your' : `${owner}'s`} ${app(a)} QR code`,
 
   // 02 Person card
   inRoom: (room: string) => `In ${room}`,
@@ -121,7 +122,7 @@ export const connectCopy = {
     throttled: "You've sent a lot of requests today. Try again tomorrow.",
     roomClosed: 'This room has ended.',
     notConnectable: "You can't connect with this person.",
-    accountRequired: 'Connect needs an account. Guests can’t connect.',
+    accountRequired: 'Create an account to connect.',
     notFound: 'This request is no longer available.',
     badLink: 'This QR code can’t be used.',
     badImage: "We couldn't read this image. Try another screenshot.",

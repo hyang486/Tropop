@@ -135,10 +135,10 @@ export function ConnectionScreen() {
               <Pressable
                 onPress={() => setFull({ app: code.app, path: code.imagePath, ownerName: name, fallback: false })}
                 accessibilityRole="imagebutton"
-                accessibilityLabel={t.qrLabel(`${name}'s`, code.app)}
+                accessibilityLabel={t.qrLabel(name, code.app)}
                 style={styles.qrPress}
               >
-                <QrImage path={code.imagePath} size={200} label={t.qrLabel(`${name}'s`, code.app)} />
+                <QrImage path={code.imagePath} size={200} label={t.qrLabel(name, code.app)} />
               </Pressable>
               {code.reportedByMe ? (
                 <View style={styles.notice}>

@@ -160,7 +160,8 @@ export const CONNECT_APP_SCHEME: Record<ConnectApp, string> = {
  * use the full-screen QR fallback (Save to Photos + Open app). The others open their https link directly.
  */
 export function opensFromLink(app: ConnectApp, link: string | null): boolean {
-  return link != null && app !== 'kakaotalk' && app !== 'wechat';
+  // Defense in depth: re-check the host client-side (the server's qr_link_ok already did) before Linking.openURL.
+  return app !== 'kakaotalk' && app !== 'wechat' && qrLinkFor(app, link) === link && link != null;
 }
 
 /** "Expires in 13 days" count: whole days left, at least 1 while not expired, 0 once past. */

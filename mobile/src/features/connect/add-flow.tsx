@@ -114,7 +114,7 @@ export function useAddQrCode(onSaved: (app: ConnectApp) => void) {
               source={{ uri: shownUri! }}
               style={styles.image}
               contentFit="contain"
-              accessibilityLabel={t.qrLabel('Your', preview.app)}
+              accessibilityLabel={t.qrLabel(null, preview.app)}
             />
           </View>
           {preview.croppedUri ? (
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   image: { flex: 1 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
-  toggleLabel: { fontSize: 17, color: colors.label, flexShrink: 1 },
-  body: { fontSize: 15, lineHeight: 20, color: colors.ink2 },
+  toggleLabel: { fontSize: 16, lineHeight: 24, color: colors.label, flexShrink: 1 },
+  body: { fontSize: 14, lineHeight: 20, color: colors.ink2 },
   actions: { gap: 8, marginTop: 8 },
 });
