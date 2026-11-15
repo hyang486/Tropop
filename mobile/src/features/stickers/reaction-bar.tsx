@@ -1,12 +1,10 @@
-import { useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { REACTION_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
 import { colors, useLift } from '@/components/ui';
 import { en } from '@/i18n/en';
-import { haptics } from '@/lib/haptics';
 import { REACTIONS } from '@/lib/stickers';
 
 /**
@@ -14,39 +12,32 @@ import { REACTIONS } from '@/lib/stickers';
  * viewer's reaction (reaction smallint 1-12) and calls onPick(id); the host screen decides add vs remove.
  * Mount: render inside the message long-press menu, above the existing actions.
  */
-export function ReactionBar({ onPick }: { onPick: (reaction: number) => void }) {
+export function ReactionBar({ onPick, onMore }: { onPick: (reaction: number) => void; onMore: () => void }) {
   const lift = useLift();
-  const [all, setAll] = useState(false);
-  const pick = (id: number) => {
-    haptics.selection();
-    setAll(false);
-    onPick(id);
-  };
   return (
-    <>
-      <View style={[styles.pill, lift]}>
+    <View style={[styles.pill, lift]}>
         {REACTIONS.filter((r) => r.bar).map((r) => (
-          <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={en.chat.reactWith(r.label)} onPress={() => pick(r.id)} style={styles.target}>
+          <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={en.chat.reactWith(r.label)} onPress={() => onPick(r.id)} style={styles.target}>
             <Image source={REACTION_IMAGES[r.id][28]} style={styles.icon} accessible={false} />
           </Pressable>
         ))}
-        <Pressable accessibilityRole="button" accessibilityLabel={en.chat.moreReactions} onPress={() => setAll(true)} style={styles.target}>
+        <Pressable accessibilityRole="button" accessibilityLabel={en.chat.moreReactions} onPress={onMore} style={styles.target}>
           <View style={styles.plus}>
             <Text style={styles.plusText}>+</Text>
           </View>
         </Pressable>
-      </View>
-      <ReactionGrid visible={all} onClose={() => setAll(false)} onPick={pick} />
-    </>
+    </View>
   );
 }
 
-/** All 12 reactions, 3 columns x 4 rows, label under each. */
-export function ReactionGrid({ visible, onClose, onPick }: { visible: boolean; onClose: () => void; onPick: (reaction: number) => void }) {
+/**
+ * All 12 reactions, 3 columns x 4 rows, label under each. Not a Modal: it renders inside the picker's own Modal
+ * (two RN Modals closing in one tick can leave an invisible presenter that swallows taps; F-EMX8, B3-R1).
+ */
+export function ReactionGrid({ onClose, onPick }: { onClose: () => void; onPick: (reaction: number) => void }) {
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.root}>
+    <View style={styles.root}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={en.chat.closeReactions} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel={en.chat.reactionsTitle}>
           <View style={styles.grabber} />
@@ -60,8 +51,7 @@ export function ReactionGrid({ visible, onClose, onPick }: { visible: boolean; o
             ))}
           </View>
         </View>
-      </View>
-    </Modal>
+    </View>
   );
 }
 
