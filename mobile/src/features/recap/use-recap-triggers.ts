@@ -22,7 +22,7 @@ import { onMessageSent } from './sent-signal';
  * exactly about 10 s after the last send, so grace keeps the last open count even with no server recap yet. Never blocks the screen; every failure is silent (the Room ended screen says when nothing
  * was saved).
  */
-export function useRecapTriggers(roomId: string, userId: string | undefined, aiEnabled: boolean, remainingMs: number) {
+export function useRecapTriggers(roomId: string, userId: string | undefined, aiEnabled: boolean, remainingMs: number, totalMs?: number) {
   const inFlight = useRef(false);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function useRecapTriggers(roomId: string, userId: string | undefined, aiE
     inFlight.current = true;
     (async () => {
       const mark = (await loadMark(roomId)) ?? (await saveMark(roomId, {}));
-      const step = recapStep(remainingMs, mark);
+      const step = recapStep(remainingMs, mark, totalMs);
       if (!step) return;
       const call = stepCall(step);
       // Marked before the call, so a slow or failed call is not repeated on the next tick.
@@ -65,7 +65,7 @@ export function useRecapTriggers(roomId: string, userId: string | undefined, aiE
       .finally(() => {
         inFlight.current = false;
       });
-  }, [roomId, userId, aiEnabled, remainingMs]);
+  }, [roomId, userId, aiEnabled, remainingMs, totalMs]);
 
   useRoomEvents(roomId, (e) => {
     if (e.table === 'room_recaps' && aiEnabled && userId) readAndSaveRecap(roomId, userId).catch(() => {});

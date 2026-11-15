@@ -1,0 +1,3 @@
+F-EMX2 trace attempt, qa re-run 2026-11-14 room 5e0494e3 (ended screen by 17:49:04 PST), build 094beb0.
+Result: no [RECAP-TRACE] lines captured. Metro (:8092) log holds only bundle lines; this Metro does not forward device console output.
+The false "offline" source remains unfound. The confirmRecapMiss probe stays as the backstop.

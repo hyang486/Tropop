@@ -6,6 +6,8 @@ export const RECAP_MARK_PREFIX = 'qrewing.recap-mark.v1.';
 
 export const FIRST_CALL_MS = 60 * 60_000;
 export const REFRESH_CALL_MS = 10 * 60_000;
+/** A room no longer than REFRESH_CALL_MS makes its single call this close to the end, never at first sight (F-EMX5). */
+export const SHORT_ROOM_CALL_MS = 2 * 60_000;
 /** The host's End flow waits at most this long for the recap, in the background (spec 3.3 trigger B). */
 export const END_RECAP_TIMEOUT_MS = 15_000;
 
@@ -49,8 +51,13 @@ export const EMPTY_MARK: RecapMark = { ai: true, first: false, refresh: false };
  * refresh with no done row as a normal recap), so two calls never go out seconds apart.
  * After the end (remaining <= 0) the scheduled path stops; the host's early end has its own call.
  */
-export function recapStep(remainingMs: number, mark: RecapMark): RecapStep | null {
+export function recapStep(remainingMs: number, mark: RecapMark, totalMs?: number): RecapStep | null {
   if (!Number.isFinite(remainingMs) || remainingMs <= 0) return null;
+  // F-EMX5: a short room is inside both windows from creation, so a call at first sight would miss everything said
+  // later. One 'late' call in the last 2 minutes instead; messages sent after it stay out (the existing design limit).
+  if (totalMs !== undefined && Number.isFinite(totalMs) && totalMs <= REFRESH_CALL_MS) {
+    return remainingMs <= SHORT_ROOM_CALL_MS && !mark.first && !mark.refresh ? 'late' : null;
+  }
   if (remainingMs <= REFRESH_CALL_MS && !mark.first && !mark.refresh) return 'late';
   if (remainingMs <= FIRST_CALL_MS && !mark.first) return 'first';
   if (remainingMs <= REFRESH_CALL_MS && !mark.refresh) return 'refresh';

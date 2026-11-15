@@ -253,7 +253,7 @@ function ChatRoom({
   const [composer, dispatchComposer] = useReducer(composerReducer, initialComposer);
   // Qrewing AI (spec 3.2): disclosure, entry gate, Mute small talk with important-message alerts.
   const qrewing = useQrewingChat(room.id, room.type, userId);
-  useRecapTriggers(room.id, userId, qrewing.aiEnabled, remainingMs);
+  useRecapTriggers(room.id, userId, qrewing.aiEnabled, remainingMs, new Date(room.expires_at).getTime() - new Date(room.created_at).getTime());
   const [disclosureClosed, setDisclosureClosed] = useState(false);
   const [askConsent, setAskConsent] = useState(false);
   // UX2-04 / UX3-B05: one Ask probe for the composer's Qrewing button and the "answered your question" notice
