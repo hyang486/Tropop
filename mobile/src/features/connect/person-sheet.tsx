@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
@@ -38,6 +38,8 @@ type Loaded = { them: RoomConnectPerson | null; myApps: ConnectApp[]; canAdd: bo
  * Mock 02 / spec §2 + §10: the person card in a live room. Avatar, name, "In <room>", then the Connect block whose
  * state comes from personConnectBlock. Plus gate and "Add a QR code first" replace the content in place (one modal).
  */
+const CARD_REFRESH_MS = 4000;
+
 export function PersonConnectSheet({
   visible,
   onClose,
@@ -58,6 +60,7 @@ export function PersonConnectSheet({
   const [data, setData] = useState<Loaded | null>(null);
   const [mode, setMode] = useState<'card' | 'plus' | 'addFirst'>('card');
   const [busy, setBusy] = useState(false);
+  const actionRef = useRef({ busy: false, n: 0 });
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -79,8 +82,19 @@ export function PersonConnectSheet({
       (d) => live && setData(d),
       (e) => live && setError(t.errors[toConnectError(e).kind]),
     );
+    // #1: the other person can send, accept or cancel while this card is open, so re-read it quietly.
+    const timer = setInterval(() => {
+      if (actionRef.current.busy) return;
+      const started = actionRef.current.n;
+      fetchCard(roomId, personId).then(
+        // drop a poll that began before, or overlaps, one of my own actions: it would show the old state
+        (d) => live && !actionRef.current.busy && actionRef.current.n === started && setData(d),
+        () => {},
+      );
+    }, CARD_REFRESH_MS);
     return () => {
       live = false;
+      clearInterval(timer);
     };
   }, [visible, roomId, personId]);
 
@@ -101,6 +115,7 @@ export function PersonConnectSheet({
 
   async function run(action: () => Promise<string | void>, announce?: (r: string | void) => string) {
     setBusy(true);
+    actionRef.current = { busy: true, n: actionRef.current.n + 1 };
     setError(null);
     try {
       const r = await action();
@@ -110,6 +125,7 @@ export function PersonConnectSheet({
     } catch (e) {
       setError(t.errors[toConnectError(e).kind]);
     } finally {
+      actionRef.current = { busy: false, n: actionRef.current.n + 1 };
       setBusy(false);
     }
   }
@@ -132,6 +148,7 @@ export function PersonConnectSheet({
   }
 
   const shareLine = data && data.myApps.length > 0 ? t.youllShare(appNames(data.myApps), name) : null;
+  const acceptLine = data && data.myApps.length > 0 ? t.youllShareOnAccept(appNames(data.myApps)) : null;
 
   return (
     <ConnectSheet visible={visible} onClose={onClose}>
@@ -207,7 +224,7 @@ export function PersonConnectSheet({
               {block.kind === 'incoming' ? (
                 <>
                   <Button title={t.accept} onPress={accept} busy={busy} />
-                  {shareLine ? <Text style={styles.meta}>{shareLine}</Text> : null}
+                  {acceptLine ? <Text style={styles.meta}>{acceptLine}</Text> : null}
                   {them?.requestId ? (
                     <QLink
                       title={t.decline}

@@ -68,7 +68,7 @@ export function MyCodeDetailScreen() {
       {code === undefined && !error ? <ActivityIndicator style={styles.loading} /> : null}
       {code?.reportedAt ? (
         <View style={styles.notice}>
-          <Text style={styles.noticeText}>{t.reportedNotice(code.reportedByName, app, code.reportedAt)}</Text>
+          <Text style={styles.noticeText}>{t.reportedNotice(app, code.reportedAt)}</Text>
           <Pressable accessibilityRole="button" onPress={() => void add.start(app)} hitSlop={8} style={styles.noticeAction}>
             <Text style={styles.link}>{t.replace}</Text>
           </Pressable>

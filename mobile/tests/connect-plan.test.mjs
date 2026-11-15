@@ -127,6 +127,10 @@ test('daysLeft and isRecentlyUpdated', () => {
   assert.equal(isRecentlyUpdated('2026-11-10T00:00:00Z', now), true);
   assert.equal(isRecentlyUpdated('2026-11-07T00:00:00Z', now), false);
   assert.equal(isRecentlyUpdated('2026-11-16T00:00:00Z', now), false);
+  // only a replace after the connection formed counts as an update
+  assert.equal(isRecentlyUpdated('2026-11-10T00:00:00Z', now, '2026-11-10T00:00:00Z'), false);
+  assert.equal(isRecentlyUpdated('2026-11-09T00:00:00Z', now, '2026-11-10T00:00:00Z'), false);
+  assert.equal(isRecentlyUpdated('2026-11-12T00:00:00Z', now, '2026-11-10T00:00:00Z'), true);
 });
 
 test('personConnectBlock follows the spec §2 table', () => {

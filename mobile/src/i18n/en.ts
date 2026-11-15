@@ -1462,7 +1462,7 @@ export const en = {
     addLabel: (a: ConnectApp) => `Add your ${connectApp(a)} QR code`,
     added: (iso: string) => `Added ${shortDate(iso)}`,
     reportedOn: (iso: string) => `Reported ${shortDate(iso)}`,
-    reportedTitle: (who: string | null, a: ConnectApp) => `${who ?? 'Someone'} said your ${connectApp(a)} code didn't work`,
+    reportedTitle: (a: ConnectApp) => `Your ${connectApp(a)} code may not work`,
     reportedBody: (a: ConnectApp) => `${connectApp(a)} codes can be reset. Add your new one.`,
     replace: 'Replace',
     noQrFound: "We couldn't find a QR code in this image. Try a clearer screenshot.",
@@ -1480,8 +1480,8 @@ export const en = {
     remove: 'Remove',
     removeTitle: (a: ConnectApp) => `Remove your ${connectApp(a)} code?`,
     removeBody: "Your connections won't see it anymore.",
-    reportedNotice: (who: string | null, a: ConnectApp, iso: string) =>
-      `${who ?? 'Someone'} said this code didn't work on ${shortDate(iso)}. ${connectApp(a)} codes can be reset. Replace it with a new one?`,
+    reportedNotice: (a: ConnectApp, iso: string) =>
+      `Someone you connected with said it didn't work on ${shortDate(iso)}. ${connectApp(a)} codes can be reset. Replace it with a new one?`,
     /** null = mine ("Your LINE QR code"); otherwise "Sora's LINE QR code". */
     qrLabel: (owner: string | null, a: ConnectApp) => `${owner == null ? 'Your' : `${owner}'s`} ${connectApp(a)} QR code`,
 
@@ -1492,6 +1492,7 @@ export const en = {
     connectLabel: (name: string) => `Connect with ${name}`,
     connectHint: (name: string) => `Shares your QR codes after ${name} accepts.`,
     youllShare: (apps: string, name: string) => `You'll share: ${apps} · Only after ${name} accepts`,
+    youllShareOnAccept: (apps: string) => `You'll share: ${apps} · When you accept`,
     theyHaveNone: (name: string) => `${name} hasn't added any QR codes.`,
     requested: 'Requested',
     cancelRequest: 'Cancel request',

@@ -172,8 +172,10 @@ export function daysLeft(expiresAt: string, now: number = Date.now()): number {
 }
 
 /** "Updated" tag on a connection's code: replaced in the last 7 days (spec §4). */
-export function isRecentlyUpdated(updatedAt: string, now: number = Date.now()): boolean {
+export function isRecentlyUpdated(updatedAt: string, now: number = Date.now(), connectedAt?: string): boolean {
   const t = Date.parse(updatedAt);
+  // A code added before (or when) the connection formed is not an update: only a later replace counts.
+  if (connectedAt && !(t > Date.parse(connectedAt))) return false;
   return Number.isFinite(t) && now - t >= 0 && now - t < 7 * 86_400_000;
 }
 
