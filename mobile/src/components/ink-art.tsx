@@ -1,91 +1,48 @@
-import { type ColorValue, Image, StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { useArtFit } from '@/components/art-fit';
-import { useInk } from '@/components/hand-title';
-import { usePalette } from '@/components/ui';
-import { artEntry, type ArtKey, INK_DRAWINGS, themeArt } from '@/lib/ink-art';
+import { artEntry, type ArtKey, themeArt } from '@/lib/ink-art';
 import { roomTheme } from '@/lib/room-theme';
 
-const IMAGES = {
-  run: require('@/assets/art/run.png'),
-  gathering: require('@/assets/art/gathering.png'),
-  gate: require('@/assets/art/gate.png'),
-  paper: require('@/assets/art/paper.png'),
-  reference: require('@/assets/art/reference.png'),
-  ended: require('@/assets/art/ended.png'),
-  camera: require('@/assets/art/camera.png'),
+const IMAGES: Record<ArtKey, number> = {
+  gathering: require('@/assets/brand/hero/crew-usc.jpg'),
+  gate: require('@/assets/brand/stickers/connection-03.png'),
+  paper: require('@/assets/brand/stickers/meetup-11.png'),
+  run: require('@/assets/brand/stickers/usc-lets-go.png'),
+  reference: require('@/assets/brand/stickers/connection-08.png'),
+  ended: require('@/assets/brand/stickers/connection-11.png'),
+  camera: require('@/assets/brand/stickers/connection-08.png'),
+  scan: require('@/assets/brand/stickers/connection-03.png'),
+  meetup: require('@/assets/brand/stickers/connection-05.png'),
+  hey: require('@/assets/brand/stickers/connection-01.png'),
+  sports: require('@/assets/brand/stickers/meetup-10.png'),
 };
 
-/** Stroke width in drawing units (300-unit-wide drawings), close to the PDF art's line at the same width. */
-const STROKE = 2.6;
+const HERO_GROUND = '#FBE8D0';
+const MAX_STICKER = 200;
 
 /**
- * Dark mode, small marks (Rooms rows): light ink on a dark card thins out when the art is drawn this small, so
- * the line is made bolder there. Image art gets four extra copies offset by BOLD_OFFSET points; drawings get a
- * stroke of at least MIN_STROKE_PT points. Light mode and the large art are unchanged.
+ * B2 brand art. The crew photo is opaque, so it sits in a hero card (16 pt gutters, radius 24, 3:2, cover); the
+ * stickers are transparent and draw straight on the paper (capped at 200 pt). Decorative: hidden from VoiceOver.
+ * `width` is the sticker width in points; the hero always fills the width the screen gives it.
  */
-const BOLD_OFFSET = 0.5;
-const MIN_STROKE_PT = 1.1;
-const BOLD_SHIFTS = [
-  [BOLD_OFFSET, 0],
-  [-BOLD_OFFSET, 0],
-  [0, BOLD_OFFSET],
-  [0, -BOLD_OFFSET],
-] as const;
-
-/**
- * Qrew redesign: thin black pen art (transparent PNG from the design, or a dev drawing), centered, below the
- * title and text. Closed drawing paths are filled with `ground` (default: the paper, the screen ground; pass
- * the card color when the art sits on a card) so they hide lines behind them. Decorative: hidden from VoiceOver. `width` is the drawn width in points (Q 01.04: ~180).
- */
-export function InkArt({
-  art,
-  roomName,
-  width = 180,
-  ground,
-}: {
-  art?: ArtKey;
-  roomName?: string;
-  width?: number;
-  ground?: ColorValue;
-}) {
-  const ink = useInk();
-  const { paper } = usePalette();
-  const bold = false;
-  const fill = ground ?? paper;
+export function InkArt({ art, roomName, width = 180 }: { art?: ArtKey; roomName?: string; width?: number }) {
   const entry = art ? artEntry(art) : themeArt(roomTheme(roomName));
-  const height = Math.round(width / entry.aspect);
   // UX2-61: in a QScreen `bottom` block the art shows whole or not at all.
   const fit = useArtFit();
   if (fit?.hidden) return null;
+  const side = Math.min(width, MAX_STICKER);
   return (
     <View
-      style={styles.wrap}
+      style={entry.kind === 'hero' ? styles.heroWrap : styles.wrap}
       onLayout={fit ? (e) => fit.report(e.nativeEvent.layout.height) : undefined}
       accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {entry.kind === 'image' ? (
-        <View style={{ width, height }}>
-          {bold
-            ? BOLD_SHIFTS.map(([dx, dy], i) => (
-                <Image
-                  key={i}
-                  source={IMAGES[entry.key]}
-                  style={[StyleSheet.absoluteFill, { width, height, tintColor: ink, transform: [{ translateX: dx }, { translateY: dy }] }]}
-                  resizeMode="contain"
-                />
-              ))
-            : null}
-          <Image source={IMAGES[entry.key]} style={{ width, height, tintColor: ink }} resizeMode="contain" />
+      {entry.kind === 'hero' ? (
+        <View style={styles.hero}>
+          <Image source={IMAGES[entry.key]} style={StyleSheet.absoluteFill} resizeMode="cover" />
         </View>
       ) : (
-        <Svg width={width} height={height} viewBox={INK_DRAWINGS[entry.key].viewBox}>
-          {INK_DRAWINGS[entry.key].paths.map((d, i) => (
-            <Path key={i} d={d} fill={d.endsWith('Z') ? fill : 'none'}
-              stroke={ink}
-              strokeWidth={bold ? Math.max(STROKE, (MIN_STROKE_PT * INK_DRAWINGS[entry.key].width) / width) : STROKE} strokeLinecap="round" strokeLinejoin="round" />
-          ))}
-        </Svg>
+        <Image source={IMAGES[entry.key]} style={{ width: side, height: side }} resizeMode="contain" />
       )}
     </View>
   );
@@ -93,4 +50,6 @@ export function InkArt({
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center' },
+  heroWrap: { alignSelf: 'stretch' },
+  hero: { width: '100%', aspectRatio: 3 / 2, borderRadius: 24, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: HERO_GROUND },
 });

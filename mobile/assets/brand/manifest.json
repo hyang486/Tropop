@@ -1,0 +1,503 @@
+{
+  "version": "usc-1",
+  "note": "Import paths are relative to mobile/assets/. @2x/@3x variants sit next to each base name (React Native picks the density). Stickers ship @2x (and @3x where the source allows); render 140 pt.",
+  "characters": [
+    {
+      "id": 1,
+      "key": "host",
+      "name": "HOST",
+      "background": "#FFC4BB",
+      "body": "#55B8EB",
+      "files": {
+        "36": "brand/characters/01-host-36.png",
+        "72": "brand/characters/01-host-72.png",
+        "144": "brand/characters/01-host-144.png"
+      },
+      "a11y": "Host character"
+    },
+    {
+      "id": 2,
+      "key": "loop",
+      "name": "LOOP",
+      "background": "#E8D3FF",
+      "body": "#D6E879",
+      "files": {
+        "36": "brand/characters/02-loop-36.png",
+        "72": "brand/characters/02-loop-72.png",
+        "144": "brand/characters/02-loop-144.png"
+      },
+      "a11y": "Loop character"
+    },
+    {
+      "id": 3,
+      "key": "bloom",
+      "name": "BLOOM",
+      "background": "#CBF1DF",
+      "body": "#F29C89",
+      "files": {
+        "36": "brand/characters/03-bloom-36.png",
+        "72": "brand/characters/03-bloom-72.png",
+        "144": "brand/characters/03-bloom-144.png"
+      },
+      "a11y": "Bloom character"
+    },
+    {
+      "id": 4,
+      "key": "peak",
+      "name": "PEAK",
+      "background": "#C7E7FF",
+      "body": "#F2D16C",
+      "files": {
+        "36": "brand/characters/04-peak-36.png",
+        "72": "brand/characters/04-peak-72.png",
+        "144": "brand/characters/04-peak-144.png"
+      },
+      "a11y": "Peak character"
+    },
+    {
+      "id": 5,
+      "key": "moon",
+      "name": "MOON",
+      "background": "#FFF0BF",
+      "body": "#B79BE0",
+      "files": {
+        "36": "brand/characters/05-moon-36.png",
+        "72": "brand/characters/05-moon-72.png",
+        "144": "brand/characters/05-moon-144.png"
+      },
+      "a11y": "Moon character"
+    },
+    {
+      "id": 6,
+      "key": "fold",
+      "name": "FOLD",
+      "background": "#DCE1F7",
+      "body": "#F3B56F",
+      "files": {
+        "36": "brand/characters/06-fold-36.png",
+        "72": "brand/characters/06-fold-72.png",
+        "144": "brand/characters/06-fold-144.png"
+      },
+      "a11y": "Fold character"
+    },
+    {
+      "id": 7,
+      "key": "twin",
+      "name": "TWIN",
+      "background": "#FAD6E3",
+      "body": "#91D5BC",
+      "files": {
+        "36": "brand/characters/07-twin-36.png",
+        "72": "brand/characters/07-twin-72.png",
+        "144": "brand/characters/07-twin-144.png"
+      },
+      "a11y": "Twin character"
+    },
+    {
+      "id": 8,
+      "key": "wave",
+      "name": "WAVE",
+      "background": "#FFE0BA",
+      "body": "#A6CEEE",
+      "files": {
+        "36": "brand/characters/08-wave-36.png",
+        "72": "brand/characters/08-wave-72.png",
+        "144": "brand/characters/08-wave-144.png"
+      },
+      "a11y": "Wave character"
+    },
+    {
+      "id": 9,
+      "key": "bean",
+      "name": "BEAN",
+      "background": "#E3EAB9",
+      "body": "#C79472",
+      "files": {
+        "36": "brand/characters/09-bean-36.png",
+        "72": "brand/characters/09-bean-72.png",
+        "144": "brand/characters/09-bean-144.png"
+      },
+      "a11y": "Bean character"
+    },
+    {
+      "id": 10,
+      "key": "trojan",
+      "name": "TROJAN",
+      "background": "#F8E8CE",
+      "body": null,
+      "files": {
+        "36": "brand/characters/10-trojan-36.png",
+        "72": "brand/characters/10-trojan-72.png",
+        "144": "brand/characters/10-trojan-144.png"
+      },
+      "a11y": "Trojan character"
+    },
+    {
+      "id": 11,
+      "key": "tommy",
+      "name": "TOMMY",
+      "background": "#E6EACF",
+      "body": null,
+      "files": {
+        "36": "brand/characters/11-tommy-36.png",
+        "72": "brand/characters/11-tommy-72.png",
+        "144": "brand/characters/11-tommy-144.png"
+      },
+      "a11y": "Tommy character"
+    },
+    {
+      "id": 12,
+      "key": "grad",
+      "name": "GRAD",
+      "background": "#DAEBF4",
+      "body": null,
+      "files": {
+        "36": "brand/characters/12-grad-36.png",
+        "72": "brand/characters/12-grad-72.png",
+        "144": "brand/characters/12-grad-144.png"
+      },
+      "a11y": "Grad character"
+    }
+  ],
+  "default_character_rule": "(hash(user_id) % 9) + 1",
+  "sticker_tabs": [
+    "USC",
+    "Meet up",
+    "Connect"
+  ],
+  "stickers": [
+    {
+      "id": "usc-fight-on",
+      "tab": "USC",
+      "caption": "Fight on!",
+      "a11y": "Fight on!",
+      "character": "TROJAN",
+      "file": "brand/stickers/usc-fight-on.png"
+    },
+    {
+      "id": "usc-lets-go",
+      "tab": "USC",
+      "caption": "Let's go!",
+      "a11y": "Let's go!",
+      "character": "TOMMY",
+      "file": "brand/stickers/usc-lets-go.png"
+    },
+    {
+      "id": "usc-made-it",
+      "tab": "USC",
+      "caption": "Made it!",
+      "a11y": "Made it!",
+      "character": "GRAD",
+      "file": "brand/stickers/usc-made-it.png"
+    },
+    {
+      "id": "meetup-01",
+      "tab": "Meet up",
+      "caption": "On my way!",
+      "a11y": "On my way!",
+      "character": "HOST",
+      "file": "brand/stickers/meetup-01.png"
+    },
+    {
+      "id": "meetup-02",
+      "tab": "Meet up",
+      "caption": "I'm here!",
+      "a11y": "I'm here!",
+      "character": "PEAK",
+      "file": "brand/stickers/meetup-02.png"
+    },
+    {
+      "id": "meetup-03",
+      "tab": "Meet up",
+      "caption": "Wait for me",
+      "a11y": "Wait for me",
+      "character": "MOON",
+      "file": "brand/stickers/meetup-03.png"
+    },
+    {
+      "id": "meetup-04",
+      "tab": "Meet up",
+      "caption": "Where are you?",
+      "a11y": "Where are you?",
+      "character": "TWIN",
+      "file": "brand/stickers/meetup-04.png"
+    },
+    {
+      "id": "meetup-05",
+      "tab": "Meet up",
+      "caption": "Need water",
+      "a11y": "Need water",
+      "character": "WAVE",
+      "file": "brand/stickers/meetup-05.png"
+    },
+    {
+      "id": "meetup-06",
+      "tab": "Meet up",
+      "caption": "Taking a break",
+      "a11y": "Taking a break",
+      "character": "BEAN",
+      "file": "brand/stickers/meetup-06.png"
+    },
+    {
+      "id": "meetup-07",
+      "tab": "Meet up",
+      "caption": "I'm stopping",
+      "a11y": "I'm stopping",
+      "character": "FOLD",
+      "file": "brand/stickers/meetup-07.png"
+    },
+    {
+      "id": "meetup-08",
+      "tab": "Meet up",
+      "caption": "Need a hand",
+      "a11y": "Need a hand",
+      "character": "LOOP",
+      "file": "brand/stickers/meetup-08.png"
+    },
+    {
+      "id": "meetup-09",
+      "tab": "Meet up",
+      "caption": "Slow down",
+      "a11y": "Slow down",
+      "character": "PEAK",
+      "file": "brand/stickers/meetup-09.png"
+    },
+    {
+      "id": "meetup-10",
+      "tab": "Meet up",
+      "caption": "Let's go!",
+      "a11y": "Let's go!",
+      "character": "BLOOM",
+      "file": "brand/stickers/meetup-10.png"
+    },
+    {
+      "id": "meetup-11",
+      "tab": "Meet up",
+      "caption": "Got it!",
+      "a11y": "Got it!",
+      "character": "HOST",
+      "file": "brand/stickers/meetup-11.png"
+    },
+    {
+      "id": "meetup-12",
+      "tab": "Meet up",
+      "caption": "Thank you",
+      "a11y": "Thank you",
+      "character": "TWIN",
+      "file": "brand/stickers/meetup-12.png"
+    },
+    {
+      "id": "connection-01",
+      "tab": "Connect",
+      "caption": "Hey, crew!",
+      "a11y": "Hey, crew!",
+      "character": "HOST",
+      "file": "brand/stickers/connection-01.png"
+    },
+    {
+      "id": "connection-02",
+      "tab": "Connect",
+      "caption": "Nice to meet you",
+      "a11y": "Nice to meet you",
+      "character": "FOLD",
+      "file": "brand/stickers/connection-02.png"
+    },
+    {
+      "id": "connection-03",
+      "tab": "Connect",
+      "caption": "Count me in",
+      "a11y": "Count me in",
+      "character": "LOOP",
+      "file": "brand/stickers/connection-03.png"
+    },
+    {
+      "id": "connection-04",
+      "tab": "Connect",
+      "caption": "Coffee break?",
+      "a11y": "Coffee break?",
+      "character": "BEAN",
+      "file": "brand/stickers/connection-04.png"
+    },
+    {
+      "id": "connection-05",
+      "tab": "Connect",
+      "caption": "Good idea!",
+      "a11y": "Good idea!",
+      "character": "PEAK",
+      "file": "brand/stickers/connection-05.png"
+    },
+    {
+      "id": "connection-06",
+      "tab": "Connect",
+      "caption": "LOL",
+      "a11y": "LOL",
+      "character": "BLOOM",
+      "file": "brand/stickers/connection-06.png"
+    },
+    {
+      "id": "connection-07",
+      "tab": "Connect",
+      "caption": "Well done!",
+      "a11y": "Well done!",
+      "character": "WAVE",
+      "file": "brand/stickers/connection-07.png"
+    },
+    {
+      "id": "connection-08",
+      "tab": "Connect",
+      "caption": "Photo time!",
+      "a11y": "Photo time!",
+      "character": "FOLD",
+      "file": "brand/stickers/connection-08.png"
+    },
+    {
+      "id": "connection-09",
+      "tab": "Connect",
+      "caption": "Sent!",
+      "a11y": "Sent!",
+      "character": "HOST",
+      "file": "brand/stickers/connection-09.png"
+    },
+    {
+      "id": "connection-10",
+      "tab": "Connect",
+      "caption": "Save your pics",
+      "a11y": "Save your pics",
+      "character": "MOON",
+      "file": "brand/stickers/connection-10.png"
+    },
+    {
+      "id": "connection-11",
+      "tab": "Connect",
+      "caption": "See you soon",
+      "a11y": "See you soon",
+      "character": "TWIN",
+      "file": "brand/stickers/connection-11.png"
+    },
+    {
+      "id": "connection-12",
+      "tab": "Connect",
+      "caption": "Good times",
+      "a11y": "Good times",
+      "character": "BLOOM + HOST",
+      "file": "brand/stickers/connection-12.png"
+    }
+  ],
+  "reactions": [
+    {
+      "id": 1,
+      "label": "Love",
+      "bar": true,
+      "files": {
+        "20": "brand/reactions/r01-20.png",
+        "28": "brand/reactions/r01-28.png"
+      }
+    },
+    {
+      "id": 2,
+      "label": "Got it",
+      "bar": true,
+      "files": {
+        "20": "brand/reactions/r02-20.png",
+        "28": "brand/reactions/r02-28.png"
+      }
+    },
+    {
+      "id": 3,
+      "label": "Like",
+      "bar": true,
+      "files": {
+        "20": "brand/reactions/r03-20.png",
+        "28": "brand/reactions/r03-28.png"
+      }
+    },
+    {
+      "id": 4,
+      "label": "Clap",
+      "bar": true,
+      "files": {
+        "20": "brand/reactions/r04-20.png",
+        "28": "brand/reactions/r04-28.png"
+      }
+    },
+    {
+      "id": 5,
+      "label": "Haha",
+      "bar": true,
+      "files": {
+        "20": "brand/reactions/r05-20.png",
+        "28": "brand/reactions/r05-28.png"
+      }
+    },
+    {
+      "id": 6,
+      "label": "Wow",
+      "bar": true,
+      "files": {
+        "20": "brand/reactions/r06-20.png",
+        "28": "brand/reactions/r06-28.png"
+      }
+    },
+    {
+      "id": 7,
+      "label": "Water",
+      "bar": false,
+      "files": {
+        "20": "brand/reactions/r07-20.png",
+        "28": "brand/reactions/r07-28.png"
+      }
+    },
+    {
+      "id": 8,
+      "label": "Location",
+      "bar": false,
+      "files": {
+        "20": "brand/reactions/r08-20.png",
+        "28": "brand/reactions/r08-28.png"
+      }
+    },
+    {
+      "id": 9,
+      "label": "Time",
+      "bar": false,
+      "files": {
+        "20": "brand/reactions/r09-20.png",
+        "28": "brand/reactions/r09-28.png"
+      }
+    },
+    {
+      "id": 10,
+      "label": "Coffee",
+      "bar": false,
+      "files": {
+        "20": "brand/reactions/r10-20.png",
+        "28": "brand/reactions/r10-28.png"
+      }
+    },
+    {
+      "id": 11,
+      "label": "Photo",
+      "bar": false,
+      "files": {
+        "20": "brand/reactions/r11-20.png",
+        "28": "brand/reactions/r11-28.png"
+      }
+    },
+    {
+      "id": 12,
+      "label": "Hi",
+      "bar": false,
+      "files": {
+        "20": "brand/reactions/r12-20.png",
+        "28": "brand/reactions/r12-28.png"
+      }
+    }
+  ],
+  "hero": {
+    "crew": "brand/hero/crew-usc.jpg",
+    "aspect": "3:2",
+    "ground": "#FBE8D0"
+  },
+  "logo": "brand/logo/app-logo.png",
+  "app_icon": "brand/app-icon/icon-1024.png"
+}
