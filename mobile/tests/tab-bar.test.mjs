@@ -29,7 +29,9 @@ test('tabs-spec §1: avatar on every tab root, wordmark on Today and Moments onl
 test('tabs-spec §2-3: bar tokens, a11y, haptic on change only, re-tap emits tabPress, hides on keyboard', () => {
   const b = src('components/tab-bar.tsx');
   assert.match(b, /accessibilityRole="tabbar"/);
-  assert.match(b, /accessibilityRole="tab"\s+accessibilityState=\{\{ selected: focused \}\}/);
+  // §4.1: button on iOS (no UIKit tab trait), tab on web and Android.
+  assert.match(b, /accessibilityRole=\{Platform\.OS === 'ios' \? 'button' : 'tab'\}\s+accessibilityState=\{\{ selected: focused \}\}/);
+  assert.doesNotMatch(b, /accessibilityRole="tabbar"[^>]*(accessible\b|onPress|accessibilityLabel)/);
   assert.match(b, /if \(focused \|\| event\.defaultPrevented\) return;\s+if \(Platform\.OS === 'ios'\) void Haptics\.selectionAsync\(\);/);
   assert.match(b, /if \(keyboardShown\) return null;/);
   assert.match(b, /pillActive: \{ backgroundColor: colors\.wash \}/);

@@ -57,7 +57,8 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
           return (
             <Pressable
               key={route.key}
-              accessibilityRole="tab"
+              // tabs-spec §4.1: UIKit has no tab trait; VoiceOver says "tab, N of M" for buttons inside the tabbar row.
+              accessibilityRole={Platform.OS === 'ios' ? 'button' : 'tab'}
               accessibilityState={{ selected: focused }}
               accessibilityLabel={label}
               // The Pressable is the accessibility element, so the iOS large-content viewer is declared here.
