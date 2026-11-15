@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
   circle: {
     width: 56,
     height: 56,
-    borderRadius: 20,
+    borderRadius: 16,
     borderCurve: 'continuous',
-    backgroundColor: colors.field,
+    backgroundColor: colors.wash,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { fontSize: 11, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] },
-  label: { fontSize: 13, color: colors.label },
+  label: { fontSize: 14, lineHeight: 20, color: colors.label },
   detail: { marginTop: -4, fontSize: 12, color: colors.ink2, fontVariant: ['tabular-nums'] },
   detailDanger: { color: colors.danger },
 });

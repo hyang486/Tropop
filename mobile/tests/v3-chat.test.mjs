@@ -51,7 +51,7 @@ test('V3 Emergency card: redwash, radius 22, lift, no frame; 40 pt danger disc w
   assert.match(disc, /width: 40,\s+height: 40,/);
   assert.match(disc, /backgroundColor: colors\.danger/);
   assert.match(disc, /boxShadow: '0 0 0 6px rgba\(255, 59, 48, 0\.2\)'/);
-  assert.match(r, /barTitle: \{ fontSize: 17, fontWeight: '600'/);
+  assert.match(r, /barTitle: \{ fontSize: 20, lineHeight: 28, fontWeight: '600'/);
   assert.match(r, /barLocationLink: \{ textDecorationLine: 'underline' \}/);
   assert.match(r, /pillSecondary: \{ backgroundColor: colors\.lift \}/);
 });
