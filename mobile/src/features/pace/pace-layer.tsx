@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 2,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+    boxShadow: '0 4px 12px rgba(48,43,40,0.16)',
   },
   bannerTitle: {
     fontSize: 13,
