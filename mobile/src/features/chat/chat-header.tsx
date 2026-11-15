@@ -2,7 +2,7 @@ import { type ReactNode, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { type SFSymbol, SymbolView } from 'expo-symbols';
 
-import { colors } from '@/components/ui';
+import { colors, usePalette } from '@/components/ui';
 import { en } from '@/i18n/en';
 import type { RoomActivity } from '@/lib/activity';
 import {
@@ -51,9 +51,10 @@ function HeaderIcon({
   badge?: number;
   rt?: boolean;
 }) {
+  const pal = usePalette();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={rt ? 0 : 7} style={rt ? styles.rtIcon : styles.icon}>
-      <SymbolView name={symbol} size={22} tintColor={colors.tint} />
+      <SymbolView name={symbol} size={22} tintColor={rt ? pal.ink : colors.tint} />
       {badge > 0 ? (
         <View style={styles.badge} importantForAccessibility="no-hide-descendants">
           <Text style={styles.badgeText} maxFontSizeMultiplier={1.2}>

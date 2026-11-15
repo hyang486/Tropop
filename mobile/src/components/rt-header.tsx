@@ -2,7 +2,7 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, useColorScheme, View, type ViewStyle } from 'react-native';
 
-import { colors, elevation, radius, size } from '@/components/ui';
+import { elevation, radius, size, usePalette } from '@/components/ui';
 
 /**
  * F-RT2 (ux spec): with iOS Reduce Transparency on, the native header items get a system fill that reads near-white
@@ -22,7 +22,7 @@ export function rtBackOptions(onBack: () => void, label: string) {
         element: (
           <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onBack}>
             <RtSurface shape="circle">
-              <SymbolView name="chevron.left" size={18} weight="semibold" tintColor={colors.label} />
+              <RtChevron />
             </RtSurface>
           </Pressable>
         ),
@@ -40,14 +40,21 @@ export function rtRightOptions(items: ReactNode) {
   };
 }
 
+/** Colors come from the JS scheme (usePalette), never a dynamic color: the header hosts this natively and would resolve it light (F-RT1). */
+function RtChevron() {
+  const pal = usePalette();
+  return <SymbolView name="chevron.left" size={18} weight="semibold" tintColor={pal.ink} />;
+}
+
 /** The opaque lift surface: a 44 pt circle (back) or a capsule hugging its 44 pt items. */
 export function RtSurface({ shape, children }: { shape: 'circle' | 'capsule'; children: ReactNode }) {
   const dark = useColorScheme() === 'dark';
+  const pal = usePalette();
   const style: ViewStyle[] = [
     styles.base,
     shape === 'circle' ? styles.circle : styles.capsule,
     {
-      backgroundColor: colors.lift,
+      backgroundColor: pal.lift,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: dark ? RT_HAIRLINE.dark : RT_HAIRLINE.light,
     },
@@ -59,9 +66,10 @@ export function RtSurface({ shape, children }: { shape: 'circle' | 'capsule'; ch
 
 /** One 44 pt icon button for a right-side capsule. */
 export function RtIconButton({ symbol, label, onPress }: { symbol: SFSymbol; label: string; onPress: () => void }) {
+  const pal = usePalette();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.item}>
-      <SymbolView name={symbol} size={22} tintColor={colors.label} />
+      <SymbolView name={symbol} size={22} tintColor={pal.ink} />
     </Pressable>
   );
 }

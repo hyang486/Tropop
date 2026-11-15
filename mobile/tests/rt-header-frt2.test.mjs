@@ -7,13 +7,15 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const helper = read('../src/components/rt-header.tsx');
 
 test('the shared surface: lift fill, 0.5 pt hairline in both schemes, light shadow, 44 pt targets, no shared bar background', () => {
-  assert.match(helper, /backgroundColor: colors\.lift/);
+  assert.match(helper, /backgroundColor: pal\.lift/);
+  assert.doesNotMatch(helper, /\bcolors\./, 'a dynamic color resolves light inside the native header (F-RT1)');
   assert.match(helper, /borderWidth: StyleSheet\.hairlineWidth/);
   assert.match(helper, /light: 'rgba\(0,0,0,0\.08\)', dark: 'rgba\(255,255,255,0\.10\)'/);
   assert.match(helper, /elevation\.lift\.light\.boxShadow/);
   assert.match(helper, /size\.hit/);
   assert.equal((helper.match(/hidesSharedBackground: true/g) ?? []).length, 2);
-  assert.match(helper, /tintColor=\{colors\.label\}/);
+  assert.match(helper, /tintColor=\{pal\.ink\}/);
+  assert.match(read('../src/features/chat/chat-header.tsx'), /tintColor=\{rt \? pal\.ink : colors\.tint\}/);
 });
 
 test('Rooms capsule, chat back and chat bell/gear all use the helper only when RT is on', () => {
