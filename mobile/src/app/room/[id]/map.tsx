@@ -4,7 +4,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
-import { AccessibilityInfo, ActivityIndicator, AppState, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Image, Linking, Platform, Pressable, ScrollView, type StyleProp, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +41,8 @@ import {
   useMyShare,
   useSharingState,
 } from '@/lib/location';
+import { CHARACTER_IMAGES } from '@/features/characters/character-art';
+import { avatarChoice } from '@/lib/characters';
 import { useAvatarPinIcons } from '@/lib/avatar-pins';
 import {
   avatarPillAnchor,
@@ -332,6 +334,15 @@ function RoomMap({
   );
   const pinAnnotations = avatarPins.map((pin) => {
     const icon = pinIcons.icons.get(pin.faceKey);
+    // Web: the PNG bake does not draw there, so a single member's pin is their character art (the avatar's own PNG).
+    if (Platform.OS === 'web' && (pin.face.kind === 'me' || pin.face.kind === 'other') && !pin.face.emergency) {
+      const uid = pin.members[0].replace(/:stale$/, '');
+      const choice = avatarChoice({ userId: uid, character: characters.get(uid) });
+      if (choice.kind === 'character') {
+        const uri = Image.resolveAssetSource(CHARACTER_IMAGES[choice.id][72])?.uri;
+        if (uri) return { id: pin.id, coordinates: pin.coordinates, iconUrl: uri, text: pin.face.text, backgroundColor: LABEL_BACKGROUND, textColor: LABEL_TEXT };
+      }
+    }
     // Until its icon is baked (or if baking failed), a pin is a plain white pill with its initial.
     return icon
       ? { id: pin.id, coordinates: pin.coordinates, icon, iconUrl: pinIcons.urls.get(pin.faceKey) }
