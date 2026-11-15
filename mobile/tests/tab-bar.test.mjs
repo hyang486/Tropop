@@ -33,7 +33,13 @@ test('tabs-spec §2-3: bar tokens, a11y, haptic on change only, re-tap emits tab
   assert.match(b, /if \(focused \|\| event\.defaultPrevented\) return;\s+if \(Platform\.OS === 'ios'\) void Haptics\.selectionAsync\(\);/);
   assert.match(b, /if \(keyboardShown\) return null;/);
   assert.match(b, /pillActive: \{ backgroundColor: colors\.wash \}/);
-  assert.match(b, /underline: \{ width: 16, height: 3, borderRadius: 2, marginTop: 4/);
+  assert.match(b, /underline: \{ width: 16, height: 3, borderRadius: 2, marginTop: 3/);
+  // tabs-spec §2-3 (ux decision b): fixed 64 pt bar, 54 pt pill, 24 pt icon, label never scales.
+  assert.match(b, /row: \{\n    height: 64,/);
+  assert.doesNotMatch(b, /minHeight: 64/);
+  assert.match(b, /pill: \{ height: 54, alignItems: .center., gap: 2, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 18 \}/);
+  assert.match(b, /icon: \{ width: 24, height: 24 \}/);
+  assert.match(b, /allowFontScaling=\{false\}\s+accessibilityShowsLargeContentViewer\s+accessibilityLargeContentTitle=\{label\}/);
   assert.match(src('components/q-screen.tsx'), /useScrollToTop\(scrollRef\);/);
   for (const n of ['today', 'explore', 'qrews', 'moments'])
     for (const s of ['', '@2x', '@3x']) assert.ok(existsSync(new URL(`../assets/brand/tabs/${n}${s}.png`, import.meta.url)), `${n}${s}`);

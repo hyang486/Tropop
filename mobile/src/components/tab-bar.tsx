@@ -6,7 +6,7 @@ import { Image, type ImageSourcePropType, Keyboard, Platform, Pressable, StyleSh
 import { Text } from '@/components/text';
 import { colors } from '@/components/ui';
 
-/** Tab route name → its 26 pt template icon (assets/brand/tabs, @2x 52 / @3x 78 px). */
+/** Tab route name → its 24 pt template icon (assets/brand/tabs, @2x 48 / @3x 72 px). */
 export const TAB_ICONS: Record<string, ImageSourcePropType> = {
   index: require('@/assets/brand/tabs/today.png'),
   explore: require('@/assets/brand/tabs/explore.png'),
@@ -67,7 +67,15 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
             >
               <View style={[styles.pill, focused && styles.pillActive]}>
                 <Image source={TAB_ICONS[route.name]} style={[styles.icon, { tintColor: tint }]} />
-                <Text style={[styles.label, focused ? styles.labelActive : null]}>{label}</Text>
+                {/* Fixed 12/16 so Dynamic Type cannot overflow the 64 pt bar; long-press shows the iOS large-content viewer. */}
+                <Text
+                  style={[styles.label, focused ? styles.labelActive : null]}
+                  allowFontScaling={false}
+                  accessibilityShowsLargeContentViewer
+                  accessibilityLargeContentTitle={label}
+                >
+                  {label}
+                </Text>
               </View>
               <View style={[styles.underline, focused && styles.underlineActive]} />
             </Pressable>
@@ -84,22 +92,23 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.separator,
   },
-  // Spec says 64; the 62 pt pill + 7 pt underline need a little more, so 64 is the floor.
+  // Fixed 64 pt (tabs-spec §2-3): top 3 + pill 54 + gap 3 + underline 3 + bottom 1. Never grows, so
+  // useBottomTabBarHeight and screen insets stay stable.
   row: {
-    minHeight: 64,
+    height: 64,
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
     maxWidth: 480,
     alignSelf: 'center',
   },
-  trigger: { flex: 1, minWidth: 64, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  trigger: { flex: 1, alignSelf: 'stretch', minWidth: 64, paddingTop: 3, paddingBottom: 1, alignItems: 'center', borderRadius: 18 },
   focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: colors.tint },
-  pill: { alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20 },
+  pill: { height: 54, alignItems: 'center', gap: 2, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 18 },
   pillActive: { backgroundColor: colors.wash },
-  icon: { width: 26, height: 26 },
+  icon: { width: 24, height: 24 },
   label: { fontSize: 12, lineHeight: 16, color: LABEL_INACTIVE },
   labelActive: { color: colors.tint, fontWeight: '600' },
-  underline: { width: 16, height: 3, borderRadius: 2, marginTop: 4, backgroundColor: 'transparent' },
+  underline: { width: 16, height: 3, borderRadius: 2, marginTop: 3, backgroundColor: 'transparent' },
   underlineActive: { backgroundColor: colors.tint },
 });
