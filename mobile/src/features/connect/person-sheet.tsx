@@ -132,6 +132,7 @@ export function PersonConnectSheet({
   }
 
   const shareLine = data && data.myApps.length > 0 ? t.youllShare(appNames(data.myApps), name) : null;
+  const acceptLine = data && data.myApps.length > 0 ? t.youllShareOnAccept(appNames(data.myApps), name) : null;
 
   return (
     <ConnectSheet visible={visible} onClose={onClose}>
@@ -207,7 +208,7 @@ export function PersonConnectSheet({
               {block.kind === 'incoming' ? (
                 <>
                   <Button title={t.accept} onPress={accept} busy={busy} />
-                  {shareLine ? <Text style={styles.meta}>{shareLine}</Text> : null}
+                  {acceptLine ? <Text style={styles.meta}>{acceptLine}</Text> : null}
                   {them?.requestId ? (
                     <QLink
                       title={t.decline}

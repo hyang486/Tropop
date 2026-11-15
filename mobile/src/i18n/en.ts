@@ -1492,6 +1492,7 @@ export const en = {
     connectLabel: (name: string) => `Connect with ${name}`,
     connectHint: (name: string) => `Shares your QR codes after ${name} accepts.`,
     youllShare: (apps: string, name: string) => `You'll share: ${apps} · Only after ${name} accepts`,
+    youllShareOnAccept: (apps: string, name: string) => `Accepting shares your ${apps} with ${name}`,
     theyHaveNone: (name: string) => `${name} hasn't added any QR codes.`,
     requested: 'Requested',
     cancelRequest: 'Cancel request',
