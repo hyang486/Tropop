@@ -263,7 +263,7 @@ function CueBanner() {
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFill, paddingHorizontal: 16 },
   banner: {
-    backgroundColor: colors.tint,
+    backgroundColor: colors.lift,
     borderRadius: 14,
     borderCurve: 'continuous',
     paddingHorizontal: 16,
@@ -273,9 +273,9 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
-    color: colors.onTint,
-    opacity: 0.8,
+    color: colors.ink2,
   },
-  bannerText: { fontSize: 17, fontWeight: '600', color: colors.onTint },
+  bannerText: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.ink },
 });
