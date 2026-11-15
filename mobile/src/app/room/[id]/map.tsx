@@ -598,13 +598,21 @@ function RoomMap({
           // F-RT1: with Reduce Transparency the native back button reads near-white in dark mode, so draw our own.
           ...(reduceTransparency && router.canGoBack()
             ? {
-                headerLeft: () => (
-                  <Pressable accessibilityRole="button" accessibilityLabel={en.room.back} onPress={() => router.back()} hitSlop={0}>
-                    <MapGlass style={styles.circle}>
-                      <MapBackChevron />
-                    </MapGlass>
-                  </Pressable>
-                ),
+                // iOS 26 wraps a header item in a shared bar-button background that turns opaque under RT (a second,
+                // wider pill around our circle); hidesSharedBackground removes it so only our circle shows.
+                unstable_headerLeftItems: () => [
+                  {
+                    type: 'custom' as const,
+                    hidesSharedBackground: true,
+                    element: (
+                      <Pressable accessibilityRole="button" accessibilityLabel={en.room.back} onPress={() => router.back()}>
+                        <MapGlass style={styles.circle}>
+                          <MapBackChevron />
+                        </MapGlass>
+                      </Pressable>
+                    ),
+                  },
+                ],
               }
             : {}),
         }}
