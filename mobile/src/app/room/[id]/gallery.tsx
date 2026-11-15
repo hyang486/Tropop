@@ -29,6 +29,7 @@ import { en } from '@/i18n/en';
 import { addToRoom } from '@/lib/add-media';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
+import { galleryTileSize, nextGalleryWidth } from '@/lib/gallery-grid';
 import { endsDay } from '@/lib/chat-plan';
 import { closesSoonMinutes } from '@/lib/expiry-plan';
 import {
@@ -103,8 +104,10 @@ export default function GalleryScreen() {
   const media = useRoomMedia(id, filter === 'me' ? 'all' : filter, userId);
   const { reload } = media;
   const uploads = useUploads(id, reload);
-  const { width } = useWindowDimensions();
-  const tile = Math.floor((width - qSpacing.side * 2 - GAP * (COLUMNS - 1)) / COLUMNS);
+  // Seeded with the window width (right on the first frame on iOS), then the container's own width: on web the
+  // app is drawn inside the scaled phone frame, so the window width is not the grid width.
+  const [width, setWidth] = useState(useWindowDimensions().width);
+  const tile = galleryTileSize(width, qSpacing.side, GAP, COLUMNS);
   // A11y sweep: "Photo by Mina, 2 min" (Video / File for the other kinds).
   const tileLabel = (item: Media) => {
     const by = item.uploader_id === userId ? en.media.you : memberName(names, item.uploader_id, room?.host_id, en.chat);
@@ -256,7 +259,13 @@ export default function GalleryScreen() {
 
   return (
     <DropZone label="Drop to add" onFiles={(files) => void run(async () => files)}>
-    <View ref={rootRef} onLayout={measureRoot} style={[styles.flex, { paddingTop: headerOverlap }]}>
+    <View
+      ref={rootRef}
+      onLayout={(e) => {
+        measureRoot();
+        setWidth((w) => nextGalleryWidth(w, e.nativeEvent.layout.width));
+      }}
+      style={[styles.flex, { paddingTop: headerOverlap }]}>
       <Stack.Screen
         options={{
           title: en.media.title,
