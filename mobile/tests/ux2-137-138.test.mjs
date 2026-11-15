@@ -32,5 +32,5 @@ test('UX2-138: disabled Button is the enabled style at 40%; pressed, busy and ac
   // Busy alone never dims (spinner at full opacity); it still reads disabled and busy to VoiceOver.
   assert.doesNotMatch(button, /busy \? \{ opacity/);
   assert.match(button, /accessibilityState=\{\{ disabled: disabled \|\| busy, busy \}\}/);
-  assert.match(button, /backgroundColor: quiet && pressed && !disabled \? colors\.wash2 : fill/);
+  assert.match(button, /backgroundColor: quiet && pressed && !disabled \? colors\.wash : fill/);
 });

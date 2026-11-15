@@ -142,11 +142,12 @@ export const size = { row: 44, rowSubtitle: 56, roomRow: 64, hit: 44, chip: 36, 
  */
 export const titleSize = { screen: 28, sheet: 20 } as const;
 export const textRole = StyleSheet.create({
-  section: { fontSize: 13, fontWeight: '600', color: colors.ink2 },
-  body: { fontSize: 17, color: colors.label },
-  bodyStrong: { fontSize: 17, fontWeight: '600', color: colors.label },
-  secondary: { fontSize: 15, color: colors.ink2 },
-  caption: { fontSize: 13, color: colors.ink2 },
+  section: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.ink2 },
+  label: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.label },
+  body: { fontSize: 16, lineHeight: 24, color: colors.label },
+  bodyStrong: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
+  secondary: { fontSize: 14, lineHeight: 20, color: colors.ink2 },
+  caption: { fontSize: 12, lineHeight: 18, color: colors.ink2 },
   stat: { fontSize: 34, fontWeight: '700', fontVariant: ['tabular-nums'], color: colors.label },
 });
 
@@ -221,17 +222,16 @@ export function Button({
   compact,
   icon,
 }: ButtonProps) {
-  // V1: no outlines. Primary is an ink fill with a paper label; secondary a wash fill (wash2 pressed) with an ink
-  // label; destructive a redwash fill with an errorText label. UX2-72: destructiveFill stays #D70015 with white.
+  // Primary is a Cardinal fill with a white label; secondary (B2) a lift fill, 1.5 pt tint border and tint label (wash pressed); destructive a redwash fill with an errorText label. UX2-72: destructiveFill stays #D70015 with white.
   const fill = {
     primary: colors.tint,
-    secondary: colors.wash,
+    secondary: colors.lift,
     destructive: colors.redwash,
     destructiveFill: DESTRUCTIVE_FILL,
   }[variant];
   const label = {
     primary: colors.onTint,
-    secondary: colors.label,
+    secondary: colors.tint,
     destructive: colors.errorText,
     destructiveFill: '#FFFFFF',
   }[variant];
@@ -248,7 +248,9 @@ export function Button({
         styles.button,
         compact && { minHeight: 48 },
         icon && styles.buttonWithIcon,
-        { backgroundColor: quiet && pressed && !disabled ? colors.wash2 : fill },
+        { backgroundColor: quiet && pressed && !disabled ? colors.wash : fill },
+        // B2: secondary is a lift fill with a 1.5 pt tint border and a tint label.
+        quiet && { borderWidth: 1.5, borderColor: colors.tint },
         // UX2-138: disabled is the enabled style at 40% (0.6 read as an enabled gray fill in light mode).
         disabled ? { opacity: 0.4 } : pressed && !quiet && { opacity: variant === 'destructiveFill' ? 0.85 : 0.6 },
       ]}

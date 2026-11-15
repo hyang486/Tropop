@@ -32,13 +32,14 @@ test('B1 lift shadow: one warm layer, light only', () => {
   assert.match(ui, /light: \{ boxShadow: '0 2px 8px rgba\(48,43,40,0\.08\)' \}/);
 });
 
-test('V1 Button: pills, 17 pt semibold, no outline; secondary wash (wash2 pressed), destructive redwash', () => {
-  assert.doesNotMatch(ui, /outlined|borderWidth: 1\.5/);
+test('V1 Button: pills, 17 pt semibold, no outline; B2 secondary lift with a 1.5 pt tint border (wash pressed), destructive redwash', () => {
+  assert.match(ui, /quiet && \{ borderWidth: 1\.5, borderColor: colors\.tint \}/);
   assert.match(ui, /buttonText: \{ fontSize: 17, fontWeight: '600' \}/);
   assert.match(ui, /minHeight: 52,\s*borderRadius: radius\.pill,/);
-  assert.match(ui, /secondary: colors\.wash,\s*destructive: colors\.redwash,/);
+  assert.match(ui, /secondary: colors\.lift,\s*destructive: colors\.redwash,/);
   assert.match(ui, /destructive: colors\.errorText,/);
-  assert.match(ui, /quiet && pressed && !disabled \? colors\.wash2 : fill/);
+  assert.match(ui, /secondary: colors\.tint,\s*destructive: colors\.errorText/);
+  assert.match(ui, /quiet && pressed && !disabled \? colors\.wash : fill/);
 });
 
 test('V1 Card and Tag primitives, gutter 20, radii', () => {
