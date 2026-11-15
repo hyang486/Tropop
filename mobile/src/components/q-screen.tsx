@@ -113,7 +113,7 @@ export function QScreen({
   // under the actions by the header height (qa c-nonmember at 1ab2fd1). `top` (where the root really starts)
   // is the keyboard avoider's offset, so an opaque header also lays out right. A screen without a header
   // (Welcome) still clears the status bar.
-  const { rootRef, onLayout, overlap } = useHeaderOverlap();
+  const { rootRef, onLayout, top, overlap } = useHeaderOverlap();
   const { scrollRef, keyboardPad, scrollProps, revealView } = useKeyboardReveal(overlap, keepVisible);
   // Tab bar: tapping the active tab again scrolls a tab root to the top (inert outside the tab navigator).
   useScrollToTop(scrollRef);
@@ -153,7 +153,8 @@ export function QScreen({
           }}
           style={styles.flex}
           refreshControl={refreshControl}
-          contentContainerStyle={[styles.body, { paddingTop: Math.max(overlap, insets.top) + 8 }, floating ? styles.floatingClear : null]}
+          // Tab roots sit below an opaque header (top = header height): only the status bar part inside the root counts (ux P2, no blank band).
+          contentContainerStyle={[styles.body, { paddingTop: Math.max(overlap, insets.top - top) + 8 }, floating ? styles.floatingClear : null]}
           contentInsetAdjustmentBehavior="never"
           scrollToOverflowEnabled
           keyboardShouldPersistTaps="handled"
