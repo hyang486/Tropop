@@ -87,3 +87,8 @@ test('S3 gate: checks start off, turn on after a read, off when 0038 is missing;
   assert.match(r, /<Text selectable=\{!\(checksReady && canCheck\(item, false\)\)\}/);
   assert.match(r, /checksReady=\{messageChecks\.ready\}/);
 });
+
+test('F-RM1: the check-block Host ignores the container safe area so rows under the header stay put', () => {
+  const c = src('features/chat/check-block.tsx');
+  assert.match(c, /<Host matchContents ignoreSafeArea="container">/);
+});
