@@ -755,9 +755,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
-    backgroundColor: colors.tint,
+    backgroundColor: colors.label,
   },
-  pillText: { fontSize: 15, fontWeight: '600', color: colors.onTint },
+  pillText: { fontSize: 15, fontWeight: '600', color: colors.lift },
   pillWide: { flex: 1, minHeight: 44, alignItems: 'center', borderRadius: 22 },
   // V3: "I see it" is a lift fill with an ink label (no outline); "On my way" stays the ink fill.
   pillSecondary: { backgroundColor: colors.lift },
