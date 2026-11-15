@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { REACTION_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
 import { colors, useLift } from '@/components/ui';
+import { en } from '@/i18n/en';
 import { haptics } from '@/lib/haptics';
 import { REACTIONS } from '@/lib/stickers';
 
@@ -25,11 +26,11 @@ export function ReactionBar({ onPick }: { onPick: (reaction: number) => void }) 
     <>
       <View style={[styles.pill, lift]}>
         {REACTIONS.filter((r) => r.bar).map((r) => (
-          <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`React with ${r.label}`} onPress={() => pick(r.id)} style={styles.target}>
+          <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={en.chat.reactWith(r.label)} onPress={() => pick(r.id)} style={styles.target}>
             <Image source={REACTION_IMAGES[r.id][28]} style={styles.icon} accessible={false} />
           </Pressable>
         ))}
-        <Pressable accessibilityRole="button" accessibilityLabel="More reactions" onPress={() => setAll(true)} style={styles.target}>
+        <Pressable accessibilityRole="button" accessibilityLabel={en.chat.moreReactions} onPress={() => setAll(true)} style={styles.target}>
           <View style={styles.plus}>
             <Text style={styles.plusText}>+</Text>
           </View>
@@ -50,7 +51,7 @@ export function ReactionGrid({ visible, onClose, onPick }: { visible: boolean; o
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal accessibilityLabel="Reactions">
           <View style={styles.grid}>
             {REACTIONS.map((r) => (
-              <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`React with ${r.label}`} onPress={() => onPick(r.id)} style={styles.cell}>
+              <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={en.chat.reactWith(r.label)} onPress={() => onPick(r.id)} style={styles.cell}>
                 <Image source={REACTION_IMAGES[r.id][28]} style={styles.icon} accessible={false} />
                 <Text style={styles.label}>{r.label}</Text>
               </Pressable>

@@ -487,6 +487,8 @@ export const en = {
     // B3: the long-press menu item and the plus-panel tile.
     react: 'React',
     stickersTile: 'Stickers',
+    reactWith: (name: string) => `React with ${name}`,
+    moreReactions: 'More reactions',
   },
   media: {
     // UX2-37: the viewer's photo failed to load.
