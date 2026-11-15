@@ -17,6 +17,8 @@ type Annotation = {
   anchor?: { x: number; y: number };
   /** Web only: a data/https URL drawn instead of the text pill (the web pin baker passes it). */
   iconUrl?: string;
+  /** Web only: the app's round pin (50 px frame, 40 px disc, 3 px white rim; Emergency halo; On my way badge). */
+  webPin?: { kind: string; text: string; stale: boolean; emergency: boolean; onWay: boolean; image?: string };
 };
 type Marker = { id?: string; coordinates?: LatLng; title?: string };
 type Polyline = { id?: string; coordinates: LatLng[]; color?: string; width?: number };
@@ -123,7 +125,27 @@ const AppleMapsView = forwardRef<MapView, Props>(function AppleMapsView(props, r
       const ax = a.anchor?.x ?? 0.5;
       const ay = a.anchor?.y ?? 0.5;
       const size = short ? 'min-width:34px;height:34px;border-radius:17px;line-height:34px;font-size:15px' : 'padding:2px 8px;border-radius:12px;line-height:18px;font-size:12px';
-      const html = a.iconUrl
+      const wp0 = a.webPin;
+      const filled = wp0 ? wp0.kind === 'me' || wp0.kind === 'my-cluster' : false;
+      const wp = wp0 && {
+        ...wp0,
+        fill: wp0.emergency ? '#FF3B30' : filled ? (wp0.stale ? '#8E8E93' : '#302B28') : '#FFFFFF',
+        color: wp0.emergency || filled ? '#FFFFFF' : wp0.stale ? '#8E8E93' : '#181817',
+        lift: !filled && !wp0.emergency,
+        small: wp0.kind === 'cluster' || wp0.kind === 'my-cluster',
+      };
+      const pin = wp
+        ? `<div style="position:relative;width:50px;height:50px;transform:translate(${-ax * 100}%,${-ay * 100}%)">` +
+          (wp.emergency ? '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(255,59,48,.2)"></div>' : '') +
+          `<div style="position:absolute;left:5px;top:5px;width:40px;height:40px;box-sizing:border-box;border-radius:50%;border:3px solid #fff;overflow:hidden;background:${wp.image ? '#fff' : wp.fill};color:${wp.color};` +
+          `display:flex;align-items:center;justify-content:center;font:700 ${wp.small ? 13 : 15}px 'Source Sans 3',system-ui,sans-serif;` +
+          `${wp.lift ? 'box-shadow:0 2px 6px rgba(0,0,0,.25)' : ''}">` +
+          (wp.image ? `<img src="${esc(wp.image)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%">` : esc(wp.text)) +
+          '</div>' +
+          (wp.onWay ? '<div style="position:absolute;right:0;bottom:0;width:22px;height:22px;box-sizing:border-box;border-radius:50%;border:2px solid #fff;background:#302B28;color:#fff;font-size:11px;line-height:18px;text-align:center">&#8599;</div>' : '') +
+          '</div>'
+        : null;
+      const html = pin ? pin : a.iconUrl
         ? `<img src="${esc(a.iconUrl)}" alt="" style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:block;max-width:none">`
         : `<div style="transform:translate(${-ax * 100}%,${-ay * 100}%);display:inline-block;text-align:center;white-space:pre;font:600 12px 'Source Sans 3',system-ui,sans-serif;box-sizing:border-box;` +
         `border:1px solid rgba(0,0,0,.15);box-shadow:0 1px 3px rgba(0,0,0,.25);${size};background:${a.backgroundColor ?? '#fff'};color:${a.textColor ?? '#1a1a1a'}">${esc(text)}</div>`;
