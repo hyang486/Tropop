@@ -34,9 +34,9 @@ test('copy: a ≤2-line headline and one sub per preview, short lines, limits ma
   assert.deepEqual(t.compare.slice(0, 2).map((r) => [r.free, r.plus]), [['6', '30'], ['2 days', '7 days']]);
   assert.equal(t.tbdNote, 'Prices are not decided yet.');
   assert.deepEqual(p.PLUS_LINES.map((k) => t.lines[k].join('')), [
-    'Qrewing in every room you host',
+    'Trok in every room you host',
     'Rooms up to 30 people and 7 days',
-    'Add with Qrewing: just say the plan',
+    'Add with Trok: just say the plan',
   ]);
   assert.equal(t.now, undefined);
   assert.doesNotMatch(JSON.stringify(t), /\$\d|price:|Get Plus|\bstars\b|\breviews?\b/i);
@@ -61,7 +61,7 @@ test('screen: one CTA, the table only behind See what’s included, close button
   assert.doesNotMatch(s, /from '[^']*(iap|in-app|purchase|storekit)[^']*'/i);
 });
 
-test('Add with Qrewing tap: Plus asks, Free goes to the intro, unread shows no button', () => {
+test('Add with Trok tap: Plus asks, Free goes to the intro, unread shows no button', () => {
   assert.equal(p.addTapAction(true), 'ask');
   assert.equal(p.addTapAction(false), 'intro');
   assert.equal(p.addTapAction(null), null);

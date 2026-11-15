@@ -2,7 +2,7 @@
  * Plus page v2 (/plan-preview?from=...), built to docs/evidence/plus-page-mockup/v2.html: one screen, a feature
  * preview and headline picked by `from`, then the three one-line benefits (UX2-64: the same set, in the same
  * order with the same icons, on the Free and the Plus page).
- * Pushers: calendar (Add with Qrewing, Free tap or 402), diary (calendar diary upsell), room-ai (room Qrewing
+ * Pushers: calendar (Add with Trok, Free tap or 402), diary (calendar diary upsell), room-ai (room Trok
  * button), more (create-room "More" end time / PT402), people (room size, no caller yet), capacity (create-room
  * People + at the Free max, capacity option B). The profile link sends
  * no `from`; unknown values count as none, and none shows the diary preview.
@@ -11,7 +11,7 @@
 export const PLUS_FROM = ['calendar', 'room-ai', 'more', 'people', 'diary', 'capacity', 'ask', 'pace', 'meet', 'storage'] as const;
 export type PlusFrom = (typeof PLUS_FROM)[number];
 
-// Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): room Qrewing AI, rooms up to 30 people and 7 days,
+// Human tiers (USER_DECISIONS l.288-289, l.296, l.299, l.307): room Trok AI, rooms up to 30 people and 7 days,
 // calendar AI add. UX2-64: one set for Free and Plus (the diary has its own preview card).
 export const PLUS_LINES = ['ai', 'rooms', 'add'] as const;
 export type PlusLine = (typeof PLUS_LINES)[number];
@@ -28,7 +28,7 @@ const PREVIEW: Record<PlusFrom, PlusPreview> = {
   capacity: 'trip',
   ask: 'chat',
   pace: 'trip',
-  // UX2-01: People to meet is a Qrewing AI feature, so the room AI pitch ('people' is the room-size source).
+  // UX2-01: People to meet is a Trok AI feature, so the room AI pitch ('people' is the room-size source).
   meet: 'chat',
   // UX2-06: a Free room out of space; Plus rooms hold more (trip pitch, like room size).
   storage: 'trip',
@@ -47,8 +47,8 @@ export function plusPitch(from: PlusFrom | null): { preview: PlusPreview; lines:
 }
 
 /**
- * Calendar bottom-right Qrewing tap: Plus opens the ask sheet; Free goes straight to the Plus page with no
- * server call and no error (human rule: a Free user never hits a dead or locked Qrewing button). Hidden while
+ * Calendar bottom-right Trok tap: Plus opens the ask sheet; Free goes straight to the Plus page with no
+ * server call and no error (human rule: a Free user never hits a dead or locked Trok button). Hidden while
  * the plan is unread (null), so a Plus member is never sent to the page by a slow read.
  */
 export function addTapAction(plus: boolean | null): 'ask' | 'intro' | null {

@@ -1,4 +1,4 @@
-// The Ask Qrewing button's footprint, in one place: the button, every screen that pads its scroll content for
+// The Ask Trok button's footprint, in one place: the button, every screen that pads its scroll content for
 // it, and QScreen's `floating` slot read these (UI audit 2026-11-13 item 1). Plain numbers, no imports, so a
 // shared component can use them without pulling in the button.
 export const QREWING_FAB_SIZE = 52;
@@ -10,5 +10,5 @@ export const QREWING_FAB_MARGIN = 12;
  */
 export const QREWING_FAB_CLEARANCE = QREWING_FAB_MARGIN + QREWING_FAB_SIZE;
 
-/** QScreen's `floating` slot (the calendar's own 56 pt Qrewing button): margin + button + margin, unchanged by P0-2. */
+/** QScreen's `floating` slot (the calendar's own 56 pt Trok button): margin + button + margin, unchanged by P0-2. */
 export const QSCREEN_FLOATING_CLEARANCE = 12 + 56 + 12;

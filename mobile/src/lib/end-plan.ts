@@ -1,4 +1,4 @@
-// Pure helpers for the Qrew unit 4 confirm screens (Q 03.04 End activity; End room). No React Native imports,
+// Pure helpers for the Tropop unit 4 confirm screens (Q 03.04 End activity; End room). No React Native imports,
 // so `npm test` can load them.
 
 /** The room fields the confirm screens decide on. */

@@ -1,4 +1,4 @@
-// Shared client API for Qrewing AI (planning/QREWING_AI_SPEC_EN.md section 3.1). Shapes mirror section 2.
+// Shared client API for Trok AI (planning/QREWING_AI_SPEC_EN.md section 3.1). Shapes mirror section 2.
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -106,7 +106,7 @@ export async function requestRecap(
   return { error: 'ai_failed' };
 }
 
-/** Qrewing Calendar: natural language → one personal event (dates only). 422 'unclear' when it can't tell. */
+/** Trok Calendar: natural language → one personal event (dates only). 422 'unclear' when it can't tell. */
 export async function calendarAdd(text: string, today: string, tz: string): Promise<{ data: unknown } | { error: QrewingError }> {
   const res = await invokeQrewing<unknown>({ action: 'calendar_add', text: text.trim().slice(0, 300), today, tz });
   return 'error' in res ? res : { data: res.data };
@@ -143,7 +143,7 @@ export async function setQrewingMember(roomId: string, aiOk: boolean, mute: bool
 }
 
 // Every mounted useQrewingRoom of a room re-reads after my consent/mute row changes anywhere (e.g. the chat's
-// disclosure sheet), so another reader such as the Ask Qrewing button never keeps a stale `aiOk`.
+// disclosure sheet), so another reader such as the Ask Trok button never keeps a stale `aiOk`.
 const memberListeners = new Set<(roomId: string) => void>();
 function memberChanged(roomId: string) {
   for (const l of memberListeners) l(roomId);
@@ -225,7 +225,7 @@ export function useEntryQuestions(roomId: string): {
 type RoomState = QrewingRoomState;
 
 /**
- * The room's Qrewing switches and my own consent/mute row (roomStateFrom). Any failed room read is `readFailed`
+ * The room's Trok switches and my own consent/mute row (roomStateFrom). Any failed room read is `readFailed`
  * (no AI UI shows, settings screens say they could not load, chat retries); a missing row or missing table is off.
  * `loaded` is false until the first read answers; an empty `roomId` never reads.
  */

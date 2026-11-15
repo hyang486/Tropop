@@ -1,4 +1,4 @@
-// Private Qrewing chat (spec 10.1, 10.4): route `room/[id]/ask`. Only the asker sees it; nothing is posted to the
+// Private Trok chat (spec 10.1, 10.4): route `room/[id]/ask`. Only the asker sees it; nothing is posted to the
 // room, and the history stays on this phone (ask-store).
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
@@ -35,7 +35,7 @@ export function AskScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
-  // With room AI off (a Plus asker, capacity B item 4) Qrewing relays no questions, so no relayed cards.
+  // With room AI off (a Plus asker, capacity B item 4) Trok relays no questions, so no relayed cards.
   const roomAi = useQrewingRoom(id).aiEnabled;
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const relay = useMyRelayCards(id, turns.length, !!roomAi);
@@ -167,7 +167,7 @@ export function AskScreen() {
       ) : (
         <>
           {turns.length === 0 && !sending ? <Hint>{s.empty}</Hint> : null}
-          {/* Spec 11 C, UX2-47: a question Qrewing passed on to a person keeps one thread: my question, Qrewing's
+          {/* Spec 11 C, UX2-47: a question Trok passed on to a person keeps one thread: my question, Trok's
               reply, then the waiting caption, the person's answer or the ask-in-chat offer under it. */}
           {threads.rest.map((c) => (
             <View key={c.id} style={styles.turn}>
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   turn: { gap: 8 },
   bubble: { maxWidth: '85%', borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 10 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.tint },
-  // UX2-48: Ask is a pageSheet, so Qrewing's bubble is sheetField, the card on the sheet ground.
+  // UX2-48: Ask is a pageSheet, so Trok's bubble is sheetField, the card on the sheet ground.
   bot: { alignSelf: 'flex-start', backgroundColor: colors.sheetField },
   text: { fontSize: 16, color: colors.label },
   thinking: { fontSize: 14, color: colors.ink2 },

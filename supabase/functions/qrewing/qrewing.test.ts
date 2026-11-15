@@ -825,7 +825,7 @@ test('recap refresh F-RCP1: a photo shared after the recap makes it stale; count
 
 test('recap prompts F-RCP1: the chat is consenting members only, so the model may not claim nothing was sent', () => {
   for (const sys of [RECAP_SYSTEM, RECAP_REFRESH_SYSTEM]) {
-    assert.ok(sys.includes('only messages from members who turned on Qrewing AI'));
+    assert.ok(sys.includes('only messages from members who turned on Trok AI'));
     assert.ok(sys.includes('Never say that no messages were sent'));
   }
   // Older callers without counts get no media tag.
@@ -1556,7 +1556,7 @@ test('every prompt that writes about people forbids guessing gender (match intro
   }
 });
 
-// ------------------------------------------------------------------------------------------- Qrewing Calendar (Plus)
+// ------------------------------------------------------------------------------------------- Trok Calendar (Plus)
 
 const DONE_RECAP = (): RecapRow => ({
   state: 'done', title: 'Bay run', summary: 'Hana and Bob ran 5 km around the lake.', highlights: ['Sunset at the pier'],

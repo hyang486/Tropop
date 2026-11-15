@@ -1,4 +1,4 @@
-// Run: npm test. Qrew unit 5 (Q 06.04): the ended screen's closed-at time is shown only when it is known.
+// Run: npm test. Tropop unit 5 (Q 06.04): the ended screen's closed-at time is shown only when it is known.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

@@ -26,7 +26,7 @@ function problemText(result: Extract<StatusLabelsResult, { ok: false }>): string
 /**
  * The room's status list (Room info). The host edits the non-Emergency statuses through
  * set_status_definitions; other members see the list read-only. Emergency is always shown and fixed.
- * Qrew unit 5 (Q 03.03): the host sees the read-only list too until `editing` (Edit status options); the
+ * Tropop unit 5 (Q 03.03): the host sees the read-only list too until `editing` (Edit status options); the
  * draft rows stay while the editor is closed, so closing it never drops unsaved edits.
  */
 export function StatusEditor({ roomId, isHost, editing = true }: { roomId: string; isHost: boolean; editing?: boolean }) {

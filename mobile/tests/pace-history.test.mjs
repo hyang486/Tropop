@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing AI pace maker history (spec 3.4): last 20 sessions, recap summary per room.
+// Run: npm test. Trok AI pace maker history (spec 3.4): last 20 sessions, recap summary per room.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

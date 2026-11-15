@@ -9,7 +9,7 @@ import { useCalendarColors } from './tokens';
 const PAD = 3;
 
 /**
- * Qrewing Calendar: the month grid in pencil (7 × weeks cells), optionally on cream paper. The lines are straight
+ * Trok Calendar: the month grid in pencil (7 × weeks cells), optionally on cream paper. The lines are straight
  * and even; only their texture is pencil (graphite pressure, grain, rare breaks). Lines only: the caller lays out
  * day numbers, strokes and press targets on top. Deterministic per seed, so it never jitters.
  */

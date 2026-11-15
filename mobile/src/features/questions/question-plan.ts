@@ -1,4 +1,4 @@
-// Pure rules for Qrewing question cards (Spec 11 C, planning/spec11-briefs/API.md): parsing rows, who sees what,
+// Pure rules for Trok question cards (Spec 11 C, planning/spec11-briefs/API.md): parsing rows, who sees what,
 // the 3-minute "ask in chat" offer and the notice text. No React Native imports (tested in node).
 
 export type CardStatus = 'pending' | 'answered' | 'asked_in_chat';
@@ -82,7 +82,7 @@ export function cardsIAnswered(cards: readonly QuestionCard[], me: string | unde
     .sort((a, b) => (b.answeredAt ?? b.createdAt) - (a.answeredAt ?? a.createdAt));
 }
 
-/** Questions I asked that Qrewing relayed, oldest first (they follow the Ask Qrewing history). */
+/** Questions I asked that Trok relayed, oldest first (they follow the Ask Trok history). */
 export function cardsIAsked(cards: readonly QuestionCard[], me: string | undefined): QuestionCard[] {
   if (!me) return [];
   return cards.filter((c) => c.askerId === me).sort((a, b) => a.createdAt - b.createdAt);

@@ -140,7 +140,7 @@ export function flushRun(key: string) {
   persist(key, run);
 }
 
-/** The Qrewing bot's `me` for this room's running activity (spec 10.4); null when none is running or unmeasured. */
+/** The Trok bot's `me` for this room's running activity (spec 10.4); null when none is running or unmeasured. */
 export function paceSnapshot(room: { id: string; activity_state: string; activity_seq: number }, nowMs = Date.now()) {
   const tracker = runs.get(runKey(room.id, room.activity_seq))?.tracker;
   return currentPaceSnapshot({ activityRunning: room.activity_state === 'active', tracker, nowMs });

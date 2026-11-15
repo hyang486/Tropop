@@ -91,13 +91,13 @@ export const ASK_ME_RANGES = {
   distanceM: [0, 1_000_000],
   paceSecPerKm: [0, 3600],
 } as const;
-/** Qrewing Calendar: the per-member diary (a second small call on top of the shared recap). Counted per user per room. */
+/** Trok Calendar: the per-member diary (a second small call on top of the shared recap). Counted per user per room. */
 export const DIARY_USER_CAP = 3;
 export const DIARY_LINES = 3;
 export const DIARY_LINE_MAX = 90;
 /** Always-present emoji when the diary call is skipped, fails or returns no single emoji. Keys = rooms.type values. */
 export const ROOM_TYPE_EMOJI: Record<string, string> = { sports: '🏃', event: '🎉', waiting: '⏳', general: '💬' };
-/** Qrewing Calendar: calendar_add caps and limits. */
+/** Trok Calendar: calendar_add caps and limits. */
 export const CALENDAR_USER_CAP = 20;
 export const CALENDAR_TEXT_MAX = 300;
 export const CALENDAR_TITLE_MAX = 60;
@@ -520,7 +520,7 @@ export async function handle(deps: Deps, userId: string, rawBody: unknown): Prom
     case 'triage':
       return triage(ctx, body.messageIds);
     case 'recap': {
-      // diary is Qrewing Calendar (Plus, 0032): Free gets 402 before the shared recap, any count or model call.
+      // diary is Trok Calendar (Plus, 0032): Free gets 402 before the shared recap, any count or model call.
       if (body.diary && (await deps.store.plan(userId)) !== 'plus') return { status: 402, body: { error: 'plan_limit' } };
       const res = await (body.refresh ? recapRefresh(ctx) : recap(ctx));
       return body.diary ? withDiary(ctx, res) : res;
@@ -966,7 +966,7 @@ function recapBody(r: RecapRow, cached: boolean) {
 // ---------------------------------------------------------------------------------------------- calendar (Plus)
 
 /**
- * Qrewing Calendar, recap diary. Runs only on a 200 recap with diary:true, as a second small call per member: the
+ * Trok Calendar, recap diary. Runs only on a 200 recap with diary:true, as a second small call per member: the
  * shared room_recaps row is cached per room, so a per-member diary cannot ride in that call. Input = the stored
  * (consent-clean) recap + the caller's own display name only if they consented. Nothing stored. Logged as 'recap' with
  * user_id (the room-level recap rows have none, so only diary calls count); DIARY_USER_CAP per user per room per 24 h.
@@ -1060,7 +1060,7 @@ export function calendarUsage(userId: string): { roomId: string; action: UsageAc
 type CalendarCtx = Pick<Ctx, 'model' | 'store' | 'log' | 'now'>;
 
 /**
- * Qrewing Calendar: free text → one date-only entry. 200 {event:{title,start,end,emoji}} (end inclusive, ≥ start,
+ * Trok Calendar: free text → one date-only entry. 200 {event:{title,start,end,emoji}} (end inclusive, ≥ start,
  * ≤ start + CALENDAR_SPAN_DAYS); 402 plan_limit (Free, before any count or model call); 422 unclear;
  * 429 rate_limited (CALENDAR_USER_CAP per 24 h); 502 ai_failed.
  * The text is never logged or stored.

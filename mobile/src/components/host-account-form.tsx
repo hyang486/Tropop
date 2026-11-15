@@ -18,7 +18,7 @@ type Props = {
 };
 
 /**
- * Qrew account screens (UX3-A07 wording). Log in (Q 01.02): "Log in", one line, email and password, Log in, then
+ * Tropop account screens (UX3-A07 wording). Log in (Q 01.02): "Log in", one line, email and password, Log in, then
  * "Create account". Create account and guest upgrade (Q 07.02): "Create account", one line, the gate art, name,
  * email, password, Create account. No social buttons (human decision 1). Buttons sit under the fields, as
  * in Q; validation, errors and the upgrade path are unchanged.

@@ -1,4 +1,4 @@
-// Run: npm test. Qrew unit 4: End activity / End room confirm gate and single-flight End.
+// Run: npm test. Tropop unit 4: End activity / End room confirm gate and single-flight End.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

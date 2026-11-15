@@ -245,7 +245,7 @@ export function pickBanner(
   return best;
 }
 
-/** Each member's links from entry info, keeping only https links (shown only, never fetched by Qrewing). */
+/** Each member's links from entry info, keeping only https links (shown only, never fetched by Trok). */
 export function linksByUser(profiles: readonly { user_id: string; links: readonly string[] | null }[]): Map<string, string[]> {
   const out = new Map<string, string[]>();
   for (const p of profiles) {

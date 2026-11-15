@@ -1,5 +1,5 @@
 /**
- * Qrewing Calendar date math (Plus, human FINAL 2026-11-13). Pure: no React, no storage.
+ * Trok Calendar date math (Plus, human FINAL 2026-11-13). Pure: no React, no storage.
  * Dates are local calendar days as 'YYYY-MM-DD' keys. Day arithmetic runs on UTC midnights, so DST never
  * shifts a day; timestamps become keys through Intl in the given time zone.
  */

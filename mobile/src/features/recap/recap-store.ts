@@ -54,7 +54,7 @@ export async function loadMark(roomId: string): Promise<RecapMark | null> {
   }
 }
 
-/** Remembers that this room had Qrewing AI on (so Room ended can say "No recap was saved") and which calls ran. */
+/** Remembers that this room had Trok AI on (so Room ended can say "No recap was saved") and which calls ran. */
 export async function saveMark(roomId: string, patch: Partial<Omit<RecapMark, 'ai'>>): Promise<RecapMark> {
   const next: RecapMark = { ...((await loadMark(roomId)) ?? EMPTY_MARK), ...patch, ai: true };
   try {
@@ -214,7 +214,7 @@ async function save(
  * is left to the broadcast or the next read. Returns the saved recap, or null.
  */
 export async function fetchAndSaveRecap(roomId: string, userId: string, opts?: { refresh?: boolean }): Promise<SavedRecap | null> {
-  // Qrewing Calendar (Plus preview): ask for the emoji and diary once; they are kept only on this phone.
+  // Trok Calendar (Plus preview): ask for the emoji and diary once; they are kept only on this phone.
   const wants = await wantsDiary(userId, roomId).catch(() => false);
   const { res, diary } = await recapWithDiary(
     wants,
@@ -249,7 +249,7 @@ export async function readAndSaveRecap(roomId: string, userId: string): Promise<
 
 /**
  * Spec 7.3 early end: called by the host's End flow right after `end_room` succeeded (the room is in grace, so the
- * recap is allowed). Only for rooms this device knows had Qrewing on. Runs in the background with a 15 s limit;
+ * recap is allowed). Only for rooms this device knows had Trok on. Runs in the background with a 15 s limit;
  * it never blocks or delays leaving the End screen.
  */
 export function recapAfterEnd(roomId: string, userId: string | undefined): void {
@@ -264,7 +264,7 @@ export function recapAfterEnd(roomId: string, userId: string | undefined): void 
 
 /**
  * Room ended without a copy on this phone (spec 7.3 grace): read the shared row (RLS allows it in grace), then,
- * only when `ask` (this phone knows the room had Qrewing on), ask once. Says why there is no recap, so the card can
+ * only when `ask` (this phone knows the room had Trok on), ask once. Says why there is no recap, so the card can
  * tell "still writing" and "offline" apart from "no recap was saved". Without `ask`, a missing row (AI off, or no
  * recap yet) is `gone`; the room_recaps notice re-runs this when the row arrives.
  */

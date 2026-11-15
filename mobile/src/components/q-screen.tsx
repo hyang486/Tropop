@@ -41,7 +41,7 @@ import { artHidden, keyboardOverlap, revealScrollY, type Span } from '@/lib/keyb
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 
 /**
- * Qrew screen scaffold (human rule USER_DECISIONS:168: match Qrew_heytea_UI.pdf). As in Q 01.04:
+ * Tropop screen scaffold (human rule USER_DECISIONS:168: match Qrew_heytea_UI.pdf). As in Q 01.04:
  * handwritten title at the top of the content with an optional small gray line under it (Q 01.01 "A room for
  * the people you're with."), a scrolling body (cards, art, text) with 24 pt sides and 12 pt gaps, and the
  * screen's actions pinned to the bottom above the home indicator, with an optional caption under them. The nav
@@ -94,7 +94,7 @@ export function QScreen({
    */
   revealRef?: RefObject<QScreenReveal | null>;
   /**
-   * Opt-in (spec 10.1 Ask Qrewing): absolutely positioned content over the body, in an area that ends above the
+   * Opt-in (spec 10.1 Ask Trok): absolutely positioned content over the body, in an area that ends above the
    * pinned actions, so it never covers them. Screens that do not pass it keep the old tree.
    */
   floating?: ReactNode;
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   edgeFade: { position: 'absolute', top: 0, left: 0, right: 0 },
   body: { flexGrow: 1, paddingHorizontal: qSpacing.side, paddingBottom: 24, gap: qSpacing.gap },
-  // Room for a `floating` button (the Ask Qrewing footprint), so the last row scrolls clear of it.
+  // Room for a `floating` button (the Ask Trok footprint), so the last row scrolls clear of it.
   floatingClear: { paddingBottom: QSCREEN_FLOATING_CLEARANCE },
   head: { marginBottom: 6, gap: 4 },
   subtitle: { fontSize: 15, color: colors.ink2 },

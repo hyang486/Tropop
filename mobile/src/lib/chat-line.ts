@@ -1,6 +1,6 @@
 /**
  * UX P1-2: how a stored system/emergency chat body is shown. The server writes these bodies (migrations 0002,
- * 0023, 0024) and Qrewing reads them, so the stored text stays; only the display is shortened to one grey line.
+ * 0023, 0024) and Trok reads them, so the stored text stays; only the display is shortened to one grey line.
  */
 export type ChatLine = { kind: 'emergency'; name: string } | { kind: 'activityStarted' } | { kind: 'plain'; text: string };
 

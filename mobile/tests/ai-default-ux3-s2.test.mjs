@@ -1,4 +1,4 @@
-// Run: npm test. UX3-A12 / D2: Qrewing AI is on by default for Plus hosts, off for Free, off while loading.
+// Run: npm test. UX3-A12 / D2: Trok AI is on by default for Plus hosts, off for Free, off while loading.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';

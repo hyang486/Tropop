@@ -17,7 +17,7 @@ import {
 import { Text, TextInput } from '@/components/text';
 
 /**
- * Qrew palette, B1 (docs/evidence/ux/brand-rebuild/phase1-tokens-type-spec.md, USC edition, light only): Warm Ivory
+ * Tropop palette, B1 (docs/evidence/ux/brand-rebuild/phase1-tokens-type-spec.md, USC edition, light only): Warm Ivory
  * ground, ink #302B28, Cardinal accent, gold for badges only (never text on light), softGold for the own bubble.
  * Emergency keeps danger/redwash; Cardinal never sits on a redwash surface.
  */

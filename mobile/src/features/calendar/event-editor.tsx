@@ -1,5 +1,5 @@
 /**
- * Qrewing Calendar personal event: add ("+"), edit or delete my own event, or confirm one Qrewing read from a
+ * Trok Calendar personal event: add ("+"), edit or delete my own event, or confirm one Trok read from a
  * sentence (`ask=1` with title/start/end/emoji params). UX3-A13: a start and end time unless All day; saved on this phone.
  */
 import { DatePicker, Host } from '@expo/ui/swift-ui';
@@ -24,7 +24,7 @@ import { removeEvent, saveEvent, useCalendar } from './calendar-store';
 
 const t = en.calendar;
 
-/** A small curated set; Qrewing's pick is added in front when it isn't in the list. */
+/** A small curated set; Trok's pick is added in front when it isn't in the list. */
 export const EVENT_EMOJIS = ['📌', '🎂', '🍽️', '☕', '🏃', '🚴', '⚽', '🎉', '🎵', '📚', '✈️', '🏖️', '🏥', '💼', '🛒', '❤️'];
 
 const EMOJI_SIZE = 48;
@@ -75,7 +75,7 @@ function EventForm({ uid, params, existing }: { uid: string | undefined; params:
   const [title, setTitle] = useState(existing?.title ?? params.title ?? '');
   const [start, setStart] = useState(existing?.start ?? (isDateKey(params.start) ? params.start : fresh.start));
   const [end, setEnd] = useState(existing?.end ?? (isDateKey(params.end) ? params.end : fresh.end));
-  // Existing events without a time, and Qrewing's date-only picks, open as all day.
+  // Existing events without a time, and Trok's date-only picks, open as all day.
   const [allDay, setAllDay] = useState(existing ? !existing.startTime : params.ask === '1');
   const [startTime, setStartTime] = useState(existing?.startTime ?? fresh.startTime);
   const [endTime, setEndTime] = useState(existing?.endTime ?? fresh.endTime);

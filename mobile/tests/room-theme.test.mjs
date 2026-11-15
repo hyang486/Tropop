@@ -1,5 +1,5 @@
 // Run: npm test (node --test, Node 24 strips the .ts types).
-// Qrew R1: every case from planning/QREW_REDESIGN_WORKLIST_EN.md plus the supervisor's rulings.
+// Tropop R1: every case from planning/QREW_REDESIGN_WORKLIST_EN.md plus the supervisor's rulings.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

@@ -10,7 +10,7 @@ const sheet = readFileSync(new URL('../src/features/event/disclosure-sheet.tsx',
 const api = readFileSync(new URL('../src/features/event/qrewing-api.ts', import.meta.url), 'utf8');
 
 test('UX2-112: copy', () => {
-  assert.equal(en.qrewing.disclosure.turnOnFailed, "Couldn't turn on Qrewing AI. Try again.");
+  assert.equal(en.qrewing.disclosure.turnOnFailed, "Couldn't turn on Trok AI. Try again.");
 });
 
 test('UX2-112: after Agree the sheet stays open (busy) until a fresh room read shows I agreed', () => {

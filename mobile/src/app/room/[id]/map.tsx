@@ -504,7 +504,7 @@ function RoomMap({
       run('activity', () => setActivityState(room.id, 'active'), true);
       return;
     }
-    // Qrew unit 4 (Q 03.04): a confirm screen that states the effects, instead of an alert.
+    // Tropop unit 4 (Q 03.04): a confirm screen that states the effects, instead of an alert.
     router.push({ pathname: '/room/[id]/end-activity', params: { id: room.id } });
   }
 
@@ -572,7 +572,7 @@ function RoomMap({
   const reporterIsError = sharingState === 'error' || sharingState === 'no-permission'; // UX2-32: 'refused' is a normal event (ink2)
 
   return (
-    // Qrewing pace maker: its cue banner and stationary sheet sit over the map (PaceLayer).
+    // Trok pace maker: its cue banner and stationary sheet sit over the map (PaceLayer).
     <View style={styles.root}>
       {/* V4: the map is full bleed under the header and ends at the sheet's top edge, so MapKit's Apple Maps logo and
           Legal link (bottom corners; expo-maps has no padding prop for Apple Maps) stay visible. */}

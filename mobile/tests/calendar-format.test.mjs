@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing Calendar labels and date-picker conversion (DST-safe).
+// Run: npm test. Trok Calendar labels and date-picker conversion (DST-safe).
 import './ts-resolve.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

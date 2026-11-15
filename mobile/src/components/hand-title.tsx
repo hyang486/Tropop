@@ -13,7 +13,7 @@ export const HAND_FONTS = {
   'SourceSans3-Bold': require('@/assets/fonts/SourceSans3-Bold.ttf'),
 };
 
-/** Qrew ink (components/ui palette): the design's #181817 on light; a pale ink on dark so titles and art stay visible. */
+/** Tropop ink (components/ui palette): the design's #181817 on light; a pale ink on dark so titles and art stay visible. */
 export function useInk() {
   return usePalette().ink;
 }

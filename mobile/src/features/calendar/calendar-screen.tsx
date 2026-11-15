@@ -1,8 +1,8 @@
 /**
- * Qrewing Calendar (human FINAL 2026-11-13; tiers FINAL 2026-11-13 PM): a hand-drawn month with my rooms (hosted
+ * Trok Calendar (human FINAL 2026-11-13; tiers FINAL 2026-11-13 PM): a hand-drawn month with my rooms (hosted
  * or joined; past, current, future) as highlighter strokes and my own events. Phone-only data. Free and Plus: the
  * month, "+" to add, and a tap on my event's bar opens its editor. A room's bar or icon opens its diary card on Plus
- * and the Plus upsell on Free. "+N" lists that day's items. Plus only: the Qrewing button adds an event from a
+ * and the Plus upsell on Free. "+N" lists that day's items. Plus only: the Trok button adds an event from a
  * sentence. All interaction is on the grid (no day list).
  */
 import { useFonts } from 'expo-font';
@@ -154,7 +154,7 @@ function CalendarMonth({ uid }: { uid: string }) {
       <QScreen
         title={t.title}
         floating={
-          // "Add with Qrewing" is Plus only (tiers FINAL). Free taps open the Plus intro with no server call.
+          // "Add with Trok" is Plus only (tiers FINAL). Free taps open the Plus intro with no server call.
           addTapAction(plus) === null ? undefined : (
           <Pressable
             accessibilityRole="button"
@@ -336,7 +336,7 @@ function CalendarMonth({ uid }: { uid: string }) {
   );
 }
 
-/** Bottom-right Qrewing: one sentence → calendar_add → the event editor prefilled to confirm and save. */
+/** Bottom-right Trok: one sentence → calendar_add → the event editor prefilled to confirm and save. */
 function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () => void; today: DateKey }) {
   const router = useRouter();
   const [text, setText] = useState('');

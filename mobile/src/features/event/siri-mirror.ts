@@ -1,5 +1,5 @@
 // Spec 10.5: keeps the Siri Keychain item (siri-plan.ts contract) in step with the session and the active room.
-// iOS only. Every failure is ignored: Siri then says to open Qrew, and the app itself never depends on the item.
+// iOS only. Every failure is ignored: Siri then says to open Tropop, and the app itself never depends on the item.
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 

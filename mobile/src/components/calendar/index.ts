@@ -1,4 +1,4 @@
-// Qrewing Calendar drawing pieces (presentational only; the screen lays them out).
+// Trok Calendar drawing pieces (presentational only; the screen lays them out).
 export { type DayItem, DayItemsSheet } from './day-items-sheet';
 export { HighlighterStroke } from './highlighter-stroke';
 export { InkIcon } from './ink-icon';

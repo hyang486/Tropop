@@ -97,7 +97,7 @@ export default function CreateRoom() {
   const choice: EndChoice = pickedEnd ?? { kind: 'preset', hours: defaultEndHours(type, plus) };
   const [locationAllowed, setLocationAllowed] = useState(true);
   const [statuses, setStatuses] = useState<string[]>([...en.createRoom.statusesDefault]);
-  // Qrewing AI (spec 3.2, D2 2026-11-14): on by default for Plus hosts, off for Free and while the plan loads. The
+  // Trok AI (spec 3.2, D2 2026-11-14): on by default for Plus hosts, off for Free and while the plan loads. The
   // default is applied once the plan first resolves and only until the host touches the switch. Entry info is offered
   // for event rooms only.
   const [pickedAi, setPickedAi] = useState<boolean | null>(null);
@@ -210,7 +210,7 @@ export default function CreateRoom() {
     changeEnd(d.getTime());
   }
 
-  // Free hosts: turning Qrewing AI on opens the Plus screen instead of toggling (human, via qa 2026-11-13).
+  // Free hosts: turning Trok AI on opens the Plus screen instead of toggling (human, via qa 2026-11-13).
   function changeAi(next: boolean) {
     const action = aiSwitchAction(plus, next);
     setOfflineTap(action === null && plan === 'offline' ? 'ai' : null);
@@ -335,7 +335,7 @@ export default function CreateRoom() {
       const room = OPEN_ROOMS_LIVE
         ? await createOpenAwareRoom({ ...input, capacity, plus, visibility, icon, area })
         : await createRoom(input);
-      // A failed Qrewing save never blocks the room; the chat screen shows the note once.
+      // A failed Trok save never blocks the room; the chat screen shows the note once.
       let aiNote: string | undefined;
       let questionsNote: string | undefined;
       if (aiEnabled) {
@@ -362,7 +362,7 @@ export default function CreateRoom() {
     }
   }
 
-  // Qrew Q 02.02 + Spec 11 (human review 2026-11-13): name, Room type, the location and Qrewing AI rows (outlined, ink
+  // Tropop Q 02.02 + Spec 11 (human review 2026-11-13): name, Room type, the location and Trok AI rows (outlined, ink
   // switches, one-line AI hint; UI audit item 8 keeps them right under Room type), then a Luma-style place row and
   // Start ⋮ End block with one line of End presets (A5, A7), then Status options. The Plus preview link is gone (A6).
   const preset = selectedPreset(choice);

@@ -16,7 +16,7 @@ const s = en.qrewing.disclosure;
 const SUMMARY_ICONS: SFSymbol[] = ['sparkles', 'megaphone', 'trash'];
 
 /**
- * Qrewing AI disclosure (spec 3.2), shown on a member's first open of an AI room. Both answers create the
+ * Trok AI disclosure (spec 3.2), shown on a member's first open of an AI room. Both answers create the
  * member's row, so it is not shown again; "Not now" keeps their messages out of every AI call. Swiping the sheet
  * down counts as Not now for this visit only (nothing is saved, so it shows again on the next open).
  */

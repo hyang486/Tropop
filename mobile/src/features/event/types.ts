@@ -1,5 +1,5 @@
 /**
- * Row and response types for Qrewing AI (planning/QREWING_AI_SPEC_EN.md sections 1 and 2). Rows come from the
+ * Row and response types for Trok AI (planning/QREWING_AI_SPEC_EN.md sections 1 and 2). Rows come from the
  * generated `database.types.ts` (0027 applied); the 2.x response types are the Edge Function contract, not DB.
  */
 
@@ -55,7 +55,7 @@ export type RecapResult = {
   highlights: string[];
   generatedAt: string;
   cached: boolean;
-  /** With `diary: true` (Qrewing Calendar): one emoji for the room's purpose and 1-3 first-person lines, or null. */
+  /** With `diary: true` (Trok Calendar): one emoji for the room's purpose and 1-3 first-person lines, or null. */
   emoji?: string;
   diary?: string[] | null;
 };

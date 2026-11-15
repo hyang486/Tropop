@@ -1,5 +1,5 @@
 // Run: npm test. Calendar tiers and interaction (human FINAL 2026-11-13 PM): Free gets the month, "+" and room
-// bars; a room tap opens the diary on Plus and the upsell on Free; "Add with Qrewing" is Plus only; no day list.
+// bars; a room tap opens the diary on Plus and the upsell on Free; "Add with Trok" is Plus only; no day list.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
@@ -12,7 +12,7 @@ test('no Plus gate on the screen: signed in is enough', () => {
   assert.doesNotMatch(screen, /upsellTitle|upsellCta/);
 });
 
-test('"Add with Qrewing": Plus opens the ask, Free goes to the Plus intro (from=calendar), hidden while unread', () => {
+test('"Add with Trok": Plus opens the ask, Free goes to the Plus intro (from=calendar), hidden while unread', () => {
   assert.match(screen, /addTapAction\(plus\) === null \? undefined : \(/);
   assert.match(screen, /addTapAction\(plus\) === 'ask' \? setAsking\(true\) : router\.push\(plusIntroHref\('calendar'\)\)/);
   assert.match(screen, /if \(code === 'plan_limit'\) \{\s*close\(\);\s*router\.push\(plusIntroHref\('calendar'\)\)/);
@@ -43,9 +43,9 @@ test('bar labels name the action: open diary, Plus feature, edit event', () => {
   assert.match(screen, /t\.barLabel\(item\.title, rangeLabel\(item\.start, item\.end, thisYear\), barAction\(item\.kind, plus\)\)/);
 });
 
-test('Plus intro: Calendar stays free; Qrewing diary and Add with Qrewing are Plus benefits', () => {
+test('Plus intro: Calendar stays free; Trok diary and Add with Trok are Plus benefits', () => {
   assert.match(en, /alwaysFree: '[^']*your own calendar events/);
   // UX2-64: the diary left the shared benefit lines; it stays a Plus row in the Free vs Plus table.
   assert.match(en, /\{ label: 'Calendar diary', free: null, plus: true \}/);
-  assert.match(en, /add: \['', 'Add with Qrewing', ': just say the plan'\]/);
+  assert.match(en, /add: \['', 'Add with Trok', ': just say the plan'\]/);
 });

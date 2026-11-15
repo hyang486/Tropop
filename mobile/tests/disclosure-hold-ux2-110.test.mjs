@@ -7,7 +7,7 @@ import { disclosureHeld } from '../src/lib/emergency-plan.ts';
 
 const room = readFileSync(new URL('../src/app/room/[id]/index.tsx', import.meta.url), 'utf8');
 
-test('UX2-110: the Qrewing AI disclosure waits while an Emergency is open, the area failed, or it is still unknown', () => {
+test('UX2-110: the Trok AI disclosure waits while an Emergency is open, the area failed, or it is still unknown', () => {
   const base = { loading: false, error: null, count: 0, stale: false, slow: false };
   assert.equal(disclosureHeld(base), false);
   assert.equal(disclosureHeld({ ...base, count: 1 }), true);

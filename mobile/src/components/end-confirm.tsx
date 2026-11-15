@@ -30,7 +30,7 @@ import { useNow } from '@/lib/use-now';
 type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; room: Room | null };
 
 /**
- * Qrew unit 4 (Q 03.04): the End activity and End room confirm screens, pushed from Map and Info. Back, the swipe
+ * Tropop unit 4 (Q 03.04): the End activity and End room confirm screens, pushed from Map and Info. Back, the swipe
  * and Keep all just pop the screen, so nothing changes. End runs once (runOnce: a double tap cannot end twice),
  * shows its error on the screen and allows a retry. Host-only, like the RPCs (private.is_room_host).
  */
@@ -66,8 +66,8 @@ export function EndConfirm({ kind }: { kind: 'activity' | 'room' }) {
     }, [reload]),
   );
 
-  // Spec 7.4: the end-room deletion lines name the recap only when Qrewing AI may have written one.
-  // The recap is left out only when a read answered that Qrewing AI is off (still loading or a failed read keeps
+  // Spec 7.4: the end-room deletion lines name the recap only when Trok AI may have written one.
+  // The recap is left out only when a read answered that Trok AI is off (still loading or a failed read keeps
   // the recap wording, review R6). No id: no read, recap wording.
   const qrewing = useQrewingRoom(id ?? '');
   const recapOn = endCopyHasRecap(qrewing);

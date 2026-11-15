@@ -1,5 +1,5 @@
 /**
- * Qrewing Calendar data on the phone only (human: "폰에만 저장"). One versioned AsyncStorage key per user holds
+ * Trok Calendar data on the phone only (human: "폰에만 저장"). One versioned AsyncStorage key per user holds
  * room snapshots and personal events; the Plus preview flag has its own key. Pure: storage is passed in.
  */
 import { type CalItem, type DateKey, daysBetween, isDateKey, roomRange } from './calendar-plan';

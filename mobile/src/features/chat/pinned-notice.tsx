@@ -7,7 +7,7 @@ import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 
 /**
- * Spec 11 A13: the important message (host notice, Qrewing flag or a mention) pinned under the header,
+ * Spec 11 A13: the important message (host notice, Trok flag or a mention) pinned under the header,
  * KakaoTalk notice style: megaphone, who and why, the message itself. Folded it is one line; the chevron
  * unfolds the whole text. Tapping the text jumps to the message; the cross hides this notice.
  * UX2-35: chevron and cross sit side by side, both shown folded, each a 28 pt box + 8 pt hitSlop = 44 pt target.

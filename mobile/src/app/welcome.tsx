@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/auth';
 import { badLinkNoteShown } from '@/lib/invite';
 
 // UX3-A03: one screen that sells the product: gathering art, "One room for today's crew", three value rows, then
-// Join a room / Create a room / Log in. Before: Qrew Q 01.01 title, one line, gathering art. Join opens the code screen
+// Join a room / Create a room / Log in. Before: Tropop Q 01.01 title, one line, gathering art. Join opens the code screen
 // (item 10: code / QR → name → invite);
 // Create goes to Log in, which links to Create account (UX3-A07).
 export default function Welcome() {

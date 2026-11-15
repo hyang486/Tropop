@@ -1,5 +1,5 @@
 // Run: npm test (node --test, Node 24 strips the .ts types).
-// Qrewing AI pace maker (spec 3.4): on-device stats, target cues, lead group and gap pace, 3-minute stationary check.
+// Trok AI pace maker (spec 3.4): on-device stats, target cues, lead group and gap pace, 3-minute stationary check.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

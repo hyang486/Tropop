@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing Calendar VoiceOver labels and empty states (2026-11-13 a11y pass).
+// Run: npm test. Trok Calendar VoiceOver labels and empty states (2026-11-13 a11y pass).
 import './ts-resolve.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

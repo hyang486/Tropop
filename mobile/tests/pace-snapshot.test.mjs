@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing bot `me` snapshot (spec 10.4): null without a running activity, moving time per the
+// Run: npm test. Trok bot `me` snapshot (spec 10.4): null without a running activity, moving time per the
 // 2026-11-12 decision, the asker's own moving/stopped state, and never a coordinate.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

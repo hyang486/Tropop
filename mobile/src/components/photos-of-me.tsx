@@ -36,7 +36,7 @@ type Props = {
    * Manage. Matched photos and their downloads stay.
    */
   readOnly?: boolean;
-  /** Extra bottom padding for the grid and states, e.g. the Ask Qrewing button's footprint (UI audit item 1). */
+  /** Extra bottom padding for the grid and states, e.g. the Ask Trok button's footprint (UI audit item 1). */
   bottomInset?: number;
 };
 
@@ -163,7 +163,7 @@ export function PhotosOfMe({
   // Q 06.01: handwritten title, two short lines, art, and the black setup button.
   if (view === 'consent') {
     return (
-      // UI audit (2): the setup button is pinned under the scroll area, left of the Ask Qrewing button, so the
+      // UI audit (2): the setup button is pinned under the scroll area, left of the Ask Trok button, so the
       // art can never push it under the gallery footer.
       <View style={styles.introWrap}>
         <ScrollView style={styles.introWrap} contentContainerStyle={styles.introScroll} contentInsetAdjustmentBehavior="never">

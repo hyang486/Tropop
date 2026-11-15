@@ -1,4 +1,4 @@
-// Spec 11 C: route `room/[id]/questions`. Question cards Qrewing sent me (it could not answer them): write the answer,
+// Spec 11 C: route `room/[id]/questions`. Question cards Trok sent me (it could not answer them): write the answer,
 // optionally "Post as notice" (also pinned as the chat notice). The answer goes only to the asker.
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';

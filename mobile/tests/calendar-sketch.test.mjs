@@ -1,5 +1,5 @@
 // Run: npm test (node --test, Node 24 strips the .ts types).
-// Qrewing Calendar drawing geometry: seeded wobble, highlighter caps, month layout, week segments.
+// Trok Calendar drawing geometry: seeded wobble, highlighter caps, month layout, week segments.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

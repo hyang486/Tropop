@@ -5,7 +5,7 @@ import { test } from 'node:test';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
-test('UX2-53: the host sees no "Qrewing AI" header over the switch row; members and the offline state keep it', () => {
+test('UX2-53: the host sees no "Trok AI" header over the switch row; members and the offline state keep it', () => {
   const src = read('../src/features/event/info-section.tsx');
   assert.match(src, /\{isHost \? null : <QLabel>\{s\.section\}<\/QLabel>\}/);
   // Offline (host only) keeps the header: there is no switch row to name the section.

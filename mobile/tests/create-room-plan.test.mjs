@@ -54,7 +54,7 @@ test('chip selection and the More action', () => {
   assert.equal(p.moreAction(null), null);
 });
 
-test('Qrewing AI switch: Free turning on opens Plus; off always toggles; nothing while the plan loads', () => {
+test('Trok AI switch: Free turning on opens Plus; off always toggles; nothing while the plan loads', () => {
   assert.equal(p.aiSwitchAction(true, true), 'toggle');
   assert.equal(p.aiSwitchAction(true, false), 'toggle');
   assert.equal(p.aiSwitchAction(false, true), 'upgrade');

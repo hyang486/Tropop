@@ -34,7 +34,7 @@ export function ScanScreen() {
     });
   }
 
-  // Qrew Q 08.01: "Scan an invite", one line, the camera in a rounded square with corner marks, and Enter code
+  // Tropop Q 08.01: "Scan an invite", one line, the camera in a rounded square with corner marks, and Enter code
   // instead pinned at the bottom (back to the code screen, the only place that opens Scan). The permission
   // request and the Settings path are unchanged; they show in the camera's place until it is allowed.
   return (

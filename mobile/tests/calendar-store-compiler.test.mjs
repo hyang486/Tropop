@@ -1,4 +1,4 @@
-// Run: npm test. The Qrewing Calendar store hooks must re-read the module store on every render even after the
+// Run: npm test. The Trok Calendar store hooks must re-read the module store on every render even after the
 // React Compiler (app.json experiments.reactCompiler) memoizes them. Root cause of the 2026-11-13 stuck spinner:
 // `uid ? plus.get(uid) : null` was cached on `uid`, so the re-render after loadPlus() returned the stale null.
 import assert from 'node:assert/strict';

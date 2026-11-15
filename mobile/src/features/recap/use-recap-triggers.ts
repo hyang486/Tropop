@@ -16,7 +16,7 @@ import {
 import { onMessageSent } from './sent-signal';
 
 /**
- * In an AI room: remembers the room had Qrewing on, asks for the recap once at 60 minutes left and once more with
+ * In an AI room: remembers the room had Trok on, asks for the recap once at 60 minutes left and once more with
  * `refresh` in the last 10 minutes (each once per device, kept in AsyncStorage), and saves a recap announced on
  * the room channel. Saves my part (counts only) once on open, adds one message per successful send, and recounts
  * exactly about 10 s after the last send, so grace keeps the last open count even with no server recap yet. Never blocks the screen; every failure is silent (the Room ended screen says when nothing

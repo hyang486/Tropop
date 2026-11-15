@@ -12,7 +12,7 @@ import { colors, size } from '@/components/ui';
 /**
  * One composer for chat-like inputs (UX P1-11, mockup m1): a 44 pt field with a 22 pt radius and a 32 pt ink
  * circle with an up-arrow inside its trailing edge. The circle is hidden while the field is empty.
- * UX3-B05: with `idleAction` (Qrewing in chat), the empty field shows that 36 pt button in the same trailing slot
+ * UX3-B05: with `idleAction` (Trok in chat), the empty field shows that 36 pt button in the same trailing slot
  * instead; typing cross-fades it to the send arrow (150 ms, instant with Reduce Motion).
  */
 export function Composer({

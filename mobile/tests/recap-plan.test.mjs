@@ -1,4 +1,4 @@
-// Run: npm test. Qrewing recap: trigger steps, stored shape, per-user merge, timeout.
+// Run: npm test. Trok recap: trigger steps, stored shape, per-user merge, timeout.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
