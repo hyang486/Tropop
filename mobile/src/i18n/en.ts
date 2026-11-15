@@ -985,6 +985,7 @@ export const en = {
     account: 'Account',
     editProfile: 'Edit profile',
     editProfileHint: 'Your photo and name are shown to people in your rooms.',
+    editProfileButtonHint: 'Change your name and picture.',
     // B2 Profile (ux spec section 5): header meta, the Edit text button and the two card headings.
     roleHost: 'Host',
     roleGuest: 'Guest',

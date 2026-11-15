@@ -86,7 +86,7 @@ export default function Profile() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={en.profile.editProfile}
-          accessibilityHint={en.profile.editProfileHint}
+          accessibilityHint={en.profile.editProfileButtonHint}
           hitSlop={8}
           onPress={editProfile}
           style={({ pressed }) => [styles.edit, pressed && { opacity: 0.5 }]}
