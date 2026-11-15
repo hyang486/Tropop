@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Text } from '@/components/text';
 
 import { colors } from '@/components/ui';
 import { useAuth } from '@/lib/auth';

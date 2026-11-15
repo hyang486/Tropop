@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
 import { QLink } from '@/components/q-screen';

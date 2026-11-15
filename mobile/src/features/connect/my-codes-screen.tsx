@@ -1,7 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Fragment, useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { QCaption, QScreen } from '@/components/q-screen';
 import { colors, Hint } from '@/components/ui';

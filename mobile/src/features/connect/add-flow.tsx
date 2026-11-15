@@ -2,7 +2,8 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { QLink } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';

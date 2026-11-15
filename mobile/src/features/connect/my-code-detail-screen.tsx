@@ -1,6 +1,7 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { QLink, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';

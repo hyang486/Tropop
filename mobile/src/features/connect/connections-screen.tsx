@@ -2,15 +2,8 @@ import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Fragment, useCallback, useState } from 'react';
-import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
 import { QCaption, QScreen } from '@/components/q-screen';
