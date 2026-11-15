@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
+import { dismissEmergencyConfirmForEnd, EmergencyConfirmHost } from '@/components/emergency-confirm';
 import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { QLink } from '@/components/q-screen';
@@ -97,6 +98,16 @@ const MAP_STYLE: MapProperties = {
 };
 
 export default function RoomMapScreen() {
+  // F-EMX8: the Emergency confirm lives above the map / ended switch so it can close when the room ends.
+  return (
+    <>
+      <RoomMapScreenBody />
+      <EmergencyConfirmHost />
+    </>
+  );
+}
+
+function RoomMapScreenBody() {
   // focus: an Emergency sender to center on (Q 04.04 "Open last shared location" from chat, Photos or Info).
   const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -150,6 +161,9 @@ export default function RoomMapScreen() {
 
   // G-U6-1: the room's end time passing while Map is open (the host's End arrives as a rooms notice above).
   const ended = useRoomOver(state.status === 'ready' ? state.room : null);
+  useEffect(() => {
+    if (ended.over) dismissEmergencyConfirmForEnd();
+  }, [ended.over]);
   const noHeaderQ = <Stack.Screen options={{ headerRight: () => null }} />;
 
   if (state.status === 'loading') return <ActivityIndicator style={styles.loading} />;

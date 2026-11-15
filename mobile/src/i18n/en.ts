@@ -624,7 +624,7 @@ export const en = {
     // F-EM-EXP: the Emergency alerts. Network failure and ended room have their own text.
     emergencyOfflineBody: 'Check your connection and try again.',
     emergencyEndedTitle: 'Room has ended',
-    emergencyEndedBody: "Your Emergency wasn't sent.",
+    emergencyEndedBody: "Your Emergency wasn't sent. If you need help now, call your local emergency number.",
     emergencyEndedOk: 'OK',
     arrived: 'Arrived',
     arrivedAt: (time: string) => `Arrived ${time}`,
