@@ -30,9 +30,9 @@ export function Avatar({ path, name, size = 32 }: Props) {
         <SymbolView
           name={preset.symbol}
           size={Math.round(size * 0.42)}
-          tintColor="#2B2B2B"
+          tintColor={colors.label}
           weight="semibold"
-          fallback={<Text style={[styles.initial, { fontSize: Math.round(size * 0.5), color: '#2B2B2B' }]}>{preset.glyph}</Text>}
+          fallback={<Text style={[styles.initial, { fontSize: Math.round(size * 0.5), color: colors.label }]}>{preset.glyph}</Text>}
         />
       </View>
     );

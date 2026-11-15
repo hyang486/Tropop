@@ -1,7 +1,7 @@
 // Spec 11 D: the Open chat section for Rooms. Lists open public rooms (list_open_rooms) and joins one without a code
 // (join_open_room). Renders nothing while OPEN_ROOMS_LIVE is false (migration 0031 not live yet).
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, AppState, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
@@ -12,7 +12,7 @@ import { en } from '@/i18n/en';
 import { errorMessage } from '@/lib/errors';
 import { RoomError } from '@/lib/rooms';
 
-import { cameToForeground, iconEmoji, joinableOpenRooms, OPEN_ROOMS_LIVE, openRowSpoken, openRowWhen } from './open-room-plan';
+import { cameToForeground, iconEmoji, joinableOpenRooms, OPEN_ROOMS_LIVE, openChatView, openRowSpoken, openRowWhen } from './open-room-plan';
 import { joinOpenRoom, listOpenRooms, type OpenRoom } from './open-rooms-api';
 
 /** "today 6:30 AM", "tomorrow 6:30 AM", "Sat 6:30 AM"; the end time reads "until …" (no start time yet). */
@@ -34,10 +34,13 @@ export function OpenChatSection({
   refreshKey = 0,
   onNotice,
   roomsOffline = false,
+  empty,
 }: {
   refreshKey?: number;
   onNotice: (text: string) => void;
   roomsOffline?: boolean;
+  /** Explore only (E1): shown in place of nothing once the first read has no rows and no error. */
+  empty?: ReactNode;
 }) {
   const router = useRouter();
   const [rooms, setRooms] = useState<OpenRoom[] | null>(null);
@@ -108,10 +111,11 @@ export function OpenChatSection({
     }
   }
 
-  if (!OPEN_ROOMS_LIVE) return null;
   // UX2-58: the section (label included) hides while it has no rows, unless it has a load error to show.
+  const view = openChatView(OPEN_ROOMS_LIVE, rooms, error, roomsOffline, empty !== undefined);
+  if (view === 'empty') return <>{empty}</>;
+  if (view === 'none') return null;
   const showError = error !== null && !roomsOffline;
-  if (!showError && !rooms?.length) return null;
   return (
     <View style={styles.section}>
       <QLabel>{en.openChat.section}</QLabel>

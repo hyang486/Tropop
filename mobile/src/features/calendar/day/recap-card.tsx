@@ -7,7 +7,7 @@ import { metPeople, recapSpoken, type RecapState } from './day-detail-model';
 
 const t = en.calendar;
 
-/** Trok Recap card (calendar-v2-spec §B2). Free never sees the diary text; unread plan shows nothing yet. */
+/** Trok recap card (calendar-v2-spec §B2). Free never sees the diary text; unread plan shows nothing yet. */
 export function RecapCard({
   state, diary, people, onSeePlus,
 }: { state: RecapState; diary?: string[] | null; people?: number | null; onSeePlus: () => void }) {

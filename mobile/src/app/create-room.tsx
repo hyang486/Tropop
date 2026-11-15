@@ -1,7 +1,7 @@
 import { DatePicker, Host } from '@expo/ui/swift-ui';
 import { dynamicTypeSize, labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, PlatformColor, Pressable, StyleSheet, View } from 'react-native';
@@ -44,6 +44,7 @@ import {
   stepCapacity,
   capacityValue,
   typedCapacity,
+  initialVisibility,
   type Visibility,
 } from '@/features/event/open-room-plan';
 import { createOpenAwareRoom } from '@/features/event/open-rooms-api';
@@ -147,7 +148,8 @@ export default function CreateRoom() {
     setClampSeq((s) => s + 1);
     setCapacityDraft(null);
   }
-  const [visibility, setVisibility] = useState<Visibility>('private');
+  const { visibility: visibilityParam } = useLocalSearchParams<{ visibility?: string }>();
+  const [visibility, setVisibility] = useState<Visibility>(() => initialVisibility(visibilityParam));
   const [pickedIcon, setPickedIcon] = useState<string | null>(null);
   const icon = pickedIcon ?? defaultRoomIcon(type);
   const [area, setArea] = useState('');

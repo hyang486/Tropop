@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { useRoomEvents } from '@/lib/room-channel';
 
-import { type RecapMark, type RecapMiss, recapCardView, rereadOnSubscribe, type SavedRecap } from './recap-plan';
+import { myPartRows, type RecapMark, type RecapMiss, recapCardView, rereadOnSubscribe, type SavedRecap, visibleHighlights } from './recap-plan';
 import { loadMark, loadSavedRecap, readAndSaveRecap, recapForEndedRoom } from './recap-store';
 
 const s = en.qrewing.recap;
@@ -166,14 +166,8 @@ function RecapCardBody({
       </View>
     );
   }
-  const me = saved.me;
-  const mine = [
-    me.messages !== null ? s.messages(me.messages) : null,
-    me.mediaShared !== null ? s.media(me.mediaShared) : null,
-    me.photosOfMe !== null ? s.photosOfMe(me.photosOfMe) : null,
-    me.arrivedAt ? s.arrived(new Date(me.arrivedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) : null,
-    me.pace,
-  ].filter((x): x is string => !!x);
+  const copy = { messages: s.messages, media: s.media, photosOfMe: s.photosOfMe, arrived: s.arrived };
+  const mine = myPartRows(saved.me, copy, (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
 
   return (
     <View style={styles.wrap}>
@@ -181,7 +175,7 @@ function RecapCardBody({
       <QCard lift>
         <Text style={styles.title} accessibilityRole="header">{saved.server.title}</Text>
         <Text style={styles.body}>{saved.server.summary}</Text>
-        {saved.server.highlights.map((h, i) => (
+        {visibleHighlights(saved.server.summary, saved.server.highlights).map((h, i) => (
           <Text key={i} style={styles.body} accessibilityLabel={h}>
             {`•  ${h}`}
           </Text>

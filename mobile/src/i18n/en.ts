@@ -208,6 +208,9 @@ export const en = {
   // Spec 11 D: the Open chat section on Rooms.
   openChat: {
     section: 'Open chat',
+    emptyTitle: 'No open rooms right now',
+    emptyBody: "Public rooms show up here while they're open. Start one and people can join without a code.",
+    emptyAction: 'Start a public room',
     today: 'today',
     tomorrow: 'tomorrow',
     until: (when: string) => `until ${when}`,
@@ -485,8 +488,8 @@ export const en = {
     // UX P1-2: one short grey line each; a tappable line ends in " ›".
     emergencySet: (name: string) => `${name} set Emergency`,
     activityStarted: 'Activity started',
-    openMapLink: 'Open Map',
-    openMapHint: 'Opens Map',
+    openMapLink: 'Open map',
+    openMapHint: 'Opens the room map.',
     // Spec 11 A9: the header bell.
     notices: 'Notices',
     noticesA11y: (unread: number) => (unread > 0 ? `Notices, ${unread} new` : 'Notices'),
@@ -1208,7 +1211,7 @@ export const en = {
     past: 'Past',
     upcoming: 'Upcoming',
     nothingPlanned: 'Nothing planned',
-    recapTitle: 'Trok Recap',
+    recapTitle: 'Trok recap',
     recapPending: 'Your recap appears after this room ends.',
     recapNone: 'No recap was saved for this room.',
     metPeople: (n: number) => (n === 1 ? 'You met 1 person' : `You met ${n} people`),

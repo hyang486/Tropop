@@ -233,3 +233,13 @@ test('mergeMyPart F-EMX5: the fresh last-2-minutes count replaces the stale one'
   const fresh = { messages: 2, mediaShared: 0, photosOfMe: null, arrivedAt: null, pace: null };
   assert.equal(mergeMyPart(stale, fresh).messages, 2);
 });
+
+test('visibleHighlights: hides summary repeats and duplicates, keeps new facts, caps at 5', async () => {
+  const { visibleHighlights } = await import('../src/features/recap/recap-plan.ts');
+  const summary = 'The group met at noon. Sora booked the court!';
+  assert.deepEqual(visibleHighlights(summary, ['The group met at noon.']), []);
+  assert.deepEqual(visibleHighlights(summary, ['sora booked the court', 'Next game is Friday']), ['Next game is Friday']);
+  assert.deepEqual(visibleHighlights(summary, ['Bring water', 'bring  WATER!', '  ', '!!!']), ['Bring water']);
+  assert.deepEqual(visibleHighlights('x', ['a', 'b', 'c', 'd', 'e', 'f', 'g']), ['a', 'b', 'c', 'd', 'e']);
+  assert.deepEqual(visibleHighlights('x', []), []);
+});
