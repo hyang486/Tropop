@@ -75,6 +75,12 @@ export const TRIAGE_SYSTEM = [
   DATA_RULE,
 ].join(' ');
 
+const CHAT_SCOPE_RULE =
+  'The chat holds only messages from members who turned on Qrewing AI; other members may have chatted too, and' +
+  ' <shared_media> counts everything shared by anyone. Never say that no messages were sent or that nothing was' +
+  ' shared unless the chat is empty and every <shared_media> count is 0; when the chat is empty, write a short recap' +
+  ' from the room details and the media counts instead.';
+
 export const RECAP_SYSTEM = [
   'You write a short, warm recap of a temporary group room that is ending, for the people who were in it.',
   'Use only what the data shows; do not invent events, names or numbers.',
@@ -84,6 +90,7 @@ export const RECAP_SYSTEM = [
   'Lines whose text starts with [status change] or [Emergency] were posted by the app when that member changed their',
   'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved. Mention an',
   'Emergency and how it ended when there was one; do not add details the data does not show.',
+  CHAT_SCOPE_RULE,
   GENDER_RULE,
   DATA_RULE,
 ].join(' ');
@@ -99,6 +106,8 @@ export const RECAP_REFRESH_SYSTEM = [
   'Lines whose text starts with [status change] or [Emergency] were posted by the app when that member changed their',
   'status or raised an Emergency; <emergencies> says who saw each Emergency and whether it was resolved. Mention an',
   'Emergency and how it ended when there was one; do not add details the data does not show.',
+  '<shared_media> gives the room totals now; new_photos and new_videos are the ones shared after the previous recap.',
+  CHAT_SCOPE_RULE,
   GENDER_RULE,
   DATA_RULE.replace('written by room members', 'written by room members or generated from their messages'),
 ].join(' ');
@@ -181,6 +190,11 @@ export function recapUser(r: RecapInput): string {
 
 export type RecapRefreshInput = {
   previous: { title: string; summary: string; highlights: string[] };
+  /** F-RCP1: room totals now, and how many were shared after the previous recap. Absent in older callers: no tag. */
+  photos?: number;
+  videos?: number;
+  newPhotos?: number;
+  newVideos?: number;
   lines: { sender: string; text: string }[];
   emergencies?: RecapEmergency[];
 };
@@ -191,7 +205,11 @@ export function recapRefreshUser(r: RecapRefreshInput): string {
   return (
     `<previous_recap>\n<title>${esc(r.previous.title)}</title>\n<summary>${esc(r.previous.summary)}</summary>\n` +
     (hl ? `${hl}\n` : '') +
-    `</previous_recap>\n<new_chat>\n${chat}\n</new_chat>${recapEmergencies(r.emergencies)}`
+    `</previous_recap>\n` +
+    (r.photos !== undefined
+      ? `<shared_media photos="${r.photos}" videos="${r.videos ?? 0}" new_photos="${r.newPhotos ?? 0}" new_videos="${r.newVideos ?? 0}"/>\n`
+      : '') +
+    `<new_chat>\n${chat}\n</new_chat>${recapEmergencies(r.emergencies)}`
   );
 }
 

@@ -161,9 +161,11 @@ function createStore(admin: any): QrewingStore {
       );
       return (rows ?? []).map(toMsg);
     },
-    async mediaCounts(roomId) {
+    async mediaCounts(roomId, since) {
       const count = async (kind: string) => {
-        const res = await admin.from('media').select('id', { count: 'exact', head: true }).eq('room_id', roomId).eq('kind', kind).eq('status', 'ready');
+        let q = admin.from('media').select('id', { count: 'exact', head: true }).eq('room_id', roomId).eq('kind', kind).eq('status', 'ready');
+        if (since) q = q.gt('created_at', since);
+        const res = await q;
         must(res, 'media_count');
         return res.count ?? 0;
       };

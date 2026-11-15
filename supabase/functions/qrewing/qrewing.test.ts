@@ -81,6 +81,8 @@ type World = {
   messages: Msg[];
   triage: Map<string, TriageRow & { roomId: string; createdAt: string; source?: 'model' | 'rule' }>;
   recap: RecapRow | null;
+  /** Ready media rows; the default is 4 photos and 1 video from long before any recap. */
+  media: { kind: 'photo' | 'video'; createdAt: string }[];
   questions: EntryQuestion[];
   entries: EntryProfile[];
   matches: Map<string, MatchRow>;
@@ -137,6 +139,7 @@ function world(over: Partial<World> = {}): World {
     messages: [],
     triage: new Map(),
     recap: null,
+    media: (['photo', 'photo', 'photo', 'photo', 'video'] as const).map((kind) => ({ kind, createdAt: iso(-24 * 60 * MIN) })),
     questions: DEFAULT_QS.map((q) => ({ ...q })),
     entries: [],
     matches: new Map(),
@@ -193,8 +196,9 @@ function store(w: World): QrewingStore {
     async textAfter(roomId, after, limit) {
       return text().filter((m) => m.roomId === roomId && m.createdAt > after).slice(0, limit);
     },
-    async mediaCounts() {
-      return { photos: 4, videos: 1 };
+    async mediaCounts(_roomId, since) {
+      const rows = w.media.filter((x) => !since || x.createdAt > since);
+      return { photos: rows.filter((x) => x.kind === 'photo').length, videos: rows.filter((x) => x.kind === 'video').length };
     },
     async triageRows(ids) {
       return ids.filter((i) => w.triage.has(i)).map((i) => w.triage.get(i)!);
@@ -796,6 +800,36 @@ test('recap refresh: messages sent while the first recap was generating count as
   assert.equal((await run(w, m, BOB, { action: 'recap', roomId: ROOM, refresh: true })).status, 200);
   assert.equal(calls.length, 1);
   assert.ok(calls[0].user.includes('sent during generation'));
+});
+
+test('recap refresh F-RCP1: a photo shared after the recap makes it stale; counts reach the model, no sender', async () => {
+  const w = world();
+  w.room = { ...w.room!, expiresAt: iso(8 * MIN) };
+  w.recap = { state: 'done', title: 'Run', summary: 'No messages yet.', highlights: [], createdAt: iso(-40 * MIN), updatedAt: iso(-40 * MIN), refreshedAt: null };
+  const { m, calls } = model(() => ({ text: RECAP_OUT }));
+
+  // Only media from before the recap: cached, no call, refresh not spent.
+  let r = await run(w, m, BOB, { action: 'recap', roomId: ROOM, refresh: true });
+  assert.equal((r.body as { cached: boolean }).cached, true);
+  assert.equal(calls.length, 0);
+  assert.equal(w.recap?.refreshedAt, null);
+
+  w.media.push({ kind: 'photo', createdAt: iso(-5 * MIN) });
+  r = await run(w, m, BOB, { action: 'recap', roomId: ROOM, refresh: true });
+  assert.equal(r.status, 200);
+  assert.equal((r.body as { cached: boolean }).cached, false);
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].user.includes('<shared_media photos="5" videos="1" new_photos="1" new_videos="0"/>'), calls[0].user);
+  assert.notEqual(w.recap?.refreshedAt, null);
+});
+
+test('recap prompts F-RCP1: the chat is consenting members only, so the model may not claim nothing was sent', () => {
+  for (const sys of [RECAP_SYSTEM, RECAP_REFRESH_SYSTEM]) {
+    assert.ok(sys.includes('only messages from members who turned on Qrewing AI'));
+    assert.ok(sys.includes('Never say that no messages were sent'));
+  }
+  // Older callers without counts get no media tag.
+  assert.ok(!recapRefreshUser({ previous: { title: 't', summary: 's', highlights: [] }, lines: [] }).includes('shared_media'));
 });
 
 test('recap refresh: a failed refresh keeps the previous recap and is spent', async () => {

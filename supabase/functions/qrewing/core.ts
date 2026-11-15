@@ -227,7 +227,8 @@ export interface QrewingStore {
   latestText(roomId: string, limit: number): Promise<Msg[]>;
   /** Up to `limit` text messages of the room created after `after`, newest first. */
   textAfter(roomId: string, after: string, limit: number): Promise<Msg[]>;
-  mediaCounts(roomId: string): Promise<{ photos: number; videos: number }>;
+  /** Ready photos and videos of the room; with `since`, only those created after it (F-RCP1 refresh trigger). */
+  mediaCounts(roomId: string, since?: string): Promise<{ photos: number; videos: number }>;
 
   triageRows(messageIds: string[]): Promise<TriageRow[]>;
   /**
@@ -882,13 +883,18 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
     // An Emergency is new, or newly resolved (its resolving line came after the recap).
     alerts: all.alerts.filter((e) => e.createdAt > existing.createdAt || (e.resolved && all.lines.some((m) => m.kind === 'status' && m.senderId === e.userId && m.createdAt > existing.createdAt))),
   };
-  if (newer.length === 0 && hist.lines.length === 0) return { status: 200, body: recapBody(existing, true) };
+  // F-RCP1: photos and videos shared after the recap also make it stale (only counts reach the model).
+  const newMedia = await store.mediaCounts(room.id, existing.createdAt);
+  if (newer.length === 0 && hist.lines.length === 0 && newMedia.photos + newMedia.videos === 0) {
+    return { status: 200, body: recapBody(existing, true) };
+  }
   if (!(await store.claimRecapRefresh(room.id))) {
     const again = await store.recap(room.id);
     return { status: 200, body: recapBody(again?.state === 'done' ? again : existing, true) };
   }
 
   const names = await store.displayNames(historyIds(newer, hist));
+  const media = await store.mediaCounts(room.id);
   const r = await callModel(ctx, 'recap', {
     model: RECAP_MODEL,
     effort: 'medium',
@@ -897,6 +903,10 @@ async function recapRefresh(ctx: Ctx): Promise<Reply> {
     system: RECAP_REFRESH_SYSTEM,
     user: recapRefreshUser({
       previous: { title: existing.title ?? '', summary: existing.summary ?? '', highlights: existing.highlights ?? [] },
+      photos: media.photos,
+      videos: media.videos,
+      newPhotos: newMedia.photos,
+      newVideos: newMedia.videos,
       lines: timeline(newer, hist.lines, names),
       emergencies: recapAlerts(hist.alerts, names),
     }),
