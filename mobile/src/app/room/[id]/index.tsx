@@ -39,6 +39,7 @@ import { canCheck, type CheckSummary } from '@/features/chat/message-checks-plan
 import { buildTimeline, resolvedCopy, type TimelineRow } from '@/features/chat/chat-timeline-plan';
 import { useMarkRoomRead } from '@/features/event/room-summary-api';
 import { PinnedNotice } from '@/features/chat/pinned-notice';
+import { EndsChip } from '@/features/event/ends-chip';
 import { PlusPanel, type PlusTile } from '@/features/chat/plus-panel';
 import { cardsToAnswer } from '@/features/questions/question-plan';
 import { useQuestionCards, useRoomCards } from '@/features/questions/question-store';
@@ -532,6 +533,7 @@ function ChatRoom({
               <Hint>{en.qrewing.create.aiSaveFailed}</Hint>
             </Pressable>
           ) : null}
+          <EndsChip expiresAt={room.expires_at} nowMs={nowMs} />
           {banner && bannerMessage ? (
             <PinnedNotice
               heading={banner.mention ? en.qrewing.mute.mentioned : en.qrewing.mute.banner(banner.reason ?? '')}
