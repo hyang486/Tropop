@@ -1,12 +1,10 @@
 import { Image } from 'expo-image';
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Text } from '@/components/text';
-import { colors } from '@/components/ui';
 
 import {
-  HERO_EMPTY_HEIGHT, HERO_EMPTY_OPACITY, HERO_HEIGHT, HERO_RADIUS, SCRIM_COLOR, SCRIM_FROM, SCRIM_HEIGHT, SCRIM_TO, TOPIC_SYMBOL, heroLabel,
+  HERO_EMPTY_HEIGHT, HERO_EMPTY_OPACITY, HERO_HEIGHT, HERO_RADIUS, SCRIM_COLOR, SCRIM_FROM, SCRIM_HEIGHT, SCRIM_TO, heroLabel,
 } from './hero-card-model';
 import { HERO_IMAGES } from './room-hero-images';
 import type { HeroTopic } from './room-hero';
@@ -41,11 +39,6 @@ export function HeroCard({
         </Svg>
       </View>
       <View style={styles.row}>
-        {topic ? (
-          <View style={styles.tile}>
-            <SymbolView name={TOPIC_SYMBOL[hero].sf as SymbolViewProps['name']} size={22} tintColor={colors.tint} />
-          </View>
-        ) : null}
         <View style={styles.text}>
           {title ? <Text style={styles.title} numberOfLines={2}>{title}</Text> : null}
           {meta ? <Text style={styles.meta}>{meta}</Text> : null}
@@ -59,7 +52,6 @@ const styles = StyleSheet.create({
   card: { width: '100%', borderRadius: HERO_RADIUS, overflow: 'hidden', justifyContent: 'flex-end' },
   scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: SCRIM_HEIGHT },
   row: { position: 'absolute', left: 16, right: 16, bottom: 16, flexDirection: 'row', gap: 12, alignItems: 'flex-end' },
-  tile: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: 2 },
   title: { color: '#FFFFFF', fontSize: 24, lineHeight: 30, fontFamily: 'SourceSans3-Bold' },
   meta: { color: 'rgba(255,255,255,0.9)', fontSize: 15, lineHeight: 20, fontFamily: 'SourceSans3-Semibold' },

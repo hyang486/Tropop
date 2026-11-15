@@ -24,7 +24,8 @@ test('Today has no header toolbar buttons and no Open chat section', () => {
 
 test('V2: each section is one Card; rows have no border; 48 pt wash art tile, radius 14; row min 76', () => {
   const h = src('app/(tabs)/index.tsx');
-  assert.match(h, /<Card>\s+\{sortEmergencyFirst\(\s+sortByLastItem\(/);
+  assert.match(h, /<Card>\s+\{ordered\.map\(/);
+  assert.match(h, /ordered: sortEmergencyFirst\(\s+sortByLastItem\(/);
   assert.match(h, /row: \{\s+flexDirection: 'row',\s+alignItems: 'center',\s+minHeight: 80,\s+paddingHorizontal: 16,/);
   assert.match(h, /ring: \{\s+width: 48,\s+height: 48,\s+borderRadius: 14,\s+borderCurve: 'continuous',\s+backgroundColor: colors\.wash,/);
   assert.doesNotMatch(h, /borderWidth/);

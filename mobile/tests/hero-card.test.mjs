@@ -25,8 +25,8 @@ test('card: image hidden from VoiceOver, cover, grows with minHeight, scrim is t
   assert.match(src, /height: SCRIM_HEIGHT/);
   assert.match(src, /numberOfLines=\{2\}/);
   assert.match(src, /left: 16, right: 16, bottom: 16, flexDirection: 'row', gap: 12, alignItems: 'flex-end'/);
-  assert.match(src, /width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba\(255,255,255,0.9\)'/);
-  assert.match(src, /size=\{22\} tintColor=\{colors.tint\}/);
+  // Human 08:20 / ux 2: no room-type badge; the art says run or meetup.
+  assert.doesNotMatch(src, /styles\.tile|SymbolView/);
   assert.match(src, /fontSize: 24, lineHeight: 30, fontFamily: 'SourceSans3-Bold'/);
   assert.match(src, /fontSize: 15, lineHeight: 20, fontFamily: 'SourceSans3-Semibold'/);
   assert.match(src, /HERO_IMAGES\.general/);

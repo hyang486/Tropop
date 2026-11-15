@@ -7,7 +7,7 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ActionSheetIOS } from '@/lib/dialogs';
 import { Modal } from '@/components/modal';
 import { Text, TextInput } from '@/components/text';
@@ -33,6 +33,8 @@ import {
 } from './home-model';
 import { PlanOfflineLine } from './plan-offline-line';
 import { addTapAction, plusIntroHref } from './plus-intro';
+
+const QREWING_MARK = require('../../../assets/brand/qrewing/qrewing-mark.png');
 
 const t = en.calendar;
 const EVENT_DOT = '#E0A800';
@@ -145,7 +147,7 @@ function MomentsHome({ uid }: { uid: string }) {
 
         <View style={styles.summary} accessible accessibilityLabel={spokenSummary}>
           <View style={styles.summaryTop}>
-            <SymbolView name="sparkles" size={18} tintColor={colors.tint} />
+            <Image source={QREWING_MARK} style={{ width: 18, height: 18 }} resizeMode="contain" accessible={false} />
             <Text style={styles.summaryLabel}>{t.summaryLabel}</Text>
           </View>
           {parts.length ? (
