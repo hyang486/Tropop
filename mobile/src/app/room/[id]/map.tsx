@@ -85,6 +85,10 @@ type State =
 // P2: the member label pill. Fixed light colors (not the app theme) so it reads the same on light and dark maps.
 const LABEL_BACKGROUND = palette.light.lift;
 const LABEL_TEXT = palette.light.ink;
+/** Web only: the pin's face for the Leaflet stub, which draws the PinFace look (the stub owns the colors). */
+const webPinOf = (face: { kind: string; text: string; stale: boolean; emergency: boolean; onWay?: true }) => ({
+  kind: face.kind, text: face.text, stale: face.stale, emergency: face.emergency, onWay: face.onWay === true,
+});
 const LABEL_STALE_TEXT = palette.light.ink2;
 // UX2-35: the 34 pt overlay buttons reach 44 pt tall without growing.
 const OVERLAY_HIT_SLOP = { top: 5, bottom: 5 };
@@ -342,9 +346,11 @@ function RoomMap({
         // react-native-web has no Image.resolveAssetSource; require(png) is a URL string or an { uri } object there.
         const src = CHARACTER_IMAGES[choice.id][72] as unknown;
         const uri = typeof src === 'string' ? src : (src as { uri?: string } | null)?.uri;
-        if (uri) return { id: pin.id, coordinates: pin.coordinates, iconUrl: uri, text: pin.face.text, backgroundColor: LABEL_BACKGROUND, textColor: LABEL_TEXT };
+        if (uri) return { id: pin.id, coordinates: pin.coordinates, text: pin.face.text, backgroundColor: LABEL_BACKGROUND, textColor: LABEL_TEXT, webPin: { ...webPinOf(pin.face), image: uri } };
       }
     }
+    // Web: every other pin (initial, "+N", Emergency) is drawn by the stub in the iOS PinFace look, not as a pill.
+    if (Platform.OS === 'web' && !icon) return { id: pin.id, coordinates: pin.coordinates, text: pin.face.text, backgroundColor: LABEL_BACKGROUND, textColor: LABEL_TEXT, webPin: webPinOf(pin.face) };
     // Until its icon is baked (or if baking failed), a pin is a plain white pill with its initial.
     return icon
       ? { id: pin.id, coordinates: pin.coordinates, icon, iconUrl: pinIcons.urls.get(pin.faceKey) }
