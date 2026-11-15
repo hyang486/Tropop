@@ -1,34 +1,43 @@
-import Svg, { Path } from 'react-native-svg';
+import { SymbolView, type SFSymbol } from 'expo-symbols';
 
-import { INK_ICON_BOX, INK_ICONS, inkIconKey } from './ink-icon-map';
+import { inkIconKey, type InkIconKey } from './ink-icon-map';
 import { useCalendarColors } from './tokens';
 
-/** Stroke width in points at any size, close to the assets/art pen line. */
-const STROKE_PT = 1.5;
+/** Item 7 A1: the 18 category glyphs are SF Symbols (the web stub maps each to its Lucide twin). */
+const SF: Record<InkIconKey, SFSymbol> = {
+  pin: 'mappin',
+  party: 'party.popper',
+  coffee: 'cup.and.saucer',
+  run: 'figure.run',
+  meal: 'fork.knife',
+  cake: 'birthday.cake',
+  bike: 'bicycle',
+  ball: 'soccerball',
+  music: 'music.note',
+  book: 'book',
+  plane: 'airplane',
+  beach: 'beach.umbrella',
+  hospital: 'cross.case',
+  work: 'briefcase',
+  cart: 'cart',
+  heart: 'heart',
+  hourglass: 'hourglass',
+  chat: 'bubble.left',
+};
 
 /**
- * A room's or event's emoji drawn as a black-ink line icon (theme ink: near-black on light, light graphite on dark).
+ * A room's or event's emoji shown as a category symbol in theme ink (near-black on light, light graphite on dark).
  * Decorative: the caller's element carries the words for VoiceOver (inkIconLabel), so the icon is hidden.
  */
 export function InkIcon({ emoji, size = 22, color }: { emoji: string | null | undefined; size?: number; color?: string }) {
   const ink = useCalendarColors().ink;
-  const { paths } = INK_ICONS[inkIconKey(emoji)];
   return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${INK_ICON_BOX} ${INK_ICON_BOX}`}
-      fill="none"
-      stroke={color ?? ink}
-      strokeWidth={(STROKE_PT * INK_ICON_BOX) / size}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <SymbolView
+      name={SF[inkIconKey(emoji)]}
+      size={size}
+      tintColor={color ?? ink}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-    >
-      {paths.map((d) => (
-        <Path key={d} d={d} />
-      ))}
-    </Svg>
+    />
   );
 }
