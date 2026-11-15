@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { peopleEmpty, peopleGate } from '../src/features/event/people-empty.ts';
+import { refetchOnFocus, peopleEmpty, peopleGate } from '../src/features/event/people-empty.ts';
 
 const none = { loaded: true, failed: false, count: 0 };
 const some = { loaded: true, failed: false, count: 2 };
@@ -54,4 +54,11 @@ test('UX2-49 + UX2-137: the no-consent empty state is "Find who to meet" with wh
   assert.equal(s.consentTitle, 'Find who to meet');
   assert.equal(s.notConsented, 'Trok suggests people here you might get along with. Agree to Trok AI first.');
   assert.equal(s.agree, 'Agree');
+});
+
+test('People to meet re-asks on focus only after a "no_entry" answer (entry info saved elsewhere)', () => {
+  assert.equal(refetchOnFocus('error', 'no_entry'), true);
+  assert.equal(refetchOnFocus('error', 'plan_limit'), false);
+  assert.equal(refetchOnFocus('ready', null), false);
+  assert.equal(refetchOnFocus('loading', null), false);
 });

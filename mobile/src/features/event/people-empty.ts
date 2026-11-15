@@ -40,3 +40,11 @@ export function peopleEmpty(input: {
   if (q.loaded && !q.failed && q.count === 0) return 'noQuestions';
   return noEntry ? 'noEntry' : 'noMatches';
 }
+
+/**
+ * Coming back to People to meet (focus) re-asks when the last answer was "add your entry info first": the member
+ * may have just saved it on the entry screen, and the kept error must not keep saying so until a manual Refresh.
+ */
+export function refetchOnFocus(status: 'loading' | 'pending' | 'error' | 'ready', error: string | null): boolean {
+  return status === 'error' && error === 'no_entry';
+}

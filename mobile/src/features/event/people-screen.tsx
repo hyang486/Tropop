@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { Alert } from '@/lib/dialogs';
@@ -15,7 +15,7 @@ import { Button, colors, Hint } from '@/components/ui';
 import { DisclosureSheet } from './disclosure-sheet';
 import { listEntryProfiles } from './entry-api';
 import { linksByUser } from './event-plan';
-import { peopleEmpty, peopleGate } from './people-empty';
+import { peopleEmpty, peopleGate, refetchOnFocus } from './people-empty';
 import {
   type MatchResult,
   type QrewingError,
@@ -114,6 +114,18 @@ export function PeopleScreen() {
     setState({ status: 'loading' });
     run();
   }, [run]);
+
+  // Back from the entry screen after saving: re-ask once instead of showing the old "add your entry info" answer.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  useFocusEffect(
+    useCallback(() => {
+      const cur = stateRef.current;
+      if (!skip && refetchOnFocus(cur.status, cur.status === 'error' ? cur.error : null)) refresh();
+    }, [skip, refresh]),
+  );
 
   // Spec 11 A15: each suggestion shows the member's profile photo (or initial). A failed read keeps the initials.
   const [avatars, setAvatars] = useState<ReadonlyMap<string, string | null>>(new Map());
