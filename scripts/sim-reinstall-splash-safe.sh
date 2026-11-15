@@ -26,9 +26,21 @@ fi
 xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
 xcrun simctl install "$UDID" "$APP"
 DATA=$(xcrun simctl get_app_container "$UDID" "$BID" data)   # resolve while booted
+# install returns before the bundle is fully in place; shutting down too early leaves a half install
+for _ in $(seq 1 60); do
+  nb=$(xcrun simctl get_app_container "$UDID" "$BID" app 2>/dev/null || true)
+  [ -n "$nb" ] && [ -f "$nb/Info.plist" ] && break
+  sleep 1
+done
+[ -f "${nb:?}/Info.plist" ] || { echo "install did not complete" >&2; exit 1; }
 xcrun simctl shutdown "$UDID"
 SNAP="${DATA:?}/Library/SplashBoard/Snapshots"
 [ -d "$SNAP" ] && find "${SNAP:?}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 xcrun simctl boot "$UDID"
 xcrun simctl bootstatus "$UDID" >/dev/null 2>&1
-echo "ok $UDID CFBundleVersion=$(plutil -extract CFBundleVersion raw "$(xcrun simctl get_app_container "$UDID" "$BID" app)/Info.plist")"
+for _ in $(seq 1 60); do   # the app container path is re-registered a few seconds after boot
+  fin=$(xcrun simctl get_app_container "$UDID" "$BID" app 2>/dev/null || true)
+  [ -n "$fin" ] && [ -f "$fin/Info.plist" ] && break
+  sleep 1
+done
+echo "ok $UDID CFBundleVersion=$(plutil -extract CFBundleVersion raw "${fin:?}/Info.plist")"
