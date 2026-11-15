@@ -22,7 +22,7 @@ import { AppMark, QrImage } from './parts';
 import { QrFullScreen, type FullScreenQr } from './qr-full-screen';
 import { ConfirmSheet } from './sheets';
 
-type Data = { person: Connection | null; codes: PartnerQrCode[] };
+type Data = { person: Connection | null; codes: PartnerQrCode[]; loadedAt: number };
 
 /** Mock 05 / spec §4: one card per shared app; Open in <app>, Code not working?, Remove connection. No Block (H6). */
 export function ConnectionScreen() {
@@ -39,7 +39,7 @@ export function ConnectionScreen() {
     if (!userId) return;
     try {
       const [connections, codes] = await Promise.all([listConnections(), listConnectionQrCodes(userId)]);
-      setData({ person: connections.find((c) => c.otherId === userId) ?? null, codes });
+      setData({ person: connections.find((c) => c.otherId === userId) ?? null, codes, loadedAt: Date.now() });
       setError(null);
     } catch (e) {
       setError(t.errors[toConnectError(e).kind]);
@@ -127,7 +127,7 @@ export function ConnectionScreen() {
               <View style={styles.cardHead}>
                 <AppMark app={code.app} />
                 <Text style={styles.appName}>{t.appName(code.app)}</Text>
-                {isRecentlyUpdated(code.updatedAt, Date.now(), person.createdAt) ? (
+                {isRecentlyUpdated(code.updatedAt, data.loadedAt, person.createdAt) ? (
                   <View style={styles.tag}>
                     <Text style={styles.tagText}>{t.updated}</Text>
                   </View>
