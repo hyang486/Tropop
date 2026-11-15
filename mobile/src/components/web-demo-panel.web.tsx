@@ -28,8 +28,8 @@ export function WebDemoPanel() {
   if (width < 1024) return null;
   return (
     <>
-      <div style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: 320, overflowY: 'auto', padding: 16, boxSizing: 'border-box', backgroundColor: colors.background, borderRight: `1px solid ${colors.separator}` }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: colors.label, marginBottom: 4 }}>Sample photos</div>
+      <div style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: 320, overflowY: 'auto', padding: 16, boxSizing: 'border-box', fontFamily: "'SourceSans3-Regular', -apple-system, sans-serif", backgroundColor: colors.background, borderRight: `1px solid ${colors.separator}` }}>
+        <div style={{ fontSize: 17, fontFamily: "'SourceSans3-Semibold', -apple-system, sans-serif", color: colors.label, marginBottom: 4 }}>Sample photos</div>
         <div style={{ fontSize: 13, lineHeight: '18px', color: colors.ink2, marginBottom: 12 }}>Click to enlarge. Drag onto Photos or Add QR in the app.</div>
         {!present ? (
           <div style={{ fontSize: 14, lineHeight: '20px', color: colors.ink2, padding: '24px 0' }}>No sample photos found. Put them in mobile/public/demo-gallery/ to use this panel.</div>

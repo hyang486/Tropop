@@ -7,6 +7,7 @@ const config = getDefaultConfig(__dirname);
 const webStubs = {
   'expo-notifications': path.resolve(__dirname, 'src/web-stubs/expo-notifications.ts'),
   'expo-maps': path.resolve(__dirname, 'src/web-stubs/expo-maps.tsx'),
+  'expo-file-system': path.resolve(__dirname, 'src/web-stubs/expo-file-system.ts'),
   '@expo/ui/swift-ui': path.resolve(__dirname, 'src/web-stubs/expo-ui-swift-ui.tsx'),
   '@expo/ui/swift-ui/modifiers': path.resolve(__dirname, 'src/web-stubs/expo-ui-modifiers.ts'),
 };
