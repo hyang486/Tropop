@@ -18,10 +18,8 @@ test('the shared surface: lift fill, 0.5 pt hairline (light only, B1), light sha
   assert.match(read('../src/features/chat/chat-header.tsx'), /tintColor=\{rt \? pal\.ink : colors\.label\}/);
 });
 
-test('Rooms capsule, chat back and chat bell/gear all use the helper only when RT is on', () => {
-  const rooms = read('../src/app/index.tsx');
-  assert.match(rooms, /reduceTransparency \? \(\s*\/\/ F-RT2/);
-  assert.match(rooms, /rtRightOptions\(/);
+// Tab bar: Today has no header buttons any more (the profile avatar is the tab header's), so only chat remains.
+test('Chat back and chat bell/gear use the helper only when RT is on', () => {
   const chat = read('../src/app/room/[id]/index.tsx');
   assert.match(chat, /reduceTransparency\s*\? \{/);
   assert.match(chat, /rtBackOptions\(\(\) => router\.back\(\), en\.room\.back\)/);

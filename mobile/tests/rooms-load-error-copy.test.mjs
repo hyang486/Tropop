@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-const rooms = readFileSync(new URL('../src/app/index.tsx', import.meta.url), 'utf8');
+const rooms = readFileSync(new URL('../src/app/(tabs)/index.tsx', import.meta.url), 'utf8');
 
-test('Rooms load error: plain "Could not load your rooms." and the offline branch kept', () => {
-  assert.match(rooms, /setError\(en\.home\.loadFailed\);\s*setOffline\(errorKind\(e\) === 'offline'\);/);
+// Tab bar: Open chat moved to Explore, so Today no longer tracks offline for it.
+test('Rooms load error: plain "Could not load your rooms."', () => {
+  assert.match(rooms, /catch \{\s*setError\(en\.home\.loadFailed\);\s*\}/);
   assert.doesNotMatch(rooms, /errorMessage\(/);
 });

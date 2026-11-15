@@ -10,10 +10,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActionSheetIOS, ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
 import { DayItemsSheet } from '@/components/calendar';
 import { useReduceMotion } from '@/components/enter-view';
 import { HandTitle } from '@/components/hand-title';
+import { ProfileAvatarButton } from '@/components/tab-header';
 import { Button, colors, GlassIconButton, Hint, titleSize } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
 import { calendarAdd } from '@/features/event/qrewing-api';
@@ -119,21 +119,21 @@ function MomentsHome({ uid }: { uid: string }) {
 
   return (
     <>
-      <Stack.Screen options={{ headerShadowVisible: false }} />
+      <Stack.Screen
+        options={{
+          headerShadowVisible: false,
+          // §A1 (ux 2026-11-15): the tab nav bar holds the wordmark (layout) and, on the right, Add then the avatar.
+          headerRight: () => (
+            <View style={styles.headerRow}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t.addButton} onPress={openAdd} style={styles.addBtn}>
+                <SymbolView name="plus" size={20} tintColor={colors.tint} />
+              </Pressable>
+              <ProfileAvatarButton />
+            </View>
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={styles.scroll} contentInsetAdjustmentBehavior="automatic">
-        {/* §A1: custom header row, no nav title. */}
-        <View style={styles.headerRow}>
-          <Text style={styles.wordmark} accessibilityRole="header">
-            {t.wordmark}
-          </Text>
-          <View style={styles.flex} />
-          <Pressable accessibilityRole="button" accessibilityLabel={t.addButton} onPress={openAdd} style={styles.addBtn}>
-            <SymbolView name="plus" size={20} tintColor={colors.tint} />
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={en.home.profile} onPress={() => router.push('/profile')} style={styles.avatarBtn}>
-            <Avatar path={profile?.avatar_path} name={profile?.display_name ?? '?'} size={36} />
-          </Pressable>
-        </View>
         <View style={styles.greeting}>
           <Text style={styles.hi}>{t.greeting(firstName(profile?.display_name))}</Text>
           <Text style={styles.weekTitle} accessibilityRole="header">
@@ -407,12 +407,10 @@ function AskSheet({ visible, onClose, today }: { visible: boolean; onClose: () =
 
 const styles = StyleSheet.create({
   loading: { marginTop: 80 },
-  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 16, backgroundColor: colors.background },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 16, backgroundColor: colors.background },
   flex: { flex: 1 },
   addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.wash, alignItems: 'center', justifyContent: 'center' },
-  headerRow: { height: 56, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  wordmark: { fontFamily: 'SourceSans3-Bold', fontSize: 28, lineHeight: 34, color: colors.tint },
-  avatarBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   greeting: { gap: 2 },
   hi: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
   weekTitle: { fontSize: 28, lineHeight: 36, fontFamily: 'SourceSans3-Bold', color: colors.label },

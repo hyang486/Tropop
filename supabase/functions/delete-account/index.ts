@@ -9,12 +9,15 @@
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { withCors } from '../_shared/cors.ts';
+
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (req: Request) => Promise<Response> | Response): void };
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
-Deno.serve(async (req) => {
+// Web: OPTIONS preflight and CORS headers on every response (_shared/cors.ts); native requests are unchanged.
+Deno.serve(withCors(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
 
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -43,4 +46,4 @@ Deno.serve(async (req) => {
   }
 
   return json(200, { deleted: true, ...(prepared as Record<string, unknown>) });
-});
+}));

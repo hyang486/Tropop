@@ -16,7 +16,7 @@ test('UX2-127: granted schedules; ask:false never asks; the default still asks',
 });
 
 const lib = readFileSync(new URL('../src/lib/expiry-reminders.ts', import.meta.url), 'utf8');
-const rooms = readFileSync(new URL('../src/app/index.tsx', import.meta.url), 'utf8');
+const rooms = readFileSync(new URL('../src/app/(tabs)/index.tsx', import.meta.url), 'utf8');
 const chat = readFileSync(new URL('../src/app/room/[id]/index.tsx', import.meta.url), 'utf8');
 
 test('UX2-127: the lib takes an optional { ask } and asks only on the ask step', () => {

@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, Alert, PlatformColor, Pressable, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, PlatformColor, Pressable, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/text';
 
 import { InkIcon } from '@/components/calendar';
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
   dotted: { gap: 3, paddingLeft: 3.5, paddingVertical: 1 },
   dotSmall: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.label },
   // UX2-73: matches the iOS compact date picker pill (tertiarySystemFill, 17 pt label).
-  timePill: { backgroundColor: PlatformColor('tertiarySystemFill'), borderRadius: 7, borderCurve: 'continuous', paddingHorizontal: 11, paddingVertical: 6 },
+  timePill: { backgroundColor: Platform.OS === 'web' ? 'rgba(118,118,128,0.12)' : PlatformColor('tertiarySystemFill'), borderRadius: 7, borderCurve: 'continuous', paddingHorizontal: 11, paddingVertical: 6 },
   timePillText: { fontSize: 17, color: colors.label },
   pickers: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
 });

@@ -27,7 +27,7 @@ import {
 } from 'react-native';
 import { Text, TextInput } from '@/components/text';
 import { TextInput as RNTextInput } from 'react-native';
-import { useIsFocused } from 'expo-router';
+import { useIsFocused, useScrollToTop } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -115,6 +115,8 @@ export function QScreen({
   // (Welcome) still clears the status bar.
   const { rootRef, onLayout, overlap } = useHeaderOverlap();
   const { scrollRef, keyboardPad, scrollProps, revealView } = useKeyboardReveal(overlap, keepVisible);
+  // Tab bar: tapping the active tab again scrolls a tab root to the top (inert outside the tab navigator).
+  useScrollToTop(scrollRef);
   const artFit = useArtFitState(keyboardPad > 0);
   // UX2-44: once the body scrolls, a top scroll-edge fade (paper → transparent, 56 pt below the safe area) keeps
   // content and the handwritten title from colliding with the floating glass header buttons. Only under a header.
@@ -314,7 +316,7 @@ function useKeyboardReveal(overlap: number, keepVisible?: RefObject<ComponentRef
   }, []);
 
   const reveal = useCallback(() => {
-    const field = RNTextInput.State.currentlyFocusedInput();
+    const field = RNTextInput.State.currentlyFocusedInput?.() ?? null;
     if (keyboardUp.current && field) scrollIntoView(field, keepRef.current?.current ?? null);
     else if (pending.current && Date.now() < pending.current.until) scrollIntoView(pending.current.target, pending.current.extra);
   }, [scrollIntoView]);

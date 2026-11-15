@@ -10,6 +10,8 @@
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { withCors } from '../_shared/cors.ts';
+
 import { DEFAULT_SIMILARITY_THRESHOLD, MAX_ATTEMPTS, processBatch, type FaceStore, type Job } from './core.ts';
 import { createRekognitionProvider } from './rekognition.ts';
 
@@ -36,7 +38,8 @@ function parseBody(raw: unknown): { probe: boolean; jobIds: string[] | null } | 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
-Deno.serve(async (req) => {
+// Web: OPTIONS preflight and CORS headers on every response (_shared/cors.ts); native requests are unchanged.
+Deno.serve(withCors(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
 
   // FM1: authenticate first, so an unauthenticated caller learns nothing beyond 401.
@@ -143,4 +146,4 @@ Deno.serve(async (req) => {
     log: (event, fields) => console.log(JSON.stringify({ event, ...fields })),
   });
   return json(200, summary);
-});
+}));

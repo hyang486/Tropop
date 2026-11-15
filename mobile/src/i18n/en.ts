@@ -14,6 +14,14 @@ const shortDate = (iso: string) =>
 
 export const en = {
   appName: 'Tropop',
+  // Bottom tab bar (tabs-spec.md): labels are exactly these four.
+  tabs: {
+    today: 'Today',
+    explore: 'Explore',
+    qrews: 'Qrews',
+    moments: 'Moments',
+    profile: 'Profile',
+  },
   welcome: {
     // Q 01.01
     // UX3-A03: headline and three value rows.
@@ -1169,7 +1177,6 @@ export const en = {
     summaryRooms: (n: number): [string, string] => [n === 1 ? '1 room' : `${n} rooms`, ' this week'],
     summaryPeople: (n: number): [string, string] => [n === 1 ? '1 new person' : `${n} new people`, ''],
     summaryComing: (n: number): [string, string] => [`${n} coming up`, ''],
-    wordmark: 'Tropop',
     addButton: 'Add',
     addMenuCancel: 'Cancel',
     rowRooms: (n: number) => (n === 1 ? '1 room' : `${n} rooms`),
@@ -1540,7 +1547,7 @@ export const en = {
     addFirstAction: 'Add a QR code',
 
     // 03 Connections
-    connectionsTitle: 'Connections',
+    connectionsTitle: 'Qrews',
     requests: 'Requests',
     sent: 'Sent',
     connectedSection: 'Connected',

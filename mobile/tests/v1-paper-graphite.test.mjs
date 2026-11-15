@@ -58,7 +58,7 @@ test('B1 HandTitle: Source Sans 3 titles, 28/36 screen and 20/28 sheet, no squig
   assert.match(hand, /screen: \{ fontSize: titleSize\.screen, lineHeight: 36 \}/);
   assert.match(hand, /maxFontSizeMultiplier=\{screen \? 1\.2 : 1\.6\}/);
   assert.doesNotMatch(hand, /Svg|PENCIL_UNDERLINE|PatrickHand|Gaegu/);
-  for (const p of ['app/index.tsx', 'app/profile.tsx', 'features/calendar/calendar-screen.tsx']) assert.doesNotMatch(src(p), /titleUnderline/);
+  for (const p of ['app/(tabs)/index.tsx', 'app/profile.tsx', 'features/calendar/calendar-screen.tsx']) assert.doesNotMatch(src(p), /titleUnderline/);
   const text = src('components/text.tsx');
   assert.match(text, /SourceSans3-Regular/);
   assert.match(text, /SourceSans3-Semibold/);

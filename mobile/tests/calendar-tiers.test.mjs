@@ -23,8 +23,10 @@ test('calendar v2 §A: day cells are tap targets that open the day detail; the h
   assert.match(screen, /router\.push\(\{ pathname: '\/calendar-day', params: \{ date: key \} \}\)/);
   assert.match(screen, /onPress=\{\(\) => openDay\(key\)\}/);
   assert.match(screen, /accessibilityLabel=\{t\.dayCellLabel\(/);
-  assert.match(screen, /accessibilityLabel=\{t\.addButton\} onPress=\{openAdd\}/);
-  assert.doesNotMatch(screen, /headerRight|headerTitle/);
+  // §A1 (ux 2026-11-15): the tab nav bar holds Add (44 pt wash circle) then the avatar; no in-content header row.
+  assert.match(screen, /headerRight: \(\) => \(\s*<View style=\{styles\.headerRow\}>\s*<Pressable accessibilityRole="button" accessibilityLabel=\{t\.addButton\} onPress=\{openAdd\} style=\{styles\.addBtn\}>[\s\S]*?<ProfileAvatarButton \/>/);
+  assert.match(screen, /addBtn: \{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors\.wash/);
+  assert.doesNotMatch(screen, /headerTitle|t\.wordmark/);
 });
 
 test('Plus intro: Calendar stays free; Trok diary and Add with Trok are Plus benefits', () => {
