@@ -34,7 +34,7 @@ export function DayDetail({ date }: { date: DateKey }) {
     <ScrollView contentContainerStyle={styles.scroll} contentInsetAdjustmentBehavior="automatic">
       {rooms.map((r) => {
         const live = roomIsLive(r, now);
-        const time = roomTime(r);
+        const time = roomTime(r, undefined, now);
         const place = roomPlace(r);
         const card = <HeroCard hero={r.hero ?? 'general'} title={r.name} time={time} place={place} topic />;
         return (
@@ -42,7 +42,7 @@ export function DayDetail({ date }: { date: DateKey }) {
             {live ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${[r.name, roomTimeSpoken(r), place].filter(Boolean).join(', ')}, open room`}
+                accessibilityLabel={`${[r.name, roomTimeSpoken(r, undefined, now), place].filter(Boolean).join(', ')}, open room`}
                 onPress={() => router.push({ pathname: '/room/[id]', params: { id: r.roomId } })}
               >
                 {card}

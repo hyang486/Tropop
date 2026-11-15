@@ -49,14 +49,17 @@ const clock = (iso: string, tz?: string) =>
   new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }).format(new Date(iso));
 
 /** Hero meta: "7:30 AM – 8:30 AM · Park"; "Ended 9:40 PM" when there is no start; blank parts drop with their dot. */
-export function roomTime(r: Pick<DayRoom, 'startsAt' | 'endAt'>, tz?: string): string | null {
+export function roomTime(r: Pick<DayRoom, 'startsAt' | 'endAt'>, tz?: string, now?: number): string | null {
   const hasEnd = Number.isFinite(Date.parse(r.endAt));
   if (r.startsAt && Number.isFinite(Date.parse(r.startsAt))) return hasEnd ? `${clock(r.startsAt, tz)} – ${clock(r.endAt, tz)}` : clock(r.startsAt, tz);
-  return hasEnd ? en.calendar.endedAt(clock(r.endAt, tz)) : null;
+  if (!hasEnd) return null;
+  // "Ended" only once the end instant has passed; a still-live (multi-day) room shows no time rather than a false one.
+  if (now !== undefined && Date.parse(r.endAt) > now) return null;
+  return en.calendar.endedAt(clock(r.endAt, tz));
 }
 /** Spoken form for the card label: "7:30 to 8:30 AM" is left to the screen reader, so keep the plain range. */
-export function roomTimeSpoken(r: Pick<DayRoom, 'startsAt' | 'endAt'>, tz?: string): string | null {
-  return roomTime(r, tz)?.replace(' – ', ' to ') ?? null;
+export function roomTimeSpoken(r: Pick<DayRoom, 'startsAt' | 'endAt'>, tz?: string, now?: number): string | null {
+  return roomTime(r, tz, now)?.replace(' – ', ' to ') ?? null;
 }
 export function roomPlace(r: Pick<DayRoom, 'placeName'>): string | null {
   const p = r.placeName?.trim();

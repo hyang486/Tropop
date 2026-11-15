@@ -76,3 +76,12 @@ test('recapSpoken: the recap card reads as one sentence; upsell and wait stay of
   assert.equal(m.recapSpoken('upsell', 3, ['x']), null);
   assert.equal(m.recapSpoken('wait', null, null), null);
 });
+
+test('roomTime: a live multi-day room never says Ended; it does once the end has passed', () => {
+  const r = room({ startsAt: null, endAt: '2026-11-18T08:27:00Z' }); // ends Nov 18 00:27 PST
+  const at = (iso) => Date.parse(iso);
+  assert.equal(m.roomTime(r, TZ, at('2026-11-14T20:00:00Z')), null); // first day
+  assert.equal(m.roomTime(r, TZ, at('2026-11-16T20:00:00Z')), null); // middle day
+  assert.equal(m.roomTimeSpoken(r, TZ, at('2026-11-16T20:00:00Z')), null);
+  assert.equal(m.roomTime(r, TZ, at('2026-11-19T20:00:00Z')), 'Ended 12:27 AM'); // the day after it ends
+});
