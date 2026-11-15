@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 16, lineHeight: 24, color: colors.label },
   // A3: outlined rows, no grey fill.
   row: { ...outline, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10 },
-  // V1: text-field rows (area, meeting place): wash fill, no border, radius 12; ink border only while focused.
+  // B2: text-field rows (area, meeting place) match QField: wash fill, radius 16, 52 pt, 2 pt Cardinal border only while focused.
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
