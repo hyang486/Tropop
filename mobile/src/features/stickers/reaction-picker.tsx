@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Modal } from '@/components/modal';
 
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';

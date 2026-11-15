@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal } from '@/components/modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { STICKER_IMAGES } from '@/components/sticker-art';
