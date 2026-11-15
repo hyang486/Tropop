@@ -88,7 +88,7 @@ function PinFace({ face }: { face: AvatarFace }) {
   );
 }
 
-function Bake({ face, onDone }: { face: AvatarFace; onDone: (key: string, ref: ImageRef | null) => void }) {
+function Bake({ face, onDone }: { face: AvatarFace; onDone: (key: string, ref: ImageRef | null, url?: string) => void }) {
   const svg = useRef<Svg>(null);
   const key = avatarFaceKey(face);
   useEffect(() => {
@@ -112,7 +112,7 @@ function Bake({ face, onDone }: { face: AvatarFace; onDone: (key: string, ref: I
           Image.loadAsync(`data:image/png;base64,${base64}`)
             .then((ref) => {
               if (__DEV__) console.log(`[pin-bake] ${key} ok (attempt ${n})`);
-              if (live) onDone(key, ref);
+              if (live) onDone(key, ref, `data:image/png;base64,${base64}`);
             })
             .catch(() => retry('load failed'));
         },
@@ -139,11 +139,13 @@ function Bake({ face, onDone }: { face: AvatarFace; onDone: (key: string, ref: I
  * ones (render `baker` anywhere on the screen). A face whose bake failed is not retried on this screen; its
  * pin stays a plain text annotation. Faces are few and tiny, so baked icons are kept for the screen's life.
  */
-export function useAvatarPinIcons(faces: AvatarFace[]): { icons: ReadonlyMap<string, ImageRef>; baker: ReactNode } {
+export function useAvatarPinIcons(faces: AvatarFace[]): { icons: ReadonlyMap<string, ImageRef>; urls: ReadonlyMap<string, string>; baker: ReactNode } {
   const [icons, setIcons] = useState<ReadonlyMap<string, ImageRef>>(new Map());
+  const [urls, setUrls] = useState<ReadonlyMap<string, string>>(new Map());
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
-  const onDone = useCallback((key: string, ref: ImageRef | null) => {
+  const onDone = useCallback((key: string, ref: ImageRef | null, url?: string) => {
     if (ref) setIcons((current) => new Map(current).set(key, ref));
+    if (ref && url) setUrls((current) => new Map(current).set(key, url));
     else setFailed((current) => new Set(current).add(key));
   }, []);
   const missing = new Map<string, AvatarFace>();
@@ -159,7 +161,7 @@ export function useAvatarPinIcons(faces: AvatarFace[]): { icons: ReadonlyMap<str
         ))}
       </View>
     ) : null;
-  return { icons, baker };
+  return { icons, urls, baker };
 }
 
 const styles = StyleSheet.create({

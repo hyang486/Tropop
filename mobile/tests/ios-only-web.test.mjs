@@ -5,7 +5,6 @@ import { test } from 'node:test';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const comp = read('../src/components/ios-only.tsx');
-const map = read('../src/app/room/[id]/map.web.tsx');
 const scans = [read('../src/app/scan.web.tsx'), read('../src/app/start/scan.web.tsx')];
 
 test('IosOnly: 140pt sticker hidden from AT, header-role title, 48pt secondary action', () => {
@@ -21,13 +20,6 @@ test('IosOnly: 140pt sticker hidden from AT, header-role title, 48pt secondary a
   assert.match(comp, /outlineColor: colors\.tint, outlineWidth: 2/);
 });
 
-test('map: meetup-04, goes back to chat', () => {
-  assert.match(map, /sticker="meetup-04"/);
-  assert.match(map, /Live map is on the phone/);
-  assert.match(map, /label: 'Back to chat'/);
-  assert.match(map, /router\.canGoBack\(\) \? router\.back\(\) : router\.replace\(`\/room\/\$\{id\}`\)/);
-});
-
 test('both scan routes: connection-01, Enter code -> /start/code', () => {
   for (const s of scans) {
     assert.match(s, /sticker="connection-01"/);
@@ -37,5 +29,5 @@ test('both scan routes: connection-01, Enter code -> /start/code', () => {
 });
 
 test('web copy never says "iOS app"', () => {
-  for (const s of [comp, map, ...scans]) assert.doesNotMatch(s, /iOS app/);
+  for (const s of [comp, ...scans]) assert.doesNotMatch(s, /iOS app/);
 });

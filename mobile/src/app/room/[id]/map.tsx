@@ -334,7 +334,7 @@ function RoomMap({
     const icon = pinIcons.icons.get(pin.faceKey);
     // Until its icon is baked (or if baking failed), a pin is a plain white pill with its initial.
     return icon
-      ? { id: pin.id, coordinates: pin.coordinates, icon }
+      ? { id: pin.id, coordinates: pin.coordinates, icon, iconUrl: pinIcons.urls.get(pin.faceKey) }
       : { id: pin.id, coordinates: pin.coordinates, text: pin.face.text, backgroundColor: LABEL_BACKGROUND, textColor: LABEL_TEXT };
   });
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
