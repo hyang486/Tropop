@@ -56,3 +56,15 @@ export function addTapAction(plus: boolean | null): 'ask' | 'intro' | null {
 }
 
 export const plusIntroHref = (from: PlusFrom) => `/plan-preview?from=${from}` as const;
+
+/** Which one-line lead replaces `ai` for a source (ux plus-preview-copy §3). */
+export function leadKey(from: PlusFrom | null): 'ai' | 'aiAsk' | 'aiCalendar' {
+  return from === 'ask' ? 'aiAsk' : from === 'calendar' ? 'aiCalendar' : 'ai';
+}
+
+/** Sources that come from hosting a room: the only ones that see the Room Pass note (never ask, calendar, members). */
+export const ROOM_PASS_FROM = ['capacity', 'more', 'storage', 'people'] as const;
+export const showRoomPass = (from: PlusFrom | null) => from !== null && (ROOM_PASS_FROM as readonly string[]).includes(from);
+
+/** The price line under the CTA: not for a guest (no account) and not once the preview is on. */
+export const showPrice = (signedIn: boolean, isPlus: boolean) => signedIn && !isPlus;

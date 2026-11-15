@@ -12,7 +12,7 @@ import { InkArt } from '@/components/ink-art';
 import { QCaption, QScreen } from '@/components/q-screen';
 import { Button, colors } from '@/components/ui';
 import { setPlusPreview, usePlusPreview } from '@/features/calendar/calendar-store';
-import { PLUS_LINES, type PlusLine, type PlusPreview, plusFrom, plusPitch } from '@/features/calendar/plus-intro';
+import { PLUS_LINES, type PlusLine, type PlusPreview, leadKey, plusFrom, plusPitch, showPrice, showRoomPass } from '@/features/calendar/plus-intro';
 import { en } from '@/i18n/en';
 import { useAuth } from '@/lib/auth';
 import { HAND_FONT_LATIN } from '@/lib/hand-font';
@@ -61,8 +61,13 @@ export default function PlanPreview() {
     <>
       <Button title={t.tryCta} busy={saving} disabled={on === null} onPress={() => void toggle(true)} />
       {/* UX2-35: the link is its own Pressable so it gets a 44 pt target (a nested Text link can't). */}
+      {showPrice(!!uid, isPlus) ? (
+        <View style={styles.priceBox}>
+          <Text style={styles.price}>{t.priceLine}</Text>
+          <Text style={styles.fine}>{t.priceSub}</Text>
+        </View>
+      ) : null}
       <View style={styles.fineRow}>
-        <Text style={styles.fine}>{t.fine}</Text>
         <Pressable accessibilityRole="link" onPress={() => setSheet(true)} hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}>
           <Text style={[styles.fine, styles.link]}>{t.seeIncluded}</Text>
         </Pressable>
@@ -109,12 +114,12 @@ export default function PlanPreview() {
           </View>
           <View style={styles.list}>
             {lines.map((k) => (
-              <Line key={k} icon={ICON[k]} parts={t.lines[k]} />
+              <Line key={k} icon={ICON[k]} parts={t.lines[k === 'ai' ? leadKey(from) : k]} />
             ))}
           </View>
         </>
       )}
-      <IncludedSheet visible={sheet} onClose={() => setSheet(false)} />
+      <IncludedSheet visible={sheet} roomPass={showRoomPass(from)} onClose={() => setSheet(false)} />
     </QScreen>
   );
 }
@@ -203,7 +208,7 @@ function Preview({ kind }: { kind: PlusPreview }) {
 }
 
 /** "See what's included": the Free vs Plus table, Always free, and the prices note, as a page sheet. */
-function IncludedSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+function IncludedSheet({ visible, roomPass, onClose }: { visible: boolean; roomPass: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   // UX2-46: closes at once when a link or notification tap navigates.
   const instant = useDismissOnLink(visible ? onClose : null);
@@ -220,20 +225,35 @@ function IncludedSheet({ visible, onClose }: { visible: boolean; onClose: () => 
               <Text style={[styles.cmpCell, styles.cmpHead]}>{t.free}</Text>
               <Text style={[styles.cmpCell, styles.cmpHead]}>{t.plus}</Text>
             </View>
-            {t.compare.map((row) => (
-              <View
-                key={row.label}
-                style={[styles.cmpRow, styles.cmpDivided]}
-                accessible
-                accessibilityLabel={`${row.label}: ${t.free} ${say(row.free)}, ${t.plus} ${say(row.plus)}`}
-              >
-                <Text style={styles.cmpLabel}>{row.label}</Text>
-                <Text style={styles.cmpCell}>{show(row.free)}</Text>
-                <Text style={[styles.cmpCell, styles.bold]}>{show(row.plus)}</Text>
+            {t.compare.map((row, i) => (
+              <View key={row.label}>
+                {i === t.justForYouAt ? <Text style={styles.cmpSub}>{t.justForYou}</Text> : null}
+                <View
+                  style={[styles.cmpRow, styles.cmpDivided]}
+                  accessible
+                  accessibilityLabel={`${row.label}: ${t.free} ${say(row.free)}, ${t.plus} ${say(row.plus)}`}
+                >
+                  <Text style={styles.cmpLabel}>{row.label}</Text>
+                  <Text style={[styles.cmpCell, row.free === null && styles.cmpNo]}>{show(row.free)}</Text>
+                  <Text style={[styles.cmpCell, styles.bold]}>{show(row.plus)}</Text>
+                </View>
               </View>
             ))}
           </View>
-          <Text style={styles.note}>{t.tbdNote}</Text>
+          <Text style={styles.note}>{t.priceNote}</Text>
+          {roomPass ? (
+            <Text style={styles.note}>
+              {t.roomPassNote.map((p, i) =>
+                i % 2 ? (
+                  <Text key={i} style={styles.bold}>
+                    {p}
+                  </Text>
+                ) : (
+                  p
+                ),
+              )}
+            </Text>
+          ) : null}
           <Text style={styles.body}>{t.alwaysFree}</Text>
         </ScrollView>
         <Button title={t.done} variant="secondary" onPress={onClose} />
@@ -273,8 +293,12 @@ const styles = StyleSheet.create({
   lineIcon: { width: 24, height: 24 },
   lineText: { flex: 1, fontSize: 15.5, color: colors.label },
   bold: { fontWeight: '600', color: colors.label },
-  fine: { fontSize: 12.5, color: colors.ink2, textAlign: 'center' },
-  fineRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' },
+  priceBox: { alignItems: 'center', gap: 2 },
+  price: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: colors.label, textAlign: 'center' },
+  cmpSub: { fontSize: 13, fontWeight: '600', color: colors.ink2, marginTop: 16, marginBottom: 2 },
+  cmpNo: { color: colors.ink2 },
+  fine: { fontSize: 13, lineHeight: 18, color: colors.ink2, textAlign: 'center' },
+  fineRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', minHeight: 44 },
   link: { textDecorationLine: 'underline', color: colors.label },
   note: { fontSize: 13, color: colors.ink2 },
   sheet: { flex: 1, backgroundColor: colors.sheet, paddingHorizontal: 20, gap: 12 },

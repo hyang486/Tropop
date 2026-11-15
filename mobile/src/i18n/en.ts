@@ -1071,9 +1071,14 @@ export const en = {
       ai: ['', 'Trok', ' in every room you host'],
       rooms: ['Rooms up to ', '30 people', ' and ', '7 days', ''],
       add: ['', 'Add with Trok', ': just say the plan'],
+      // Lead line by source (ux plus-preview-copy §3): replaces `ai` for from=ask and from=calendar.
+      aiAsk: ['', 'Ask Trok', ' in any room, even ones you don’t host'],
+      aiCalendar: ['', 'Your diary', ': Trok writes a page after each room'],
     },
-    tryCta: 'Try Plus free',
-    fine: 'Preview · no payment · ',
+    tryCta: 'Turn on Plus preview',
+    // ux plus-preview-copy §1: hard-coded only while billing is off (the StoreKit dock replaces it).
+    priceLine: '$34.99/year · $4.99/month',
+    priceSub: 'Save 41% yearly. No payment in this preview.',
     seeIncluded: 'See what’s included',
     // "See what's included" sheet.
     compareTitle: 'Free vs Plus',
@@ -1082,14 +1087,23 @@ export const en = {
     compare: [
       { label: 'People per room', free: '6', plus: '30' },
       { label: 'Room length', free: '2 days', plus: '7 days' },
-      { label: 'Trok in rooms', free: null, plus: true },
+      { label: 'Photo storage per room', free: '1 GB', plus: '5 GB' },
+      { label: 'Trok in rooms you host', free: null, plus: true },
+      { label: 'Ask Trok, in any room', free: null, plus: true },
+      { label: 'People to meet', free: null, plus: true },
+      { label: 'Pace maker', free: null, plus: true },
       { label: 'Add with Trok', free: null, plus: true },
       { label: 'Calendar diary', free: null, plus: true },
     ],
+    /** The row index the personal ("Just for you") rows start at. */
+    justForYouAt: 4,
+    justForYou: 'Just for you',
+    // Host contexts only (from capacity, more, storage, people); odd-index parts are bold.
+    roomPassNote: ['Just this room? ', 'Room Pass $2.99', ' gives it 30 people, 7 days and Trok.'],
     alwaysFree: 'Always free: rooms, chat, original photos, Photos of me, map and arrival, Emergency, and your own calendar events.',
-    tbdNote: 'Prices are not decided yet.',
+    priceNote: 'Plus is $34.99/year ($2.92 a month) or $4.99/month.',
     included: 'Included',
-    notIncluded: 'Not included',
+    notIncluded: 'not included',
     done: 'Done',
     // Plus state.
     onHeading: 'You’re on Plus',
