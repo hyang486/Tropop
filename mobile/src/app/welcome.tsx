@@ -58,7 +58,7 @@ export default function Welcome() {
       ) : null}
       <Image source={require('@/assets/brand/logo/app-logo.png')} style={styles.logo} accessibilityIgnoresInvertColors accessible={false} />
       <View style={styles.art}>
-        <InkArt art="gathering" />
+        <InkArt art="gathering" aspect="16:9" />
       </View>
       <Text accessibilityRole="header" style={styles.headline}>{en.welcome.headline}</Text>
       <View style={styles.values}>
@@ -86,10 +86,10 @@ const VALUES = [
 ] as const;
 
 const styles = StyleSheet.create({
-  logo: { width: 72, height: 72, borderRadius: 18, borderCurve: 'continuous', marginTop: 24, alignSelf: 'flex-start' },
+  logo: { width: 72, height: 72, borderRadius: 18, borderCurve: 'continuous', marginTop: 8, alignSelf: 'flex-start' },
   art: { marginTop: 16 },
-  headline: { fontSize: 32, lineHeight: 40, fontWeight: '700', color: colors.label, marginTop: 24 },
-  values: { gap: 16, marginTop: 24 },
+  headline: { fontSize: 28, lineHeight: 34, fontWeight: '700', color: colors.label, marginTop: 20 },
+  values: { gap: 12, marginTop: 16 },
   value: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   valueIcon: {
     width: 40,
