@@ -38,6 +38,8 @@ type Loaded = { them: RoomConnectPerson | null; myApps: ConnectApp[]; canAdd: bo
  * Mock 02 / spec §2 + §10: the person card in a live room. Avatar, name, "In <room>", then the Connect block whose
  * state comes from personConnectBlock. Plus gate and "Add a QR code first" replace the content in place (one modal).
  */
+const CARD_REFRESH_MS = 4000;
+
 export function PersonConnectSheet({
   visible,
   onClose,
@@ -79,8 +81,13 @@ export function PersonConnectSheet({
       (d) => live && setData(d),
       (e) => live && setError(t.errors[toConnectError(e).kind]),
     );
+    // #1: the other person can send, accept or cancel while this card is open, so re-read it quietly.
+    const timer = setInterval(() => {
+      fetchCard(roomId, personId).then((d) => live && setData(d), () => {});
+    }, CARD_REFRESH_MS);
     return () => {
       live = false;
+      clearInterval(timer);
     };
   }, [visible, roomId, personId]);
 
