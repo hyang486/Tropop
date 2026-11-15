@@ -280,6 +280,31 @@ select tests.expect((select count(*) from public.connect_requests where from_use
 select tests.expect(tests.as_code(current_setting('t.b'),
   format('select public.respond_connection(%L, true)', (select id from public.connect_requests where from_user = current_setting('t.e')::uuid))) like 'P0002:%',
   'declined request cannot be accepted later');
+-- F-CN1: cancel or remove_connection cannot reset a decline.
+select tests.expect(tests.as_code(current_setting('t.e'),
+  format('select public.cancel_connect_request(%L)', (select id from public.connect_requests where from_user = current_setting('t.e')::uuid))) = 'ok', 'E cancels the declined row: no error');
+select tests.expect(tests.as_code(current_setting('t.e'), format('select public.remove_connection(%L)', current_setting('t.b'))) = 'ok', 'E removes B (no connection): no error');
+select tests.expect((select status from public.connect_requests where from_user = current_setting('t.e')::uuid) = 'declined', 'declined row survives cancel + remove');
+select tests.expect(tests.as_val(current_setting('t.e'),
+  format('select public.request_connection(%L, %L)', current_setting('t.r2'), current_setting('t.b'))) = 'requested', 'E re-requests: still requested');
+select tests.expect(tests.as_val(current_setting('t.b'), 'select count(*) from public.my_connect_requests()') = '0', 'B gets no new incoming row');
+select tests.expect(tests.as_val(current_setting('t.b'), 'select pending_incoming from public.my_connection_quota()') = '0', 'B badge still 0');
+-- F-CN1: request/cancel cycles cannot reset the 30/hour limit (E → C, C is Plus).
+do $$
+declare i int; c text; n int := 0;
+begin
+  for i in 1..40 loop
+    c := tests.as_code(current_setting('t.e'), format('select public.request_connection(%L, %L)', current_setting('t.r2'), current_setting('t.c')));
+    exit when c <> 'ok';
+    n := n + 1;
+    perform tests.as_code(current_setting('t.e'), format('select public.cancel_connect_request(%L)',
+      (select id from public.connect_requests where from_user = current_setting('t.e')::uuid and to_user = current_setting('t.c')::uuid)));
+  end loop;
+  perform tests.expect(c like 'PT429:%', 'request/cancel cycles hit PT429 (got ' || c || ')');
+  perform tests.expect((select count(*) from private.connect_request_log where user_id = current_setting('t.e')::uuid) = 30, '30 logged requests in the hour');
+  perform tests.expect(n = 29, '29 cycles before the limit (1 earlier request to B), got ' || n);
+  perform tests.expect(not exists (select 1 from public.connect_requests where from_user = current_setting('t.e')::uuid and to_user = current_setting('t.c')::uuid), 'no E → C row left');
+end $$;
 
 -- 8. Expiry after 14 days.
 update public.connect_requests set created_at = now() - interval '15 days' where from_user = current_setting('t.e')::uuid;

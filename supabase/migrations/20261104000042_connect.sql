@@ -83,7 +83,7 @@ create table public.connections (
 );
 create index connections_user_b_idx on public.connections (user_b);
 
--- One row per pair at a time. Accept and cancel delete the row; decline keeps it (silent) until expiry.
+-- One row per pair at a time. Accept deletes the row, cancel deletes it only while pending; decline keeps it (silent) until expiry.
 create table public.connect_requests (
   id uuid primary key default gen_random_uuid(),
   from_user uuid not null references auth.users (id) on delete cascade,
@@ -97,6 +97,13 @@ create unique index connect_requests_pair_uq
   on public.connect_requests (least(from_user, to_user), greatest(from_user, to_user));
 create index connect_requests_to_idx on public.connect_requests (to_user, created_at);
 create index connect_requests_from_idx on public.connect_requests (from_user, created_at);
+
+-- Rate-limit log for new requests: cancel cannot erase it (F-CN1). Server-only (private schema, no grants).
+create table private.connect_request_log (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create index connect_request_log_idx on private.connect_request_log (user_id, created_at);
 
 create function private.is_connected(p_other uuid)
 returns boolean language sql stable security definer
@@ -430,10 +437,11 @@ begin
     return 'connected';
   end if;
 
-  if (select count(*) from public.connect_requests x
-      where x.from_user = v_me and x.created_at > now() - interval '1 hour') >= 30 then
+  if (select count(*) from private.connect_request_log l
+      where l.user_id = v_me and l.created_at > now() - interval '1 hour') >= 30 then
     raise exception 'Too many requests. Try again later.' using errcode = 'PT429';
   end if;
+  insert into private.connect_request_log (user_id) values (v_me);
   insert into public.connect_requests (from_user, to_user, room_id) values (v_me, p_to, p_room_id);
   return 'requested';
 end;
@@ -490,7 +498,8 @@ create function public.cancel_connect_request(p_request_id uuid)
 returns void language sql security definer
 set search_path = ''
 as $$
-  delete from public.connect_requests where id = p_request_id and from_user = auth.uid()
+  -- Pending only: a declined row stays (silent) until expiry, so cancel cannot reset a decline (F-CN1).
+  delete from public.connect_requests where id = p_request_id and from_user = auth.uid() and status = 'pending'
 $$;
 
 -- Either side; access to each other's codes ends at once. Silent for the other side.
@@ -506,7 +515,8 @@ begin
   delete from public.connections
   where user_a = least(v_me, p_other) and user_b = greatest(v_me, p_other);
   delete from public.connect_requests x
-  where least(x.from_user, x.to_user) = least(v_me, p_other) and greatest(x.from_user, x.to_user) = greatest(v_me, p_other);
+  where least(x.from_user, x.to_user) = least(v_me, p_other) and greatest(x.from_user, x.to_user) = greatest(v_me, p_other)
+    and x.status = 'pending';
   update public.qr_codes set reported_at = null, reported_by = null
   where (owner_id = v_me and reported_by = p_other) or (owner_id = p_other and reported_by = v_me);
 end;
@@ -517,7 +527,8 @@ create function private.prune_connect_requests()
 returns integer language sql security definer
 set search_path = ''
 as $$
-  with d as (delete from public.connect_requests where created_at <= now() - private.connect_ttl() returning 1)
+  with d as (delete from public.connect_requests where created_at <= now() - private.connect_ttl() returning 1),
+       l as (delete from private.connect_request_log where created_at <= now() - interval '1 day')
   select count(*)::integer from d
 $$;
 select cron.schedule('connect-prune', '17 4 * * *', 'select private.prune_connect_requests()');
