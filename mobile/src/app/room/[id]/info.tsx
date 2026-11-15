@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { EmergencyCheckNote, EmergencyOpenNote, useSlow } from '@/components/emergency-open-note';
 import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
@@ -235,9 +235,9 @@ export default function RoomInfoScreen() {
               style={styles.member}
               disabled={isGuest || m.user_id === userId}
               accessibilityRole={isGuest || m.user_id === userId ? undefined : 'button'}
-              onPress={() => setPerson({ userId: m.user_id, name: m.display_name, avatarPath: m.avatar_path })}
+              onPress={() => setPerson({ userId: m.user_id, name: m.display_name, avatarPath: m.avatar_path, character: m.avatar_character })}
             >
-              <Avatar path={m.avatar_path} name={m.display_name} />
+              <PersonAvatar userId={m.user_id} name={m.display_name} path={m.avatar_path} character={m.avatar_character} size={32} />
               <Text style={styles.memberName} numberOfLines={1}>
                 {m.display_name}
               </Text>

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { QLink } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import {
@@ -30,7 +30,7 @@ async function fetchCard(roomId: string, userId: string): Promise<Loaded> {
   };
 }
 
-export type SheetPerson = { userId: string; name: string; avatarPath: string | null };
+export type SheetPerson = { userId: string; name: string; avatarPath: string | null; character?: number | null };
 
 type Loaded = { them: RoomConnectPerson | null; myApps: ConnectApp[]; canAdd: boolean };
 
@@ -179,7 +179,7 @@ export function PersonConnectSheet({
       ) : (
         <>
           <View style={styles.head}>
-            <Avatar path={person.avatarPath} name={name} size={72} />
+            <PersonAvatar userId={person.userId} name={name} path={person.avatarPath} character={person.character} size={72} />
             <View style={styles.headText}>
               <Text style={styles.name} accessibilityRole="header" numberOfLines={2}>
                 {name}

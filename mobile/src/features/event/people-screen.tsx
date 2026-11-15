@@ -4,7 +4,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-n
 import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmptyState } from '@/components/empty-state';
 import { QCard, QScreen } from '@/components/q-screen';
@@ -129,6 +129,7 @@ export function PeopleScreen() {
 
   // Spec 11 A15: each suggestion shows the member's profile photo (or initial). A failed read keeps the initials.
   const [avatars, setAvatars] = useState<ReadonlyMap<string, string | null>>(new Map());
+  const [characters, setCharacters] = useState<ReadonlyMap<string, number | null>>(new Map());
   // UX2-137: the same read tells whether I am the host (for the no-questions wording).
   const [hostId, setHostId] = useState<string | null>(null);
   useEffect(() => {
@@ -137,6 +138,7 @@ export function PeopleScreen() {
       .then((members) => {
         if (!live) return;
         setAvatars(new Map(members.map((m) => [m.user_id, m.avatar_path])));
+        setCharacters(new Map(members.map((m) => [m.user_id, m.avatar_character])));
         setHostId(members.find((m) => m.role === 'host')?.user_id ?? null);
       })
       .catch(() => {});
@@ -253,7 +255,7 @@ export function PeopleScreen() {
           {state.result.matches.map((m) => (
             <QCard key={m.userId}>
               <View style={styles.who}>
-                <Avatar path={avatars.get(m.userId)} name={m.displayName} size={40} />
+                <PersonAvatar userId={m.userId} name={m.displayName} path={avatars.get(m.userId)} character={characters.get(m.userId)} size={40} />
                 <View style={styles.whoText}>
                   <Text style={styles.name} accessibilityRole="header">{m.displayName}</Text>
                   {m.headline ? <Text style={styles.headline}>{m.headline}</Text> : null}

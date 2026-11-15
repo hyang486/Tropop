@@ -9,7 +9,7 @@ import { Alert } from '@/lib/dialogs';
 import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { HandTitle } from '@/components/hand-title';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
 import { dismissEmergencyConfirmForEnd, EmergencyConfirmHost } from '@/components/emergency-confirm';
@@ -78,7 +78,7 @@ type State =
   | { status: 'loading' }
   | { status: 'gone' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
+  | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null>; characters: Map<string, number | null> };
 
 // P2: the member label pill. Fixed light colors (not the app theme) so it reads the same on light and dark maps.
 const LABEL_BACKGROUND = palette.light.lift;
@@ -127,6 +127,7 @@ function RoomMapScreenBody() {
         room,
         names: new Map(members.map((m) => [m.user_id, m.display_name])),
         avatars: new Map(members.map((m) => [m.user_id, m.avatar_path])),
+        characters: new Map(members.map((m) => [m.user_id, m.avatar_character])),
       });
     } catch (e) {
       setState((s) => (s.status === 'ready' ? s : { status: 'error', message: errorMessage(e) }));
@@ -195,13 +196,14 @@ function RoomMapScreenBody() {
       </View>
     );
   }
-  return <RoomMap room={state.room} names={state.names} avatars={state.avatars} focus={focus} reload={load} />;
+  return <RoomMap room={state.room} names={state.names} avatars={state.avatars} characters={state.characters} focus={focus} reload={load} />;
 }
 
 function RoomMap({
   room,
   names,
   avatars,
+  characters,
   focus,
   reload,
 }: {
@@ -211,6 +213,7 @@ function RoomMap({
   room: Room;
   names: Map<string, string>;
   avatars: Map<string, string | null>;
+  characters: Map<string, number | null>;
 }) {
   const { session } = useAuth();
   const router = useRouter();
@@ -755,6 +758,8 @@ function RoomMap({
                       name={memberName(memberId, userId, names)}
                       initialOf={names.get(memberId) ?? ''}
                       avatarPath={avatars.get(memberId) ?? null}
+                      memberId={memberId}
+                      character={characters.get(memberId)}
                       status={statusOf.get(memberId) ?? null}
                       emergency={emergency}
                       now={now}
@@ -939,6 +944,8 @@ function PresenceRow({
   name,
   initialOf,
   avatarPath,
+  memberId,
+  character,
   status,
   emergency,
   now,
@@ -949,6 +956,8 @@ function PresenceRow({
   name: string;
   initialOf: string;
   avatarPath: string | null;
+  memberId: string;
+  character?: number | null;
   status: string | null;
   emergency: boolean;
   now: number;
@@ -979,7 +988,7 @@ function PresenceRow({
   const meta = stale ? en.map.stale(age) : gap ? gapLabel(gap) : speed;
   return (
     <View style={styles.presence}>
-      <Avatar path={avatarPath} name={initialOf || name} size={28} />
+      <PersonAvatar userId={memberId} name={initialOf || name} path={avatarPath} character={character} size={28} />
       <View style={styles.presenceText}>
         <Text style={styles.presenceName}>
           {name}

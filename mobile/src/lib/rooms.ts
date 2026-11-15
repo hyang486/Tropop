@@ -12,7 +12,7 @@ import { supabase } from './supabase';
 export type Room = Tables<'rooms'>;
 export type RoomPreview = Database['public']['Functions']['preview_room']['Returns'][number];
 export type RoomType = 'sports' | 'event' | 'waiting' | 'general';
-export type RoomMember = Tables<'room_members'> & { display_name: string; avatar_path: string | null };
+export type RoomMember = Tables<'room_members'> & { display_name: string; avatar_path: string | null; avatar_character: number | null };
 
 export const ROOM_TYPES: RoomType[] = ['sports', 'event', 'waiting', 'general'];
 
@@ -140,7 +140,7 @@ export async function listMembers(roomId: string): Promise<RoomMember[]> {
   if (error) throw error;
   const ids = members.map((m) => m.user_id);
   const { data: profiles, error: profileError } = ids.length
-    ? await supabase.from('profiles').select('id, display_name, avatar_path').in('id', ids)
+    ? await supabase.from('profiles').select('id, display_name, avatar_path, avatar_character').in('id', ids)
     : { data: [], error: null };
   if (profileError) throw profileError;
   const byId = new Map(profiles.map((p) => [p.id, p]));
@@ -148,6 +148,7 @@ export async function listMembers(roomId: string): Promise<RoomMember[]> {
     ...m,
     display_name: byId.get(m.user_id)?.display_name ?? en.rooms.someone,
     avatar_path: byId.get(m.user_id)?.avatar_path ?? null,
+    avatar_character: byId.get(m.user_id)?.avatar_character ?? null,
   }));
 }
 

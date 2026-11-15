@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { dismissEmergencyConfirmForEnd, EmergencyConfirmHost } from '@/components/emergency-confirm';
 import { HandTitle } from '@/components/hand-title';
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { Composer } from '@/components/composer';
 import { EmptyState } from '@/components/empty-state';
 import { EmergencyAlerts, useEmergencyPresence } from '@/components/room-activity';
@@ -70,7 +70,7 @@ type State =
   | { status: 'loading' }
   | { status: 'gone' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null> };
+  | { status: 'ready'; room: Room; names: Map<string, string>; avatars: Map<string, string | null>; characters: Map<string, number | null> };
 
 export default function RoomScreen() {
   // F-EMX8: the Emergency confirm lives above the chat / ended switch so it can close when the room ends.
@@ -100,7 +100,7 @@ function RoomScreenBody() {
       // Spec 7.1: in the early-end grace window the room row is readable again but the room is closed; no
       // members list and no reminder, only the Room ended screen below.
       if (room.deleted_at !== null) {
-        setState({ status: 'ready', room, names: new Map(), avatars: new Map() });
+        setState({ status: 'ready', room, names: new Map(), avatars: new Map(), characters: new Map() });
         return;
       }
       const members = await listMembers(id);
@@ -109,6 +109,7 @@ function RoomScreenBody() {
         room,
         names: new Map(members.map((m) => [m.user_id, m.display_name])),
         avatars: new Map(members.map((m) => [m.user_id, m.avatar_path])),
+        characters: new Map(members.map((m) => [m.user_id, m.avatar_character])),
       });
       // Reschedules the local reminder when the host changed the expiry (rooms notice -> reload).
       // UX2-130: never prompts here; the in-chat reminder card is the only place that asks.
@@ -194,6 +195,7 @@ function RoomScreenBody() {
       room={state.room}
       names={state.names}
       avatars={state.avatars}
+      characters={state.characters}
       userId={userId}
       remainingMs={remainingMs}
       onNewSender={onNewSender}
@@ -207,6 +209,7 @@ function ChatRoom({
   room,
   names,
   avatars,
+  characters,
   userId,
   remainingMs,
   onNewSender,
@@ -216,6 +219,7 @@ function ChatRoom({
   room: Room;
   names: Map<string, string>;
   avatars: Map<string, string | null>;
+  characters: Map<string, number | null>;
   userId: string | undefined;
   remainingMs: number;
   onNewSender: (senderId: string) => void;
@@ -249,6 +253,7 @@ function ChatRoom({
         id: uid,
         name: memberName(names, uid, room.host_id, en.chat),
         avatarPath: avatars.get(uid),
+        character: characters.get(uid),
       }))
     : null;
   // Spec 11: one activity read for the Emergency cards, the "+" panel (Arrived, Set status) and the bell.
@@ -656,6 +661,7 @@ function ChatRoom({
                       mine={item.sender_id === userId}
                       name={item.sender_id ? memberName(names, item.sender_id, room.host_id, en.chat) : ''}
                       avatarPath={item.sender_id ? avatars.get(item.sender_id) : null}
+                      character={item.sender_id ? characters.get(item.sender_id) : null}
                       isHost={!!item.sender_id && item.sender_id === room.host_id}
                       onFailedPress={onFailedPress}
                       onMediaPress={openPhotos}
@@ -827,6 +833,7 @@ function MessageRow({
   mine,
   name,
   avatarPath,
+  character,
   isHost,
   onFailedPress,
   onMediaPress,
@@ -847,6 +854,7 @@ function MessageRow({
   mine: boolean;
   name: string;
   avatarPath: string | null | undefined;
+  character?: number | null;
   isHost: boolean;
   onFailedPress: (item: ChatItem) => void;
   onMediaPress: () => void;
@@ -904,7 +912,7 @@ function MessageRow({
     return (
       <View style={styles.theirRow}>
         <View style={[styles.avatarRing, isHost && styles.avatarRingHost]}>
-          <Avatar path={avatarPath} name={name} size={size.avatar} />
+          <PersonAvatar userId={item.sender_id ?? ''} name={name} path={avatarPath} character={character} size={size.avatar} />
         </View>
         <View style={[styles.row, styles.rowTheirs]}>
           <View style={styles.nameLine}>
@@ -1020,7 +1028,7 @@ function MessageRow({
   return (
     <View style={styles.theirRow}>
       <View style={[styles.avatarRing, isHost && styles.avatarRingHost]}>
-        <Avatar path={avatarPath} name={name} size={size.avatar} />
+        <PersonAvatar userId={item.sender_id ?? ''} name={name} path={avatarPath} character={character} size={size.avatar} />
       </View>
       <View style={[styles.row, styles.rowTheirs]}>
         <View style={styles.nameLine}>

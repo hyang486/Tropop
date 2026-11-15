@@ -4,7 +4,7 @@ import { type ReactElement, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { colors, size } from '@/components/ui';
 import { en } from '@/i18n/en';
 
@@ -97,7 +97,7 @@ export function CheckedBySheet({
   onClose,
 }: {
   /** null hides the sheet. */
-  people: { id: string; name: string; avatarPath: string | null | undefined }[] | null;
+  people: { id: string; name: string; avatarPath: string | null | undefined; character?: number | null }[] | null;
   onClose: () => void;
 }) {
   return (
@@ -105,7 +105,7 @@ export function CheckedBySheet({
       <ScrollView style={styles.list}>
         {(people ?? []).map((p) => (
           <View key={p.id} style={styles.person} accessible accessibilityLabel={p.name}>
-            <Avatar path={p.avatarPath} name={p.name} size={size.avatar} />
+            <PersonAvatar userId={p.id} name={p.name} path={p.avatarPath} character={p.character} size={size.avatar} />
             <Text style={styles.personName} numberOfLines={1}>
               {p.name}
             </Text>
