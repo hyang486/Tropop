@@ -87,11 +87,11 @@ test('B2 fields: wash fill, radius 16, 52 pt; a 2 pt Cardinal ring only while fo
   assert.match(q, /setFocused\(false\);\s*onBlur\?\.\(e\);/);
   assert.doesNotMatch(q, /borderWidth: StyleSheet\.hairlineWidth \* 2,\s*borderColor: colors\.separator,\s*borderRadius: 12,\s*borderCurve: 'continuous',\s*paddingHorizontal: 14,\s*fontSize: 17/);
   const create = src('app/create-room.tsx');
-  assert.match(create, /fieldRow: \{[^}]*backgroundColor: colors\.field,\s*borderWidth: 1\.5,\s*borderColor: 'transparent',\s*borderRadius: 12,/);
+  assert.match(create, /fieldRow: \{[^}]*backgroundColor: colors\.wash,\s*borderWidth: 2,\s*borderColor: 'transparent',\s*borderRadius: 16,/);
   assert.match(create, /fieldRowFocused: \{ borderColor: colors\.tint \}/);
   assert.match(create, /styles\.fieldRow, focusedRow === 'area' && styles\.fieldRowFocused/);
   assert.match(create, /styles\.fieldRow, focusedRow === 'place' && styles\.fieldRowFocused/);
   // Outlined switch rows and the Status options box stay for V5.
   assert.match(create, /row: \{ \.\.\.outline,/);
-  assert.match(src('components/join-code-screen.tsx'), /borderWidth: 1\.5,\s*borderColor: 'transparent',/);
+  assert.match(src('components/join-code-screen.tsx'), /borderWidth: 2,\s*borderColor: 'transparent',/);
 });

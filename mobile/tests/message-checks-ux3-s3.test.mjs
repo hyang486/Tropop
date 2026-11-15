@@ -68,7 +68,7 @@ test('S3: menu, double-tap and pill wiring (ux decisions (a) and (b))', () => {
   assert.match(h, /event\.table === 'message_reactions'/);
   const r = src('app/room/[id]/index.tsx');
   assert.match(r, /<CheckBlock mine=\{mine\} check=\{check\} doubleTap=\{false\}/, '(b) media: long-press only, no Copy');
-  assert.match(r, /copyText=\{item\.body \?\? ''\}\s*doubleTap\s/);
+  assert.match(r, /copyText=\{isSticker \? undefined : \(item\.body \?\? ''\)\}\s*doubleTap=\{!isSticker\}\s/);
 });
 
 test('S3 gate: checks start off, turn on after a read, off when 0038 is missing; other errors keep the state', () => {

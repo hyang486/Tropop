@@ -13,7 +13,7 @@ test('UX3-A03: Welcome shows art, the headline and three value rows, no tagline'
     assert.match(w, new RegExp(`en\\.welcome\\.${k}Title`));
     assert.match(w, new RegExp(`en\\.welcome\\.${k}Line`));
   }
-  assert.match(w, /<InkArt art="gathering" width=\{300\} \/>/);
+  assert.match(w, /<InkArt art="gathering" \/>/);
   assert.doesNotMatch(w, /tagline/);
   assert.doesNotMatch(en, /tagline:/);
 });
@@ -52,7 +52,7 @@ test('UX3-A10: the code goes on after the 5th digit; a wrong code shakes, buzzes
   assert.doesNotMatch(j, /errorHaptic/);
   assert.match(j, /if \(reduceMotion !== false\) return;/);
   assert.match(j, /e\.kind === 'invalid'/);
-  assert.match(j, /error: \{ fontSize: 15, color: colors\.errorText \}/);
+  assert.match(j, /error: \{ flexShrink: 1, fontSize: 14, lineHeight: 20, color: colors\.errorText \}/);
   const h = src('lib/join-code.ts');
   const steps = [...h.matchAll(/\{ x: (-?\d+), ms: (\d+) \}/g)].map((m) => [Number(m[1]), Number(m[2])]);
   assert.equal(steps.reduce((t, [, ms]) => t + ms, 0), 300);

@@ -12,7 +12,7 @@
  */
 
 /** Root-stack routes presented as modals (`presentation: 'modal'` in `app/_layout.tsx`). */
-export const MODAL_ROUTES: readonly string[] = ['upgrade', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions'];
+export const MODAL_ROUTES: readonly string[] = ['upgrade', 'pick-character', 'room/[id]/invite', 'room/[id]/ask', 'room/[id]/questions'];
 
 /** Splits a link into its path after the scheme, without query or hash; null for a foreign URL. */
 function linkPath(path: string): string | null {

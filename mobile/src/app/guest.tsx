@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { InkArt } from '@/components/ink-art';
+import { clearCharacterPrompt, markCharacterPrompt } from '@/features/characters/first-run';
 import { QField, QLink, QScreen } from '@/components/q-screen';
 import { Button, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
@@ -23,9 +24,12 @@ export default function Guest() {
     setBusy(true);
     setError(null);
     try {
+      // B3: Rooms shows "Pick your character" once after this. Set before sign-in, which navigates at once.
+      await markCharacterPrompt();
       await startAsGuest(name);
       // The root layout's protected routes move a signed-in user to Rooms.
     } catch (e) {
+      await clearCharacterPrompt();
       setError(errorMessage(e));
       setBusy(false);
     }

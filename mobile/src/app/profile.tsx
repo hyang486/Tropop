@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { profileCharacter } from '@/features/characters/character-store';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { QLink, QScreen } from '@/components/q-screen';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QRowCard } from '@/components/q-row-card';
-import { Hint } from '@/components/ui';
+import { Card, colors, Hint, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { deleteAccount, signOut, useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
@@ -75,34 +77,52 @@ export default function Profile() {
       // UX3-A07: no subtitle; the Account row below says the email or "Guest on this phone" (once, not twice).
     >
       <ProfileRetry />
-      <QRowCard
-        leading={<Avatar path={profile?.avatar_path} name={name} size={36} />}
-        title={name || '—'}
-        subtitle={en.profile.nameLabel}
-        accessibilityLabel={`${en.profile.nameLabel}: ${name}`}
-        // UX2-62: the name row is the way into Edit profile (no separate button).
-        accessibilityHint={en.profile.editProfile}
-        onPress={editProfile}
-      />
-      {/* UX P2-7: a plain info row, not a checkmark that reads as a selected option. UX3-A07 (ux): the value is
-          the email for an account and "Guest on this phone" for a guest; "Host" never labels the account. */}
-      <QRowCard
-        icon="person.crop.circle"
-        title={en.profile.account}
-        value={accountValue}
-        valueTruncate
-        accessibilityLabel={accountValue ? `${en.profile.account}, ${accountValue}` : en.profile.account}
-      />
+      {/* B2 header block: avatar 72, name 20/28, Host/Guest meta, Edit text button (replaces the name row). */}
+      <View style={styles.header}>
+        <PersonAvatar userId={session?.user.id ?? ''} name={name} path={profile?.avatar_path} character={profileCharacter(profile)} size={72} />
+        <View style={styles.headerText}>
+          <Text style={styles.headerName} numberOfLines={1}>{name || '—'}</Text>
+          <Text style={textRole.secondary}>{isGuest ? en.profile.roleGuest : en.profile.roleHost}</Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={en.profile.editProfile}
+          accessibilityHint={en.profile.editProfileButtonHint}
+          hitSlop={8}
+          onPress={editProfile}
+          style={({ pressed }) => [styles.edit, pressed && { opacity: 0.5 }]}
+        >
+          <Text style={styles.editText}>{en.profile.edit}</Text>
+        </Pressable>
+      </View>
 
-      <View style={styles.rows}>
-        <QRowCard icon="globe" title={en.profile.language} value={en.profile.languageValue} />
-        {/* UX2-29: a guest can't create rooms, so no host-only Plus pitch; the row leads to a host account instead. */}
+      {/* Card 1 "You": Connections and My QR codes slots arrive with developer (A) behind a flag. */}
+      <Text style={textRole.section} accessibilityRole="header">{en.profile.sectionYou}</Text>
+      <Card>
         {isGuest ? (
-          <QRowCard icon="person.badge.plus" title={en.profile.guestHostRow} onPress={() => router.push('/upgrade')} />
+          <QRowCard grouped icon="person.badge.plus" title={en.profile.guestHostRow} onPress={() => router.push('/upgrade')} />
         ) : (
-          <QRowCard icon="sparkles" title={en.planPreview.profileLink} onPress={() => router.push('/plan-preview')} />
+          <QRowCard grouped icon="sparkles" title={en.planPreview.profileLink} onPress={() => router.push('/plan-preview')} />
         )}
+      </Card>
+
+      <Text style={textRole.section} accessibilityRole="header">{en.profile.sectionSettings}</Text>
+      <Card>
+        {/* UX P2-7: a plain info row; the value is the email for an account and "Guest on this phone" for a guest. */}
         <QRowCard
+          grouped
+          icon="person.crop.circle"
+          title={en.profile.account}
+          value={accountValue}
+          valueTruncate
+          accessibilityLabel={accountValue ? `${en.profile.account}, ${accountValue}` : en.profile.account}
+        />
+        <QRowCard grouped icon="globe" title={en.profile.language} value={en.profile.languageValue} />
+      </Card>
+
+      <Card>
+        <QRowCard
+          grouped
           icon="rectangle.portrait.and.arrow.right"
           title={en.profile.signOut}
           subtitle={isGuest ? en.profile.guestSignOutWarning : undefined}
@@ -110,7 +130,7 @@ export default function Profile() {
           action
           busy={busy === 'signout'}
         />
-      </View>
+      </Card>
 
       {error && <Hint tone="error">{error}</Hint>}
 
@@ -126,6 +146,10 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  rows: { gap: 8, marginTop: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
+  headerText: { flex: 1, gap: 2 },
+  headerName: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label },
+  edit: { minHeight: 44, justifyContent: 'center' },
+  editText: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.tint },
   delete: { marginTop: 4, minHeight: 40, justifyContent: 'center' },
 });

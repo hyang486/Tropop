@@ -73,7 +73,7 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       onPress={onPress}
-      // UX2-35: the 38 pt chip keeps its look; 4 pt above and below make a 44 pt target (rows are 8 pt apart).
+      // B2: the 36 pt chip; 4 pt above and below make a 44 pt target (rows are 8 pt apart).
       hitSlop={{ top: 4, bottom: 4 }}
       style={[styles.chip, selected && { backgroundColor: colors.tint }]}
     >
@@ -412,7 +412,7 @@ export default function CreateRoom() {
               onPressOut={stopRepeat}
               hitSlop={8}
             >
-              <SymbolView name="minus.circle" size={26} tintColor={colors.label} />
+              <SymbolView name="minus.circle" size={32} tintColor={atMin ? colors.wash2 : colors.tint} />
             </Pressable>
             <TextInput
               selectionColor={colors.label}
@@ -446,7 +446,7 @@ export default function CreateRoom() {
               onPressOut={stopRepeat}
               hitSlop={8}
             >
-              <SymbolView name="plus.circle" size={26} tintColor={colors.label} />
+              <SymbolView name="plus.circle" size={32} tintColor={atMax ? colors.wash2 : colors.tint} />
             </Pressable>
           </View>
           {/* UX2-131 (ux): one slot under the stepper: the clamp line while it is set, else the Free at-max line.
@@ -709,7 +709,7 @@ export default function CreateRoom() {
 
 const outline = {
   backgroundColor: colors.wash,
-  borderRadius: 12,
+  borderRadius: 16,
   borderCurve: 'continuous',
 } as const;
 
@@ -726,16 +726,17 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   presets: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    backgroundColor: colors.field,
+    backgroundColor: colors.wash,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
     paddingHorizontal: 16,
-    paddingVertical: 9,
+    height: 36,
+    justifyContent: 'center',
   },
-  chipText: { fontSize: 15, color: colors.label },
+  chipText: { fontSize: 16, lineHeight: 24, color: colors.label },
   // A3: outlined rows, no grey fill.
   row: { ...outline, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10 },
-  // V1: text-field rows (area, meeting place): wash fill, no border, radius 12; ink border only while focused.
+  // B2: text-field rows (area, meeting place) match QField: wash fill, radius 16, 52 pt, 2 pt Cardinal border only while focused.
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -743,23 +744,23 @@ const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: colors.field,
-    borderWidth: 1.5,
+    backgroundColor: colors.wash,
+    borderWidth: 2,
     borderColor: 'transparent',
-    borderRadius: 12,
+    borderRadius: 16,
     borderCurve: 'continuous',
   },
   fieldRowFocused: { borderColor: colors.tint },
-  rowInput: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 4 },
-  rowAction: { fontSize: 15, color: colors.tint, textDecorationLine: 'underline' },
+  rowInput: { flex: 1, fontSize: 16, lineHeight: 24, color: colors.label, paddingVertical: 4 },
+  rowAction: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.tint },
   box: { ...outline, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   cardTitle: { flex: 1, fontSize: 16, color: colors.label },
   cardNote: { fontSize: 12, color: colors.ink2 },
   pinArea: { fontSize: 14, color: colors.label },
-  stepOff: { opacity: 0.3 },
+  stepOff: { opacity: 1 },
   clampRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   clampNote: { fontSize: 13, lineHeight: 18, color: colors.ink2 },
-  clampLinkText: { fontWeight: '600', textDecorationLine: 'underline' },
+  clampLinkText: { fontWeight: '600', color: colors.tint },
   atMax: { ...textRole.secondary, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
   step: { width: size.hit, height: size.hit, alignItems: 'center', justifyContent: 'center' },
   capacity: {
@@ -768,8 +769,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 17,
     color: colors.label,
-    backgroundColor: colors.field,
-    borderRadius: 10,
+    backgroundColor: colors.wash,
+    borderRadius: 16,
     fontVariant: ['tabular-nums'],
   },
   iconChip: { ...outline, width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },

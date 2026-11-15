@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { handFontFor, HAND_FONT_KOREAN, HAND_FONT_LATIN } from '../src/lib/hand-font.ts';
-import { artEntry, DRAWN_BY_DEV, INK_DRAWINGS, themeArt } from '../src/lib/ink-art.ts';
+import { themeArt } from '../src/lib/ink-art.ts';
 import { roomTheme } from '../src/lib/room-theme.ts';
 
 const cases = {
@@ -39,33 +39,12 @@ test('handFontFor (B1): every title uses Source Sans 3 Semibold', () => {
   assert.equal(handFontFor('🏃'), HAND_FONT_LATIN);
 });
 
-test('themeArt: each of the five themes has its own art; an unknown theme falls back to gathering', () => {
-  const keys = ['run', 'hike', 'bike', 'motorcycle', 'gathering'].map((t) => themeArt(t).key);
-  assert.deepEqual(keys, ['run', 'hike', 'bike', 'motorcycle', 'gathering']);
-  assert.equal(new Set(keys).size, 5);
+test('themeArt: run, hike and bike get their own stickers, a gathering the crew sticker, an unknown theme the hero', () => {
+  assert.deepEqual(['run', 'hike', 'bike', 'motorcycle'].map((t) => themeArt(t).key), ['sports', 'imHere', 'onMyWay', 'onMyWay']);
+  assert.equal(themeArt('gathering').key, 'hey');
   assert.equal(themeArt('swimming').key, 'gathering');
-  assert.equal(themeArt(roomTheme('Saturday Run Crew')).kind, 'image');
-  assert.equal(themeArt(roomTheme('Sunday Bike Ride')).kind, 'drawing');
-});
-
-test('ink drawings: dev-drawn, every path well-formed, aspect from the viewBox', () => {
-  assert.equal(DRAWN_BY_DEV, true);
-  for (const [key, d] of Object.entries(INK_DRAWINGS)) {
-    assert.equal(d.viewBox, `0 0 ${d.width} ${d.height}`, key);
-    for (const path of d.paths) assert.match(path, /^M[\d. ]+[MLQCAZ\d. ]*$/, `${key}: ${path}`);
-    assert.equal(artEntry(key).aspect, d.width / d.height);
-  }
-});
-
-test('ink drawings (supervisor A1): hike, bike and motorcycle fill a runner-like frame with a person in it', () => {
-  // run.png is 305 x 281 (aspect 1.09) cropped to the drawing; the redrawn art fills its viewBox the same way.
-  for (const key of ['hike', 'bike', 'motorcycle']) {
-    const d = INK_DRAWINGS[key];
-    const aspect = d.width / d.height;
-    assert.ok(aspect >= 1.05 && aspect <= 1.25, `${key} aspect ${aspect}`);
-    // body parts are closed (paper-filled) shapes, so the figure has volume and hides the frame behind it
-    assert.ok(d.paths.filter((p) => p.endsWith('Z')).length >= 8, key);
-  }
+  assert.equal(themeArt('swimming').kind, 'hero');
+  assert.equal(themeArt(roomTheme('Saturday Run Crew')).kind, 'sticker');
 });
 
 test('roomTheme (supervisor F1): Korean compounds that only contain a term are a gathering', () => {

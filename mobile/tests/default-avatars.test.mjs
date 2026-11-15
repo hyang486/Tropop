@@ -29,8 +29,8 @@ test('UX2-43b: all 8 defaults are filled SF Symbols with a name; keys and tints 
 
 test('UX2-43b: the avatar draws the symbol (ink, semibold, 0.42x) with the glyph as fallback; VoiceOver reads "<Name> picture"', () => {
   const avatar = readFileSync(new URL('../src/components/avatar.tsx', import.meta.url), 'utf8');
-  const edit = readFileSync(new URL('../src/app/profile-edit.tsx', import.meta.url), 'utf8');
+  const picker = readFileSync(new URL('../src/features/characters/character-picker.tsx', import.meta.url), 'utf8');
   assert.match(avatar, /<SymbolView\s+name=\{preset\.symbol\}\s+size=\{Math\.round\(size \* 0\.42\)\}\s+tintColor="#2B2B2B"\s+weight="semibold"\s+fallback=\{<Text[^]*?\{preset\.glyph\}<\/Text>\}/);
-  assert.match(edit, /accessibilityLabel=\{`\$\{a\.name\} \$\{en\.profile\.avatarOption\.toLowerCase\(\)\}`\}/);
-  assert.match(edit, /accessibilityState=\{\{ selected \}\}/);
+  // B3: Edit profile now picks characters (the glyph presets are retired from the picker); selection is announced.
+  assert.match(picker, /accessibilityState=\{\{ selected: on \}\}/);
 });

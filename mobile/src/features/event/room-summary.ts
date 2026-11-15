@@ -25,6 +25,8 @@ export function lastItemLine(
   uid: string | undefined,
   en: Copy,
   chatLine: typeof ChatLineFn,
+  /** B3: "{who} sent a sticker: {caption}" (injected so this file stays import-free); the raw art id is never shown. */
+  stickerLine: (who: string, stickerId: string) => string = (who) => `${who} sent a sticker`,
 ): { text: string; danger: boolean } {
   if (!s?.last_at || !s.last_kind)
     return { text: en.home.row.noMessages, danger: false };
@@ -33,6 +35,8 @@ export function lastItemLine(
   const body = s.last_body ?? "";
   if (s.last_kind === "text")
     return { text: `${who}: ${oneLine(body)}`, danger: false };
+  // B3: a sticker row says "Jun sent a sticker: Good idea!", never the raw art id.
+  if (s.last_kind === "sticker") return { text: oneLine(stickerLine(who, body)), danger: false };
   if (s.last_kind === "media")
     return {
       text: en.chat.shared(who, body || en.chat.sharedFallback),

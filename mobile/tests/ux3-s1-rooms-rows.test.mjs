@@ -72,7 +72,7 @@ test('Rooms home wires summaries, drops the type word, uses the shared Pill; cha
   // V2: the Live tag is the V1 Tag (wash, dot), not the outlined Pill tag.
   assert.match(h, /<Tag label=\{en\.home\.row\.live\} dot \/>/);
   assert.match(h, /<Pill variant="count" text=\{unread\} \/>/);
-  assert.match(h, /minHeight: 76/);
+  assert.match(h, /minHeight: 80/);
   const chat = src('app/room/[id]/index.tsx');
   assert.match(chat, /useMarkRoomRead\(room\.id, /);
   const api = src('features/event/room-summary-api.ts');

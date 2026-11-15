@@ -89,7 +89,7 @@ export default function PlanPreview() {
       {isPlus ? (
         <>
           <View style={styles.hero}>
-            <InkArt art="run" width={170} />
+            <InkArt art="fightOn" width={170} />
             <HandTitle style={styles.center}>{t.onHeading}</HandTitle>
             <Text style={[styles.sub, styles.onBadge]}>{t.onBadge}</Text>
           </View>

@@ -4,14 +4,16 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { InkIcon } from '@/components/calendar/ink-icon';
-import { InkArt } from '@/components/ink-art';
+import { InkArt, ThemeSticker } from '@/components/ink-art';
 import { Pill } from '@/components/pill';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QScreen } from '@/components/q-screen';
 import { RtIconButton, rtRightOptions } from '@/components/rt-header';
-import { Button, Card, colors, Hint, radius, size, Tag, textRole, useReduceTransparency } from '@/components/ui';
+import { Button, Card, colors, Hint, size, Tag, textRole, useReduceTransparency } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { takeCharacterPrompt } from '@/features/characters/first-run';
+import { fetchHostFaces, type HostFace } from '@/features/characters/host-faces';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
@@ -19,6 +21,7 @@ import { pruneRoomCaches } from '@/lib/media';
 import { resumePendingInvite } from '@/lib/invite';
 import { formatRemaining, listMyRooms, type Room, type RoomWithCount } from '@/lib/rooms';
 import { chatLine } from '@/lib/chat-line';
+import { stickerPreview } from '@/lib/stickers';
 import { useNow } from '@/lib/use-now';
 import { acquireRoomChannel } from '@/lib/room-channel';
 import { createRoomsLive } from '@/features/event/rooms-live';
@@ -43,7 +46,6 @@ import {
   unreadLabel,
   type RoomSummary,
 } from '@/features/event/room-summary';
-import { defaultRoomIcon, iconEmoji } from '@/features/event/open-room-plan';
 import { Snackbar } from '@/features/event/snackbar';
 import { syncSiriRooms } from '@/features/event/siri-mirror';
 import { syncCalendarRooms } from '@/features/calendar/calendar-store';
@@ -59,6 +61,8 @@ export default function Rooms() {
   const [rooms, setRooms] = useState<RoomWithCount[] | null>(null);
   // UX3-A01: last item and unread per room (0037); null while unknown or when the read failed.
   const [summaries, setSummaries] = useState<Map<string, RoomSummary> | null>(null);
+  // B3 (0043): the host's face per host id for the row tile; empty until known, then rows keep the room-type sticker.
+  const [hostFaces, setHostFaces] = useState<Map<string, HostFace>>(new Map());
   // P3 Emergency row: who is in Emergency per open room; null when unknown or the read failed (normal rows).
   const [emergencies, setEmergencies] = useState<Map<string, EmergencyPerson[]> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +80,14 @@ export default function Rooms() {
   // UX3-A02: the empty layout only once the read answered with no rows (not while loading or on an error).
   const empty = rooms !== null && rows.length === 0 && !error;
 
+  // B3 first run: after sign-up or guest name entry, "Pick your character" opens once (flag set by those screens).
+  useEffect(() => {
+    if (!uid) return;
+    void takeCharacterPrompt().then((pending) => {
+      if (pending) router.push('/pick-character');
+    });
+  }, [uid, router]);
+
   const load = useCallback(async () => {
     try {
       const list = await listMyRooms();
@@ -88,6 +100,7 @@ export default function Rooms() {
       ]);
       setSummaries(nextSummaries);
       setEmergencies(nextEmergencies);
+      void fetchHostFaces(list.map((r) => r.host_id)).then(setHostFaces, () => undefined);
       setOffline(false);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
@@ -213,7 +226,7 @@ export default function Rooms() {
         {empty ? (
           <>
             <View style={styles.empty}>
-              <InkArt art="gathering" width={240} />
+              <InkArt art="gathering" />
               <Text style={styles.emptyLine}>{en.home.emptyLine}</Text>
             </View>
             <Button title={en.home.join} onPress={() => router.push('/join')} />
@@ -292,7 +305,7 @@ export default function Rooms() {
                 onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
                 style={({ pressed }) => [styles.row, styles.ended, pressed && { opacity: 0.3 }]}
               >
-                <RoomRing room={room} />
+                <RoomRing room={room} face={hostFaces.get(room.host_id)} />
                 <View style={styles.rowText}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {room.name}
@@ -304,7 +317,7 @@ export default function Rooms() {
           }
           // UX3-A01: name / last item / Live + people + ends (or Starts …); time and unread pill trailing.
           const summary = summaries?.get(room.id);
-          const line = summaries ? lastItemLine(summary, uid, en, chatLine) : null;
+          const line = summaries ? lastItemLine(summary, uid, en, chatLine, stickerPreview) : null;
           const live = isLive(room, now);
           // rooms.visibility (0031) is not in the generated types yet; select('*') returns it.
           const meta = rowMetaLine(room as typeof room & { visibility?: string | null }, now, en, formatRemaining);
@@ -330,9 +343,9 @@ export default function Rooms() {
             onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
           >
-            {emergency ? <EmergencyTile /> : <RoomRing room={room} />}
+            {emergency ? <EmergencyTile /> : <RoomRing room={room} face={hostFaces.get(room.host_id)} />}
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
+              <Text style={styles.rowTitle} numberOfLines={2}>
                 {room.name}
               </Text>
               {emergencyText ? (
@@ -401,11 +414,6 @@ function GuestCreateLink() {
   );
 }
 
-/** A public room's chosen icon (0031; not in the generated types yet), else the default for its type. */
-function roomIcon(room: Room): string {
-  return (room as Room & { public_icon?: string | null }).public_icon ?? defaultRoomIcon(room.type);
-}
-
 /** P3 Emergency row: line 2 copy. */
 function emergencyCopy(line: EmergencyLine) {
   if (line.kind === 'own') return en.home.row.youAskedForHelp;
@@ -422,11 +430,14 @@ function EmergencyTile() {
   );
 }
 
-/** UX P1-5: the room's own ink icon (the Create room set). V2: on a 48 pt wash tile (radius 14), no ring. */
-function RoomRing({ room }: { room: Room }) {
+/** B2: the room-type sticker (40 pt) on a 48 pt wash tile. B3 (0043): the host's face (photo or character, 48) when known. */
+function RoomRing({ room, face }: { room: Room; face?: HostFace }) {
+  if (face) {
+    return <PersonAvatar userId={room.host_id} name="" path={face.avatar_path} character={face.avatar_character} size={48} />;
+  }
   return (
     <View style={styles.ring}>
-      <InkIcon emoji={iconEmoji(roomIcon(room))} size={22} />
+      <ThemeSticker roomName={room.name} size={40} />
     </View>
   );
 }
@@ -435,8 +446,8 @@ const styles = StyleSheet.create({
   loading: { marginTop: 24 },
   flex: { flex: 1 },
   // V2: 10 pt between the pair, about 16 pt under the title underline (the title block's 6 + body gap 12, less 2).
-  pair: { flexDirection: 'row', gap: 10, marginTop: -2 },
-  empty: { alignItems: 'center', gap: 16, marginVertical: 8 },
+  pair: { flexDirection: 'row', gap: 12, marginTop: -2 },
+  empty: { gap: 16, marginVertical: 8 },
   emptyLine: { ...textRole.secondary, textAlign: 'center' },
   // Section header 13 pt semibold ink2, 22 pt above (10 + body gap 12) and 8 pt below.
   section: { gap: 12 },
@@ -447,7 +458,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 76,
+    minHeight: 80,
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 12,
@@ -456,21 +467,21 @@ const styles = StyleSheet.create({
   ring: {
     width: 48,
     height: 48,
-    borderRadius: radius.tile,
+    borderRadius: 14,
     borderCurve: 'continuous',
     backgroundColor: colors.wash,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
-  rowLast: { fontSize: 15, color: colors.ink2 },
+  rowTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label },
+  rowLast: { fontSize: 16, lineHeight: 24, color: colors.ink2 },
   rowDanger: { color: colors.danger },
   ringEmergency: { backgroundColor: colors.redwash },
   emergencyLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  emergencyText: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: colors.danger },
+  emergencyText: { flexShrink: 1, fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.danger },
   metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rowMeta: { flexShrink: 1, fontSize: 13, color: colors.ink2, fontVariant: ['tabular-nums'] },
+  rowMeta: { flexShrink: 1, fontSize: 12, lineHeight: 18, color: colors.ink2, fontVariant: ['tabular-nums'] },
   // Top-aligned: time, then 6 pt, then the unread pill.
   trailing: { alignSelf: 'flex-start', alignItems: 'flex-end', gap: 6 },
 });
