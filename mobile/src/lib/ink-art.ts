@@ -2,7 +2,7 @@
 // components/ink-art, so this file has no React Native imports and is unit tested).
 import type { RoomTheme } from './room-theme';
 
-export type ArtKey = 'gathering' | 'gate' | 'paper' | 'run' | 'reference' | 'ended' | 'camera' | 'scan' | 'meetup' | 'hey' | 'sports';
+export type ArtKey = 'gathering' | 'gate' | 'paper' | 'run' | 'reference' | 'ended' | 'camera' | 'scan' | 'meetup' | 'hey' | 'sports' | 'imHere' | 'onMyWay';
 
 /** `hero`: the opaque crew photo, shown in a card. `sticker`: transparent art drawn straight on the paper. */
 export type ArtEntry = { kind: 'hero' | 'sticker'; key: ArtKey; aspect: number };
@@ -10,15 +10,15 @@ export type ArtEntry = { kind: 'hero' | 'sticker'; key: ArtKey; aspect: number }
 /** Sticker source is 280 px square at @2x; the crew hero is 3:2. */
 const KIND: Record<ArtKey, 'hero' | 'sticker'> = {
   gathering: 'hero', gate: 'sticker', paper: 'sticker', run: 'sticker', reference: 'sticker', ended: 'sticker',
-  camera: 'sticker', scan: 'sticker', meetup: 'sticker', hey: 'sticker', sports: 'sticker',
+  camera: 'sticker', scan: 'sticker', meetup: 'sticker', hey: 'sticker', sports: 'sticker', imHere: 'sticker', onMyWay: 'sticker',
 };
 
-/** Theme → art: sports themes get "Let's go!", the rest the crew group art. A key missing from the map falls back to gathering. */
+/** Theme → sticker (ux): run "Let's go!", hike "I'm here!", bike and motorcycle "On my way!", gathering "Hey, crew!". A theme not in the map falls back to the crew hero (gathering). */
 const THEME_ART: Partial<Record<RoomTheme, ArtKey>> = {
   run: 'sports',
-  hike: 'sports',
-  bike: 'sports',
-  motorcycle: 'sports',
+  hike: 'imHere',
+  bike: 'onMyWay',
+  motorcycle: 'onMyWay',
   gathering: 'hey',
 };
 

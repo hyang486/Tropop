@@ -16,6 +16,8 @@ const IMAGES: Record<ArtKey, number> = {
   meetup: require('@/assets/brand/stickers/connection-05.png'),
   hey: require('@/assets/brand/stickers/connection-01.png'),
   sports: require('@/assets/brand/stickers/meetup-10.png'),
+  imHere: require('@/assets/brand/stickers/meetup-02.png'),
+  onMyWay: require('@/assets/brand/stickers/meetup-01.png'),
 };
 
 const HERO_GROUND = '#FBE8D0';

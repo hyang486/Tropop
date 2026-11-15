@@ -39,8 +39,8 @@ test('handFontFor (B1): every title uses Source Sans 3 Semibold', () => {
   assert.equal(handFontFor('🏃'), HAND_FONT_LATIN);
 });
 
-test('themeArt: sports themes get the sports sticker, a gathering the crew sticker, an unknown theme the hero', () => {
-  assert.deepEqual(['run', 'hike', 'bike', 'motorcycle'].map((t) => themeArt(t).key), ['sports', 'sports', 'sports', 'sports']);
+test('themeArt: run, hike and bike get their own stickers, a gathering the crew sticker, an unknown theme the hero', () => {
+  assert.deepEqual(['run', 'hike', 'bike', 'motorcycle'].map((t) => themeArt(t).key), ['sports', 'imHere', 'onMyWay', 'onMyWay']);
   assert.equal(themeArt('gathering').key, 'hey');
   assert.equal(themeArt('swimming').key, 'gathering');
   assert.equal(themeArt('swimming').kind, 'hero');
