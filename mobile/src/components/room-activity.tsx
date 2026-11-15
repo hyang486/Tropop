@@ -289,7 +289,7 @@ export function EmergencyAlerts({
                 accessibilityHint={en.activity.openEmergency}
               >
                 <View style={styles.capsuleDisc}>
-                  <SymbolView name="exclamationmark" size={13} weight="bold" tintColor="#FFFFFF" />
+                  <SymbolView name="exclamationmark" size={13} weight="bold" tintColor={colors.onDanger} />
                 </View>
                 <Text
                   style={styles.capsuleText}
@@ -383,7 +383,7 @@ export function EmergencyAlerts({
             <View style={[styles.bar, lift]} accessibilityRole="alert">
              <View style={styles.barRow}>
               <View style={styles.disc}>
-                <SymbolView name="exclamationmark" size={18} weight="bold" tintColor="#FFFFFF" />
+                <SymbolView name="exclamationmark" size={18} weight="bold" tintColor={colors.onDanger} />
               </View>
               <Pressable
                 style={styles.barText}

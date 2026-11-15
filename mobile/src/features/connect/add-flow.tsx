@@ -147,9 +147,10 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 16,
+    // KEEP white: QR image surface (scan contrast), like qr-code/invite/full-screen.
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E6DED7',
+    borderColor: colors.separator,
     overflow: 'hidden',
     padding: 8,
   },

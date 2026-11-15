@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
 import { HAND_FONTS } from '@/components/hand-title';
-import { Button } from '@/components/ui';
+import { Button, colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { handFontFor } from '@/lib/hand-font';
 import { useDismissOnLink } from '@/lib/use-dismiss-on-link';
@@ -67,7 +67,7 @@ export function PlusUpsellCard({
 }
 
 const styles = StyleSheet.create({
-  scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', padding: 16 },
+  scrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.scrim, padding: 16 },
   card: { width: '100%', maxWidth: 360, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth * 2, padding: 20, gap: 12 },
   flex: { flex: 1 },
   roomRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },

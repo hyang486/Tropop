@@ -5,7 +5,7 @@ import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
 import { QLink, QScreen } from '@/components/q-screen';
-import { Button, colors, Hint } from '@/components/ui';
+import { Button, colors, elevation, Hint } from '@/components/ui';
 import {
   listConnectionQrCodes,
   listConnections,
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     padding: 16,
     gap: 12,
-    boxShadow: '0 2px 8px rgba(48,43,40,0.08)',
+    boxShadow: elevation.lift.light.boxShadow,
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   appName: { flex: 1, fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label },

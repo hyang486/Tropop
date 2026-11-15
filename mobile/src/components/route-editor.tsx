@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     top: 10,
     left: 10,
     backgroundColor: colors.lift,
-    shadowColor: '#302B28',
+    shadowColor: colors.label,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.16,
     shadowRadius: 4,
