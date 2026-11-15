@@ -1,6 +1,6 @@
 import { en } from '@/i18n/en';
 
-import { errorKind, type ErrorKind } from './error-kind';
+import { errorKind, serverCopyText, type ErrorKind } from './error-kind';
 
 // Every fixed string in en: an Error carrying one was written by the app and is safe to show as-is.
 let appCopy: Set<string> | null = null;
@@ -38,7 +38,7 @@ export function errorMessage(error: unknown) {
     if (marked || isAppCopy(error.message)) return error.message;
   }
   const kind = errorKind(error);
-  // The server's own user-facing exception text (SERVER_COPY) is shown unchanged.
-  if (kind === 'asIs') return (error as { message: string }).message;
+  // The server's own user-facing exception text (SERVER_COPY) is shown unchanged, except renamed copy.
+  if (kind === 'asIs') return serverCopyText((error as { message: string }).message);
   return COPY[kind];
 }

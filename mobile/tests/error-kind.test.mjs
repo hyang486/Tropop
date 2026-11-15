@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { errorKind, SERVER_COPY } from '../src/lib/error-kind.ts';
+import { errorKind, SERVER_COPY, serverCopyText } from '../src/lib/error-kind.ts';
 
 test('network failures are offline', () => {
   assert.equal(errorKind(new TypeError('Network request failed')), 'offline');
@@ -50,4 +50,25 @@ test('unlisted server text never passes through', () => {
   assert.equal(errorKind({ code: 'P0001', message: 'Only the host can end this room' }), 'generic');
   assert.equal(SERVER_COPY.has('Not a member of this room'), false);
   assert.equal(errorKind({ code: '42501', message: 'Not a member of this room' }), 'notMember');
+});
+
+test('rename: live server texts that still say "Qrewing AI" stay asIs and display as "Trok AI"', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const dir = new URL('../../supabase/migrations/', import.meta.url);
+  const live = new Set();
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.sql'))) {
+    for (const m of readFileSync(new URL(f, dir), 'utf8').matchAll(/raise exception '([^']*Qrew[^']*)'/g)) live.add(m[1]);
+  }
+  assert.deepEqual([...live].sort(), [
+    'Entry info can be required only in an event room with Qrewing AI on',
+    'Mute small talk needs Qrewing AI consent',
+    'Only the host of an open room can change Qrewing AI',
+    'Qrewing AI is off in this room',
+  ]);
+  for (const message of live) {
+    assert.equal(errorKind({ code: 'P0001', message }), 'asIs', message);
+    const shown = serverCopyText(message);
+    assert.ok(!/Qrew/.test(shown) && /Trok AI/.test(shown), shown);
+  }
+  assert.equal(serverCopyText('Sign in first'), 'Sign in first');
 });
