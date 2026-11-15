@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
@@ -7,8 +7,11 @@ import { QField, QScreen } from '@/components/q-screen';
 import { Button, colors, Hint } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { updateDisplayName, useAuth } from '@/lib/auth';
-import { pickAvatar, removeProfilePhoto, setDefaultAvatar, setProfilePhoto } from '@/lib/avatar';
-import { DEFAULT_AVATARS, defaultAvatarPath } from '@/lib/default-avatars';
+import { CharacterPicker } from '@/features/characters/character-picker';
+import { profileCharacter, setProfileCharacter } from '@/features/characters/character-store';
+import { PersonAvatar, realPhotoPath } from '@/features/characters/person-avatar';
+import { pickAvatar, removeProfilePhoto, setProfilePhoto } from '@/lib/avatar';
+import { defaultCharacter } from '@/lib/characters';
 import { errorMessage } from '@/lib/errors';
 
 /** Qrew unit 5 (Q 07.01 Edit profile): profile photo and display name, moved here from Profile unchanged. */
@@ -23,6 +26,7 @@ export default function ProfileEdit() {
   const [busy, setBusy] = useState<'save' | 'photo' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const photo = realPhotoPath(profile?.avatar_path);
 
   async function save() {
     if (!session) return;
@@ -57,12 +61,13 @@ export default function ProfileEdit() {
     }
   }
 
-  async function chooseDefault(key: string) {
+  // Depends on 0043 (profiles.avatar_character): choosing a character selects it and clears the photo.
+  async function chooseCharacter(id: number) {
     if (!session) return;
     setBusy('photo');
     setError(null);
     try {
-      await setDefaultAvatar(session.user.id, key);
+      await setProfileCharacter(session.user.id, id);
       await refreshProfile();
     } catch (e) {
       setError(errorMessage(e));
@@ -91,40 +96,23 @@ export default function ProfileEdit() {
       subtitle={en.profile.editProfileHint}
       actions={<Button title={saved ? en.profile.saved : en.profile.save} onPress={save} busy={busy === 'save'} disabled={!nameChanged} />}
     >
-      <View style={styles.photoRow}>
-        <Avatar path={profile?.avatar_path} name={profile?.display_name ?? '?'} size={72} />
-        <View style={styles.photoActions}>
-          <Button
-            variant="secondary"
-            title={profile?.avatar_path ? en.profile.changePhoto : en.profile.addPhoto}
-            onPress={changePhoto}
-            busy={busy === 'photo'}
-          />
-          {profile?.avatar_path && (
-            <Button variant="secondary" title={en.profile.removePhoto} onPress={clearPhoto} disabled={busy !== null} />
-          )}
-        </View>
+      <View style={styles.hero}>
+        <PersonAvatar
+          userId={session?.user.id ?? ''}
+          name={profile?.display_name ?? '?'}
+          path={profile?.avatar_path}
+          character={profileCharacter(profile)}
+          size={144}
+        />
       </View>
-      <Text style={styles.pickLabel}>{en.profile.chooseAvatar}</Text>
-      <View style={styles.pickRow}>
-        {DEFAULT_AVATARS.map((a) => {
-          const path = defaultAvatarPath(a.key);
-          const selected = profile?.avatar_path === path;
-          return (
-            <Pressable
-              key={a.key}
-              onPress={() => chooseDefault(a.key)}
-              disabled={busy !== null}
-              accessibilityRole="button"
-              accessibilityLabel={`${a.name} ${en.profile.avatarOption.toLowerCase()}`}
-              accessibilityState={{ selected }}
-              style={[styles.pick, selected && styles.pickSelected]}
-            >
-              <Avatar path={path} name={a.key} size={44} />
-            </Pressable>
-          );
-        })}
-      </View>
+      <Text style={styles.pickLabel}>{en.profile.chooseCharacter}</Text>
+      <CharacterPicker
+        selected={photo ? 'photo' : (profileCharacter(profile) ?? defaultCharacter(session?.user.id ?? ''))}
+        onPickCharacter={chooseCharacter}
+        onPickPhoto={changePhoto}
+        photoNode={photo ? <Avatar path={photo} name={profile?.display_name ?? '?'} size={72} /> : undefined}
+      />
+      {photo && <Button variant="secondary" title={en.profile.removePhoto} onPress={clearPhoto} disabled={busy !== null} />}
       {/* UX2-63: a "Name" label above the field, styled like "Or choose a picture". */}
       <Text style={styles.pickLabel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {en.profile.nameHeading}
@@ -144,10 +132,6 @@ export default function ProfileEdit() {
 }
 
 const styles = StyleSheet.create({
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  photoActions: { flex: 1, gap: 8 },
+  hero: { alignItems: 'center' },
   pickLabel: { fontSize: 13, color: colors.ink2 },
-  pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  pick: { padding: 3, borderRadius: 30 },
-  pickSelected: { backgroundColor: colors.wash2 },
 });

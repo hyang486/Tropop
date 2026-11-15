@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { Avatar } from '@/components/avatar';
+import { profileCharacter } from '@/features/characters/character-store';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { QLink, QScreen } from '@/components/q-screen';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QRowCard } from '@/components/q-row-card';
@@ -78,7 +79,7 @@ export default function Profile() {
       <ProfileRetry />
       {/* B2 header block: avatar 72, name 20/28, Host/Guest meta, Edit text button (replaces the name row). */}
       <View style={styles.header}>
-        <Avatar path={profile?.avatar_path} name={name} size={72} />
+        <PersonAvatar userId={session?.user.id ?? ''} name={name} path={profile?.avatar_path} character={profileCharacter(profile)} size={72} />
         <View style={styles.headerText}>
           <Text style={styles.headerName} numberOfLines={1}>{name || '—'}</Text>
           <Text style={textRole.secondary}>{isGuest ? en.profile.roleGuest : en.profile.roleHost}</Text>

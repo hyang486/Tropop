@@ -1,4 +1,5 @@
 import { SymbolView } from 'expo-symbols';
+import type { ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
@@ -10,24 +11,24 @@ import { characterA11y, CHARACTERS } from '@/lib/characters';
  * B3 "Choose a character" grid (profile-edit and the first run): a Photo tile first, then characters 1-12,
  * 4 columns, 72 pt tiles, radius 18. Selected = 2.5 pt Cardinal ring outside the tile (3 pt gap) + a Cardinal check.
  * The host screen owns the state: `selected` is 'photo' or a character id (null = none); onPickCharacter clears the
- * photo, onPickPhoto opens the existing photo picker. `photoUri` previews a chosen photo inside the Photo tile.
+ * photo, onPickPhoto opens the existing photo picker. `photoNode` (72 pt art) previews a chosen photo inside the Photo tile.
  */
 export function CharacterPicker({
   selected,
   onPickCharacter,
   onPickPhoto,
-  photoUri,
+  photoNode,
 }: {
   selected: 'photo' | number | null;
   onPickCharacter: (id: number) => void;
   onPickPhoto: () => void;
-  photoUri?: string | null;
+  photoNode?: ReactNode;
 }) {
   return (
     <View style={styles.grid}>
       <Tile on={selected === 'photo'} label={selected === 'photo' ? 'Photo, selected' : 'Photo'} onPress={onPickPhoto}>
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={styles.art} />
+        {photoNode ? (
+          <View style={styles.art}>{photoNode}</View>
         ) : (
           <View style={[styles.art, styles.photoTile]}>
             <SymbolView name="camera" size={24} tintColor={colors.label} />
@@ -44,7 +45,7 @@ export function CharacterPicker({
   );
 }
 
-function Tile({ on, label, onPress, children }: { on: boolean; label: string; onPress: () => void; children: React.ReactNode }) {
+function Tile({ on, label, onPress, children }: { on: boolean; label: string; onPress: () => void; children: ReactNode }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={onPress} style={styles.slot}>
       <View style={[styles.ring, on && styles.ringOn]}>{children}</View>

@@ -950,6 +950,7 @@ export const en = {
     save: 'Save name',
     saved: 'Saved',
     chooseAvatar: 'Or choose a picture',
+    chooseCharacter: 'Choose a character',
     /** UX2-63: the visible label above the name field (VoiceOver reads the field's own label). */
     nameHeading: 'Name',
     avatarOption: 'Picture',
