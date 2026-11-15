@@ -1,6 +1,6 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { EmergencyCheckNote, EmergencyOpenNote, useSlow } from '@/components/emergency-open-note';
@@ -8,6 +8,7 @@ import { RoomEmergencyBanner } from '@/components/room-activity';
 import { PlaceTimeCards } from '@/components/place-time-cards';
 import { RemindersOffNote } from '@/components/reminders-off-note';
 import { RoomEnded } from '@/components/room-ended';
+import { PersonConnectSheet, type SheetPerson } from '@/features/connect/person-sheet';
 import { purgeAskHistory } from '@/features/event/ask-store';
 import { noteSiriRoomClosed } from '@/features/event/siri-mirror';
 import { StatusEditor } from '@/components/status-editor';
@@ -44,11 +45,13 @@ type State =
 export default function RoomInfoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, isGuest } = useAuth();
   const userId = session?.user.id;
   const [state, setState] = useState<State>({ status: 'loading' });
   const [busy, setBusy] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  // Connect (mock 02): tap another member → person card. Account holders only; guests can't connect.
+  const [person, setPerson] = useState<SheetPerson | null>(null);
   const [editingStatus, setEditingStatus] = useState(false);
   const now = useNow(30_000);
   // UX2-114: read-only use of the activity hook for the Leave note (my own open Emergency only).
@@ -225,7 +228,13 @@ export default function RoomInfoScreen() {
       {showMembers ? (
         <View style={styles.members}>
           {members.map((m) => (
-            <View key={m.user_id} style={styles.member}>
+            <Pressable
+              key={m.user_id}
+              style={styles.member}
+              disabled={isGuest || m.user_id === userId}
+              accessibilityRole={isGuest || m.user_id === userId ? undefined : 'button'}
+              onPress={() => setPerson({ userId: m.user_id, name: m.display_name, avatarPath: m.avatar_path })}
+            >
               <Avatar path={m.avatar_path} name={m.display_name} />
               <Text style={styles.memberName} numberOfLines={1}>
                 {m.display_name}
@@ -235,7 +244,7 @@ export default function RoomInfoScreen() {
                   .filter(Boolean)
                   .join(' · ')}
               </Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       ) : null}
@@ -248,6 +257,16 @@ export default function RoomInfoScreen() {
       <View style={styles.statuses}>
         <StatusEditor roomId={room.id} isHost={isHost} editing={editingStatus} />
       </View>
+      <PersonConnectSheet
+        key={person?.userId ?? 'none'}
+        visible={person != null}
+        onClose={() => setPerson(null)}
+        roomId={room.id}
+        roomName={room.name}
+        roomLive
+        myId={userId ?? null}
+        person={person}
+      />
     </QScreen>
   );
 }

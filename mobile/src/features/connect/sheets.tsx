@@ -52,6 +52,15 @@ export function PlusSheet({
 }) {
   return (
     <ConnectSheet visible={visible} onClose={onClose}>
+      <PlusContent onClose={onClose} pendingFrom={pendingFrom} />
+    </ConnectSheet>
+  );
+}
+
+/** The Plus sheet's content, for a sheet that switches content in place (the person card). */
+export function PlusContent({ onClose, pendingFrom }: { onClose: () => void; pendingFrom?: string | null }) {
+  return (
+    <>
       {/* The character trio of mock 04 waits for the B3 character art; an SF Symbol holds the slot. */}
       <SymbolView name="person.2.fill" size={44} tintColor={colors.label} style={styles.hero} />
       <Text style={styles.title} accessibilityRole="header">
@@ -69,7 +78,7 @@ export function PlusSheet({
         <QLink title={t.notNow} onPress={onClose} />
         {pendingFrom ? <Text style={styles.note}>{t.plusKeepsRequest(pendingFrom)}</Text> : null}
       </View>
-    </ConnectSheet>
+    </>
   );
 }
 
