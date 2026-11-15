@@ -72,7 +72,7 @@ export function CheckBlock({
       }}
       accessibilityValue={count > 0 ? { text: en.chat.checkValue(count, checked) } : undefined}
     >
-      <Host matchContents>
+      <Host matchContents ignoreSafeArea="container">
         <ContextMenu>
           <ContextMenu.Items>
             {onReact ? <Button label={en.chat.react} systemImage="face.smiling" onPress={onReact} /> : null}
