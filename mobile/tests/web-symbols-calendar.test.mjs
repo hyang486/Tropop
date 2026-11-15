@@ -6,7 +6,7 @@ import { test } from 'node:test';
 const src = readFileSync(new URL('../src/web-stubs/expo-symbols.tsx', import.meta.url), 'utf8');
 const MAP = {
   'figure.run': 'footprints', trophy: 'trophy', book: 'book-open', 'fork.knife': 'utensils', 'party.popper': 'party-popper',
-  'mountain.2': 'mountain', 'music.note': 'music', airplane: 'plane', 'person.2': 'users',
+  'mountain.2': 'mountain', 'music.note': 'music', airplane: 'plane', 'person.2': 'users', 'calendar.badge.plus': 'calendar-plus',
 };
 
 test('every HeroCard symbol maps to a Lucide icon whose paths are vendored', () => {
