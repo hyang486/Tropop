@@ -178,7 +178,7 @@ function RecapCardBody({
   return (
     <View style={styles.wrap}>
       <QLabel>{s.title}</QLabel>
-      <QCard>
+      <QCard lift>
         <Text style={styles.title} accessibilityRole="header">{saved.server.title}</Text>
         <Text style={styles.body}>{saved.server.summary}</Text>
         {saved.server.highlights.map((h, i) => (
@@ -190,7 +190,7 @@ function RecapCardBody({
       {mine.length > 0 ? (
         <>
           <QLabel>{s.you}</QLabel>
-          <QCard>
+          <QCard lift>
             {mine.map((line, i) => (
               <Text key={i} style={styles.body}>
                 {line}

@@ -409,9 +409,9 @@ export function useOnSheet() {
 }
 
 /** Pale card (Q #F6F6F2): rows, notes and settings on Q screens. */
-export function QCard({ children, row }: { children: ReactNode; row?: boolean }) {
+export function QCard({ children, row, lift }: { children: ReactNode; row?: boolean; lift?: boolean }) {
   const onSheet = use(OnSheet);
-  return <View style={[styles.card, row && styles.cardRow, onSheet && styles.cardOnSheet]}>{children}</View>;
+  return <View style={[styles.card, row && styles.cardRow, onSheet && styles.cardOnSheet, lift && { backgroundColor: colors.lift }]}>{children}</View>;
 }
 
 /**
