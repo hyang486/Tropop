@@ -3,7 +3,7 @@ import { Image } from 'react-native';
 import { CHARACTER_IMAGES } from '@/features/characters/character-art';
 import { avatarChoice } from '@/lib/characters';
 
-export type CharacterAvatarSize = 24 | 36 | 44 | 48 | 72 | 144;
+export type CharacterAvatarSize = 24 | 28 | 32 | 36 | 40 | 44 | 48 | 72 | 144;
 
 /** Smallest sheet that is at least the display size, so the art stays sharp without loading 144 for a 24. */
 function sheetFor(size: number): 36 | 72 | 144 {
