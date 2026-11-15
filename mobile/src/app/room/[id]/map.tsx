@@ -16,6 +16,7 @@ import { RoomEnded } from '@/components/room-ended';
 import { RouteEditor } from '@/components/route-editor';
 import { QLink } from '@/components/q-screen';
 import { Button, colors, Hint, radius, useLift, usePalette } from '@/components/ui';
+import { RT_HAIRLINE } from '@/components/rt-header';
 import { InkSwitch } from '@/features/event/ink-switch';
 import { PaceCard } from '@/features/pace/pace-card';
 import { type PersonGap, personGap } from '@/features/pace/pace-core';
@@ -892,7 +893,7 @@ function MapGlass({ children, style }: { children: ReactNode; style: StyleProp<V
   }
   // F-RT1 (ux): opaque lift fill from the JS scheme (the header hosts this view natively, where a dynamic color can
   // resolve against the wrong appearance), a 0.5 pt hairline plus the lift shadow so it holds against the map.
-  const edge = { borderWidth: 0.5, borderColor: 'rgba(48,43,40,0.08)' };
+  const edge = { borderWidth: 0.5, borderColor: RT_HAIRLINE };
   return <View style={[style, { backgroundColor: pal.lift }, lift, edge]}>{children}</View>;
 }
 
@@ -1075,5 +1076,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emergencyInitial: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+  emergencyInitial: { fontSize: 13, fontWeight: '600', color: colors.onDanger },
 });

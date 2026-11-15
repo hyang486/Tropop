@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
   mark: { width: 40, height: 40 },
   markSlot: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   qrBox: {
+    // KEEP white: QR image surface (scan contrast), like qr-code/invite/full-screen.
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: colors.separator,

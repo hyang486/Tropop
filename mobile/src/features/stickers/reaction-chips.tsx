@@ -52,7 +52,7 @@ export function ReactionChips({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 28, paddingHorizontal: 8, borderRadius: 14, borderWidth: 1, borderColor: '#E6DED7', backgroundColor: colors.lift },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 28, paddingHorizontal: 8, borderRadius: 14, borderWidth: 1, borderColor: colors.separator, backgroundColor: colors.lift },
   mine: { backgroundColor: colors.softGold, borderColor: colors.tint, borderWidth: 1.5 },
   icon: { width: 20, height: 20 },
   count: { fontSize: 12, lineHeight: 18, fontWeight: '600', color: colors.label },

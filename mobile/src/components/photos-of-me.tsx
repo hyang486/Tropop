@@ -293,5 +293,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.tint,
   },
-  badgeText: { fontSize: 11, fontWeight: '600', color: 'white' },
+  badgeText: { fontSize: 11, fontWeight: '600', color: colors.onPhotoScrim },
 });

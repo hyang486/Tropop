@@ -4,7 +4,7 @@ import { AccessibilityInfo, Linking, Modal, Pressable, ScrollView, StyleSheet, V
 import { Text } from '@/components/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, colors, Hint } from '@/components/ui';
+import { Button, colors, elevation, Hint } from '@/components/ui';
 import { QrPhotosDeniedError, saveQrToPhotos } from '@/lib/connect';
 import { CONNECT_APP_SCHEME, toConnectError, type ConnectApp } from '@/lib/connect-plan';
 import { haptics } from '@/lib/haptics';
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lift,
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 2px 8px rgba(48,43,40,0.08)',
+    boxShadow: elevation.lift.light.boxShadow,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 8 },
   title: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: colors.label, flexShrink: 1 },
