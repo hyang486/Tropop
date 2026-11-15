@@ -25,6 +25,7 @@ import {
   useCalendarColors,
 } from '@/components/calendar';
 import { HAND_FONTS, HandTitle } from '@/components/hand-title';
+import { ProfileAvatarButton } from '@/components/tab-header';
 import { QScreen } from '@/components/q-screen';
 import { Button, colors, GlassIconButton, Hint, titleSize } from '@/components/ui';
 import { useAnnounce } from '@/features/event/announce';
@@ -139,7 +140,9 @@ function CalendarMonth({ uid }: { uid: string }) {
       <Stack.Screen
         options={{
           headerShadowVisible: false,
+          // Tab root (tabs-spec §1): Add, then the profile avatar.
           headerRight: () => (
+            <View style={styles.headerRow}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.add}
@@ -148,6 +151,8 @@ function CalendarMonth({ uid }: { uid: string }) {
             >
               <SymbolView name="plus" size={22} tintColor={colors.tint} />
             </Pressable>
+            <ProfileAvatarButton />
+            </View>
           ),
         }}
       />
@@ -427,6 +432,7 @@ const FAB = 56;
 
 const styles = StyleSheet.create({
   loading: { marginTop: 80 },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
   headerIcon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

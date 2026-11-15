@@ -58,14 +58,14 @@ test('first run: guest and sign-up set the flag before signing in and clear it o
   const up = read('../src/app/sign-up.tsx');
   assert.ok(up.indexOf('markCharacterPrompt()') < up.indexOf('signUpHost('));
   assert.match(up, /await clearCharacterPrompt\(\);\s+throw e;/);
-  assert.match(read('../src/app/index.tsx'), /takeCharacterPrompt\(\)\.then\(\(pending\) => \{\s+if \(pending\) router\.push\('\/pick-character'\)/);
+  assert.match(read('../src/app/(tabs)/index.tsx'), /takeCharacterPrompt\(\)\.then\(\(pending\) => \{\s+if \(pending\) router\.push\('\/pick-character'\)/);
   const pick = read('../src/app/pick-character.tsx');
   assert.match(pick, /pickCharacterSkip\} onPress=\{\(\) => router\.back\(\)\}/);
   assert.match(pick, /defaultCharacter\(userId\)/);
 });
 
 test('Rooms rows show the host face when known and keep the room-type sticker otherwise', () => {
-  const idx = readFileSync(new URL('../src/app/index.tsx', import.meta.url), 'utf8');
+  const idx = readFileSync(new URL('../src/app/(tabs)/index.tsx', import.meta.url), 'utf8');
   assert.match(idx, /if \(face\) \{\s+return <PersonAvatar userId=\{room\.host_id\}/);
   assert.match(idx, /<ThemeSticker roomName=\{room\.name\} size=\{40\} \/>/);
 });
