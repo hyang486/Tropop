@@ -255,7 +255,7 @@ function Tile({
   const pal = usePalette();
   const color = danger
     ? selected ? pal.onDanger : colors.danger
-    : selected ? colors.onTint : dimmed ? colors.secondaryLabel : colors.label;
+    : dimmed ? colors.secondaryLabel : colors.label;
   return (
     <Pressable
       accessibilityRole="button"
@@ -308,14 +308,17 @@ const styles = StyleSheet.create({
     minHeight: 64,
     // V5b (ux): tileOnLift on the lift sheet; selected = ink fill (Emergency: danger fill), no ring.
     backgroundColor: colors.tileOnLift,
-    borderRadius: 12,
+    borderRadius: 16,
     borderCurve: 'continuous',
+    borderWidth: 2,
+    borderColor: 'transparent',
     padding: 12,
     gap: 10,
     justifyContent: 'space-between',
   },
   tileDanger: { backgroundColor: colors.dangerField },
-  tileSelected: { backgroundColor: colors.tint },
+  // B2 (ux): selected ordinary = lift + 2 pt ink ring (red is Emergency only).
+  tileSelected: { backgroundColor: colors.lift, borderColor: colors.label },
   tileText: { fontSize: 15 },
   // UX2-52: the Emergency bar's ink pill (36 pt in a 44 pt hit area) with its caption under it.
   okBlock: { gap: 8, alignItems: 'flex-start' },

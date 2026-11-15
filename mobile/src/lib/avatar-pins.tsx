@@ -9,8 +9,8 @@ import { AVATAR_PIN_RADIUS, AVATAR_RING_WIDTH, avatarFaceKey, type AvatarFace } 
 // round avatar pin is drawn once per face with react-native-svg, read back as a PNG (toDataURL) and loaded as
 // a native image ref. Map colors are fixed (not the app theme) so pins read the same on light and dark maps.
 const INK = '#181817';
-/** B2: you (and a "+N" with you in it) and the On my way badge are Cardinal discs. */
-const CARDINAL = '#990000';
+/** B2 (ux): red means Emergency only on the map, so you (and a "+N" with you in it) and the On my way badge are ink #302B28. */
+const MINE_INK = '#302B28';
 const PAPER = '#FFFFFF';
 const STALE = '#8E8E93';
 const EMERGENCY_RED = '#FF3B30';
@@ -37,7 +37,7 @@ function PinFace({ face }: { face: AvatarFace }) {
   const c = FRAME / 2;
   const r = AVATAR_PIN_RADIUS;
   const ink = face.stale ? STALE : INK;
-  const mine = face.stale ? STALE : CARDINAL;
+  const mine = face.stale ? STALE : MINE_INK;
   const filled = face.kind === 'me' || face.kind === 'my-cluster';
   const disc = face.emergency ? EMERGENCY_RED : filled ? mine : PAPER;
   const initial = face.emergency || filled ? PAPER : ink;
@@ -72,7 +72,7 @@ function PinFace({ face }: { face: AvatarFace }) {
       {face.onWay ? (
         <G>
           <Circle cx={b} cy={b} r={BADGE_R + BADGE_RIM} fill={PAPER} />
-          <Circle cx={b} cy={b} r={BADGE_R} fill={CARDINAL} />
+          <Circle cx={b} cy={b} r={BADGE_R} fill={MINE_INK} />
           {/* An 11 pt walker: head, body, a forward arm and a striding pair of legs. */}
           <Circle cx={b + 0.6} cy={b - 3.6} r={1.4} fill={PAPER} />
           <Path

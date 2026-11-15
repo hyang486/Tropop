@@ -12,7 +12,7 @@ const LAST_TEN_MIN = 10;
 export function EndsChip({ expiresAt, nowMs }: { expiresAt: string; nowMs: number }) {
   const min = closesSoonMinutes(expiresAt, nowMs);
   if (min === null) return null;
-  const label = min <= LAST_TEN_MIN ? en.chat.endsChipDelete : en.chat.endsChip(min);
+  const label = min <= LAST_TEN_MIN ? en.chat.endsChipDelete(min) : en.chat.endsChip(min);
   return (
     <View style={styles.wrap} pointerEvents="none">
       <View style={styles.chip} accessible accessibilityLabel={label}>

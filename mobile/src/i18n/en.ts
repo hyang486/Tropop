@@ -393,7 +393,7 @@ export const en = {
   chat: {
     // B2 chat header: the room-ends chip (last 60 min; last 10 min says what gets deleted).
     endsChip: (min: number) => `Ends in ${min} min`,
-    endsChipDelete: 'Photos and files are deleted at End',
+    endsChipDelete: (min: number) => `Ends in ${min} min · then photos are deleted`,
     // UX2-130 (R-C8): the in-chat reminder card, the only place the app asks for notifications.
     reminderCardTitle: 'Get a reminder a day before this room ends?',
     reminderCardTurnOn: 'Turn on',
