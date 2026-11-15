@@ -60,6 +60,9 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
               accessibilityLabel={label}
+              // The Pressable is the accessibility element, so the iOS large-content viewer is declared here.
+              accessibilityShowsLargeContentViewer
+              accessibilityLargeContentTitle={label}
               onPress={onPress}
               onLongPress={() => emitter.emit({ type: 'tabLongPress', target: route.key })}
               // Web: a 2 pt Cardinal focus ring (react-native-web passes `focused`).
@@ -67,12 +70,10 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
             >
               <View style={[styles.pill, focused && styles.pillActive]}>
                 <Image source={TAB_ICONS[route.name]} style={[styles.icon, { tintColor: tint }]} />
-                {/* Fixed 12/16 so Dynamic Type cannot overflow the 64 pt bar; long-press shows the iOS large-content viewer. */}
+                {/* Fixed 12/16 so Dynamic Type cannot overflow the 64 pt bar; long-press shows the large-content viewer (on the Pressable). */}
                 <Text
                   style={[styles.label, focused ? styles.labelActive : null]}
                   allowFontScaling={false}
-                  accessibilityShowsLargeContentViewer
-                  accessibilityLargeContentTitle={label}
                 >
                   {label}
                 </Text>

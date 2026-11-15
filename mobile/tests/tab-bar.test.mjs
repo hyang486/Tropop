@@ -39,7 +39,8 @@ test('tabs-spec §2-3: bar tokens, a11y, haptic on change only, re-tap emits tab
   assert.doesNotMatch(b, /minHeight: 64/);
   assert.match(b, /pill: \{ height: 54, alignItems: .center., gap: 2, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 18 \}/);
   assert.match(b, /icon: \{ width: 24, height: 24 \}/);
-  assert.match(b, /allowFontScaling=\{false\}\s+accessibilityShowsLargeContentViewer\s+accessibilityLargeContentTitle=\{label\}/);
+  assert.match(b, /accessibilityLabel=\{label\}\s+\/\/[^\n]*\n\s+accessibilityShowsLargeContentViewer\s+accessibilityLargeContentTitle=\{label\}\s+onPress/);
+  assert.match(b, /allowFontScaling=\{false\}\s+>/);
   assert.match(src('components/q-screen.tsx'), /useScrollToTop\(scrollRef\);/);
   for (const n of ['today', 'explore', 'qrews', 'moments'])
     for (const s of ['', '@2x', '@3x']) assert.ok(existsSync(new URL(`../assets/brand/tabs/${n}${s}.png`, import.meta.url)), `${n}${s}`);
