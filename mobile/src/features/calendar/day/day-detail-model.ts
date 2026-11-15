@@ -48,13 +48,23 @@ export function dayTitle(date: DateKey, long = false): string {
 const clock = (iso: string, tz?: string) =>
   new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }).format(new Date(iso));
 
+const ymd = (ms: number, tz?: string) => new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: tz }).format(ms);
+/** "Ends today at 10:00 PM" / "Ends tomorrow at ..." / "Ends Wed, Nov 18 at ..." (en.room.endsOn; no year). */
+function endsLine(endAt: string, now: number, tz?: string): string {
+  const end = Date.parse(endAt);
+  const diff = Math.round((Date.parse(ymd(end, tz)) - Date.parse(ymd(now, tz))) / 86_400_000);
+  const date = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz }).format(end);
+  return en.room.endsOn(diff <= 0 ? 'today' : diff === 1 ? 'tomorrow' : 'later', date, clock(endAt, tz));
+}
+
 /** Hero meta: "7:30 AM – 8:30 AM · Park"; "Ended 9:40 PM" when there is no start; blank parts drop with their dot. */
 export function roomTime(r: Pick<DayRoom, 'startsAt' | 'endAt'>, tz?: string, now?: number): string | null {
   const hasEnd = Number.isFinite(Date.parse(r.endAt));
   if (r.startsAt && Number.isFinite(Date.parse(r.startsAt))) return hasEnd ? `${clock(r.startsAt, tz)} – ${clock(r.endAt, tz)}` : clock(r.startsAt, tz);
   if (!hasEnd) return null;
-  // "Ended" only once the end instant has passed; a still-live (multi-day) room shows no time rather than a false one.
-  if (now !== undefined && Date.parse(r.endAt) > now) return null;
+  // "Ended" only once the end instant has passed; a still-live (multi-day) room says when it ends, relative to the
+  // device's today (not the viewed day), with the chat header's string.
+  if (now !== undefined && Date.parse(r.endAt) > now) return endsLine(r.endAt, now, tz);
   return en.calendar.endedAt(clock(r.endAt, tz));
 }
 /** Spoken form for the card label: "7:30 to 8:30 AM" is left to the screen reader, so keep the plain range. */
