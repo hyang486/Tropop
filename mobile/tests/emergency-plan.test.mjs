@@ -124,9 +124,12 @@ test('UX2-05b: Emergency resolves its id without the list and a failed send offe
   assert.match(set, /\.eq\('is_emergency', true\)/);
   assert.match(set, /rpc\('set_my_status'/);
   const picker = readFileSync(new URL('../src/components/status-picker.tsx', import.meta.url), 'utf8');
-  const confirm = picker.slice(picker.indexOf('export function confirmEmergency'), picker.indexOf('export function StatusPicker'));
+  const confirm = picker.slice(picker.indexOf('function emergencyFailedAlert'), picker.indexOf('export function StatusPicker'));
   assert.match(confirm, /en\.activity\.emergencyNotSent/);
-  assert.match(confirm, /isPreferred: true, onPress: \(\) => void attempt\(\)/);
+  assert.match(confirm, /en\.activity\.emergencyOfflineBody/);
+  assert.match(confirm, /isPreferred: true, onPress: retry/);
+  assert.match(confirm, /emergencyEndedTitle/);
+  assert.match(confirm, /retry\(\) \)|emergencyFailedAlert\(cause, \(\) => void attempt\(\)/);
   for (const f of ['../src/features/chat/plus-panel.tsx', '../src/features/pace/pace-layer.tsx']) {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8');
     assert.match(src, /onEmergency=\{emergency\}/, f);

@@ -1,3 +1,5 @@
+import { roomHasEnded } from '@/lib/error-kind';
+import { classifySend } from '@/lib/send-room';
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -76,10 +78,10 @@ export function PaceLayer({ roomId }: { roomId: string }) {
     },
   );
   if (!room || !userId || !paceApplies(room)) return null;
-  return <PaceRunner room={room} userId={userId} />;
+  return <PaceRunner room={room} userId={userId} onEnded={load} />;
 }
 
-function PaceRunner({ room, userId }: { room: Room; userId: string }) {
+function PaceRunner({ room, userId, onEnded }: { room: Room; userId: string; onEnded: () => void }) {
   const settings = usePaceSettings(room.id);
   const my = useMyShare(room.id, userId);
   const focused = useIsFocused();
@@ -176,7 +178,8 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
       if (isEmergencyActiveNotice(e)) {
         setNotice(errorMessage(e));
         setPicking(true);
-      } else Alert.alert(en.activity.actionFailed, errorMessage(e));
+      } else if ((await classifySend(room.id, e, room)) === 'ended') onEnded();
+      else Alert.alert(en.activity.actionFailed, errorMessage(e));
     }
   }
   function pick(def: StatusDefinition) {
@@ -188,7 +191,11 @@ function PaceRunner({ room, userId }: { room: Room; userId: string }) {
   function emergency() {
     close();
     if (activity.statuses.some((s) => s.is_emergency && s.id === myStatusId)) return;
-    confirmEmergency(activity.setEmergency);
+    confirmEmergency(activity.setEmergency, undefined, {
+      ended: () => roomHasEnded(room, Date.now()),
+      classify: (e) => classifySend(room.id, e, room),
+      onEnded,
+    });
   }
   function clear() {
     close();

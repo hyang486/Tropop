@@ -4,7 +4,7 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HandTitle } from '@/components/hand-title';
-import { colors, radius } from '@/components/ui';
+import { colors, radius, usePalette } from '@/components/ui';
 import { en } from '@/i18n/en';
 import type { StatusDefinition } from '@/lib/activity';
 import { statusSymbol } from '@/lib/chat-plan';
@@ -20,16 +20,45 @@ export function isEmergencyActiveNotice(error: unknown): boolean {
   return error instanceof Error && error.message === en.activity.emergencyActiveError;
 }
 
-export function confirmEmergency(send: () => Promise<void>, after?: () => void) {
+/**
+ * F-EM-EXP: the one place that builds the "Emergency not sent" alerts. HOLD (waits for the human's OK, not shipped):
+ * ux also wants a "Call 911" button (number from expo-localization: US/CA 911, KR 119, else 112) and the body line
+ * "If you need help now, call 911." Add both to the 'ended' and 'offline' cases here and nowhere else.
+ */
+function emergencyFailedAlert(cause: 'ended' | 'offline', retry: () => void, onEnded?: () => void) {
+  if (cause === 'ended') {
+    Alert.alert(en.activity.emergencyEndedTitle, en.activity.emergencyEndedBody, [
+      { text: en.activity.emergencyEndedOk, onPress: () => onEnded?.() },
+    ]);
+    return;
+  }
+  Alert.alert(en.activity.emergencyNotSent, en.activity.emergencyOfflineBody, [
+    { text: en.room.cancel, style: 'cancel' },
+    { text: en.activity.readRetry, isPreferred: true, onPress: retry },
+  ]);
+}
+
+/**
+ * `ended` reports whether the loaded room already shows closed (checked before sending: the request is skipped);
+ * `classify` tells a failed send's cause (see lib/send-failure sendFailure); `onEnded` switches the room to its ended
+ * state after the alert's OK.
+ */
+export function confirmEmergency(
+  send: () => Promise<void>,
+  after?: () => void,
+  room?: { ended: () => boolean; classify: (error: unknown) => Promise<'ended' | 'offline' | 'other'>; onEnded: () => void },
+) {
   async function attempt() {
+    if (room?.ended()) {
+      emergencyFailedAlert('ended', () => {}, room.onEnded);
+      return;
+    }
     try {
       await send();
       after?.();
-    } catch {
-      Alert.alert(en.activity.emergencyNotSent, en.activity.actionFailed, [
-        { text: en.room.cancel, style: 'cancel' },
-        { text: en.activity.readRetry, isPreferred: true, onPress: () => void attempt() },
-      ]);
+    } catch (e) {
+      const cause = (await room?.classify(e)) === 'ended' ? 'ended' : 'offline';
+      emergencyFailedAlert(cause, () => void attempt(), room?.onEnded);
     }
   }
   Alert.alert(en.activity.emergencyConfirmTitle, en.activity.emergencyConfirmBody, [
@@ -222,7 +251,10 @@ function Tile({
   disabled?: boolean;
   onPress: () => void;
 }) {
-  const color = danger ? colors.danger : dimmed ? colors.secondaryLabel : colors.label;
+  const pal = usePalette();
+  const color = danger
+    ? selected ? pal.onDanger : colors.danger
+    : selected ? colors.onTint : dimmed ? colors.secondaryLabel : colors.label;
   return (
     <Pressable
       accessibilityRole="button"
@@ -233,7 +265,7 @@ function Tile({
       style={({ pressed }) => [
         styles.tile,
         danger && styles.tileDanger,
-        selected && styles.tileSelected,
+        selected && (danger ? { backgroundColor: pal.dangerSolid } : styles.tileSelected),
         pressed && { opacity: 0.6 },
       ]}
     >
@@ -273,8 +305,8 @@ const styles = StyleSheet.create({
     // Two columns (Q 03.02): half the row minus half the gap.
     width: '48.6%',
     minHeight: 64,
-    // UX2-45: tiles inside a sheet use cardStrong, so they show on the dark sheet surface.
-    backgroundColor: colors.fieldStrong,
+    // V5b (ux): tileOnLift on the lift sheet; selected = ink fill (Emergency: danger fill), no ring.
+    backgroundColor: colors.tileOnLift,
     borderRadius: 12,
     borderCurve: 'continuous',
     padding: 12,
@@ -282,7 +314,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   tileDanger: { backgroundColor: colors.dangerField },
-  tileSelected: { borderWidth: 1.5, borderColor: colors.label },
+  tileSelected: { backgroundColor: colors.tint },
   tileText: { fontSize: 15 },
   // UX2-52: the Emergency bar's ink pill (36 pt in a 44 pt hit area) with its caption under it.
   okBlock: { gap: 8, alignItems: 'flex-start' },
@@ -308,8 +340,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderCurve: 'continuous',
-    borderWidth: 1.5,
-    borderColor: colors.label,
+    backgroundColor: colors.wash,
   },
   failedButtonText: { fontSize: 15, fontWeight: '600', color: colors.label },
 });

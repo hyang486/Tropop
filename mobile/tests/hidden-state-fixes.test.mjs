@@ -52,7 +52,7 @@ test('fix 5: a room that ended stops its uploads; failed rows stay only through 
   const media = read('lib/media.ts');
   assert.match(media, /export function stopRoomUploads\(roomId: string, keepFailed: boolean\)/);
   assert.match(media, /controllers\.get\(j\.id\)\?\.abort\(\)/);
-  assert.match(media, /if \(errorKind\(e\) === 'ended'\) setJobs/);
+  assert.match(media, /errorKind\(e\) === 'ended' \|\| \(await classifySend\(current\.roomId, e\)\) === 'ended'\) setJobs/);
   const gallery = read('app/room/[id]/gallery.tsx');
   assert.match(gallery, /if \(over\) stopRoomUploads\(id, keepFailed\);/);
 });
