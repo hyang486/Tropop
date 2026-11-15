@@ -75,6 +75,12 @@ export class File {
   async arrayBuffer() {
     return (await fetch(this.uri)).arrayBuffer();
   }
+  /** Hex digest like the native File.digest (media.ts stores and compares it). SubtleCrypto has no MD5. */
+  async digest(algorithm: 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512' | 'MD5' = 'SHA-256') {
+    if (algorithm === 'MD5') throw new Error('MD5 is not available on web');
+    const hash = await crypto.subtle.digest(algorithm, await this.arrayBuffer());
+    return Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, '0')).join('');
+  }
   createUploadTask(url: string, options: UploadOptions = {}) {
     const uri = this.uri;
     return {
