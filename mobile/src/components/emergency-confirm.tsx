@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
+import { Text } from '@/components/text';
 import { colors } from '@/components/ui';
 import { en } from '@/i18n/en';
 
