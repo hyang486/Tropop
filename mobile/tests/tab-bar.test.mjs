@@ -11,7 +11,7 @@ test('tabs-spec §1: four tabs in order Today · Explore · Qrews · Moments, JS
   const names = [...l.matchAll(/<Tabs\.Screen name="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(names, ['index', 'explore', 'qrews', 'calendar']);
   const en = src('i18n/en.ts');
-  assert.match(en, /tabs: \{\s+today: 'Today',\s+explore: 'Explore',\s+qrews: 'Qrews',\s+moments: 'Moments',/);
+  assert.match(en, /tabs: \{\s+today: 'Today',\s+explore: 'Explore',\s+qrews: 'Tropals',\s+moments: 'Moments',/);
 });
 
 test('tabs-spec §1: avatar on every tab root, wordmark on Today and Moments only; /connect redirects to /qrews', () => {

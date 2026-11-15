@@ -1,7 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Fragment, useCallback, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { STICKER_IMAGES } from '@/components/sticker-art';
 import { Text } from '@/components/text';
 
 import { Avatar } from '@/components/avatar';
@@ -233,7 +234,7 @@ export function ConnectionsScreen() {
 
       {empty ? (
         <View style={styles.empty}>
-          <SymbolView name="person.2" size={44} tintColor={colors.ink2} />
+          <Image source={STICKER_IMAGES['connection-02']} style={styles.emptySticker} accessible={false} accessibilityIgnoresInvertColors />
           <Text style={styles.emptyText}>{t.empty}</Text>
         </View>
       ) : null}
@@ -261,5 +262,6 @@ const styles = StyleSheet.create({
   decline: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.ink2 },
   link: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.tint },
   empty: { alignItems: 'center', gap: 12, marginTop: 48, paddingHorizontal: 24 },
+  emptySticker: { width: 120, height: 120 },
   emptyText: { fontSize: 16, lineHeight: 24, color: colors.ink2, textAlign: 'center' },
 });

@@ -56,17 +56,14 @@ export default function Welcome() {
           </View>
         </View>
       ) : null}
-      <Image source={require('@/assets/brand/logo/app-logo.png')} style={styles.logo} accessibilityIgnoresInvertColors accessible={false} />
       <View style={styles.art}>
         <InkArt art="gathering" aspect="16:9" />
       </View>
       <Text accessibilityRole="header" style={styles.headline}>{en.welcome.headline}</Text>
       <View style={styles.values}>
         {VALUES.map((v) => (
-          <View key={v.icon} style={styles.value} accessible>
-            <View style={styles.valueIcon}>
-              <SymbolView name={v.icon} size={22} tintColor={colors.label} />
-            </View>
+          <View key={v.title} style={styles.value} accessible>
+            <Image source={v.image} style={styles.valueIcon} accessible={false} accessibilityIgnoresInvertColors />
             <View style={styles.valueText}>
               <Text style={styles.valueTitle}>{v.title}</Text>
               <Text style={textRole.secondary}>{v.line}</Text>
@@ -78,27 +75,19 @@ export default function Welcome() {
   );
 }
 
-// B2 value rows: an ink icon in a 40 pt softGold circle, a 16/24 600 title and a 14/20 ink2 line, 16 pt apart.
+// B2 value rows: a 40 pt brand character (no circle), a 16/24 600 title and a 14/20 ink2 line, 16 pt apart.
 const VALUES = [
-  { icon: 'qrcode', title: en.welcome.valueJoinTitle, line: en.welcome.valueJoinLine },
-  { icon: 'face.smiling', title: en.welcome.valuePhotosTitle, line: en.welcome.valuePhotosLine },
-  { icon: 'hourglass', title: en.welcome.valueGoneTitle, line: en.welcome.valueGoneLine },
+  { image: require('@/assets/brand/characters/01-host-72.png'), title: en.welcome.valueJoinTitle, line: en.welcome.valueJoinLine },
+  { image: require('@/assets/brand/characters/06-fold-72.png'), title: en.welcome.valuePhotosTitle, line: en.welcome.valuePhotosLine },
+  { image: require('@/assets/brand/characters/05-moon-72.png'), title: en.welcome.valueGoneTitle, line: en.welcome.valueGoneLine },
 ] as const;
 
 const styles = StyleSheet.create({
-  logo: { width: 72, height: 72, borderRadius: 18, borderCurve: 'continuous', marginTop: 8, alignSelf: 'flex-start' },
   art: { marginTop: 16 },
   headline: { fontSize: 28, lineHeight: 34, fontWeight: '700', color: colors.label, marginTop: 20 },
   values: { gap: 12, marginTop: 16 },
   value: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  valueIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.softGold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  valueIcon: { width: 40, height: 40 },
   valueTitle: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.label },
   valueText: { flex: 1, gap: 2 },
   // sweep4 P1-3: a filled notice above the art (colors.field; becomes wash after V1).

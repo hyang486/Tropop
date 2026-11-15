@@ -18,7 +18,7 @@ export const en = {
   tabs: {
     today: 'Today',
     explore: 'Explore',
-    qrews: 'Qrews',
+    qrews: 'Tropals',
     moments: 'Moments',
     profile: 'Profile',
   },
@@ -1565,7 +1565,7 @@ export const en = {
     addFirstAction: 'Add a QR code',
 
     // 03 Connections
-    connectionsTitle: 'Qrews',
+    connectionsTitle: 'Tropals',
     requests: 'Requests',
     sent: 'Sent',
     connectedSection: 'Connected',
