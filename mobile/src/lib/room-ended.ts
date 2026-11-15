@@ -57,3 +57,14 @@ export function roomOverState(
   if (seen && seen.expiresAt === room.expires_at) return { over: true, nowMs: seen.atMs };
   return { over: false };
 }
+
+/**
+ * F-EMX4: a refused re-read (RLS hides the row once expires_at passes) keeps the row I already hold when its end
+ * time has passed, so the ended screen still knows the closed-at time. A host-ended row (deleted_at) or a refusal
+ * while the clock says the room is still open (left or removed) is 'gone'.
+ */
+export function keepRowAfterRefusal(room: EndedRoomFields | null | undefined, nowMs: number): boolean {
+  if (!room || room.deleted_at !== null) return false;
+  const expires = new Date(room.expires_at).getTime();
+  return Number.isFinite(expires) && expires <= nowMs;
+}

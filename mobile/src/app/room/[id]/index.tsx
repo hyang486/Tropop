@@ -65,6 +65,7 @@ import { getRoom, listArrivedIds, listMembers, type Room } from '@/lib/rooms';
 import { useHeaderOverlap } from '@/lib/use-header-overlap';
 import { useKeyboardOpen } from '@/lib/use-keyboard-open';
 import { memberName } from '@/lib/member-name';
+import { keepRowAfterRefusal } from '@/lib/room-ended';
 import { useNow } from '@/lib/use-now';
 
 type State =
@@ -84,7 +85,8 @@ export default function RoomScreen() {
     try {
       const room = await getRoom(id);
       if (!room) {
-        setState({ status: 'gone' });
+        // F-EMX4: RLS refuses the read once expires_at passes; keep the row I hold so the ended screen shows the time.
+        setState((s) => (s.status === 'ready' && keepRowAfterRefusal(s.room, Date.now()) ? s : { status: 'gone' }));
         return;
       }
       // Spec 7.1: in the early-end grace window the room row is readable again but the room is closed; no
