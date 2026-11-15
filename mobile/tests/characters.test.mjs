@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { avatarChoice, characterA11y, CHARACTERS, defaultCharacter, hashString, isCharacterId } from '../src/lib/characters.ts';
+import { roomRingPicker, avatarChoice, characterA11y, CHARACTERS, defaultCharacter, hashString, isCharacterId } from '../src/lib/characters.ts';
 
 test('twelve characters with ids 1-12', () => {
   assert.deepEqual(CHARACTERS.map((c) => c.id), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
@@ -14,15 +14,15 @@ test('isCharacterId accepts only integers 1-12', () => {
   for (const bad of [0, 13, 1.5, null, undefined, '3', NaN]) assert.equal(isCharacterId(bad), false);
 });
 
-test('default face is stable and within 1-9', () => {
+test('default face is stable and within 2-12 (01 HOST is never a default)', () => {
   const ids = ['a', 'b', '0f8e2c4a-1111-4222-8333-444455556666', '', 'zzzz'];
   for (const id of ids) {
     const d = defaultCharacter(id);
-    assert.ok(d >= 1 && d <= 9, id);
+    assert.ok(d >= 2 && d <= 12, id);
     assert.equal(d, defaultCharacter(id));
   }
   assert.equal(hashString('abc'), hashString('abc'));
-  assert.ok(new Set(Array.from({ length: 60 }, (_, i) => defaultCharacter(`user-${i}`))).size >= 6);
+  assert.ok(new Set(Array.from({ length: 60 }, (_, i) => defaultCharacter(`user-${i}`))).size >= 8);
 });
 
 test('display rule: photo, then character, then default', () => {
@@ -64,8 +64,20 @@ test('first run: guest and sign-up set the flag before signing in and clear it o
   assert.match(pick, /defaultCharacter\(userId\)/);
 });
 
-test('Rooms rows show the host face when known and keep the room-type sticker otherwise', () => {
+test('Rooms rows show a per-room character (72 asset) and no host-face lookup', () => {
   const idx = readFileSync(new URL('../src/app/(tabs)/index.tsx', import.meta.url), 'utf8');
-  assert.match(idx, /if \(face\) \{\s+return <PersonAvatar userId=\{room\.host_id\}/);
-  assert.match(idx, /<ThemeSticker roomName=\{room\.name\} size=\{40\} \/>/);
+  assert.match(idx, /CHARACTER_IMAGES\[characterId\]\[72\]/);
+  assert.match(idx, /<RoomRing characterId=\{nextRing\(room\.id\)\} \/>/);
+  assert.doesNotMatch(idx, /fetchHostFaces|PersonAvatar/);
+});
+
+test('Rooms list art: 02-12 from the room id, never the same as the row above (12 wraps to 2)', () => {
+  const pick = roomRingPicker();
+  const ids = Array.from({ length: 40 }, (_, i) => pick(`room-${i}`));
+  assert.ok(ids.every((n) => n >= 2 && n <= 12));
+  assert.ok(ids.every((n, i) => i === 0 || n !== ids[i - 1]));
+  assert.ok(new Set(ids).size >= 8);
+  const same = roomRingPicker();
+  assert.equal(same('r'), roomRingPicker()('r'));
+  assert.notEqual(same('r'), same('r'));
 });

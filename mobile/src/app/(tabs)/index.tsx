@@ -1,23 +1,23 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { InkArt, ThemeSticker } from '@/components/ink-art';
+import { InkArt } from '@/components/ink-art';
 import { Pill } from '@/components/pill';
 import { ProfileRetry } from '@/components/profile-retry';
 import { QScreen } from '@/components/q-screen';
 import { Button, Card, colors, Hint, size, Tag, textRole } from '@/components/ui';
 import { en } from '@/i18n/en';
 import { takeCharacterPrompt } from '@/features/characters/first-run';
-import { fetchHostFaces, type HostFace } from '@/features/characters/host-faces';
-import { PersonAvatar } from '@/features/characters/person-avatar';
+import { CHARACTER_IMAGES } from '@/features/characters/character-art';
+import { roomRingPicker } from '@/lib/characters';
 import { useAuth } from '@/lib/auth';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
 import { pruneRoomCaches } from '@/lib/media';
 import { resumePendingInvite } from '@/lib/invite';
-import { formatRemaining, listMyRooms, type Room, type RoomWithCount } from '@/lib/rooms';
+import { formatRemaining, listMyRooms, type RoomWithCount } from '@/lib/rooms';
 import { chatLine } from '@/lib/chat-line';
 import { stickerPreview } from '@/lib/stickers';
 import { useNow } from '@/lib/use-now';
@@ -57,7 +57,6 @@ export default function Rooms() {
   // UX3-A01: last item and unread per room (0037); null while unknown or when the read failed.
   const [summaries, setSummaries] = useState<Map<string, RoomSummary> | null>(null);
   // B3 (0043): the host's face per host id for the row tile; empty until known, then rows keep the room-type sticker.
-  const [hostFaces, setHostFaces] = useState<Map<string, HostFace>>(new Map());
   // P3 Emergency row: who is in Emergency per open room; null when unknown or the read failed (normal rows).
   const [emergencies, setEmergencies] = useState<Map<string, EmergencyPerson[]> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +64,8 @@ export default function Rooms() {
   // BUG-OC1: pull to refresh re-reads my rooms and Open chat (bumping its key).
   const [refreshing, setRefreshing] = useState(false);
   const rows = visibleRows(rooms ?? [], now);
+  // Rooms list art: one picker per render, called in display order so no row repeats the one above it.
+  const nextRing = roomRingPicker();
   // UX3-A02: the empty layout only once the read answered with no rows (not while loading or on an error).
   const empty = rooms !== null && rows.length === 0 && !error;
 
@@ -88,7 +89,6 @@ export default function Rooms() {
       ]);
       setSummaries(nextSummaries);
       setEmergencies(nextEmergencies);
-      void fetchHostFaces(list.map((r) => r.host_id)).then(setHostFaces, () => undefined);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
       // Spec 10.4: Ask Trok history goes once a room ended (grace counts as ended), expired or was left.
@@ -268,7 +268,7 @@ export default function Rooms() {
                 onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
                 style={({ pressed }) => [styles.row, styles.ended, pressed && { opacity: 0.3 }]}
               >
-                <RoomRing room={room} face={hostFaces.get(room.host_id)} />
+                <RoomRing characterId={nextRing(room.id)} />
                 <View style={styles.rowText}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {room.name}
@@ -306,7 +306,7 @@ export default function Rooms() {
             onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
           >
-            {emergency ? <EmergencyTile /> : <RoomRing room={room} face={hostFaces.get(room.host_id)} />}
+            {emergency ? <EmergencyTile /> : <RoomRing characterId={nextRing(room.id)} />}
             <View style={styles.rowText}>
               <Text style={styles.rowTitle} numberOfLines={2}>
                 {room.name}
@@ -391,14 +391,11 @@ function EmergencyTile() {
   );
 }
 
-/** B2: the room-type sticker (40 pt) on a 48 pt wash tile. B3 (0043): the host's face (photo or character, 48) when known. */
-function RoomRing({ room, face }: { room: Room; face?: HostFace }) {
-  if (face) {
-    return <PersonAvatar userId={room.host_id} name="" path={face.avatar_path} character={face.avatar_character} size={48} />;
-  }
+/** Rooms list: a character (02-12, differs from the row above) on the wash tile. Decorative. */
+function RoomRing({ characterId }: { characterId: number }) {
   return (
-    <View style={styles.ring}>
-      <ThemeSticker roomName={room.name} size={40} />
+    <View style={[styles.ring, styles.ringChar]}>
+      <Image source={CHARACTER_IMAGES[characterId][72]} style={styles.ringArt} resizeMode="contain" accessible={false} />
     </View>
   );
 }
@@ -425,6 +422,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   ended: { opacity: 0.45 },
+  ringChar: { width: 52, height: 52, borderRadius: 16 },
+  ringArt: { width: 40, height: 40 },
   ring: {
     width: 48,
     height: 48,

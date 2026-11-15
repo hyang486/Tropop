@@ -16,8 +16,8 @@ export const CHARACTERS: readonly { id: number; key: string; name: string; a11y:
   { id: 12, key: 'grad', name: 'GRAD', a11y: 'Grad character' },
 ];
 
-/** Characters 1-9 are the everyday set the default is drawn from; 10-12 (USC) are choose-only. */
-export const DEFAULT_CHARACTER_COUNT = 9;
+/** Defaults span characters 2-12 (11 faces); 1 HOST is kept for people who host. */
+export const DEFAULT_CHARACTER_COUNT = 11;
 
 export function isCharacterId(n: unknown): n is number {
   return typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 12;
@@ -30,9 +30,20 @@ export function hashString(s: string): number {
   return h;
 }
 
-/** The default face for a user with no photo and no chosen character: (hash(user_id) % 9) + 1. */
+/** The default face for a user with no photo and no chosen character: (hash(user_id) % 11) + 2, so 02-12. */
 export function defaultCharacter(userId: string): number {
-  return (hashString(userId) % DEFAULT_CHARACTER_COUNT) + 1;
+  return (hashString(userId) % DEFAULT_CHARACTER_COUNT) + 2;
+}
+
+/** Rooms list: a room's leading character, 02-12 from its id; a row never repeats the one above it (12 wraps to 2). */
+export function roomRingPicker(): (roomId: string) => number {
+  let prev = 0;
+  return (roomId) => {
+    let id = (hashString(roomId) % DEFAULT_CHARACTER_COUNT) + 2;
+    if (id === prev) id = id === 12 ? 2 : id + 1;
+    prev = id;
+    return id;
+  };
 }
 
 export type AvatarChoice = { kind: 'photo'; path: string } | { kind: 'character'; id: number };
