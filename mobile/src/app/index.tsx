@@ -11,6 +11,9 @@ import { QScreen } from '@/components/q-screen';
 import { RtIconButton, rtRightOptions } from '@/components/rt-header';
 import { Button, Card, colors, Hint, size, Tag, textRole, useReduceTransparency } from '@/components/ui';
 import { en } from '@/i18n/en';
+import { takeCharacterPrompt } from '@/features/characters/first-run';
+import { fetchHostFaces, type HostFace } from '@/features/characters/host-faces';
+import { PersonAvatar } from '@/features/characters/person-avatar';
 import { useAuth } from '@/lib/auth';
 import { errorKind } from '@/lib/error-kind';
 import { syncExpiryReminders, takePendingReminderRoom } from '@/lib/expiry-reminders';
@@ -57,6 +60,8 @@ export default function Rooms() {
   const [rooms, setRooms] = useState<RoomWithCount[] | null>(null);
   // UX3-A01: last item and unread per room (0037); null while unknown or when the read failed.
   const [summaries, setSummaries] = useState<Map<string, RoomSummary> | null>(null);
+  // B3 (0043): the host's face per host id for the row tile; empty until known, then rows keep the room-type sticker.
+  const [hostFaces, setHostFaces] = useState<Map<string, HostFace>>(new Map());
   // P3 Emergency row: who is in Emergency per open room; null when unknown or the read failed (normal rows).
   const [emergencies, setEmergencies] = useState<Map<string, EmergencyPerson[]> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +79,14 @@ export default function Rooms() {
   // UX3-A02: the empty layout only once the read answered with no rows (not while loading or on an error).
   const empty = rooms !== null && rows.length === 0 && !error;
 
+  // B3 first run: after sign-up or guest name entry, "Pick your character" opens once (flag set by those screens).
+  useEffect(() => {
+    if (!uid) return;
+    void takeCharacterPrompt().then((pending) => {
+      if (pending) router.push('/pick-character');
+    });
+  }, [uid, router]);
+
   const load = useCallback(async () => {
     try {
       const list = await listMyRooms();
@@ -86,6 +99,7 @@ export default function Rooms() {
       ]);
       setSummaries(nextSummaries);
       setEmergencies(nextEmergencies);
+      void fetchHostFaces(list.map((r) => r.host_id)).then(setHostFaces, () => undefined);
       setOffline(false);
       // Drop cached originals of rooms that ended, expired or were left since the last visit.
       pruneRoomCaches(list.map((r) => r.id));
@@ -290,7 +304,7 @@ export default function Rooms() {
                 onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
                 style={({ pressed }) => [styles.row, styles.ended, pressed && { opacity: 0.3 }]}
               >
-                <RoomRing room={room} />
+                <RoomRing room={room} face={hostFaces.get(room.host_id)} />
                 <View style={styles.rowText}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {room.name}
@@ -328,7 +342,7 @@ export default function Rooms() {
             onPress={() => router.push({ pathname: '/room/[id]', params: { id: room.id } })}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
           >
-            {emergency ? <EmergencyTile /> : <RoomRing room={room} />}
+            {emergency ? <EmergencyTile /> : <RoomRing room={room} face={hostFaces.get(room.host_id)} />}
             <View style={styles.rowText}>
               <Text style={styles.rowTitle} numberOfLines={2}>
                 {room.name}
@@ -415,8 +429,11 @@ function EmergencyTile() {
   );
 }
 
-/** B2: the room-type sticker (40 pt) on a 48 pt wash tile, radius 14. B3 swaps it to the host's character. */
-function RoomRing({ room }: { room: Room }) {
+/** B2: the room-type sticker (40 pt) on a 48 pt wash tile. B3 (0043): the host's face (photo or character, 48) when known. */
+function RoomRing({ room, face }: { room: Room; face?: HostFace }) {
+  if (face) {
+    return <PersonAvatar userId={room.host_id} name="" path={face.avatar_path} character={face.avatar_character} size={48} />;
+  }
   return (
     <View style={styles.ring}>
       <ThemeSticker roomName={room.name} size={40} />

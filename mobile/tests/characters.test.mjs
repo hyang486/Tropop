@@ -49,3 +49,23 @@ test('choosing a character clears avatar_path so the server queues the old photo
   const mig = readFileSync(new URL('../../supabase/migrations/20261104000031_spec11_capacity_open_chat_question_cards.sql', import.meta.url), 'utf8');
   assert.match(mig, /old\.avatar_path is distinct from new\.avatar_path then\s+perform private\.enqueue_cleanup\('avatars', old\.avatar_path, 'avatar_replaced'\)/);
 });
+
+test('first run: guest and sign-up set the flag before signing in and clear it on failure; Rooms takes it once; Skip keeps the default', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const guest = read('../src/app/guest.tsx');
+  assert.ok(guest.indexOf('markCharacterPrompt()') < guest.indexOf('startAsGuest(name)'));
+  assert.match(guest, /catch \(e\) \{\s+await clearCharacterPrompt\(\)/);
+  const up = read('../src/app/sign-up.tsx');
+  assert.ok(up.indexOf('markCharacterPrompt()') < up.indexOf('signUpHost('));
+  assert.match(up, /await clearCharacterPrompt\(\);\s+throw e;/);
+  assert.match(read('../src/app/index.tsx'), /takeCharacterPrompt\(\)\.then\(\(pending\) => \{\s+if \(pending\) router\.push\('\/pick-character'\)/);
+  const pick = read('../src/app/pick-character.tsx');
+  assert.match(pick, /pickCharacterSkip\} onPress=\{\(\) => router\.back\(\)\}/);
+  assert.match(pick, /defaultCharacter\(userId\)/);
+});
+
+test('Rooms rows show the host face when known and keep the room-type sticker otherwise', () => {
+  const idx = readFileSync(new URL('../src/app/index.tsx', import.meta.url), 'utf8');
+  assert.match(idx, /if \(face\) \{\s+return <PersonAvatar userId=\{room\.host_id\}/);
+  assert.match(idx, /<ThemeSticker roomName=\{room\.name\} size=\{40\} \/>/);
+});
